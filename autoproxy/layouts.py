@@ -297,7 +297,7 @@ layout_map = {
     "modal_dfc": ModalDoubleFacedLayout,
     "adventure": AdventureLayout,
     "leveler": LevelerLayout,
-    "saga": SagaLayout
-    # "meld": MeldLayout,
-    # "planar": PlanarLayout,
+    "saga": SagaLayout,
+    "planar": PlanarLayout,
+    "meld": MeldLayout
 }

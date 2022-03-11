@@ -73,8 +73,8 @@ class BaseTemplate(object):
         if len(self.layout.set) > 3: self.layout.set = self.layout.set[1:]
         
         # Automatic set symbol enabled?
-        if cfg.auto_symbol == True: 
-            if self.layout.set in con.set_symbol_library: 
+        if cfg.auto_symbol: 
+            if self.layout.set in con.set_symbol_library:
                 self.symbol_char = con.set_symbol_library[self.layout.set]
             else: self.symbol_char = cfg.symbol_char
         else: self.symbol_char = cfg.symbol_char
@@ -97,7 +97,8 @@ class BaseTemplate(object):
             self.collector_layer.visible = True
             psd.getLayer("Artist", self.legal_layer).visible = False
             psd.getLayer("Set", self.legal_layer).visible = False
-            psd.getLayer("Pen", self.legal_layer).visible = False
+            try: psd.getLayer("Pen", self.legal_layer).visible = False
+            except: pass
 
             # Get the collector layers
             self.collector_top = psd.getLayer(con.layers['TOP_LINE'], self.collector_layer)
@@ -215,9 +216,12 @@ class StarterTemplate (BaseTemplate):
     # TODO: add code for transform and mdfc stuff here (since both normal and planeswalker templates need to inherit them)
     def __init__ (self, layout, file):
         super().__init__(layout, file)
-        self.is_creature = bool(self.layout.power and self.layout.toughness)
-        self.is_legendary = bool(self.layout.type_line.find("Legendary") >= 0)
-        self.is_land = bool(self.layout.type_line.find("Land") >= 0)
+        try: self.is_creature = bool(self.layout.power and self.layout.toughness)
+        except: self.is_creature = False
+        try: self.is_legendary = bool(self.layout.type_line.find("Legendary") >= 0)
+        except: self.is_legendary = False
+        try: self.is_land = bool(self.layout.type_line.find("Land") >= 0)
+        except: self.is_land = False
         try: self.is_companion = bool("companion" in self.layout.frame_effects)
         except: self.is_companion = False 
     
@@ -1225,87 +1229,91 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     def enable_background (self):
         pass
 
+""" 
+Misc. Templates
 """
-
-# Misc. Templates
-PlanarTemplate = Class({
-    extends_: ChilliBaseTemplate,
-    template_file_name: function () {
+class PlanarTemplate (StarterTemplate):
+    def template_file_name (self):
         return "planar"
-    },
-    constructor: function (layout, file, file_path) {
-        self.super(layout, file, file_path)
-        exit_early = True
-
+    
+    def __init__ (self, layout, file):
+        super().__init__(layout, file)
+        self.exit_early = True
         docref = app.activeDocument
-        self.art_reference = docref.layers.getByName(con.layers.ART_FRAME)
-        // artist
-        replace_text(docref.layers.getByName(con.layers.LEGAL).layers.getByName(con.layers.ARTIST), "Artist", self.layout.artist)
+        self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
 
-        // card name, type line, expansion symbol
-        text_and_icons = docref.layers.getByName(con.layers.TEXT_AND_ICONS)
-        name = text_and_icons.layers.getByName(con.layers.NAME)
-        type_line = text_and_icons.layers.getByName(con.layers.TYPE_LINE)
-        expansion_symbol = text_and_icons.layers.getByName(con.layers.EXPANSION_SYMBOL)
+        # card name, type line, expansion symbol
+        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
+        name = psd.getLayer(con.layers['NAME'], text_and_icons)
+        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
+        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
+        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
 
-        // note: overwriting self.tx_layers because the paintbrush symbol is part of the artist text layer, so we inserted the
-        // artist name separately earlier with replace_text(), and the artist usually comes for free with self.tx_layers.
+        # Overwrite self.tx_layers
         self.tx_layers = [
-            new TextField(
+            txt_layers.TextField(
                 layer = name,
                 text_contents = self.layout.name,
-                text_color = get_text_layer_color(name),
+                text_color = psd.get_text_layer_color(name),
             ),
-            new ScaledTextField(
+            txt_layers.ScaledTextField(
                 layer = type_line,
                 text_contents = self.layout.type_line,
-                text_color = get_text_layer_color(type_line),
+                text_color = psd.get_text_layer_color(type_line),
                 reference_layer = expansion_symbol,
+            ),
+            txt_layers.ExpansionSymbolField(
+                layer = expansion_symbol,
+                text_contents = self.symbol_char,
+                rarity = self.layout.rarity,
+                reference = expansion_reference
             )
         ]
 
-        static_ability = text_and_icons.layers.getByName(con.layers.STATIC_ABILITY)
-        chaos_ability = text_and_icons.layers.getByName(con.layers.CHAOS_ABILITY)
+        static_ability = psd.getLayer(con.layers['STATIC_ABILITY'], text_and_icons)
+        chaos_ability = psd.getLayer(con.layers['CHAOS_ABILITY'], text_and_icons)
 
-        if (self.layout.type_line === con.layers.PHENOMENON) {
-            // phenomenon card - insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
-            self.tx_layers.push(
-                new BasicFormattedTextField(
+        if self.layout.type_line == con.layers['PHENOMENON']:
+            
+            # phenomenon card - insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
+            self.tx_layers.append(
+                txt_layers.BasicFormattedTextField(
                     layer = static_ability,
                     text_contents = self.layout.oracle_text,
-                    text_color = get_text_layer_color(static_ability),
+                    text_color = psd.get_text_layer_color(static_ability),
                 )
             )
-            textbox = docref.layers.getByName(con.layers.TEXTBOX)
-            docref.activeLayer = textbox
-            disable_active_layer_mask()
-            text_and_icons.layers.getByName(con.layers.CHAOS_SYMBOL).visible = False
+            
+            docref.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'])
+            psd.disable_active_layer_mask()
+            psd.getLayer(con.layers['CHAOS_SYMBOL'], text_and_icons).visible = False
             chaos_ability.visible = False
-        } else {
-            // plane card - split oracle text on last line break, insert everything before it into static ability layer and the rest
-            // into chaos ability layer
-            linebreak_index = self.layout.oracle_text.lastIndexOf("\n")
-            self.tx_layers = self.tx_layers.concat([
-                new BasicFormattedTextField(
+
+        else:
+
+            # Plane card - split oracle text on last line break, insert everything before it into static ability layer and the rest
+            # into chaos ability layer
+            linebreak_index = self.layout.oracle_text.rindex("\n")
+            self.tx_layers.extend([
+                txt_layers.BasicFormattedTextField(
                     layer = static_ability,
-                    text_contents = self.layout.oracle_text.slice(0, linebreak_index),
-                    text_color = get_text_layer_color(static_ability),
+                    text_contents = self.layout.oracle_text[0:linebreak_index],
+                    text_color = psd.get_text_layer_color(static_ability),
                 ),
-                new BasicFormattedTextField(
+                txt_layers.BasicFormattedTextField(
                     layer = chaos_ability,
-                    text_contents = self.layout.oracle_text.slice(linebreak_index + 1),
-                    text_color = get_text_layer_color(chaos_ability),
+                    text_contents = self.layout.oracle_text[linebreak_index+1:],
+                    text_color = psd.get_text_layer_color(chaos_ability),
                 ),
             ])
-        }
 
-        // paste scryfall scan
-        app.activeDocument.activeLayer = docref.layers.getByName(con.layers.TEXTBOX)
-        self.paste_scryfall_scan(app.activeDocument.layers.getByName(con.layers.SCRYFALL_SCAN_FRAME), file_path, True)
-    },
-    enable_frame_layers: function () { },
-})
-"""
+        # paste scryfall scan
+        docref.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'])
+        self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), True)
+    
+    def enable_frame_layers (self):
+        pass
+
 """
 Basic land Templates
 """

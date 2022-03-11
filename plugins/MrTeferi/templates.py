@@ -94,6 +94,8 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     """
      * The crimson vow showcase template.
      * Original template by michayggdrasil
+     * Works for Normal and Transform cards
+     * Transform is kinda experimental.
     """
     def template_file_name (self):
         return "MrTeferi/crimson-fang"
@@ -223,9 +225,6 @@ class PromoClassicTemplate (temp.NormalClassicTemplate):
      * Identical to NormalClassic
      * Promo star added
     """
-    def template_file_name (self):
-        return "normal-classic"
-    
     def template_suffix (self):
         return "Classic Promo"
     
