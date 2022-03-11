@@ -15,11 +15,11 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # Requirements
   * A copy of Photoshop (2015-2022 Tested)
-  * [The Photoshop templates](https://drive.google.com/drive/folders/1UHZ_0dVQm_UTvTj5Z41YksnqemSoZajv?usp=sharing)
+  * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
   * The following fonts, included in fonts folder:
     * [Beleren Smallcaps, MPlantin and MPlantin-Italics](https://github.com/magarena/magarena/tree/master/resources/cardbuilder/fonts) and [Beleren2016](https://magic.wizards.com/sites/all/themes/wiz_mtg/fonts/Beleren/Beleren2016-Bold.ttf),
     * Chilli's custom Magic symbols font, NDPMTG,ttf
-    * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/), for the expansion symbol and transform symbols,
+    * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Keep Keyrune updated for expansion symbols)
     * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium) and Calibri (comes with Windows)
   * A standard installation of [Python 3](https://www.python.org/downloads/) (Python 3.8 Recommended, during installation make sure to hit "Add Python to PATH")
 
