@@ -3,9 +3,9 @@ import os
 import re
 
 # MY MODULES
-import autoproxy.constants as con
-import autoproxy.settings as cfg
-import autoproxy.helpers as psd
+import proxyshop.constants as con
+import proxyshop.settings as cfg
+import proxyshop.helpers as psd
 import photoshop.api as ps
 app = ps.Application()
 

@@ -1,4 +1,4 @@
-import autoproxy.constants as con
+import proxyshop.constants as con
 import photoshop.api as ps
 app = ps.Application()
 

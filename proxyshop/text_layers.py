@@ -1,7 +1,7 @@
-import autoproxy.helpers as psd
-import autoproxy.constants as con
-import autoproxy.settings as cfg
-import autoproxy.format_text as format_text
+import proxyshop.helpers as psd
+import proxyshop.constants as con
+import proxyshop.settings as cfg
+import proxyshop.format_text as format_text
 import photoshop.api as ps
 app = ps.Application()
 

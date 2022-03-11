@@ -2,7 +2,7 @@ import time
 import sys
 import json
 from urllib import request, parse, error
-import autoproxy.constants as con
+import proxyshop.constants as con
 
 def card_info(card_name, card_set):
     # Use Scryfall to search for this card

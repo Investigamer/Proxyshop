@@ -2,13 +2,13 @@
 MRTEFERI TEMPLATES
 """
 import os
-import autoproxy.frame_logic as frame_logic
-import autoproxy.format_text as format_text
-import autoproxy.text_layers as txt_layers
-import autoproxy.templates as temp
-import autoproxy.constants as con
-import autoproxy.settings as cfg
-import autoproxy.helpers as psd
+import proxyshop.frame_logic as frame_logic
+import proxyshop.format_text as format_text
+import proxyshop.text_layers as txt_layers
+import proxyshop.templates as temp
+import proxyshop.constants as con
+import proxyshop.settings as cfg
+import proxyshop.helpers as psd
 import photoshop.api as ps
 app = ps.Application()
 

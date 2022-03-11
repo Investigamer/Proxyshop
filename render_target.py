@@ -5,8 +5,8 @@ import os
 import configparser
 from glob import glob
 from pathlib import Path
-import autoproxy.settings as cfg
-import autoproxy.render as rend
+import proxyshop.settings as cfg
+import proxyshop.render as rend
 import photoshop.api as ps
 app = ps.Application()
 file = app.openDialog();

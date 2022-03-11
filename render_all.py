@@ -5,8 +5,8 @@ import os
 import configparser
 from glob import glob
 from pathlib import Path
-import autoproxy.settings as cfg
-import autoproxy.render as rend
+import proxyshop.settings as cfg
+import proxyshop.render as rend
 
 # Make sure out folder exists
 Path("out").mkdir(mode=511, parents=True, exist_ok=True)

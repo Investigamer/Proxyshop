@@ -1,0 +1,79 @@
+{
+	"normal": {
+		"default": [ "proxyshop.templates", "NormalTemplate" ], 
+		"other": {
+			"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
+			"Masterpiece": ["proxyshop.templates", "MasterpieceTemplate"],
+			"Classic": ["proxyshop.templates", "NormalClassicTemplate"],
+			"Fullart": ["proxyshop.templates", "NormalFullartTemplate"],
+			"Stargazing": ["proxyshop.templates", "StargazingTemplate"],
+			"Expedition": ["proxyshop.templates", "ExpeditionTemplate"],
+			"WomensDay": ["proxyshop.templates", "WomensDayTemplate"],
+			"Miracle": ["proxyshop.templates", "MiracleTemplate"],
+			"Snow": ["proxyshop.templates", "SnowTemplate"]
+		}
+	},
+	"transform_front": {
+		"default": ["proxyshop.templates", "TransformFrontTemplate"],
+		"other": {}
+	},
+	"transform_back": {
+		"default": ["proxyshop.templates", "TransformBackTemplate"],
+		"other": {}
+	},
+	"ixalan": {
+		"default": ["proxyshop.templates", "IxalanTemplate"],
+		"other": {}
+	},
+	"mdfc_front": {
+		"default": ["proxyshop.templates", "MDFCFrontTemplate"],
+		"other": {}
+	},
+	"mdfc_back": {
+		"default": ["proxyshop.templates", "MDFCBackTemplate"],
+		"other": {}
+	},
+	"mutate": {
+		"default": ["proxyshop.templates", "MutateTemplate"],
+		"other": {}
+	},
+	"adventure": {
+		"default": ["proxyshop.templates", "AdventureTemplate"],
+		"other": {}
+	},
+	"leveler": {
+		"default": ["proxyshop.templates", "LevelerTemplate"],
+		"other": {}
+	},
+	"saga": {
+		"default": ["proxyshop.templates", "SagaTemplate"],
+		"other": {}
+	},
+	"miracle": {
+		"default": ["proxyshop.templates", "MiracleTemplate"],
+		"other": {}
+	},
+	"planeswalker": {
+		"default": ["proxyshop.templates", "PlaneswalkerTemplate"],
+		"other": {
+			"Extended": ["proxyshop.templates", "PlaneswalkerExtendedTemplate"]
+		}
+	},
+	"snow": {
+		"default": ["proxyshop.templates", "SnowTemplate"],
+		"other": {}
+	},
+	"basic": {
+		"default": ["proxyshop.templates", "BasicLandTemplate"],
+		"other": {
+			"Theros": ["proxyshop.templates", "BasicLandTherosTemplate"],
+			"Classic": ["proxyshop.templates", "BasicLandClassicTemplate"],
+			"Unstable": ["proxyshop.templates", "BasicLandUnstableTemplate"]
+		}
+	},
+	"planar": {
+		"default": ["proxyshop.templates", "PlanarTemplate"],
+		"other": {}
+	}
+
+}

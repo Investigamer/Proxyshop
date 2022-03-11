@@ -3,8 +3,8 @@ CORE LAYOUTS
 """
 import os
 import re
-import autoproxy.constants as con
-import autoproxy.frame_logic as frame_logic
+import proxyshop.constants as con
+import proxyshop.frame_logic as frame_logic
 
 class NormalLayout:
     def __init__(self, scryfall, card):

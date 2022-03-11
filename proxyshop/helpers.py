@@ -1,7 +1,7 @@
 import os
 import re
-import autoproxy.constants as con
-import autoproxy.settings as cfg
+import proxyshop.constants as con
+import proxyshop.settings as cfg
 import photoshop.api as ps
 app = ps.Application()
 
@@ -375,7 +375,7 @@ def insert_scryfall_scan(image_url):
     """
      * Downloads the specified scryfall scan and inserts it into a new layer next to the active layer. Returns the new layer.
     """
-    import autoproxy.scryfall as scry
+    import proxyshop.scryfall as scry
     scryfall_scan = scry.card_scan(image_url)
     return paste_file_into_new_layer(scryfall_scan)
 

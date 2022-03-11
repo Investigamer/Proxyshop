@@ -3,12 +3,12 @@ INITIATE AND PREPARE RENDER JOB
 """
 import os
 import re
-import autoproxy.layouts as layouts
-import autoproxy.constants as con
-import autoproxy.settings as cfg
-import autoproxy.scryfall as scry
+import proxyshop.layouts as layouts
+import proxyshop.constants as con
+import proxyshop.settings as cfg
+import proxyshop.scryfall as scry
 import plugins.loader as loader
-from autoproxy.helpers import save_and_close
+from proxyshop.helpers import save_and_close
 
 def retrieve_card_info (filename):
     """

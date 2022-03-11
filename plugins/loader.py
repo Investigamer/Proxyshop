@@ -12,7 +12,7 @@ def get_template(template, layout):
 	folders = glob(os.path.join(cwd, "plugins\\*\\"))
 
 	# Get our main json
-	json_file = open(os.path.join(cwd, "autoproxy\\templates.json"))
+	json_file = open(os.path.join(cwd, "proxyshop\\templates.json"))
 	main_json = json.load(json_file)
 	json_file.close()
 
