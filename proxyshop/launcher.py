@@ -109,8 +109,9 @@ def render_target(temps):
 	from pathlib import Path
 	import proxyshop.render as rend
 	import photoshop.api as ps
+	cwd = os.getcwd()
 	app = ps.Application()
-	file = app.openDialog();
+	file = app.openDialog()
 	
 	# Make sure out folder exists
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)

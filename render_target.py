@@ -7,7 +7,7 @@ import proxyshop.settings as cfg
 import proxyshop.render as rend
 import photoshop.api as ps
 app = ps.Application()
-file = app.openDialog();
+file = app.openDialog()
 
 # Make sure out folder exists
 Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
