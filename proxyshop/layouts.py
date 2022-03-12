@@ -19,10 +19,13 @@ def determine_card_face(scryfall, card_name):
 Simple definitions for Basic Land
 """
 class BasicLand:
-    def __init__ (self, artist, name, card_class):
+    def __init__ (self, artist, name, card_class, set):
         self.artist = artist
         self.name = name
         self.card_class = card_class
+        if set == None:
+            self.set = "MTG"
+        else: self.set = set
 
 """
 Class definitions

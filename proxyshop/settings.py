@@ -4,7 +4,7 @@ Process config file into global settings.
 import configparser
 
 # Import our config file
-cfg = configparser.ConfigParser(allow_no_value=True)
+cfg = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
 cfg.read("config.ini")
 
 # Manual expanson symbol (Keyrune cheatsheet)

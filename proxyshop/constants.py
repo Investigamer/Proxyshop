@@ -423,6 +423,7 @@ rarity_bonus = "bonus"
 
 # SET SYMBOL LIBRARY
 set_symbol_library = {
+    "MTG": "", # Default for not found
     "LEA": "",
     "LEB": "",
     "2ED": "",

@@ -2,8 +2,6 @@
 RENDER TARGET IMAGE
 """
 import os
-import configparser
-from glob import glob
 from pathlib import Path
 import proxyshop.settings as cfg
 import proxyshop.render as rend
@@ -12,7 +10,7 @@ app = ps.Application()
 file = app.openDialog();
 
 # Make sure out folder exists
-Path("out").mkdir(mode=511, parents=True, exist_ok=True)
+Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Split templates if defined
 if cfg.template: templates = cfg.template.split(",")
