@@ -38,7 +38,7 @@ def get_templates ():
             j = []
             make_default = False
             for name in os.listdir(folder):
-
+				
                 # Load json
                 if name == "template_map.json":
                     this_json = open(os.path.join(cwd, f"plugins\\{Path(folder).stem}\\{name}"))
@@ -49,7 +49,7 @@ def get_templates ():
                 if name == "config.ini":
                     # Import our config file
                     conf = configparser.ConfigParser(allow_no_value=True)
-                    conf.read("config.ini")
+                    conf.read(os.path.join(cwd, f"plugins\\{Path(folder).stem}\\{name}"), encoding="utf-8")
                     try: make_default = conf.getboolean('CONF', 'Make.Default')
                     except: make_default = False
 

@@ -78,7 +78,7 @@ def compute_text_layer_dimensions(layer):
      * Return an object with the specified text layer's width and height, which is achieved by rasterising
      * the layer and computing its width and height from its bounds.
     """
-    layer_copy = layer.Duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+    layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
     layer_copy.rasterize(ps.RasterizeType.TextContents)
     dimensions = compute_layer_dimensions(layer_copy)
     layer_copy.delete()

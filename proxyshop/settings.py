@@ -5,7 +5,7 @@ import configparser
 
 # Import our config file
 cfg = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
-cfg.read("config.ini")
+cfg.read("config.ini", encoding="utf-8")
 
 # Manual expanson symbol (Keyrune cheatsheet)
 symbol_char = cfg['CONF']['Expansion.Symbol']

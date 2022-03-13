@@ -439,7 +439,7 @@ class ArtLayer(Photoshop):
         self.eval_javascript(f"{layer}.remove()")
     
     def delete(self):
-        layer = f'app.activeDocument.artLayers.getByName("self.name")'
+        layer = f'app.activeDocument.artLayers.getByName("{self.app.name}")'
         self.eval_javascript(f"{layer}.remove()")
 
     def rasterize(self, target: RasterizeType):
