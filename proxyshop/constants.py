@@ -3,7 +3,7 @@ GLOBAL CONSTANTS
 Keep all global variables here.
 """
 import os
-import photoshop.api as ps
+from proxyshop.helpers import ps
 cwd = os.getcwd()
 
 # PATHS

@@ -6,8 +6,7 @@ import re
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
-import photoshop.api as ps
-app = ps.Application()
+from proxyshop.helpers import ps, app
 
 """
 Locating symbols and italics in the input string

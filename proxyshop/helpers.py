@@ -4,11 +4,6 @@ import proxyshop.constants as con
 import proxyshop.settings as cfg
 import photoshop.api as ps
 app = ps.Application()
-
-# Ensure scaling with pixels, font size with points
-app.preferences.rulerUnits = ps.Units.Pixels
-app.preferences.typeUnits = ps.Units.Points
-
 """
 ALL FUNCTIONS HAVE ACCES TO PHOTOSHOP
 """

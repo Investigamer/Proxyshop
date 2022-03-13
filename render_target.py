@@ -5,9 +5,9 @@ import os
 from pathlib import Path
 import proxyshop.settings as cfg
 import proxyshop.render as rend
-import photoshop.api as ps
-app = ps.Application()
+from proxyshop.helpers import ps, app
 file = app.openDialog()
+cwd = os.getcwd()
 
 # Make sure out folder exists
 Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)

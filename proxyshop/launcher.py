@@ -1,6 +1,5 @@
 from tkinter import *
 from tkinter import ttk
-from PIL import ImageTk,Image
 from plugins.loader import get_templates
 
 # Types of cards
@@ -108,9 +107,8 @@ def render_target(temps):
 	import os
 	from pathlib import Path
 	import proxyshop.render as rend
-	import photoshop.api as ps
+	from proxyshop.helpers import ps, app
 	cwd = os.getcwd()
-	app = ps.Application()
 	file = app.openDialog()
 	
 	# Make sure out folder exists

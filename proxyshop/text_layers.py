@@ -2,8 +2,7 @@ import proxyshop.helpers as psd
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.format_text as format_text
-import photoshop.api as ps
-app = ps.Application()
+from proxyshop.helpers import ps, app
 
 # HELPER functions
 def scale_text_right_overlap(layer, reference_layer):

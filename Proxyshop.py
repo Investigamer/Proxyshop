@@ -1,11 +1,13 @@
 import os
+import sys
 from tkinter import *
 from tkinter import ttk
-from PIL import ImageTk,Image
 import proxyshop.launcher as gui
 import proxyshop.render as rend
 from proxyshop.settings import cfg
 import proxyshop.settings as conf
+sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
 cwd = os.getcwd()
 
 def render_all(lb):
@@ -106,8 +108,8 @@ def update_config():
 	cfg.set("CONF", "No.Reminder.Text", str(NoReminder.get()))
 	cfg.set("CONF", "Fast.Saving", str(SaveUncompressed.get()))
 	cfg.set("CONF", "Manual.Edit", str(ManualEdit.get()))
-	config_file = open(os.path.join(cwd, "config.ini"), "w")
-	cfg.write(config_file)
-	config_file.close()
+	with open("config.ini", "w", encoding="utf-8") as config_file:
+		cfg.write(config_file)
+		config_file.close()
 
 root.mainloop()

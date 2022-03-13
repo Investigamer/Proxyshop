@@ -1,6 +1,5 @@
 import proxyshop.constants as con
-import photoshop.api as ps
-app = ps.Application()
+from proxyshop.helpers import ps, app
 
 def fix_color_pair(input):
     # Utility def to standardise ordering of color pairs, e.g. "UW" becomes "WU"

@@ -8,9 +8,11 @@ import proxyshop.text_layers as txt_layers
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
-import photoshop.api as ps
-app = ps.Application()
+from proxyshop.helpers import ps, app
 
+# Ensure scaling with pixels, font size with points
+app.preferences.rulerUnits = ps.Units.Pixels
+app.preferences.typeUnits = ps.Units.Points
 """
 Template boilerplate class
 Your entrypoint to customising this project for automating your own templates. You should write classes that extend BaseTemplate for your 
