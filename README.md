@@ -14,7 +14,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
 # Requirements
-  * A copy of Photoshop (2015-2022 Tested)
+  * A copy of Photoshop (2015-2021 Tested)
   * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
   * The following fonts, included in fonts folder:
     * [Beleren Smallcaps, MPlantin and MPlantin-Italics](https://github.com/magarena/magarena/tree/master/resources/cardbuilder/fonts) and [Beleren2016](https://magic.wizards.com/sites/all/themes/wiz_mtg/fonts/Beleren/Beleren2016-Bold.ttf),
