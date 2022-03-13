@@ -413,7 +413,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         idPnt = app.charIDToTypeID("#Pnt")
         desc143.putUnitDouble(idSz, idPnt, 11.998500)  # TODO: what's this?
         idautoLeading = app.stringIDToTypeID("autoLeading")
-        desc143.putBoolean(idautoLeading, false)
+        desc143.putBoolean(idautoLeading, False)
         idTxtS = app.charIDToTypeID("TxtS")
         desc142.putObject(iddefaultStyle, idTxtS, desc143)
         idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
@@ -518,7 +518,7 @@ def format_text_wrapper():
     card_text = app.activeDocument.activeLayer.textItem.contents
     italic_text = generate_italics(card_text)
     italic_text.color = rgb_grey()
-    format_text(card_text, italic_text, -1, false)
+    format_text(card_text, italic_text, -1, False)
 
 def strip_reminder_text(oracle_text):
     """
