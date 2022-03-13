@@ -28,9 +28,9 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
 * Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
 * Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.
-* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the pohotoshop template and add a text layer called "ProxyCreator" in the Legal layer group.
+* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "ProxyCreator" in the Legal layer group.
 
-# Usage Guide (Proxyshop GUI)
+# Usage Guide (GUI)
 * Run `Proxyshop.py`. 
 * The tabs shown are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.
 * The checkboxes are settings, saved to the config.ini file and will be maintained for the next time you open the app.
