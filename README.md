@@ -7,8 +7,8 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
   </a>
   <img alt="Maintenance" src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen?style=plastic"></a>
   <img alt="GitHub" src="https://img.shields.io/github/license/MrTeferi/MTG-Autoproxy?color=1082C2&style=plastic">
-  <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CS5--2022-informational?style=plastic">
-  <img alt="Python" src="https://img.shields.io/badge/python-3.6%2B-yellow?style=plastic">
+  <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CS5--2021-informational?style=plastic">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.7%2B-yellow?style=plastic">
 </p>
 
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
@@ -23,12 +23,20 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
     * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium) and Calibri (comes with Windows)
   * A standard installation of [Python 3](https://www.python.org/downloads/) (Python 3.8 Recommended, during installation make sure to hit "Add Python to PATH")
 
-# Install and Usage Guide
+# Install Guide
 * Clone to a folder of your choice, referred to as the *working directory*.
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
 * Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
 * Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.
-* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the pohotoshop template and add a text layer called "ProxyCreator" in the Legal group.
+* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the pohotoshop template and add a text layer called "ProxyCreator" in the Legal layer group.
+
+# Usage Guide (Proxyshop GUI)
+* Run `Proxyshop.py`. 
+* The tabs shown are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.
+* The checkboxes are settings, saved to the config.ini file and will be maintained for the next time you open the app.
+* Hit "Render all" to render every card art in the `art` folder. Hit "Render target" to render one specific card.
+
+# Usage Guide (Manual)
 * Run `render_all.py`. Photoshop will open and start rendering each card in the `art` folder, saving results in an `out` folder automatically created in the working directory. `render_target` does the same but for a single image.
 * Modify `config.ini` to change how the scripts behave - change the default expansion symbol; force the system to use a particular template; choose whether to use automatic set symbols and symbol sizing; choose whether to use a .psd or .psb file; or force the system to stop before saving your cards and exiting so you can adjust them manually.
 
