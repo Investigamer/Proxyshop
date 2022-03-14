@@ -412,7 +412,7 @@ class NormalTemplate (StarterTemplate):
 
         if self.is_companion:
             # enable companion texture
-            psd.getLayer(self.layout.pinlines, LayerNames['COMPANION']).visible = True
+            psd.getLayer(self.layout.pinlines, con.layers['COMPANION']).visible = True
 
         if (self.is_legendary and self.layout.is_nyx) or self.is_companion:
             # legendary crown on nyx background - enable the hollow crown shadow and layer mask on crown, pinlines, and shadows

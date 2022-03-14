@@ -658,6 +658,7 @@ set_symbol_library = {
     "VOW": "",
     "VOC": "",
     "NEO": "",
+    "NEC": "",
     "UNF": "",
     "Y22": "",
     "CC2": "",

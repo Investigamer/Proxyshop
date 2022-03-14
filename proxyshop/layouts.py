@@ -86,8 +86,8 @@ class BaseLayout:
             self.card_class = con.mdfc_back_class
         elif self.type_line.find("Planeswalker") >= 0: 
             self.card_class = con.planeswalker_class
-        elif self.type_line.find("Snow") >= 0:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
-            self.card_class = con.snow_class
+        #elif self.type_line.find("Snow") >= 0:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
+        #    self.card_class = con.snow_class
         elif "Mutate" in self.keywords:
             self.card_class = con.mutate_class
         elif "Miracle" in self.frame_effects:
