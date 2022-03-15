@@ -1,46 +1,42 @@
 """
 CORE LAYOUTS
 """
-import os
 import re
 import proxyshop.constants as con
-import proxyshop.frame_logic as frame_logic
-
-class NormalLayout:
-    def __init__(self, scryfall, card):
-        print(scryfall)
+from proxyshop import frame_logic
 
 def determine_card_face(scryfall, card_name):
+    """
+    Helper Function, returns card face int
+    """
     if scryfall['card_faces'][0]['name'] == card_name: return con.Faces['FRONT']
-    elif scryfall['card_faces'][1]['name'] == card_name: return con.Faces['BACK']
-    else: print("Shit broke")
+    return con.Faces['BACK']
 
-"""
-Simple definitions for Basic Land
-"""
 class BasicLand:
-    def __init__ (self, artist, name, card_class, set):
-        self.artist = artist
+    """
+    No special data entry, just a basic land
+    """
+    def __init__ (self, name, artist=None, set_code=None):
         self.name = name
-        self.card_class = card_class
-        if set == None:
-            self.set = "MTG"
-        else: self.set = set
+        self.card_class = con.basic_class
+        if artist: self.artist = artist
+        else: self.artist = "Unknown"
+        if set_code: self.set = set_code.upper()
+        else: self.set = "MTG"
+        if len(self.set) > 3: self.set = self.set[1:]
 
-"""
-Class definitions
-"""
 class BaseLayout:
+    """
+    Superclass, extend to this class at bare minimum for info all cards should have.
+    """
+    # pylint: disable=R0902, E1101, E1111
     def __init__ (self, scryfall, card_name):
         """
-         * Constructor for base layout calls the JSON unpacker to set object parameters from the contents of the JSON (each extending 
-         * class needs to implement this) and determines frame colors for the card.
+         * Constructor for base layout calls the JSON unpacker to set object parameters from the contents of the JSON
+         * (each extending class needs to implement this) and determines frame colors for the card.
         """
-
-        # BASIC SCRYFALL INFO
         self.scryfall = scryfall
         self.card_name_raw = card_name
-
         self.unpack_scryfall()
         self.set_card_class()
 
@@ -54,26 +50,29 @@ class BaseLayout:
 
     def unpack_scryfall (self):
         """
-         * Extending classes should implement this method, unpack more information from the provided JSON, and call super(). This base method only unpacks 
-         * fields which are common to all layouts.
+         * Extending classes should implement this method, unpack more information from the provided JSON, and call super().
+         * This base method only unpacks fields which are common to all layouts.
          * At minimum, the extending class should set self.name, self.oracle_text, self.type_line, and self.mana_cost.
         """
-
         self.rarity = self.scryfall['rarity']
         self.artist = self.scryfall['artist']
-        self.set = self.scryfall['set']
+        self.set = self.scryfall['set'].upper()
+        if len(self.set) > 3: self.set = self.set[1:]
         self.collector_number = self.scryfall['collector_number']
         self.color_identity = self.scryfall['color_identity']
 
         # Optional vars
-        self.keywords = []
-        self.frame_effects = []
-        if self.scryfall['keywords']: self.keywords = self.scryfall['keywords']
+        if 'keywords' in self.scryfall: self.keywords = self.scryfall['keywords']
+        else: self.keywords = []
         if 'frame_effects' in self.scryfall: self.frame_effects = self.scryfall['frame_effects']
+        else: self.frame_effects = []
 
     def get_default_class (self):
+        """
+        Returns the default template type
+        """
         print("Default card class not defined!")
-    
+
     def set_card_class (self):
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
@@ -84,7 +83,7 @@ class BaseLayout:
             if self.type_line.find("Land") >= 0: self.card_class = con.ixalan_class
         elif self.card_class == con.mdfc_front_class and self.face == con.Faces['BACK']:
             self.card_class = con.mdfc_back_class
-        elif self.type_line.find("Planeswalker") >= 0: 
+        elif self.type_line.find("Planeswalker") >= 0:
             self.card_class = con.planeswalker_class
         #elif self.type_line.find("Snow") >= 0:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
         #    self.card_class = con.snow_class
@@ -94,23 +93,35 @@ class BaseLayout:
             self.card_class = con.miracle_class
 
 class NormalLayout (BaseLayout):
+    """
+    Use this as Superclass for most regular templates
+    """
+    # pylint: disable=R0902
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.name = self.scryfall['name']
         self.mana_cost = self.scryfall['mana_cost']
         self.type_line = self.scryfall['type_line']
         self.oracle_text = self.scryfall['oracle_text'].replace("\u2212", "-") # for planeswalkers
-        if self.scryfall['flavor_text']: self.flavor_text = self.scryfall['flavor_text']
-        else: self.flavor_text = ""
-        self.power = self.scryfall['power']
-        self.toughness = self.scryfall['toughness']
-        self.color_indicator = self.scryfall['color_indicator']
-        self.scryfall_scan = self.scryfall['image_uris']['large']
-    
+        try: self.flavor_text = self.scryfall['flavor_text']
+        except: self.flavor_text = ""
+        try: self.power = self.scryfall['power']
+        except: self.power = None
+        try: self.toughness = self.scryfall['toughness']
+        except: self.toughness = None
+        try: self.color_indicator = self.scryfall['color_indicator']
+        except: self.color_indicator = None
+        try: self.scryfall_scan = self.scryfall['image_uris']['large']
+        except: self.scryfall_scan = None
+
     def get_default_class(self):
         return con.normal_class
 
 class TransformLayout (BaseLayout):
+    """
+    Used for transform cards
+    """
+    # pylint: disable=R0902
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.face = determine_card_face(self.scryfall, self.card_name_raw)
@@ -131,11 +142,11 @@ class TransformLayout (BaseLayout):
         except: self.other_face_toughness = None
         try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']
         except: self.color_indicator = None
-        
+
         # TODO: REVISIT FOR MIDNIGHT HUNT etc
         # TODO: safe to assume the first frame effect will be the transform icon?
-        if self.scryfall['frame_effects']: 
-            if self.scryfall['frame_effects'][0] != "legendary": 
+        if self.scryfall['frame_effects']:
+            if self.scryfall['frame_effects'][0] != "legendary":
                 self.transform_icon = self.scryfall['frame_effects'][0]
             else: self.transform_icon = "sunmoondfc"
         else: self.transform_icon = "sunmoondfc"
@@ -145,6 +156,9 @@ class TransformLayout (BaseLayout):
         return con.transform_front_class
 
 class MeldLayout (NormalLayout):
+    """
+    Used for Meld cards
+    """
     def unpack_scryfall(self):
         super().unpack_scryfall()
         # determine if this card is a meld part or a meld result
@@ -152,10 +166,10 @@ class MeldLayout (NormalLayout):
         all_parts = self.scryfall['all_parts']
         meld_result_name = ""
         meld_result_idx = 0
-        for i in all_parts:
-            if i['component'] == "meld_result":
-                meld_result_name = i['name']
-                meld_result_idx = all_parts.index(i)
+        for part in all_parts:
+            if part['component'] == "meld_result":
+                meld_result_name = part['name']
+                meld_result_idx = all_parts.index(part)
                 break
 
         # Is this the meld result?
@@ -164,27 +178,29 @@ class MeldLayout (NormalLayout):
             # retrieve power and toughness of meld result
             self.other_face_power = self.scryfall['all_parts'][meld_result_idx]['info']['power']
             self.other_face_toughness = self.scryfall['all_parts'][meld_result_idx]['info']['toughness']
-        self.transform_icon = self.scryfall['frame_effects'][0]  # TODO: safe to assume the first frame effect will be the transform icon?
+        self.transform_icon = self.scryfall['frame_effects'][0]  # TODO: safe to assume the first frame effect is transform icon?
         self.scryfall_scan = self.scryfall['image_uris']['large']
-    
+
     def get_default_class(self):
         return con.transform_front_class
 
 class ModalDoubleFacedLayout (BaseLayout):
+    """
+    Used for Modal Double Faced cards
+    """
+    # pylint: disable=R0902
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.face = determine_card_face(self.scryfall, self.card_name_raw)
         self.other_face = -1 * (self.face - 1)
-
         self.name = self.scryfall['card_faces'][self.face]['name']
         self.mana_cost = self.scryfall['card_faces'][self.face]['mana_cost']
         self.type_line = self.scryfall['card_faces'][self.face]['type_line']
-
         self.oracle_text = self.scryfall['card_faces'][self.face]['oracle_text'].replace("\u2212", "-")  # for planeswalkers
         try: self.flavor_text = self.scryfall['card_faces'][self.face]['flavor_text']
         except: self.flavor_text = ""
         try: self.power = self.scryfall['card_faces'][self.face]['power']
-        except: self.power = None 
+        except: self.power = None
         try: self.toughness = self.scryfall['card_faces'][self.face]['toughness']
         except: self.toughness = None
         try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']  # comes as an array from scryfall
@@ -206,7 +222,7 @@ class ModalDoubleFacedLayout (BaseLayout):
             # other face is a land - right MDFC banner text should say what color of mana the land taps for
             other_face_oracle_text_split = self.scryfall['card_faces'][self.other_face]['oracle_text'].split("\n")
             other_face_mana_text = self.scryfall['card_faces'][self.other_face]['oracle_text']
-            if (len(other_face_oracle_text_split) > 1):
+            if len(other_face_oracle_text_split) > 1:
                 # iterate over rules text lines until the line that adds mana is identified
                 for i in other_face_oracle_text_split:
                     if i[0:3] == "{T}":
@@ -223,6 +239,10 @@ class ModalDoubleFacedLayout (BaseLayout):
         return con.mdfc_front_class
 
 class AdventureLayout (BaseLayout):
+    """
+    Used for Adventure cards
+    """
+    # pylint: disable=R0902
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.name = self.scryfall['card_faces'][0]['name']
@@ -246,14 +266,18 @@ class AdventureLayout (BaseLayout):
         self.artist = self.scryfall['artist']
 
         self.scryfall_scan = self.scryfall['image_uris']['large']
-    
+
     def get_default_class(self):
         return con.adventure_class
 
 class LevelerLayout (NormalLayout):
+    """
+    Used for Leveler cards
+    """
+    # pylint: disable=W1401
     def unpack_scryfall(self):
         super().unpack_scryfall()
-        # unpack oracle text into: level text, levels x-y text, levels z+ text, middle level, 
+        # unpack oracle text into: level text, levels x-y text, levels z+ text, middle level,
         # middle level power/toughness, bottom level, and bottom level power/toughness
         leveler_regex = re.compile("""(.*?)\\nLEVEL ([\d]*-[\d]*)\\n([\d]*[\/][\d]*)\\n(.*)\\nLEVEL ([\d]*[\+])\\n([\d]*\/[\d]*)\\n(.*)""")
         leveler_match = leveler_regex.match(self.oracle_text)
@@ -264,22 +288,28 @@ class LevelerLayout (NormalLayout):
         self.bottom_level = leveler_match[5]
         self.bottom_power_toughness = leveler_match[6]
         self.levels_z_plus_text = leveler_match[7]
-    
+
     def get_default_class(self):
         return con.leveler_class
 
 class SagaLayout (NormalLayout):
+    """
+    Used for Saga cards
+    """
     def unpack_scryfall(self):
         super().unpack_scryfall()
         # # unpack oracle text into saga lines
         self.saga_lines = self.oracle_text.split("\n")[1::]
-        for i in range(0,len(self.saga_lines)):
-            self.saga_lines[i] = self.saga_lines[i].split(" \u2014 ")[1]
+        for i, line in enumerate(self.saga_lines):
+            self.saga_lines[i] = line.split(" \u2014 ")[1]
 
     def get_default_class(self):
         return con.saga_class
 
 class PlanarLayout (BaseLayout):
+    """
+    Used for Planar cards
+    """
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.scryfall_scan = self.scryfall['image_uris']['large']
@@ -289,7 +319,7 @@ class PlanarLayout (BaseLayout):
         self.artist = self.scryfall['artist']
         self.name = self.scryfall['name']
         self.mana_cost = ""
-    
+
     def get_default_class(self):
         return con.planar_class
 

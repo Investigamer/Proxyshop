@@ -1,16 +1,12 @@
-# BASIC
-import os
+"""
+Utility functions to format text
+"""
+# pylint: disable=R0911, R0914, R0915, R1705
 import re
-
-# MY MODULES
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 import proxyshop.helpers as psd
 from proxyshop.helpers import ps, app
 
-"""
-Locating symbols and italics in the input string
-"""
 def locate_symbols(input_string):
     """
      * Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG, and determine
@@ -19,7 +15,7 @@ def locate_symbols(input_string):
     symbol_re = r"(\{.*?\})"
     symbol_indices = []
     #try:
-    while(True):
+    while True:
         match = re.search(symbol_re, input_string)
         if match:
             symbol = match[1]
@@ -50,13 +46,12 @@ def locate_italics(input_string, italics_strings):
 
         # replace symbols with their character representations in the italic string
         if italics.find("}") >= 0:
-            for symbol in con.symbols:
-                try: 
-                    italics = italics.replace(symbol, con.symbols[symbol])
+            for key, symbol in con.symbols.items():
+                try: italics = italics.replace(key, symbol)
                 except: pass
 
         # Locate Italicized text
-        while (True):
+        while True:
             start_index = input_string.find(italics, end_index)
             end_index = start_index + len(italics)
             if start_index < 0: break
@@ -73,7 +68,6 @@ def determine_symbol_colors(symbol, symbol_length):
     """
      * Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
     """
-
     symbol_color_map = {
         "W": con.rgb_w,
         "U": con.rgb_u,
@@ -94,7 +88,7 @@ def determine_symbol_colors(symbol, symbol_length):
     }
 
     # SPECIAL SYMBOLS
-    if symbol == "{E}" or symbol == "{CHAOS}":
+    if symbol  in ("{E}", "{CHAOS}"):
         # energy or chaos symbols
         return [psd.rgb_black()]
     elif symbol == "{S}":
@@ -139,63 +133,57 @@ def determine_symbol_colors(symbol, symbol_length):
     if normal_symbol_match: return [symbol_color_map[normal_symbol_match[1]], psd.rgb_black()]
 
     if symbol_length == 2: return [con.rgb_c, psd.rgb_black()]
-    else: print(f"Encountered a symbol that I don't know how to color: {symbol}")
+    print(f"Encountered a symbol that I don't know how to color: {symbol}")
+    return None
 
 def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_colors, layer_font_size):
     """
      * Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
     """
     current_ref = starting_layer_ref
-    for i in range(len(symbol_colors)):
-        idTxtt = app.charIDToTypeID("Txtt")
-        primary_action_list.putObject(idTxtt, current_ref)
+    for i, color in enumerate(symbol_colors):
         desc1 = ps.ActionDescriptor()
-        idFrom = app.charIDToTypeID("From")
-        desc1.putInteger(idFrom, symbol_index + i)
-        idT = app.charIDToTypeID("T   ")
-        desc1.putInteger(idT, symbol_index + i + 1)
-        idTxtS = app.charIDToTypeID("TxtS")
         desc2 = ps.ActionDescriptor()
-        idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
-        desc2.putString(idfontPostScriptName, con.font_name_ndpmtg) # NDPMTG font name
-        idFntN = app.charIDToTypeID("FntN")
-        desc2.putString(idFntN, con.font_name_ndpmtg) # NDPMTG font name
-        idSz = app.charIDToTypeID("Sz  ")
-        idPnt = app.charIDToTypeID("#Pnt")
-        desc2.putUnitDouble(idSz, idPnt, layer_font_size)
-        idautoLeading = app.stringIDToTypeID("autoLeading")
-        desc2.putBoolean(idautoLeading, False)
-        idLdng = app.charIDToTypeID("Ldng")
-        idPnt = app.charIDToTypeID("#Pnt")
-        desc2.putUnitDouble(idLdng, idPnt, layer_font_size)
-        idClr = app.charIDToTypeID("Clr ")
         desc3 = ps.ActionDescriptor()
-        """
-        idRd = app.charIDToTypeID("Rd  ")
-        desc3.putDouble(idRd, symbol_colors[i].rgb.red) # rgb value.red
-        idGrn = app.charIDToTypeID("Grn ")
-        desc3.putDouble(idGrn, symbol_colors[i].rgb.green) # rgb value.green
-        idBl = app.charIDToTypeID("Bl  ")
-        desc3.putDouble(idBl, symbol_colors[i].rgb.blue) # rgb value.blue
-        """
-        idRd = app.charIDToTypeID("Rd  ")
-        desc3.putDouble(idRd, symbol_colors[i].rgb.red) # rgb value.red
-        idGrn = app.charIDToTypeID("Grn ")
-        desc3.putDouble(idGrn, symbol_colors[i].rgb.green) # rgb value.green
-        idBl = app.charIDToTypeID("Bl  ")
-        desc3.putDouble(idBl, symbol_colors[i].rgb.blue) # rgb value.blue
-        
-        
-        idRGBC = app.charIDToTypeID("RGBC")
-        desc2.putObject(idClr, idRGBC, desc3)
         idTxtS = app.charIDToTypeID("TxtS")
+        primary_action_list.putObject(app.charIDToTypeID("Txtt"), current_ref)
+        desc1.putInteger(app.charIDToTypeID("From"), symbol_index + i)
+        desc1.putInteger(app.charIDToTypeID("T   "), symbol_index + i + 1)
+        desc2.putString(
+            app.stringIDToTypeID("fontPostScriptName"),
+            con.font_name_ndpmtg) # NDPMTG font name
+        desc2.putString(
+            app.charIDToTypeID("FntN"),
+            con.font_name_ndpmtg) # NDPMTG font name
+        desc2.putUnitDouble(
+            app.charIDToTypeID("Sz  "),
+            app.charIDToTypeID("#Pnt"),
+            layer_font_size)
+        desc2.putBoolean(app.stringIDToTypeID("autoLeading"), False)
+        desc2.putUnitDouble(
+            app.charIDToTypeID("Ldng"),
+            app.charIDToTypeID("#Pnt"),
+            layer_font_size)
+        desc3.putDouble(
+            app.charIDToTypeID("Rd  "),
+            color.rgb.red) # rgb value.red
+        desc3.putDouble(
+            app.charIDToTypeID("Grn "),
+            color.rgb.green) # rgb value.green
+        desc3.putDouble(
+            app.charIDToTypeID("Bl  "),
+            color.rgb.blue) # rgb value.blue
+        desc2.putObject(
+            app.charIDToTypeID("Clr "),
+            app.charIDToTypeID("RGBC"),
+            desc3)
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
 
 def format_text(input_string, italics_strings, flavor_index, is_centered):
     """
-     * Inserts the given string into the active layer and formats it according to def parameters with symbols 
+     * Inserts the given string into the active layer and formats it according to def parameters with symbols
      * from the NDPMTG font.
      * @param {str} input_string The string to insert into the active layer
      * @param {Array[str]} italic_strings An array containing strings that are present in the main input string and should be italicised
@@ -208,7 +196,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
 
     # TODO: check that the active layer is a text layer, and raise an issue if not
     if flavor_index > 0: quote_index = input_string.find("\r", flavor_index + 3)
-    else: quote_index = 0 
+    else: quote_index = 0
 
     # Locate symbols and update the input string
     ret = locate_symbols(input_string)
@@ -222,82 +210,81 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     layer_font_size = app.activeDocument.activeLayer.textItem.size
     layer_text_color = app.activeDocument.activeLayer.textItem.color
     # layer_text_color = rgb_grey()
-    desc119 = ps.ActionDescriptor()
-    idnull = app.charIDToTypeID("null")
-    ref101 = ps.ActionReference()
-    idTxLr = app.charIDToTypeID("TxLr")
-    idOrdn = app.charIDToTypeID("Ordn")
-    idTrgt = app.charIDToTypeID("Trgt")
-    ref101.putEnumerated(idTxLr, idOrdn, idTrgt)
-    desc119.putReference(idnull, ref101)
     primary_action_descriptor = ps.ActionDescriptor()
-    idTxt = app.charIDToTypeID("Txt ")
-    primary_action_descriptor.putString(idTxt, input_string)
     primary_action_list = ps.ActionList()
-    desc25 = ps.ActionDescriptor()
-    idFrom = app.charIDToTypeID("From")
-    desc25.putInteger(idFrom, 0)
-    idT = app.charIDToTypeID("T   ")
-    desc25.putInteger(idT, len(input_string))
+    desc119 = ps.ActionDescriptor()
+    desc27 = ps.ActionDescriptor()
     desc26 = ps.ActionDescriptor()
+    desc25 = ps.ActionDescriptor()
+    ref101 = ps.ActionReference()
+    desc141 = ps.ActionDescriptor()
+    desc142 = ps.ActionDescriptor()
+    desc143 = ps.ActionDescriptor()
+    list13 = ps.ActionList()
+    list14 = ps.ActionList()
+    idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
     idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
-    desc26.putString(idfontPostScriptName, con.font_name_mplantin)  # MPlantin font name
+    idfirstLineIndent = app.stringIDToTypeID("firstLineIndent")
+    idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
+    idkerningRange = app.stringIDToTypeID("kerningRange")
+    idautoLeading = app.stringIDToTypeID("autoLeading")
+    idstartIndent = app.stringIDToTypeID("startIndent")
+    idspaceBefore = app.stringIDToTypeID("spaceBefore")
+    idleadingType = app.stringIDToTypeID("leadingType")
+    idspaceAfter = app.stringIDToTypeID("spaceAfter")
+    idendIndent = app.stringIDToTypeID("endIndent")
+    idsetd = app.charIDToTypeID("setd")
+    idTxLr = app.charIDToTypeID("TxLr")
+    idFrom = app.charIDToTypeID("From")
+    idT = app.charIDToTypeID("T   ")
     idFntN = app.charIDToTypeID("FntN")
-    desc26.putString(idFntN, con.font_name_mplantin)  # MPlantin font name
     idSz = app.charIDToTypeID("Sz  ")
     idPnt = app.charIDToTypeID("#Pnt")
-    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
     idClr = app.charIDToTypeID("Clr ")
-    desc27 = ps.ActionDescriptor()
     idRd = app.charIDToTypeID("Rd  ")
-    desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
     idGrn = app.charIDToTypeID("Grn ")
-    desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
     idBl = app.charIDToTypeID("Bl  ")
-    desc27.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
     idRGBC = app.charIDToTypeID("RGBC")
-    desc26.putObject(idClr, idRGBC, desc27)
-    idHrzS = app.charIDToTypeID("HrzS")
-    idautoLeading = app.stringIDToTypeID("autoLeading")
-    desc26.putBoolean(idautoLeading, False)
     idLdng = app.charIDToTypeID("Ldng")
-    idPnt = app.charIDToTypeID("#Pnt")
+    idTxtt = app.charIDToTypeID("Txtt")
+    idFrom = app.charIDToTypeID("From")
+    ref101.putEnumerated(
+        idTxLr,
+        app.charIDToTypeID("Ordn"),
+        app.charIDToTypeID("Trgt"))
+    desc119.putReference(app.charIDToTypeID("null"), ref101)
+    primary_action_descriptor.putString(app.charIDToTypeID("Txt "), input_string)
+    desc25.putInteger(idFrom, 0)
+    desc25.putInteger(idT, len(input_string))
+    desc26.putString(idfontPostScriptName, con.font_name_mplantin)  # MPlantin font name
+    desc26.putString(idFntN, con.font_name_mplantin)  # MPlantin font name
+    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
+    desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
+    desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
+    desc27.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
+    desc26.putObject(idClr, idRGBC, desc27)
+    desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
     idTxtS = app.charIDToTypeID("TxtS")
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
-    for i in range(len(italics_indices)):
+    for italics_indice in italics_indices:
         # Italics text
-        idTxtt = app.charIDToTypeID("Txtt")
         primary_action_list.putObject(idTxtt, current_layer_ref)
         desc125 = ps.ActionDescriptor()
-        idFrom = app.charIDToTypeID("From")
-        desc125.putInteger(idFrom, italics_indices[i]['start_index'])  # italics start index
-        idT = app.charIDToTypeID("T   ")
-        desc125.putInteger(idT, italics_indices[i]['end_index'])  # italics end index
-        idTxtS = app.charIDToTypeID("TxtS")
+        desc125.putInteger(idFrom, italics_indice['start_index'])  # italics start index
+        desc125.putInteger(idT, italics_indice['end_index'])  # italics end index
         desc126 = ps.ActionDescriptor()
-        idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
         desc126.putString(idfontPostScriptName, con.font_name_mplantin_italic)  # MPlantin italic font name
-        idFntN = app.charIDToTypeID("FntN")
         desc126.putString(idFntN, con.font_name_mplantin_italic)  # MPlantin italic font name
-        idFntS = app.charIDToTypeID("FntS")
-        idSz = app.charIDToTypeID("Sz  ")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc126.putUnitDouble(idSz, idPnt, layer_font_size)
-        idautoLeading = app.stringIDToTypeID("autoLeading")
         desc126.putBoolean(idautoLeading, False)
-        idLdng = app.charIDToTypeID("Ldng")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
-        idTxtS = app.charIDToTypeID("TxtS")
         # Added
-        idClr = app.charIDToTypeID("Clr ")
         descTemp = ps.ActionDescriptor()
-        idRd = app.charIDToTypeID("Rd  ")
         """
-        // GREY
+        # GREY
         descTemp.putDouble(idRd, 170)  // text color.red
         idGrn = app.charIDToTypeID("Grn ")
         descTemp.putDouble(idGrn, 170)  // text color.green
@@ -306,75 +293,43 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         """
         # Default text box
         descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-        idGrn = app.charIDToTypeID("Grn ")
         descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-        idBl = app.charIDToTypeID("Bl  ")
         descTemp.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-
-        idRGBC = app.charIDToTypeID("RGBC")
         desc126.putObject( idClr, idRGBC, descTemp )
         # End
         desc125.putObject(idTxtS, idTxtS, desc126)
         current_layer_ref = desc125
 
     # Format each symbol correctly
-    for i in range(len(symbol_indices)):
+    for symbol_indice in symbol_indices:
         current_layer_ref = format_symbol(
             primary_action_list = primary_action_list,
             starting_layer_ref = current_layer_ref,
-            symbol_index = symbol_indices[i]['index'],
-            symbol_colors = symbol_indices[i]['colors'],
+            symbol_index = symbol_indice['index'],
+            symbol_colors = symbol_indice['colors'],
             layer_font_size = layer_font_size,
         )
 
-    idTxtt = app.charIDToTypeID("Txtt")
     primary_action_list.putObject(idTxtt, current_layer_ref)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
 
     # paragraph formatting
-    idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
-    list13 = ps.ActionList()
-    desc141 = ps.ActionDescriptor()
-    idFrom = app.charIDToTypeID("From")
     desc141.putInteger(idFrom, 0)
-    idT = app.charIDToTypeID("T   ")
     desc141.putInteger(idT, len(input_string))  # input string length
-    idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
-    desc142 = ps.ActionDescriptor()
-    idfirstLineIndent = app.stringIDToTypeID("firstLineIndent")
-    idPnt = app.charIDToTypeID("#Pnt")
     desc142.putUnitDouble(idfirstLineIndent, idPnt, 0.000000)
-    idstartIndent = app.stringIDToTypeID("startIndent")
-    idPnt = app.charIDToTypeID("#Pnt")
     desc142.putUnitDouble(idstartIndent, idPnt, 0.000000)
-    idendIndent = app.stringIDToTypeID("endIndent")
-    idPnt = app.charIDToTypeID("#Pnt")
     desc142.putUnitDouble(idendIndent, idPnt, 0.000000)
-    idspaceBefore = app.stringIDToTypeID("spaceBefore")
-    idPnt = app.charIDToTypeID("#Pnt")
     if is_centered:  # line break lead
         desc142.putUnitDouble(idspaceBefore, idPnt, 0)
     else:
         desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
-    idspaceAfter = app.stringIDToTypeID("spaceAfter")
-    idPnt = app.charIDToTypeID("#Pnt")
     desc142.putUnitDouble(idspaceAfter, idPnt, 0.000000)
-    iddropCapMultiplier = app.stringIDToTypeID("dropCapMultiplier")
-    desc142.putInteger(iddropCapMultiplier, 1)
-    idleadingType = app.stringIDToTypeID("leadingType")
-    idleadingType = app.stringIDToTypeID("leadingType")
-    idleadingBelow = app.stringIDToTypeID("leadingBelow")
-    desc142.putEnumerated(idleadingType, idleadingType, idleadingBelow)
-    desc143 = ps.ActionDescriptor()
-    idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
+    desc142.putInteger(app.stringIDToTypeID("dropCapMultiplier"), 1)
+    desc142.putEnumerated(idleadingType, idleadingType, app.stringIDToTypeID("leadingBelow"))
     desc143.putString(idfontPostScriptName, con.font_name_ndpmtg)  # NDPMTG font name
-    idFntN = app.charIDToTypeID("FntN")
     desc143.putString(idFntN, con.font_name_mplantin)  # MPlantin font name
-    idautoLeading = app.stringIDToTypeID("autoLeading")
     desc143.putBoolean(idautoLeading, False)
     primary_action_descriptor.putList(idparagraphStyleRange, list13)
-    idkerningRange = app.stringIDToTypeID("kerningRange")
-    list14 = ps.ActionList()
     primary_action_descriptor.putList(idkerningRange, list14)
     list13 = ps.ActionList()
 
@@ -382,103 +337,59 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         # Modal card with bullet points - adjust the formatting slightly
         startIndexBullet = input_string.find("\u2022")
         endIndexBullet = input_string.rindex("\u2022")
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         list13 = ps.ActionList()
         desc141 = ps.ActionDescriptor()
-        idFrom = app.charIDToTypeID("From")
         desc141.putInteger(idFrom, startIndexBullet)
-        idT = app.charIDToTypeID("T   ")
         desc141.putInteger(idT, endIndexBullet + 1)
-        idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
-        idfirstLineIndent = app.stringIDToTypeID("firstLineIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent) # negative modal indent
-        idstartIndent = app.stringIDToTypeID("startIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent) # modal indent
-        idspaceBefore = app.stringIDToTypeID("spaceBefore")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idspaceBefore, idPnt, 1.0)
-        idspaceAfter = app.stringIDToTypeID("spaceAfter")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idspaceAfter, idPnt, 0.000000)
-        iddefaultStyle = app.stringIDToTypeID("defaultStyle")
         desc143 = ps.ActionDescriptor()
-        idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
         desc143.putString(idfontPostScriptName, con.font_name_ndpmtg)  # NDPMTG font name
-        idFntN = app.charIDToTypeID("FntN")
         desc143.putString(idFntN, con.font_name_mplantin)
-        idSz = app.charIDToTypeID("Sz  ")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc143.putUnitDouble(idSz, idPnt, 11.998500)  # TODO: what's this?
-        idautoLeading = app.stringIDToTypeID("autoLeading")
         desc143.putBoolean(idautoLeading, False)
-        idTxtS = app.charIDToTypeID("TxtS")
-        desc142.putObject(iddefaultStyle, idTxtS, desc143)
-        idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
+        desc142.putObject(app.stringIDToTypeID("defaultStyle"), idTxtS, desc143)
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        idkerningRange = app.stringIDToTypeID("kerningRange")
         list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
     if flavor_index > 0:
         # Adjust line break spacing if there's a line break in the flavor text
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         desc141 = ps.ActionDescriptor()
-        idFrom = app.charIDToTypeID("From")
         desc141.putInteger(idFrom, flavor_index + 3)
         idT = app.charIDToTypeID("T   ")
         desc141.putInteger(idT, flavor_index + 4)
-        idfirstLineIndent = app.stringIDToTypeID("firstLineIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
         idimpliedFirstLineIndent = app.stringIDToTypeID("impliedFirstLineIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idimpliedFirstLineIndent, idPnt, 0)
-        idstartIndent = app.stringIDToTypeID("startIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idstartIndent, idPnt, 0)
         idimpliedStartIndent = app.stringIDToTypeID("impliedStartIndent")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idimpliedStartIndent, idPnt, 0)
-        idspaceBefore = app.stringIDToTypeID("spaceBefore")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead)  # lead size between rules text and flavor text
-        idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        idkerningRange = app.stringIDToTypeID("kerningRange")
         list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
     if quote_index > 0:
         # Adjust line break spacing if there's a line break in the flavor text
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         desc141 = ps.ActionDescriptor()
-        idFrom = app.charIDToTypeID("From")
         desc141.putInteger(idFrom, quote_index + 3)
         idT = app.charIDToTypeID("T   ")
         desc141.putInteger(idT, len(input_string))
-        idspaceBefore = app.stringIDToTypeID("spaceBefore")
-        idPnt = app.charIDToTypeID("#Pnt")
         desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-        idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        idkerningRange = app.stringIDToTypeID("kerningRange")
         list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
     # Push changes to document
-    idsetd = app.charIDToTypeID("setd")
-    idTxLr = app.charIDToTypeID("TxLr")
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
     app.executeAction(idsetd, desc119, ps.DialogModes.DisplayNoDialogs)
 
@@ -493,7 +404,7 @@ def generate_italics(card_text):
     reminder_text = True
     italic_text = []
     end_index = 0
-    while (reminder_text):
+    while reminder_text:
         start_index = card_text.find("(", end_index)
         if start_index >= 0:
             end_index = card_text.find(")", start_index + 1)
@@ -505,18 +416,18 @@ def generate_italics(card_text):
     for ability_word in con.ability_words:
         italic_text.extend([ability_word + " \u2014"])  # Include em dash
 
-    # italic_text.color = rgb_grey()
+    # italic_text.color = psd.rgb_grey()
     return italic_text
 
 def format_text_wrapper():
     """
-     * Wrapper for format_text which runs the def with the active layer's current text contents and auto-generated italics array.
+     * Wrapper for format_text which runs the function with the active layer's current text contents and auto-generated italics array.
      * flavor text index and centered text not supported.
      * Super useful to add as a script action in Photoshop for making cards manually!
     """
     card_text = app.activeDocument.activeLayer.textItem.contents
     italic_text = generate_italics(card_text)
-    italic_text.color = rgb_grey()
+    italic_text.color = psd.rgb_grey()
     format_text(card_text, italic_text, -1, False)
 
 def strip_reminder_text(oracle_text):

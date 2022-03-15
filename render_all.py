@@ -26,7 +26,7 @@ else: templates = None
 for f in files:
 
 	# Template(s) provided?
-	if templates == None: rend.render(f,None)
-	else: 
+	if templates is None: rend.render(f,None)
+	else:
 		for t in templates:
 			rend.render(f,t)

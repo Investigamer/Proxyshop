@@ -3,12 +3,10 @@ INITIATE AND PREPARE RENDER JOB
 """
 import os
 import re
-import proxyshop.layouts as layouts
+from proxyshop import layouts
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 import proxyshop.scryfall as scry
-import plugins.loader as loader
-from proxyshop.helpers import save_and_close
+from plugins import loader
 
 def retrieve_card_info (filename):
     """
@@ -22,20 +20,20 @@ def retrieve_card_info (filename):
     # Look for creator, artist, set
     creator = re.findall(r'\{+(.*?)\}', filename)
     artist = re.findall(r'\(+(.*?)\)', filename)
-    set = re.findall(r'\[+(.*?)\]', filename)
+    set_code = re.findall(r'\[+(.*?)\]', filename)
 
     # Check for these values
     if creator: creator = creator[0]
     else: creator = None
     if artist: artist = artist[0]
     else: artist = None
-    if set: set = set[0]
-    else: set = None
-    
+    if set_code: set_code = set_code[0]
+    else: set_code = None
+
     return {
         'name': name,
         'artist': artist,
-        'set': set,
+        'set': set_code,
         'creator': creator
     }
 
@@ -44,64 +42,56 @@ def render (file,template):
     """
     Set up this render job, then execute
     """
+    # pylint: disable=R0912, R1722
     # TODO: specify the desired template for a card in the filename?
     card = retrieve_card_info(os.path.basename(str(file)))
 
+    # Basic land?
     if card['name'] in con.basic_land_names:
 
-        # Manually construct layout obj for basic lands
-        try: artist = card['artist']
-        except: artist = "Unknown"
-        layout = layouts.BasicLand(card['artist'], card['name'], con.basic_class, card['set'].upper())
+        # Manually call the BasicLand layout OBJ
+        layout = layouts.BasicLand(card['name'], card['artist'], card['set'].upper())
 
     else:
 
         # Get the scryfall info
         scryfall = scry.card_info(card['name'], card['set'])
-        scryfall = scry.preprocess(scryfall)
-        layout_name = scryfall['layout']
 
-        # instantiate layout obj (unpacks scryfall json and stores relevant parts in obj properties)
+        # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
         try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
-        except: print("Layout" + layout_name + " is not supported. Sorry!")
+        except:
+            input(f"Layout '{scryfall['layout']}'' is not supported. Press enter to exit...")
+            exit()
 
-        # if artist specified in file name, insert the specified artist into layout obj
+        # If artist specified in file name, replace artist in layout OBJ
         if card['artist']: layout.artist = card['artist']
 
-        # Include setcode
-        try: layout.set = card['set'].upper()
-        except: 
-            try: layout.set = scryfall['set'].upper()
-            except: layout.set = "MTG"
-
-        # Get full set info from scrython
-        try: mtgset = scry.set_info(layout.set)
-        except: mtgset = "MTG"
+        # Get full set info from scryfall
+        mtgset = scry.set_info(layout.set)
         if 'printed_size' in mtgset: layout.card_count = mtgset['printed_size']
         elif 'card_count' in mtgset: layout.card_count = mtgset['card_count']
         else: layout.card_count = "XXX"
-    
+
     # Get our template and layout class maps
-    if type(template) is str: card_template = loader.get_template(template, layout.card_class)
-    elif template == None: card_template = loader.get_template(template, layout.card_class)
-    else: card_template = loader.get_template_class(template[layout.card_class])
+    if isinstance(template, dict):
+        card_template = loader.get_template_class(template[layout.card_class])
+    else: card_template = loader.get_template(template, layout.card_class)
 
     if card_template:
-        
+
         # Include collector number
         try: layout.collector_number = scryfall['collector_number']
         except: layout.collector_number = None
-        
+
         # Include creator
         if card['creator']: layout.creator = card['creator']
         else: layout.creator = None
-        
-        # select and execute the template - insert text fields, set visibility of layers, etc. - and save to disk
-        file_name = card_template(layout, file).execute()
-        save_and_close(file_name)
+
+        # Select and execute the template
+        card_template(layout, file).execute()
 
     else:
 
         # No matching template
-        print("No template found for layout: {layout.card_class}\nExiting now...")
+        input("No template found for layout: {layout.card_class}\nPress enter to exit...")
         exit()

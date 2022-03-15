@@ -1,25 +1,32 @@
+"""
+PROXYSHOP - GUI LAUNCHER
+"""
 import os
 import sys
 from tkinter import *
 from tkinter import ttk
 import proxyshop.launcher as gui
-import proxyshop.render as rend
 from proxyshop.settings import cfg
 import proxyshop.settings as conf
 sys.stdin.reconfigure(encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')
 cwd = os.getcwd()
 
-def render_all(lb):
-	my_temps = gui.get_my_templates(lb)
+def render_all(selections):
+	"""
+	Renders all images in the art folder
+	"""
+	my_temps = gui.get_my_templates(selections)
 	update_config()
 	gui.render_all(my_temps)
 
-def render_target(lb):
-	my_temps = gui.get_my_templates(lb)
+def render_target(selections):
+	"""
+	User selects a target image to render
+	"""
+	my_temps = gui.get_my_templates(selections)
 	update_config()
 	gui.render_target(my_temps)
-	return None
 
 # Setup Kinter
 root = Tk()
@@ -78,21 +85,21 @@ cb_SaveUncompressed.grid(row=1, column=2, sticky="w", pady=(0,5))
 tabs = gui.get_tabs(n_tabs)
 lb = {}
 scrollbar = {}
-for tab in tabs:
+for key, tab in tabs.items():
 
 	# Based on tab key create list
-	lb[tab] = gui.get_listbox(tab, tabs[tab])
-	
+	lb[key] = gui.get_listbox(key, tab)
+
 	# Adding Scrollbar to the right
-	scrollbar[tab] = Scrollbar(tabs[tab])
-	scrollbar[tab].pack(side = RIGHT, fill = BOTH)
+	scrollbar[key] = Scrollbar(tab)
+	scrollbar[key].pack(side = RIGHT, fill = BOTH)
 
 	# Add scroll cmd
-	lb[tab].config(yscrollcommand = scrollbar[tab].set)
-	scrollbar[tab].config(command = lb[tab].yview)
-	lb[tab].pack(fill=X, expand=True, padx=5, pady=5)
-	lb[tab].select_set(0)
-	lb[tab].event_generate("<<ListboxSelect>>")
+	lb[key].config(yscrollcommand = scrollbar[key].set)
+	scrollbar[key].config(command = lb[key].yview)
+	lb[key].pack(fill=X, expand=True, padx=5, pady=5)
+	lb[key].select_set(0)
+	lb[key].event_generate("<<ListboxSelect>>")
 
 # Buttons
 b_RenderAll = Button(f_settings, text="Render All", width=12, command=lambda: render_all(lb))
@@ -101,7 +108,9 @@ b_RenderTarget.grid(row=0, column=3, sticky="nsew", padx=(6,0))
 b_RenderAll.grid(row=1, column=3, sticky="nsew", pady=(0,5), padx=(6,0))
 
 def update_config():
-	# Settings Variables
+	"""
+	Update config with chosen settings
+	"""
 	cfg.set("CONF", "Auto.Set.Symbol", str(AutoSetSymbol.get()))
 	cfg.set("CONF", "Auto.Symbol.Size", str(AutoSymbolSize.get()))
 	cfg.set("CONF", "No.Flavor.Text", str(NoFlavor.get()))

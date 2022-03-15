@@ -1,3 +1,7 @@
+"""
+Launcher Functionality
+"""
+# pylint: disable=C0206, C0415
 from tkinter import *
 from tkinter import ttk
 from plugins.loader import get_templates
@@ -15,57 +19,69 @@ card_types = {
 templates = get_templates()
 
 def get_tabs(root):
-
+	"""
+	Builds a tab for each card type
+	"""
 	# Style for tabs
 	bg_color = "#dbdbdb"
 	sel_color = "#99b9ff"
 	style = ttk.Style()
-	style.theme_create( "dummy", parent="alt", settings={
-	    "TNotebook": {"configure": {"tabmargins": [2, 5, 2, 0] } },
-	    "TNotebook.Tab": {
-	        "configure": {
-	        	"padding": [5, 1], "background": bg_color 
-	       	}, "map": {
-	        	"background": [("selected", sel_color)],
-	            "expand": [("selected", [1, 1, 1, 0])] 
-	}}})
+	style.theme_create(
+		"dummy",
+		parent="alt",
+		settings={
+		    "TNotebook": {
+		    	"configure": {
+		    		"tabmargins": [2, 5, 2, 0]
+		    	}
+		    },
+		    "TNotebook.Tab": {
+		        "configure": {
+		        	"padding": [5, 1],
+		        	"background": bg_color
+		       	},
+		       	"map": {
+		        	"background": [("selected", sel_color)],
+		            "expand": [("selected", [1, 1, 1, 0])]
+		        }
+		    }
+		}
+	)
 
 	style.theme_use("dummy")
 
 	tabs = {}
-	i = 0
-	for type in card_types:
-		tabs[type] = ttk.Frame(root)
-		root.add(tabs[type], text=type)
-		i+=1
+	for c_type in card_types:
+		tabs[c_type] = ttk.Frame(root)
+		root.add(tabs[c_type], text=c_type)
 
 	return tabs
 
-def get_listbox(type, tab):
-	
+def get_listbox(c_type, tab):
+	"""
+	Builds a listbox of templates based on a given type
+	"""
 	# Setup listvar
 	lb_options = StringVar()
 	lb = Listbox(tab, listvariable=lb_options, selectmode=SINGLE, height=20, bd=0, exportselection=0)
 
-	layout = card_types[type][0]
+	layout = card_types[c_type][0]
 	temps = templates[layout]['other']
 	for line in temps:
 		lb.insert(END, line)
-		
 	return lb
 
-def set_config():
-	return None
-
 def get_my_templates(lb):
-	sel = []
+	"""
+	Retrieve templates based on user selection
+	"""
 	temps = {}
 	for key in card_types:
 		for i in lb[key].curselection():
 			this_temp = lb[key].get(i)
 		for lay in card_types[key]:
 			temps[lay] = templates[lay]["other"][this_temp]
-	
+
 	for key in templates:
 		if key not in temps:
 			temps[key] = templates[key]["default"]
@@ -97,7 +113,7 @@ def render_all(temps):
 	for f in files:
 
 		# Template(s) provided?
-		if temps == None: rend.render(f,None)
+		if temps is None: rend.render(f,None)
 		else: rend.render(f, temps)
 
 def render_target(temps):
@@ -107,13 +123,13 @@ def render_target(temps):
 	import os
 	from pathlib import Path
 	import proxyshop.render as rend
-	from proxyshop.helpers import ps, app
+	from proxyshop.helpers import app
 	cwd = os.getcwd()
 	file = app.openDialog()
-	
+
 	# Make sure out folder exists
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-	
+
 	# Template(s) provided?
-	if temps == None: rend.render(file[0], None);
+	if temps is None: rend.render(file[0], None)
 	else: rend.render(file[0],temps)

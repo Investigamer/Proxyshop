@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import proxyshop.settings as cfg
 import proxyshop.render as rend
-from proxyshop.helpers import ps, app
+from proxyshop.helpers import app
 file = app.openDialog()
 cwd = os.getcwd()
 
@@ -17,7 +17,7 @@ if cfg.template: templates = cfg.template.split(",")
 else: templates = None
 
 # Template(s) provided?
-if templates == None: rend.render(file[0], None);
+if templates is None: rend.render(file[0], None)
 else:
 	for t in templates:
 		rend.render(file[0],t)

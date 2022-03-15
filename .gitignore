@@ -157,3 +157,4 @@ cython_debug/
 /tmp
 /templates
 test.py
+tester.py

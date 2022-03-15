@@ -1,64 +1,64 @@
-import time
-import sys
+"""
+FUNCTIONS THAT INTERACT WITH SCRYFALL
+"""
 import json
 from urllib import request, parse, error
 import proxyshop.constants as con
 
-def card_info(card_name, card_set):
-    # Use Scryfall to search for this card
-    card = None
-    # If the card specifies which set to retrieve the scan from, do that
+def card_info(card_name, card_set=None):
+    """
+    Search Scryfall for a card
+    `card_name`: Name of card
+    `card_set`: OPTIONAL, Card set
+    """
     try:
+        # Set specified?
         if card_set:
-            print(f"Searching Scryfall for: {card_name}, set: {card_set}...", flush=True)
-            card = request.urlopen(
+            print(f"Searching Scryfall for: {card_name}, set: {card_set}...", end=" ", flush=True)
+            with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}&set={parse.quote(card_set)}"
-            ).read()
+            ) as card:
+                print("and done!", flush=True)
+                return add_meld_info(json.loads(card.read()))
         else:
-            print(f"Searching Scryfall for: {card_name}...", flush=True)
-            card = request.urlopen(
+            print(f"Searching Scryfall for: {card_name}...", end=" ", flush=True)
+            with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}"
-            ).read()
+            ) as card:
+                print("and done!", flush=True)
+                return add_meld_info(json.loads(card.read()))
     except error.HTTPError:
         input("\nError occurred while attempting to query Scryfall. Press enter to exit.")
-
-    try: card_json = add_meld_info(json.loads(card))
-    except: input("\nError occurred while attempting to query Scryfall. Press enter to exit.")
-    print(" and done!", flush=True)
-    time.sleep(0.1)
-    return(card_json)
+        return None
 
 def set_info(set_code):
-    # Use Scryfall to search for this card
-    mtg_set = None
-
-    # If the card specifies which set to retrieve the scan from, do that
+    """
+    Search scryfall for a set
+    `set_code`: The set to look for, ex: MH2
+    """
     try:
-        print(f"Searching Scryfall for: Set: {set_code}...", flush=True)
-        mtg_set = request.urlopen(
+        print(f"Searching Scryfall for: Set: {set_code}...", end=" ", flush=True)
+        with request.urlopen(
             f"https://api.scryfall.com/sets/{parse.quote(set_code)}"
-        ).read()
+        ) as mtg_set:
+            print("and done!", flush=True)
+            return json.loads(mtg_set.read())
     except error.HTTPError:
         print("\nCouldn't retrieve set information. Probably no big deal!")
-        time.sleep(1)
-    
-    print(" and done!", flush=True)
-    time.sleep(0.1)
-    try: return json.loads(mtg_set)
-    except: return(None)
+        return None
 
 def card_scan(img_url):
+    """
+    Downloads scryfall art from URL
+    """
     try:
-        print(f"Retrieving Scryfall scan at URL: {img_url}...", flush=True)
+        print(f"Retrieving Scryfall scan at URL: {img_url}...", end=" ", flush=True)
         request.urlretrieve(img_url, con.scryfall_scan_path)
+        print("and done!", flush=True)
     except error.HTTPError:
         input("\nError occurred while attempting to retrieve image. Press enter to exit.")
-    print(" and done!", flush=True)
-    time.sleep(0.1)
-    file = open(con.scryfall_scan_path)
-    filename = file.name
-    file.close()
-    return filename
+    with open(con.scryfall_scan_path, encoding="utf-8") as file:
+        return file.name
 
 
 def add_meld_info(card_json):
@@ -69,25 +69,7 @@ def add_meld_info(card_json):
     """
     if card_json["layout"] == "meld":
         for i in range(0, 3):
-            time.sleep(0.1)
             uri = card_json["all_parts"][i]["uri"]
-            part = json.loads(request.urlopen(uri).read())
-            card_json["all_parts"][i]["info"] = part
-
+            with request.urlopen(uri) as data:
+                card_json["all_parts"][i]["info"] = json.loads(data.read())
     return card_json
-
-def preprocess(scryfall):
-    # POWER
-    try: scryfall['power']
-    except: scryfall['power'] = None
-    # TOUGHNESS
-    try: scryfall['toughness']
-    except: scryfall['toughness'] = None
-    # COLOR INDICATOR
-    try: scryfall['color_indicator']
-    except: scryfall['color_indicator'] = None
-    # FLAVOR TEXT
-    try: scryfall['flavor_text']
-    except: scryfall['flavor_text'] = None
-
-    return scryfall

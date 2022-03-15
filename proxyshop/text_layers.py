@@ -1,10 +1,12 @@
+"""
+TEXT LAYER MODULE
+"""
 import proxyshop.helpers as psd
 import proxyshop.constants as con
 import proxyshop.settings as cfg
-import proxyshop.format_text as format_text
+from proxyshop import format_text
 from proxyshop.helpers import ps, app
 
-# HELPER functions
 def scale_text_right_overlap(layer, reference_layer):
     """
      * Scales a text layer down (in 0.2 pt increments) until its right bound has a 24 px clearance from a reference
@@ -13,7 +15,7 @@ def scale_text_right_overlap(layer, reference_layer):
     # Correct for empty reference layer
     try:
         contents = str(reference_layer.textItem.contents)
-        if contents == " " or contents == "": 
+        if contents in ("", " "):
             reference_layer.textItem.contents = "."
     except: pass
 
@@ -27,17 +29,18 @@ def scale_text_right_overlap(layer, reference_layer):
         if reference_left_bound < layer_left_bound:
             return None
     layer_font_size = layer.textItem.size  # returns unit value
-    while (layer_right_bound > reference_left_bound - 24):  # minimum 24 px gap
+    while layer_right_bound > reference_left_bound - 24:  # minimum 24 px gap
         layer_font_size = layer_font_size - step_size
         layer.textItem.size = layer_font_size
         layer_right_bound = layer.bounds[2]
 
     # Fix corrected reference layer
-    try: 
-        if str(reference_layer.textItem.contents) == ".": 
+    try:
+        if str(reference_layer.textItem.contents) == ".":
             reference_layer.textItem.contents = contents
     except: pass
 
+# TODO: Multiple layers, each with a reference, that scale together until they all fit their references?
 def scale_text_to_fit_reference(layer, reference_layer):
     """
     * Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
@@ -55,7 +58,7 @@ def scale_text_to_fit_reference(layer, reference_layer):
 
     layer_height = psd.compute_text_layer_dimensions(layer)['height']
 
-    while (reference_height < layer_height):
+    while reference_height < layer_height:
         scaled = True
         # step down font and lead sizes by the step size, and update those sizes in the layer
         font_size = font_size - step_size
@@ -65,7 +68,6 @@ def scale_text_to_fit_reference(layer, reference_layer):
 
     return scaled
 
-# TODO: multiple layers, each with their own references, that scale down together until they all fit within their references
 def vertically_align_text(layer, reference_layer):
     """
      * Rasterises a given text layer and centres it vertically with respect to the bounding box of a reference layer.
@@ -80,38 +82,34 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
     """
      * Vertically nudge a creature's text layer if it overlaps with the power/toughness box, determined by the given reference layers.
     """
-
-    # if the layer needs to be nudged
+    # Does the layer needs to be nudged?
     if layer.bounds[2] >= reference_layer.bounds[0]:
         psd.select_layer_pixels(reference_layer)
         app.activeDocument.activeLayer = layer
 
-        # the copied bit of the text layer within the PT box will be inserted into a layer with self name
-        extra_bit_layer_name = "Extra Bit"
-
         # copy the contents of the active layer within the current selection to a new layer
-        idCpTL = app.charIDToTypeID("CpTL")
-        app.executeAction(idCpTL, None, ps.DialogModes.DisplayNoDialogs)
-        idsetd = app.charIDToTypeID("setd")
+        app.executeAction(
+            app.charIDToTypeID("CpTL"),
+            None,
+            ps.DialogModes.DisplayNoDialogs)
         desc5 = ps.ActionDescriptor()
-        idnull = app.charIDToTypeID("null")
+        desc6 = ps.ActionDescriptor()
         ref4 = ps.ActionReference()
         idLyr = app.charIDToTypeID("Lyr ")
-        idOrdn = app.charIDToTypeID("Ordn")
-        idTrgt = app.charIDToTypeID("Trgt")
-        ref4.putEnumerated(idLyr, idOrdn, idTrgt)
-        desc5.putReference(idnull, ref4)
-        idT = app.charIDToTypeID("T   ")
-        desc6 = ps.ActionDescriptor()
-        idNm = app.charIDToTypeID("Nm  ")
-        desc6.putString(idNm, extra_bit_layer_name)
-        idLyr = app.charIDToTypeID("Lyr ")
-        desc5.putObject(idT, idLyr, desc6)
-        app.executeAction(idsetd, desc5, ps.DialogModes.DisplayNoDialogs)
+        ref4.putEnumerated(
+            idLyr,
+            app.charIDToTypeID("Ordn"),
+            app.charIDToTypeID("Trgt"))
+        desc5.putReference(app.charIDToTypeID("null"), ref4)
+        desc6.putString(app.charIDToTypeID("Nm  "), "Extra Bit")
+        desc5.putObject(app.charIDToTypeID("T   "), idLyr, desc6)
+        app.executeAction(
+            app.charIDToTypeID("setd"),
+            desc5,
+            ps.DialogModes.DisplayNoDialogs)
 
         # determine how much the rules text overlaps the power/toughness by
-        parent_layer = layer.parent
-        extra_bit_layer = psd.getLayer(extra_bit_layer_name, parent_layer)
+        extra_bit_layer = psd.getLayer("Extra Bit", layer.parent)
         delta = top_reference_layer.bounds[3] - extra_bit_layer.bounds[3]
         extra_bit_layer.visible = False
 
@@ -129,8 +127,11 @@ class TextField ():
         self.text_contents = ""
         if text_contents: self.text_contents = text_contents.replace("\n", "\r")
         self.text_color = text_color
-    
+
     def execute (self):
+        """
+        Enables and fills the text field
+        """
         self.layer.visible = True
         self.layer.textItem.contents = self.text_contents
         self.layer.textItem.color = self.text_color
@@ -143,7 +144,7 @@ class ScaledTextField (TextField):
     def __init__ (self, layer, text_contents, text_color, reference_layer):
         super().__init__(layer, text_contents, text_color)
         self.reference_layer = reference_layer
-    
+
     def execute (self):
         super().execute()
 
@@ -152,27 +153,31 @@ class ScaledTextField (TextField):
 
 class ExpansionSymbolField (TextField):
     """
-     * A TextField which represents a card's expansion symbol. Expansion symbol layers have a series of clipping masks (uncommon, rare, mythic),
-     * one of which will need to be enabled according to the card's rarity. A 6 px outer stroke should be applied to the layer as well, white if 
-     * the card is of common rarity and black otherwise.
+     * A TextField which represents a card's expansion symbol.
+     * `layer`: Expansion symbol layer
+     * `text_contents`: The symbol character
+     * `rarity`: The clipping mask to enable (uncommon, rare, mythic)
+     * `reference`: Reference layer to scale and center
+     * `centered`: Whether to center horizontally, ex: Ixalan
     """
     def __init__ (self, layer, text_contents, rarity, reference, centered=False):
         super().__init__(layer, text_contents, psd.rgb_black())
         self.centered = centered
         self.rarity = rarity
         self.reference = reference
-        if rarity == con.rarity_bonus or rarity == con.rarity_special:
+        if rarity in (con.rarity_bonus, con.rarity_special):
             self.rarity = con.rarity_mythic
 
     def execute (self):
         super().execute()
-        
+
+        # Size to fit reference?
         if cfg.auto_symbol_size:
             if self.centered: psd.frame_expansion_symbol(self.layer, self.reference, True)
             else: psd.frame_expansion_symbol(self.layer, self.reference, False)
-        
         app.activeDocument.activeLayer = self.layer
 
+        # Rarity above common?
         if self.rarity == con.rarity_common: psd.apply_stroke(cfg.symbol_stroke, psd.rgb_white())
         else:
             mask_layer = psd.getLayer(self.rarity, self.layer.parent)
@@ -189,7 +194,7 @@ class BasicFormattedTextField (TextField):
     def execute (self):
         super().execute()
 
-        # format text def call
+        # Format text
         app.activeDocument.activeLayer = self.layer
         italic_text = format_text.generate_italics(self.text_contents)
         format_text.format_text(self.text_contents, italic_text, -1, False)
@@ -206,14 +211,14 @@ class FormattedTextField (TextField):
         self.flavor_text = ""
         if flavor_text: self.flavor_text = flavor_text.replace("\n", "\r")
         self.is_centered = is_centered
-    
+
     def execute (self):
         super().execute()
 
         # generate italic text arrays from things in (parentheses), ability words, and the given flavor text
         italic_text = format_text.generate_italics(self.text_contents)
-        flavor_index = -1
 
+        # Flavor text included?
         if len(self.flavor_text) > 1:
             # remove things between asterisks from flavor text if necessary
             flavor_text_split = self.flavor_text.split("*")
@@ -222,15 +227,14 @@ class FormattedTextField (TextField):
                 for i in flavor_text_split:
                     # add the parts of the flavor text not between asterisks to italic_text
                     if i != "": italic_text.append(i)
-                
+
                 # reassemble flavorText without asterisks
                 self.flavor_text = "".join(flavor_text_split)
-            else:
-                # if no asterisks in flavor text, push the whole flavor text string instead
-                italic_text.append(self.flavor_text)
-            
+            else: italic_text.append(self.flavor_text)
             flavor_index = len(self.text_contents)
+        else: flavor_index = -1
 
+        # Format text
         app.activeDocument.activeLayer = self.layer
         format_text.format_text(self.text_contents + "\r" + self.flavor_text, italic_text, flavor_index, self.is_centered)
         if self.is_centered: self.layer.textItem.justification = ps.Justification.Center
@@ -244,7 +248,7 @@ class FormattedTextArea (FormattedTextField):
     def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, is_centered=False):
         super().__init__(layer, text_contents, text_color, flavor_text, is_centered)
         self.reference_layer = reference_layer
-    
+
     def execute (self):
         super().execute()
         if self.text_contents or self.flavor_text:
@@ -272,7 +276,7 @@ class CreatureFormattedTextArea (FormattedTextArea):
         super().__init__(layer, text_contents, text_color, flavor_text, reference_layer, is_centered)
         self.pt_reference_layer = pt_reference_layer
         self.pt_top_reference_layer = pt_top_reference_layer
-    
+
     def execute (self):
         super().execute()
 

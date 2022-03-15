@@ -46,6 +46,7 @@ layers = {
     "RW": "RW",
     "ARTIFACT": "Artifact",
     "COLORLESS": "Colorless",
+    "NONLAND": "Nonland",
     "LAND": "Land",
     "GOLD": "Gold",
     "VEHICLE": "Vehicle",
@@ -79,7 +80,7 @@ layers = {
     "COLLECTOR": "Collector",
     "TOP_LINE": "Top",
     "BOTTOM_LINE": "Bottom",
-    
+
     # text and icons
     "TEXT_AND_ICONS": "Text and Icons",
     "NAME": "Card Name",
@@ -149,10 +150,6 @@ layers = {
     "BOTTOM": "Bottom",
     "LEFT": "Left",
     "RIGHT": "Right",
-
-    # classic
-    "NONLAND": "Nonland",
-    "LAND": "Land",
 }
 
 default_layer = "Layer 1"
@@ -408,7 +405,7 @@ ability_words = [
     "Charge Them",
     "Befriend Them",
     "Negative Energy Cone",
-    
+
     # Midnight Hunt words
     "Coven",
 ]
@@ -489,7 +486,6 @@ set_symbol_library = {
     "PLC": "",
     "FUT": "",
     "10E": "",
-    "MED": "",
     "LRW": "",
     "EVG": "",
     "MOR": "",
@@ -612,7 +608,6 @@ set_symbol_library = {
     "GS1": "",
     "M19": "",
     "C18": "",
-    "MED": "",
     "GRN": "",
     "GNT": "",
     "UMA": "",
