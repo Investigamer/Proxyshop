@@ -7,14 +7,14 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
   </a>
   <img alt="Maintenance" src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen?style=plastic"></a>
   <img alt="GitHub" src="https://img.shields.io/github/license/MrTeferi/MTG-Autoproxy?color=1082C2&style=plastic">
-  <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CS5--2021-informational?style=plastic">
+  <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CC 2015--2022-informational?style=plastic">
   <img alt="Python" src="https://img.shields.io/badge/python-3.7%2B-yellow?style=plastic">
 </p>
 
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
 # Requirements
-  * A copy of Photoshop (2015-2021 Tested)
+  * A copy of Photoshop (2015-2022 Tested)
   * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
   * The following fonts, included in fonts folder:
     * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, MPlantin and MPlantin-Italics
