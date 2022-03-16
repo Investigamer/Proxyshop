@@ -3,6 +3,8 @@ INITIATE AND PREPARE RENDER JOB
 """
 import os
 import re
+from timeit import default_timer as timer
+from datetime import timedelta
 from proxyshop import layouts
 import proxyshop.constants as con
 import proxyshop.scryfall as scry
@@ -44,6 +46,7 @@ def render (file,template):
     """
     # pylint: disable=R0912, R1722
     # TODO: specify the desired template for a card in the filename?
+    start = timer()
     card = retrieve_card_info(os.path.basename(str(file)))
 
     # Basic land?
@@ -68,9 +71,13 @@ def render (file,template):
 
         # Get full set info from scryfall
         mtgset = scry.set_info(layout.set)
-        if 'printed_size' in mtgset: layout.card_count = mtgset['printed_size']
-        elif 'card_count' in mtgset: layout.card_count = mtgset['card_count']
-        else: layout.card_count = "XXX"
+
+        # Set up the card count of the set
+        layout.card_count = "XXX"
+        try: layout.card_count = mtgset['printed_size']
+        except:
+            try: layout.card_count = mtgset['card_count']
+            except: pass
 
     # Get our template and layout class maps
     if isinstance(template, dict):
@@ -95,3 +102,7 @@ def render (file,template):
         # No matching template
         input("No template found for layout: {layout.card_class}\nPress enter to exit...")
         exit()
+
+    # Execution time
+    end = timer()
+    print(str(timedelta(seconds=end-start))+"\n")
