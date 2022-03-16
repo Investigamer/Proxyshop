@@ -31,10 +31,13 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "ProxyCreator" in the Legal layer group.
 
 # Usage Guide (GUI)
-* Run `Proxyshop.py`. 
+<img align="right" src="https://i.imgur.com/aNSNtU2.png" />
+
+* Run `Proxyshop.py`.
 * The tabs shown are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.
-* The checkboxes are settings, saved to the config.ini file and will be maintained for the next time you open the app.
+* The checkboxes are settings, saved to the config.ini file and will be maintained for the next time you open the app. Automatic Set Symbol will attempt to assign the correct expansion symbol according to the card's set information. Auto Symbol Size will size and center that symbol on the end of the typeline. Manuel Edit Step will end the script automation when the card is finished so you can make manual changes before saving. You can also remove the reminder text, or the flavor text from the card.
 * Hit "Render all" to render every card art in the `art` folder. Hit "Render target" to render one specific card.
+<br clear="right"/>
 
 # Usage Guide (Manual)
 * Run `render_all.py`. Photoshop will open and start rendering each card in the `art` folder, saving results in an `out` folder automatically created in the working directory. `render_target` does the same but for a single image.
