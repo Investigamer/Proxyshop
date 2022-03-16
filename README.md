@@ -35,7 +35,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 * Run `Proxyshop.py`.
 * The tabs shown are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.
-* The checkboxes are settings, saved to the config.ini file and will be maintained for the next time you open the app. Automatic Set Symbol will attempt to assign the correct expansion symbol according to the card's set information. Auto Symbol Size will size and center that symbol on the end of the typeline. Manuel Edit Step will end the script automation when the card is finished so you can make manual changes before saving. You can also remove the reminder text, or the flavor text from the card.
+* At the top are settings, saved to the config.ini file and maintained the next time you open the app. Automatic Set Symbol will input the correct expansion symbol according to the card's set information. Auto Symbol Size will size and center that symbol on the end of the typeline. Manual Edit Step will end the script automation when the card is finished so you can make manual changes before saving. You can also remove reminder text or flavor text from the card.
 * Hit "Render all" to render every card art in the `art` folder. Hit "Render target" to render one specific card.
 <br clear="right"/>
 
