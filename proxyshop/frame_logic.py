@@ -46,6 +46,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
         "Forest": con.layers['GREEN']
     }
     hybrid_symbols = ["W/U", "U/B", "B/R", "R/G", "G/W", "W/B", "B/G", "G/U", "U/R", "R/W"]
+    twins = ""
 
     if type_line.find(con.layers['LAND']) >= 0:
 

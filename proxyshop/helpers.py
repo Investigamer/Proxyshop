@@ -2,6 +2,7 @@
 PHOTOSHOP HELPER FUNCTIONS
 """
 import os
+import csv
 import proxyshop.scryfall as scry
 import proxyshop.constants as con
 import proxyshop.settings as cfg
@@ -271,6 +272,7 @@ def save_and_close(file_name):
     idsave = app.charIDToTypeID("save")
     desc3 = ps.ActionDescriptor()
     idAs = app.charIDToTypeID("As  ")
+    idCmpr = app.charIDToTypeID("Cmpr")
     desc4 = ps.ActionDescriptor()
     idPGIT = app.charIDToTypeID("PGIT")
     idPGIN = app.charIDToTypeID("PGIN")
@@ -278,11 +280,7 @@ def save_and_close(file_name):
     idPNGf = app.charIDToTypeID("PNGf")
     idPGAd = app.charIDToTypeID("PGAd")
     desc4.putEnumerated(idPNGf, idPNGf, idPGAd)
-
-    # Save fast? (uncompressed)
-    if cfg.fast_save:
-        desc4.putInteger(app.charIDToTypeID( "Cmpr" ), 0)
-
+    desc4.putInteger(idCmpr, 3)
     idPNGF = app.charIDToTypeID("PNGF")
     desc3.putObject(idAs, idPNGF, desc4)
     idIn = app.charIDToTypeID("In  ")
@@ -292,6 +290,14 @@ def save_and_close(file_name):
     desc3.putBoolean(idCpy, True)
     app.executeAction(idsave, desc3, ps.DialogModes.DisplayNoDialogs)
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+
+    """
+    if int(app.version[0:2]) >= 19:
+        if cfg.fast_save: desc4.putInteger(idCmpr, 0)
+        else:
+    else:
+        if cfg.fast_save: desc4.putInteger(idCmpr, 0)
+    """
 
 def get_text_layer_color(layer):
     """
@@ -432,7 +438,7 @@ def content_fill_empty_area():
 
     selection.deselect()
 
-def VibrantSaturation(VibValue, SatValue):
+def apply_vibrant_saturation(VibValue, SatValue):
     """
      * Experimental scoot action
     """

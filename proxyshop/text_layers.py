@@ -46,24 +46,22 @@ def scale_text_to_fit_reference(layer, reference_layer):
     * Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
     * The resulting text layer will have equal font and lead sizes.
     """
-    starting_font_size = layer.textItem.size
+    text_item = layer.textItem
+    starting_font_size = text_item.size
+    font_size = starting_font_size
     step_size = 0.25
+    scaled = False
 
     # Reduce the reference height by 64 pixels to avoid text landing on the top/bottom bevels
     reference_height = psd.compute_layer_dimensions(reference_layer)['height']-64.0
-
-    #initialise lead and font size tracker variables to the font size of the layer's text
-    font_size = starting_font_size
-    scaled = False
-
     layer_height = psd.compute_text_layer_dimensions(layer)['height']
 
     while reference_height < layer_height:
         scaled = True
         # step down font and lead sizes by the step size, and update those sizes in the layer
-        font_size = font_size - step_size
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
+        font_size -= step_size
+        text_item.size = font_size
+        text_item.leading = font_size
         layer_height = psd.compute_text_layer_dimensions(layer)['height']
 
     return scaled

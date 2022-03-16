@@ -60,7 +60,7 @@ def render (file,template):
         # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
         try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
         except:
-            input(f"Layout '{scryfall['layout']}'' is not supported. Press enter to exit...")
+            input(f"Layout '{scryfall['layout']}' is not supported. Press enter to exit...")
             exit()
 
         # If artist specified in file name, replace artist in layout OBJ

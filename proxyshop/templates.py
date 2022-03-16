@@ -7,7 +7,8 @@ from proxyshop import format_text
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
-from proxyshop.helpers import ps, app
+app = psd.app
+ps = psd.ps
 
 """
 Example Template Class
@@ -49,7 +50,7 @@ class BaseTemplate():
      * Set up variables for things which are common to all templates (artwork and artist credit).
      * Classes extending this base class are expected to populate the following properties at minimum: self.art_reference
     """
-    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722
+    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201
     def __init__ (self, layout, file):
         # Setup inherited info, tx_layers, template PSD
         self.layout = layout
@@ -187,16 +188,16 @@ class BaseTemplate():
         if suffix: filename = f"{self.layout.name} ({suffix})"
         else: filename = self.layout.name
 
+        # Exit early defined?
+        try: self.exit_early
+        except: self.exit_early = False
+
         # Exit early?
-        try:
-            if self.exit_early:
-                print("{filename} rendered successfully! Time to manually edit.")
-            elif cfg.exit_early:
-                print("{filename} rendered successfully! Time to manually edit.")
-            else:
-                psd.save_and_close(filename)
-                print(f"{filename} rendered successfully!")
-        except:
+        if self.exit_early:
+            print(f"{filename} rendered successfully! Time to manually edit.")
+        elif cfg.exit_early:
+            print(f"{filename} rendered successfully! Time to manually edit.")
+        else:
             psd.save_and_close(filename)
             print(f"{filename} rendered successfully!")
 
@@ -229,19 +230,19 @@ class StarterTemplate (BaseTemplate):
         name_selected = name
         try:
             if self.name_shifted:
-                name_shift = psd.getLayer(con.layers['NAME_SHIFT'],text_and_icons)
+                name_shift = psd.getLayer(con.layers['NAME_SHIFT'], text_and_icons)
                 name_selected = name_shift
                 name.visible = False
                 name_shift.visible = True
         except: pass
         # Shift typeline if necessary
-        type_line = psd.getLayer(con.layers['TYPE_LINE'],text_and_icons)
+        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
         type_line_selected = type_line
         try:
             # Handle error if type line shift / color indicator doesn't exist
             if self.type_line_shifted:
                 type_line_shift = psd.getLayer(con.layers['TYPE_LINE_SHIFT'], text_and_icons)
-                psd.getLayer(self.layout.pinlines,con.layers['COLOR_INDICATOR']).visible = True
+                psd.getLayer(self.layout.pinlines, con.layers['COLOR_INDICATOR']).visible = True
                 type_line_selected = type_line_shift
                 type_line.visible = False
                 type_line_shift.visible = True
@@ -334,9 +335,9 @@ class NormalTemplate (StarterTemplate):
         # Center the rules text if the card has no flavor text, text all in one line, and that line is fairly short
         is_centered = bool(len(self.layout.flavor_text) <= 1 and len(self.layout.oracle_text) <= 70 and self.layout.oracle_text.find("\n") < 0)
 
-        power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
         if self.is_creature:
             # Creature card - set up creature layer for rules text and insert p/t
+            power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
             rules_text = psd.getLayer(con.layers['RULES_TEXT_CREATURE'], text_and_icons)
             rules_text.visible = True
             self.tx_layers.extend([
@@ -358,6 +359,7 @@ class NormalTemplate (StarterTemplate):
             ])
         else:
             # Noncreature card - use the normal rules text layer and disable the p/t layer
+            psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons).visible = False
             rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
             self.tx_layers.append(
                 txt_layers.FormattedTextArea(
@@ -369,7 +371,6 @@ class NormalTemplate (StarterTemplate):
                     is_centered = is_centered
                 )
             )
-            power_toughness.visible = False
 
     def enable_frame_layers (self):
 
@@ -383,9 +384,8 @@ class NormalTemplate (StarterTemplate):
         psd.getLayer(self.layout.pinlines, pinlines).visible = True
 
         # Background
-        if self.layout.is_nyx: background = psd.getLayer(self.layout.background, con.layers['NYX'])
-        else: background = psd.getLayer(self.layout.background, con.layers['BACKGROUND'])
-        background.visible = True
+        if self.layout.is_nyx: psd.getLayer(self.layout.background, con.layers['NYX']).visible = True
+        else: psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
 
         if self.is_legendary:
             # legendary crown

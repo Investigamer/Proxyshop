@@ -1,4 +1,4 @@
-"""
+﻿"""
 GLOBAL CONSTANTS
 Keep all global variables here.
 """

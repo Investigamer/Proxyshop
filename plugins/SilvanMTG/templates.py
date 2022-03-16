@@ -1,16 +1,14 @@
 """
 SILVAN'S TEMPLATES
 """
-import os
-import proxyshop.frame_logic as frame_logic
-import proxyshop.format_text as format_text
+# pylint: disable=C0116, E0401
 import proxyshop.text_layers as txt_layers
+from proxyshop import format_text
 import proxyshop.templates as temp
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
-import photoshop.api as ps
-app = ps.Application()
+app = psd.app
 
 class SilvanExtendedTemplate (temp.NormalTemplate):
     """
@@ -18,24 +16,24 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "SilvanMTG/extended"
-    
+
     def template_suffix (self):
         return "Extended"
-    
+
     def __init__ (self, layout, file):
         # strip out reminder text for extended cards
-        if not cfg.remove_reminder: 
+        if not cfg.remove_reminder:
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
         super().__init__(layout, file)
-    
+
     def enable_frame_layers (self):
-        
+
         # Easy reference
         docref = app.activeDocument
 
         # twins and pt box
         psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        if (self.is_creature): psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
 
         # pinlines
         pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
@@ -81,10 +79,10 @@ class SilvanMDFCBackTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "SilvanMTG/extended-mdfc-back"
-    
+
     def dfc_layer_group (self):
         return con.layers['MDFC_BACK']
-    
+
     def template_suffix (self):
         return "Extended"
 
@@ -144,7 +142,7 @@ class SilvanMDFCBackTemplate (temp.NormalTemplate):
         if (self.is_legendary and self.layout.is_nyx) or self.is_companion:
             # legendary crown on nyx background - enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
             super().enable_hollow_crown(crown, pinlines)
-        
+
         app.activeDocument.activeLayer = self.art_layer
         psd.content_fill_empty_area()
 
@@ -154,9 +152,9 @@ class SilvanMDFCFrontTemplate (SilvanMDFCBackTemplate):
     """
     def template_file_name (self):
         return "SilvanMTG/extended-mdfc-front"
-    
+
     def dfc_layer_group (self):
         return con.layers['MDFC_FRONT']
-    
+
     def template_suffix (self):
         return "Extended"

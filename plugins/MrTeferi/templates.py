@@ -1,16 +1,15 @@
 """
 MRTEFERI TEMPLATES
 """
-import os
-import proxyshop.frame_logic as frame_logic
-import proxyshop.format_text as format_text
-import proxyshop.text_layers as txt_layers
+# pylint: disable=C0116, E0401
+from proxyshop import format_text
+#import proxyshop.text_layers as txt_layers
 import proxyshop.templates as temp
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
-import photoshop.api as ps
-app = ps.Application()
+app = psd.app
+lyr = con.layers
 
 """
 NORMAL TEMPLATES
@@ -22,19 +21,16 @@ class SketchTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/sketch"
-    
+
     def template_suffix (self):
         return "Sketch"
-    
-    def __init__ (self, layout, file):
-        super().__init__(layout, file)
-        
+
     def enable_frame_layers (self):
         super().enable_frame_layers()
         if self.layout.rarity != "common": psd.getLayer("common", con.layers['TEXT_AND_ICONS']).visible = False
         """
         Interesting Sketch integration?
-        
+
         app.activeDocument.activeLayer = app.activeDocument.layers.getByName("Layer 1")
         content_fill_empty_area()
         self.art_reference.visible = False
@@ -44,7 +40,7 @@ class SketchTemplate (temp.NormalTemplate):
         app.activeDocument.activeLayer.autoContrast()
         app.activeDocument.activeLayer.autoLevels()
         app.activeDocument.activeLayer.adjustBrightnessContrast(0,10)
-        VibrantSaturation(100,-30)      
+        VibrantSaturation(100,-30)
         # =======================================================
         idPly = charIDToTypeID( "Ply " )
         desc5002 = new ActionDescriptor()
@@ -66,24 +62,24 @@ class KaldheimTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/kaldheim"
-    
+
     def template_suffix (self):
         return "Kaldheim"
-    
+
     def enable_frame_layers (self):
 
         # PT Box, no title boxes for this one
         if self.is_creature:
             # Check if vehicle
-            if self.layout.type_line.find("Vehicle") >= 0: 
+            if self.layout.type_line.find("Vehicle") >= 0:
                 psd.getLayer("Vehicle", con.layers['PT_BOX']).visible = True
             else: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
         else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
-        
+
         # Land or not?
         if self.is_land: pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
         else: pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        
+
         # Check if vehicle
         if self.layout.type_line.find("Vehicle") >= 0: psd.getLayer("Vehicle", pinlines).visible = True
         else: psd.getLayer(self.layout.pinlines, pinlines).visible = True
@@ -99,14 +95,14 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/crimson-fang"
-    
+
     def template_suffix (self):
         return "Fang"
-    
+
     def enable_frame_layers (self):
         # Twins if tf card
         tf_twins = self.layout.twins+"-mdfc"
-        
+
         # Transform stuff + twins
         if self.name_shifted:
             psd.getLayer("Button", con.layers['TEXT_AND_ICONS']).visible = True
@@ -114,7 +110,7 @@ class CrimsonFangTemplate (temp.NormalTemplate):
             else: psd.getLayer(con.layers['TF_BACK'], con.layers['TEXT_AND_ICONS']).visible = True
             psd.getLayer(tf_twins, con.layers['TWINS']).visible = True
         else: psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        
+
         # PT Box
         if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
 
@@ -143,7 +139,7 @@ class PhyrexianTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/phyrexian"
-        
+
     def template_suffix (self):
         return "Phyrexian"
 
@@ -153,7 +149,7 @@ class PhyrexianTemplate (temp.NormalTemplate):
         if self.is_creature:
             psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
         else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
-        
+
         # Pinlines
         if self.is_land:
             # Land Group
@@ -170,16 +166,16 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/double-feature"
-    
+
     def template_suffix (self):
         return "Double Feature"
-    
+
     def enable_frame_layers (self):
         # Transform stuff
         """
         if self.name_shifted:
             docref.layers.getByName(con.layers['TEXT_AND_ICONS']).layers.getByName("Button").visible = True
-            if self.layout.face == 0: 
+            if self.layout.face == 0:
                 docref.layers.getByName(con.layers['TEXT_AND_ICONS']).layers.getByName(con.layers['TF_FRONT']).visible = True
             else docref.layers.getByName(con.layers['TEXT_AND_ICONS']).layers.getByName(con.layers['TF_BACK']).visible = True
         """
@@ -188,7 +184,7 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
 
         # TF Card?
         try:
-            if self.name_shifted and self.layout.face == 1: 
+            if self.name_shifted and self.layout.face == 1:
                 psd.getLayer(self.layout.pinlines, con.layerscolor_INDICATOR).visible = True
         except: pass
 
@@ -208,16 +204,16 @@ class MaleMPCTemplate (temp.NormalTemplate):
     """
     def template_file_name (self):
         return "MrTeferi/male-mpc"
-    
+
     def template_suffix (self):
         return "Extended Black"
-    
+
     def __init__ (self, layout, file):
-        if not cfg.remove_reminder: 
+        if not cfg.remove_reminder:
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
         super().__init__(layout, file)
 
-""" 
+"""
 CLASSIC TEMPLATE VARIANTS
 """
 class PromoClassicTemplate (temp.NormalClassicTemplate):
@@ -227,9 +223,6 @@ class PromoClassicTemplate (temp.NormalClassicTemplate):
     """
     def template_suffix (self):
         return "Classic Promo"
-    
-    def __init__ (self, layout, file):
-        super().__init__(layout, file)
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
