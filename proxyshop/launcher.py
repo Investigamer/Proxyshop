@@ -133,3 +133,20 @@ def render_target(temps):
 	# Template(s) provided?
 	if temps is None: rend.render(file[0], None)
 	else: rend.render(file[0],temps)
+
+def render_custom(scryfall, template):
+	"""
+	RENDER TARGET IMAGE
+	"""
+	import os
+	from pathlib import Path
+	import proxyshop.render as rend
+	from proxyshop.helpers import app
+	cwd = os.getcwd()
+	file = app.openDialog()
+
+	# Make sure out folder exists
+	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+
+	# Template(s) provided?
+	rend.render_custom(file[0],template,scryfall)

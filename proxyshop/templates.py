@@ -198,7 +198,8 @@ class BaseTemplate():
         elif cfg.exit_early:
             print(f"{filename} rendered successfully! Time to manually edit.")
         else:
-            psd.save_and_close(filename)
+            if cfg.save_jpeg: psd.save_and_close_jpeg(filename)
+            else: psd.save_and_close(filename)
             print(f"{filename} rendered successfully!")
 
 # Extend this for more functionality than BaseTemplate

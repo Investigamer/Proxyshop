@@ -12,7 +12,7 @@ symbol_char = cfg['CONF']['Expansion.Symbol']
 
 # Stop after formatting for manual intervention
 exit_early = cfg.getboolean('CONF','Manual.Edit')
-fast_save = cfg.getboolean('CONF','Fast.Saving')
+save_jpeg = cfg.getboolean('CONF','Render.JPEG')
 file_ext = cfg['CONF']['Photoshop.Ext']
 
 # Auto symbol, sizing, and outline

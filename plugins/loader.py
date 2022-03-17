@@ -1,3 +1,6 @@
+"""
+LOADS PLUGINS AND TEMPLATES
+"""
 import os
 import json
 import configparser
@@ -6,8 +9,10 @@ from pathlib import Path
 from importlib import import_module
 cwd = os.getcwd()
 
-# Get template based on input and layout
 def get_template(template, layout):
+    """
+    Get template based on input and layout
+    """
 
     # Get templates json
     templates = get_templates()
@@ -20,16 +25,17 @@ def get_template(template, layout):
     else: return None
     return getattr(import_module(selected_template[0]), selected_template[1])
 
-# Roll templates from our plugins into our main json
 def get_templates ():
+    """
+    Roll templates from our plugins into our main json
+    """
 
     # Plugin folders
     folders = glob(os.path.join(cwd, "plugins\\*\\"))
 
     # Get our main json
-    json_file = open(os.path.join(cwd, "proxyshop\\templates.json"))
-    main_json = json.load(json_file)
-    json_file.close()
+    with open(os.path.join(cwd, "proxyshop\\templates.json"), encoding="utf-8") as json_file:
+        main_json = json.load(json_file)
 
     # Iterate through folders
     for folder in folders:
@@ -38,12 +44,11 @@ def get_templates ():
             j = []
             make_default = False
             for name in os.listdir(folder):
-				
+
                 # Load json
                 if name == "template_map.json":
-                    this_json = open(os.path.join(cwd, f"plugins\\{Path(folder).stem}\\{name}"))
-                    j = json.load(this_json)
-                    this_json.close()
+                    with open(os.path.join(cwd, f"plugins\\{Path(folder).stem}\\{name}"), encoding="utf-8") as this_json:
+                        j = json.load(this_json)
 
                 # Load config
                 if name == "config.ini":
@@ -67,8 +72,11 @@ def get_templates ():
                         # New layout
                         main_json[key] = j[key]
             except: pass
-    
+
     return main_json
 
 def get_template_class(template):
+    """
+    Return class for given template
+    """
     return getattr(import_module(template[0]), template[1])

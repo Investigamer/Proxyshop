@@ -2,10 +2,8 @@
 PHOTOSHOP HELPER FUNCTIONS
 """
 import os
-import csv
 import proxyshop.scryfall as scry
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 import photoshop.api as ps
 app = ps.Application()
 
@@ -291,13 +289,33 @@ def save_and_close(file_name):
     app.executeAction(idsave, desc3, ps.DialogModes.DisplayNoDialogs)
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
+def save_and_close_jpeg(file_name):
     """
-    if int(app.version[0:2]) >= 19:
-        if cfg.fast_save: desc4.putInteger(idCmpr, 0)
-        else:
-    else:
-        if cfg.fast_save: desc4.putInteger(idCmpr, 0)
+     * Save the current document to /out/ as a PNG, close without saving.
     """
+    desc34 = ps.ActionDescriptor()
+    desc35 = ps.ActionDescriptor()
+    desc35.putInteger(app.charIDToTypeID("EQlt"), 12)
+    desc35.putInteger(app.charIDToTypeID("Scns"), 3)
+    idMttC = app.charIDToTypeID("MttC")
+    idNone = app.charIDToTypeID("None")
+    desc35.putEnumerated(idMttC, idMttC, idNone)
+    desc34.putObject(
+        app.charIDToTypeID("As  "),
+        app.charIDToTypeID("JPEG"),
+        desc35)
+    desc34.putPath(app.charIDToTypeID("In  "),
+        os.path.join(con.cwd, f"out/{file_name}.png"))
+    desc34.putInteger(app.charIDToTypeID("DocI"), 349 )
+    desc34.putBoolean(app.charIDToTypeID("Cpy "), True)
+    desc34.putEnumerated(
+        app.stringIDToTypeID("saveStage"),
+        app.stringIDToTypeID("saveStageType"),
+        app.stringIDToTypeID("saveSucceeded") )
+    app.executeAction(
+        app.charIDToTypeID("save"),
+        desc34,
+        ps.SaveOptions.DoNotSaveChanges )
 
 def get_text_layer_color(layer):
     """

@@ -56,7 +56,7 @@ AutoSetSymbol = BooleanVar()
 AutoSymbolSize = BooleanVar()
 NoReminder = BooleanVar()
 NoFlavor = BooleanVar()
-SaveUncompressed = BooleanVar()
+SaveJPEG = BooleanVar()
 ManualEdit = BooleanVar()
 
 # Settings elements
@@ -68,8 +68,8 @@ cb_NoReminder = Checkbutton(f_settings, text="No Reminder Text", variable=NoRemi
 if conf.remove_reminder: cb_NoReminder.select()
 cb_NoFlavor = Checkbutton(f_settings, text="No Flavor Text", variable=NoFlavor)
 if conf.remove_flavor: cb_NoFlavor.select()
-cb_SaveUncompressed = Checkbutton(f_settings, text="Save Uncompressed", variable=SaveUncompressed)
-if conf.fast_save: cb_SaveUncompressed.select()
+cb_SaveJPEG = Checkbutton(f_settings, text="Save as JPEG", variable=SaveJPEG)
+if conf.save_jpeg: cb_SaveJPEG.select()
 cb_ManualEdit = Checkbutton(f_settings, text="Manual Edit Step", variable=ManualEdit)
 if conf.exit_early: cb_ManualEdit.select()
 
@@ -79,7 +79,7 @@ cb_AutoSymbolSize.grid(row=0, column=1, sticky="w")
 cb_ManualEdit.grid(row=0, column=2, sticky="w")
 cb_NoReminder.grid(row=1, column=0, sticky="w", pady=(0,5))
 cb_NoFlavor.grid(row=1, column=1, sticky="w", pady=(0,5))
-cb_SaveUncompressed.grid(row=1, column=2, sticky="w", pady=(0,5))
+cb_SaveJPEG.grid(row=1, column=2, sticky="w", pady=(0,5))
 
 # Add tabs to grid
 tabs = gui.get_tabs(n_tabs)
@@ -115,7 +115,7 @@ def update_config():
 	cfg.set("CONF", "Auto.Symbol.Size", str(AutoSymbolSize.get()))
 	cfg.set("CONF", "No.Flavor.Text", str(NoFlavor.get()))
 	cfg.set("CONF", "No.Reminder.Text", str(NoReminder.get()))
-	cfg.set("CONF", "Fast.Saving", str(SaveUncompressed.get()))
+	cfg.set("CONF", "Render.JPEG", str(SaveJPEG.get()))
 	cfg.set("CONF", "Manual.Edit", str(ManualEdit.get()))
 	with open("config.ini", "w", encoding="utf-8") as config_file:
 		cfg.write(config_file)

@@ -106,3 +106,50 @@ def render (file,template):
     # Execution time
     end = timer()
     print(str(timedelta(seconds=end-start))+"\n")
+
+def render_custom (file,template,scryfall):
+    """
+    Set up this render job, then execute
+    """
+    # pylint: disable=R0912, R1722
+    start = timer()
+
+    # Basic land?
+    if scryfall['name'] in con.basic_land_names:
+
+        # Manually call the BasicLand layout OBJ
+        layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'].upper())
+
+    else:
+
+        # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
+        layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
+        #except:
+        #    input(f"Layout '{scryfall['layout']}' is not supported. Press enter to exit...")
+        #    exit()
+
+    # Get our template and layout class maps
+    if isinstance(template, list): card_template = loader.get_template_class(template)
+    else:
+        input("ERROR: Template not found! Press enter to exit...")
+        exit()
+
+    if card_template:
+
+        # Additional variables
+        layout.card_count = scryfall['card_count']
+        layout.collector_number = scryfall['collector_number']
+        layout.creator = None
+
+        # Select and execute the template
+        card_template(layout, file).execute()
+
+    else:
+
+        # No matching template
+        input("No template found for layout: {layout.card_class}\nPress enter to exit...")
+        exit()
+
+    # Execution time
+    end = timer()
+    print(str(timedelta(seconds=end-start))+"\n")
