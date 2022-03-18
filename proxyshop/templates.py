@@ -147,10 +147,11 @@ class BaseTemplate():
         psd.frame_layer(self.art_layer, self.art_reference)
 
         # Enable the layers we need
-        try:
-            print("Enabling frame layers...", end=" ", flush=True)
-            self.enable_frame_layers()
-            print("done!", flush=True)
+        #try:
+        print("Enabling frame layers...", end=" ", flush=True)
+        self.enable_frame_layers()
+        print("done!", flush=True)
+        """
         except:
             self.failed = core.handle(
                 "This card is incompatible with this Template!",
@@ -158,6 +159,7 @@ class BaseTemplate():
                 self.template_file_name())
             psd.close_document()
             return False
+        """
 
         # Input and format each text layer
         try:
@@ -543,7 +545,7 @@ class StargazingTemplate (NormalTemplate):
         super().__init__(layout, file)
 
 
-class MasterpieceTemplate (NormalTemplate):
+class InventionTemplate (NormalTemplate):
     """
      * Kaladesh Invention template. This template has stripped-down layers compared to NormalTemplate but is otherwise similar.
     """
@@ -555,24 +557,60 @@ class MasterpieceTemplate (NormalTemplate):
 
     def __init__ (self, layout, file):
         self.is_colorless = False
+        layout.is_nyx = False
+        """
+        # Ask user for choice?
+        app.alert("Please choose a border treatment in the command window.")
+        choice = input("Masterpiece template supports silver or bronze borders, enter 1 for Bronze, 2 for Silver.\n")
+        while True:
+            if choice == 1:
+                layout.twins = "Bronze"
+                layout.background = "Bronze"
+                break
+            if choice == 2:
+                layout.twins = "Silver"
+                layout.background = "Silver"
+                break
+            choice = input("Do you think this is a game? Try again.\n")
+        """
 
-        # Force to use bronze twins and background
-        layout.twins = "Bronze"
-        layout.background = "Bronze"
+        # Rendering as silver or no?
+        if layout.twins != "Silver":
+            layout.twins = "Bronze"
+            layout.background = "Bronze"
 
         # Strip reminder text
         if not cfg.remove_reminder:
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
-
         super().__init__(layout, file)
 
     def enable_frame_layers (self):
-        super().enable_frame_layers()
+
+        # Twins and p/t box
+        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
+        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+
+        # Pinlines / background
+        pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
+        psd.getLayer(self.layout.pinlines, pinlines).visible = True
+        psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+
         if self.is_legendary:
-            # Always enable hollow crown for legendary cards in this template
+            # legendary crown
             crown = psd.getLayerSet(con.layers['LEGENDARY_CROWN'])
-            pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-            super.enable_hollow_crown(crown, pinlines)
+            psd.getLayer(self.layout.pinlines, crown).visible = True
+            psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
+            psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
+            super().enable_hollow_crown(crown, pinlines)
+
+class InventionSilverTemplate (InventionTemplate):
+    """
+     * Kaladesh Invention template, Silver choice.
+    """
+    def __init__ (self, layout, file):
+        layout.twins = "Silver"
+        layout.background = "Silver"
+        super().__init__(layout, file)
 
 
 class ExpeditionTemplate (NormalTemplate):
@@ -592,36 +630,20 @@ class ExpeditionTemplate (NormalTemplate):
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
         super().__init__(layout, file)
 
-    def basic_text_layers (self, text_and_icons):
-        name = psd.getLayer(con.layers['NAME'], text_and_icons)
-        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
-
-        # Expansion symbol
-        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        if cfg.auto_symbol_size: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
-        else: expansion_reference = None
-        self.tx_layers.extend([
-            txt_layers.TextField(
-                layer = name,
-                text_contents = self.layout.name,
-                text_color = psd.get_text_layer_color(name)
-            ),
-            txt_layers.ExpansionSymbolField(
-                layer = expansion_symbol,
-                text_contents = self.symbol_char,
-                rarity = self.layout.rarity,
-                reference = expansion_reference
-            ),
-            txt_layers.ScaledTextField(
-                layer = type_line,
-                text_contents = self.layout.type_line,
-                text_color = psd.get_text_layer_color(type_line),
-                reference_layer = expansion_symbol
-            ),
-        ])
-
     def rules_text_and_pt_layers (self, text_and_icons):
-        # overriding this because the expedition template doesn't have power/toughness layers
+
+        if self.is_creature:
+            # Creature card - set up creature layer for rules text and insert p/t
+            power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
+            self.tx_layers.append(
+                txt_layers.TextField(
+                    layer = power_toughness,
+                    text_contents = str(self.layout.power) + "/" + str(self.layout.toughness),
+                    text_color = psd.get_text_layer_color(power_toughness)
+                )
+            )
+
+        # Expedition template doesn't need to use creature text positioning
         rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
         self.tx_layers.append(
             txt_layers.FormattedTextArea(
@@ -638,9 +660,10 @@ class ExpeditionTemplate (NormalTemplate):
 
         # twins and pt box
         psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
+        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
 
         # pinlines
-        pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
+        pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
         psd.getLayer(self.layout.pinlines, pinlines).visible = True
 
         if self.is_legendary:

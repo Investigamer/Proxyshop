@@ -3,13 +3,14 @@
 		"default": ["proxyshop.templates", "NormalTemplate"], 
 		"other": {
 			"Normal": ["proxyshop.templates", "NormalTemplate"],
-			"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
-			"Masterpiece": ["proxyshop.templates", "MasterpieceTemplate"],
 			"Classic": ["proxyshop.templates", "NormalClassicTemplate"],
 			"Fullart": ["proxyshop.templates", "NormalFullartTemplate"],
+			"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
+			"Invention": ["proxyshop.templates", "InventionTemplate"],
+			"Invention Silver": ["proxyshop.templates", "InventionSilverTemplate"],
 			"Stargazing": ["proxyshop.templates", "StargazingTemplate"],
 			"Expedition": ["proxyshop.templates", "ExpeditionTemplate"],
-			"WomensDay": ["proxyshop.templates", "WomensDayTemplate"],
+			"Womens Day": ["proxyshop.templates", "WomensDayTemplate"],
 			"Miracle": ["proxyshop.templates", "MiracleTemplate"],
 			"Snow": ["proxyshop.templates", "SnowTemplate"]
 		}

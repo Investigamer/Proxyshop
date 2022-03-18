@@ -28,7 +28,8 @@ def card_info(card_name, card_set=None):
             ) as card:
                 print("done!", flush=True)
                 return add_meld_info(json.loads(card.read()))
-    except error.HTTPError: core.handle("\nScryfall search failed, is '{card_name}' a valid card name?")
+    except error.HTTPError: core.handle(f"\nScryfall search failed, is '{card_name}' a valid card name?")
+    return None
 
 def set_info(set_code):
     """

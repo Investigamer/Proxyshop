@@ -135,4 +135,4 @@ def render_custom (file,template,scryfall):
     else: core.handle("No template found for layout: {layout.card_class}")
     # Execution time
     end = timer()
-    print(str(timedelta(seconds=end-start)[2:-4])+"\n")
+    print("Time completed: "+str(timedelta(seconds=end-start))[2:-7]+"\n")
