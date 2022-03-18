@@ -2,9 +2,15 @@
 Launcher Functionality
 """
 # pylint: disable=C0206, C0415
+import os
+from glob import glob
 from tkinter import *
 from tkinter import ttk
-from plugins.loader import get_templates
+from pathlib import Path
+import proxyshop.render as rend
+from proxyshop.helpers import app
+from proxyshop.core import get_templates
+cwd = os.getcwd()
 
 # Types of cards
 card_types = {
@@ -93,12 +99,6 @@ def render_all(temps):
 	RENDER ALL IMAGES IN ART FOLDER
 	Using our custom JSON
 	"""
-	import os
-	from glob import glob
-	from pathlib import Path
-	import proxyshop.render as rend
-	cwd = os.getcwd()
-
 	# Make sure out folder exists
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
@@ -120,11 +120,6 @@ def render_target(temps):
 	"""
 	RENDER TARGET IMAGE
 	"""
-	import os
-	from pathlib import Path
-	import proxyshop.render as rend
-	from proxyshop.helpers import app
-	cwd = os.getcwd()
 	file = app.openDialog()
 
 	# Make sure out folder exists
@@ -138,11 +133,6 @@ def render_custom(scryfall, template):
 	"""
 	RENDER TARGET IMAGE
 	"""
-	import os
-	from pathlib import Path
-	import proxyshop.render as rend
-	from proxyshop.helpers import app
-	cwd = os.getcwd()
 	file = app.openDialog()
 
 	# Make sure out folder exists

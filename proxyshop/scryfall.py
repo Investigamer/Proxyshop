@@ -4,6 +4,7 @@ FUNCTIONS THAT INTERACT WITH SCRYFALL
 import json
 from urllib import request, parse, error
 import proxyshop.constants as con
+from proxyshop import core
 
 def card_info(card_name, card_set=None):
     """
@@ -18,18 +19,16 @@ def card_info(card_name, card_set=None):
             with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}&set={parse.quote(card_set)}"
             ) as card:
-                print("and done!", flush=True)
+                print("done!", flush=True)
                 return add_meld_info(json.loads(card.read()))
         else:
             print(f"Searching Scryfall for: {card_name}...", end=" ", flush=True)
             with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}"
             ) as card:
-                print("and done!", flush=True)
+                print("done!", flush=True)
                 return add_meld_info(json.loads(card.read()))
-    except error.HTTPError:
-        input("\nError occurred while attempting to query Scryfall. Press enter to exit.")
-        return None
+    except error.HTTPError: core.handle("\nScryfall search failed, is '{card_name}' a valid card name?")
 
 def set_info(set_code):
     """
@@ -37,14 +36,14 @@ def set_info(set_code):
     `set_code`: The set to look for, ex: MH2
     """
     try:
-        print(f"Searching Scryfall for: Set: {set_code}...", end=" ", flush=True)
+        print(f"Searching Scryfall for Set: {set_code}...", end=" ", flush=True)
         with request.urlopen(
             f"https://api.scryfall.com/sets/{parse.quote(set_code)}"
         ) as mtg_set:
-            print("and done!", flush=True)
+            print("done!", flush=True)
             return json.loads(mtg_set.read())
     except error.HTTPError:
-        print("\nCouldn't retrieve set information. Probably no big deal!")
+        print("\nCouldn't retrieve set information. Continuing without it.")
         return None
 
 def card_scan(img_url):
@@ -54,9 +53,10 @@ def card_scan(img_url):
     try:
         print(f"Retrieving Scryfall scan at URL: {img_url}...", end=" ", flush=True)
         request.urlretrieve(img_url, con.scryfall_scan_path)
-        print("and done!", flush=True)
+        print("done!", flush=True)
     except error.HTTPError:
-        input("\nError occurred while attempting to retrieve image. Press enter to exit.")
+        core.handle("\nCouldn't retrieve scryfall image scan! Continuing without it.")
+        return None
     with open(con.scryfall_scan_path, encoding="utf-8") as file:
         return file.name
 

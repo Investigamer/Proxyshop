@@ -3,43 +3,12 @@ CORE TEMPLATES
 """
 import os
 import proxyshop.text_layers as txt_layers
-from proxyshop import format_text
+from proxyshop import format_text, core
 import proxyshop.constants as con
 import proxyshop.settings as cfg
 import proxyshop.helpers as psd
 app = psd.app
 ps = psd.ps
-
-"""
-Example Template Class
-Your entrypoint to creating your own templates.
-You should write classes that extend BaseTemplate for advanced user.
-Extend NormalTemplate for templates that are near-identical to the NormalTemplate.
-
-* Override the method template_file_name() to return your template's file name (without extension).
-
-* Extend the __init__ (make sure you call super().__init__(args) in your __init__). Define the text fields you need to populate in your
-  template. Do this by creating new instances of the project's text field classes (see my templates for examples) and append them
-  to the array self.tx_layers. The constructor also needs to set the property self.art_reference to a layer in your template, and
-  your card art will be scaled to match the size of this layer.
-
-* Override the method enable_frame_layers. This method should use information about the card's layout to determine which layers to
-  turn on in your template to complete the card's frame. self.layout contains information about the card's twins color (name and title
-  boxes), pinlines and textbox color(s), and background color(s), so you'll be mainly using self. You also know if the card is colorless
-  (as in full-art like Eldrazi cards) and whether or not the card is nyx-touched (uses the nyx background).
-
-class Template = Class(BaseTemplate):
-    def __init__ (self, layout, file):
-        super().__init__(layout, file)
-        # do stuff, including setting self.art_reference
-        # add text layers to the array self.tx_layers (will be executed automatically)
-
-    def template_file_name (self):
-        return "psd_file_name"
-
-    def enable_frame_layers (self):
-        # do stuff
-"""
 
 # Ensure scaling with pixels, font size with points
 app.preferences.rulerUnits = ps.Units.Pixels
@@ -53,6 +22,7 @@ class BaseTemplate():
     # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201
     def __init__ (self, layout, file):
         # Setup inherited info, tx_layers, template PSD
+        self.failed = False
         self.layout = layout
         self.file = file
         self.tx_layers = []
@@ -177,11 +147,31 @@ class BaseTemplate():
         psd.frame_layer(self.art_layer, self.art_reference)
 
         # Enable the layers we need
-        self.enable_frame_layers()
+        try:
+            print("Enabling frame layers...", end=" ", flush=True)
+            self.enable_frame_layers()
+            print("done!", flush=True)
+        except:
+            self.failed = core.handle(
+                "This card is incompatible with this Template!",
+                self.layout.name,
+                self.template_file_name())
+            psd.close_document()
+            return False
 
         # Input and format each text layer
-        for this_layer in self.tx_layers:
-            this_layer.execute()
+        try:
+            print("Formatting text...", end=" ", flush=True)
+            for this_layer in self.tx_layers:
+                this_layer.execute()
+            print("done!", flush=True)
+        except:
+            self.failed = core.handle(
+                "This card is incompatible with this Template!",
+                self.layout.name,
+                self.template_file_name())
+            psd.close_document()
+            return False
 
         # Format file name
         suffix = self.template_suffix()
@@ -194,13 +184,16 @@ class BaseTemplate():
 
         # Exit early?
         if self.exit_early:
-            print(f"{filename} rendered successfully! Time to manually edit.")
+            input(f"{filename} rendered successfully! Manual editing enabled, press enter to exit...")
+            core.exit_app()
         elif cfg.exit_early:
-            print(f"{filename} rendered successfully! Time to manually edit.")
+            input(f"{filename} rendered successfully! Manual editing enabled, press enter to exit...")
+            core.exit_app()
         else:
             if cfg.save_jpeg: psd.save_and_close_jpeg(filename)
             else: psd.save_and_close(filename)
             print(f"{filename} rendered successfully!")
+        return True
 
 # Extend this for more functionality than BaseTemplate
 class StarterTemplate (BaseTemplate):
@@ -298,8 +291,9 @@ class StarterTemplate (BaseTemplate):
          * the given reference layer. Can optionally rotate the layer by 90 degrees (useful for planar cards).
         """
         layer = psd.insert_scryfall_scan(self.layout.scryfall_scan)
-        if rotate: layer.rotate(90)
-        psd.frame_layer(layer, reference_layer)
+        if layer:
+            if rotate: layer.rotate(90)
+            psd.frame_layer(layer, reference_layer)
 
 class NormalTemplate (StarterTemplate):
     """

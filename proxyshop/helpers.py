@@ -316,6 +316,13 @@ def save_and_close_jpeg(file_name):
         app.charIDToTypeID("save"),
         desc34,
         ps.SaveOptions.DoNotSaveChanges )
+    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+
+def close_document():
+    """
+    Close the document
+    """
+    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
 def get_text_layer_color(layer):
     """
@@ -403,7 +410,8 @@ def insert_scryfall_scan(image_url):
      * Downloads the specified scryfall scan and inserts it into a new layer next to the active layer. Returns the new layer.
     """
     scryfall_scan = scry.card_scan(image_url)
-    return paste_file_into_new_layer(scryfall_scan)
+    if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
+    return None
 
 def content_fill_empty_area():
     """

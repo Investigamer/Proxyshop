@@ -5,10 +5,9 @@ import os
 import re
 from timeit import default_timer as timer
 from datetime import timedelta
-from proxyshop import layouts
+from proxyshop import layouts, core
 import proxyshop.constants as con
 import proxyshop.scryfall as scry
-from plugins import loader
 
 def retrieve_card_info (filename):
     """
@@ -62,9 +61,7 @@ def render (file,template):
 
         # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
         try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
-        except:
-            input(f"Layout '{scryfall['layout']}' is not supported. Press enter to exit...")
-            exit()
+        except: core.handle(f"Layout '{scryfall['layout']}' is not supported.")
 
         # If artist specified in file name, replace artist in layout OBJ
         if card['artist']: layout.artist = card['artist']
@@ -81,8 +78,8 @@ def render (file,template):
 
     # Get our template and layout class maps
     if isinstance(template, dict):
-        card_template = loader.get_template_class(template[layout.card_class])
-    else: card_template = loader.get_template(template, layout.card_class)
+        card_template = core.get_template_class(template[layout.card_class])
+    else: card_template = core.get_template(template, layout.card_class)
 
     if card_template:
 
@@ -95,17 +92,12 @@ def render (file,template):
         else: layout.creator = None
 
         # Select and execute the template
-        card_template(layout, file).execute()
+        result = card_template(layout, file).execute()
 
-    else:
-
-        # No matching template
-        input("No template found for layout: {layout.card_class}\nPress enter to exit...")
-        exit()
-
+    else: core.handle("No template found for layout: {layout.card_class}")
     # Execution time
     end = timer()
-    print(str(timedelta(seconds=end-start))+"\n")
+    if result: print("Time completed: "+str(timedelta(seconds=end-start))[2:-7]+"\n")
 
 def render_custom (file,template,scryfall):
     """
@@ -123,16 +115,12 @@ def render_custom (file,template,scryfall):
     else:
 
         # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
-        layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
-        #except:
-        #    input(f"Layout '{scryfall['layout']}' is not supported. Press enter to exit...")
-        #    exit()
+        try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
+        except: core.handle(f"Layout '{scryfall['layout']}' is not supported.")
 
     # Get our template and layout class maps
-    if isinstance(template, list): card_template = loader.get_template_class(template)
-    else:
-        input("ERROR: Template not found! Press enter to exit...")
-        exit()
+    if isinstance(template, list): card_template = core.get_template_class(template)
+    else: core.handle("Template not found!")
 
     if card_template:
 
@@ -144,12 +132,7 @@ def render_custom (file,template,scryfall):
         # Select and execute the template
         card_template(layout, file).execute()
 
-    else:
-
-        # No matching template
-        input("No template found for layout: {layout.card_class}\nPress enter to exit...")
-        exit()
-
+    else: core.handle("No template found for layout: {layout.card_class}")
     # Execution time
     end = timer()
-    print(str(timedelta(seconds=end-start))+"\n")
+    print(str(timedelta(seconds=end-start)[2:-4])+"\n")
