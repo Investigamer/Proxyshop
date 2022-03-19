@@ -71,8 +71,18 @@ def get_listbox(c_type, tab):
 	lb_options = StringVar()
 	lb = Listbox(tab, listvariable=lb_options, selectmode=SINGLE, height=20, bd=0, exportselection=0)
 
+	# TODO: Sort templates alphabetical
 	layout = card_types[c_type][0]
 	temps = templates[layout]['other']
+	"""
+	d = templates[layout]['other']
+	t_normal = d["Normal"]
+	d.pop("Normal")
+	d = {k:d[k] for k in sorted(d)}
+	temps = {"Normal":t_normal}
+	temps.update(d)
+	"""
+	# Make our listbox
 	for line in temps:
 		lb.insert(END, line)
 	return lb

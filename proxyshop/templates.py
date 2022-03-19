@@ -19,14 +19,16 @@ class BaseTemplate():
      * Set up variables for things which are common to all templates (artwork and artist credit).
      * Classes extending this base class are expected to populate the following properties at minimum: self.art_reference
     """
-    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201
+    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201, R1710
     def __init__ (self, layout, file):
         # Setup inherited info, tx_layers, template PSD
         self.failed = False
         self.layout = layout
         self.file = file
         self.tx_layers = []
-        self.load_template()
+        try: self.load_template()
+        except:
+            core.handle("PSD not found! Make sure to download the photoshop templates.")
 
         # Flavor/reminder text
         if cfg.remove_flavor: self.layout.flavor_text = ""
@@ -147,11 +149,10 @@ class BaseTemplate():
         psd.frame_layer(self.art_layer, self.art_reference)
 
         # Enable the layers we need
-        #try:
-        print("Enabling frame layers...", end=" ", flush=True)
-        self.enable_frame_layers()
-        print("done!", flush=True)
-        """
+        try:
+            print("Enabling frame layers...", end=" ", flush=True)
+            self.enable_frame_layers()
+            print("done!", flush=True)
         except:
             self.failed = core.handle(
                 "This card is incompatible with this Template!",
@@ -159,7 +160,6 @@ class BaseTemplate():
                 self.template_file_name())
             psd.close_document()
             return False
-        """
 
         # Input and format each text layer
         try:
