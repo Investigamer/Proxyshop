@@ -8,6 +8,7 @@ from tkinter import *
 from tkinter import ttk
 from pathlib import Path
 import proxyshop.render as rend
+import proxyshop.helpers as psd
 from proxyshop.helpers import app
 from proxyshop.core import get_templates
 cwd = os.getcwd()
@@ -114,6 +115,7 @@ def render_all(temps):
 
 	# Select all images in art folder
 	files = []
+	previous = None
 	folder = os.path.join(cwd, "art")
 	extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
 	for ext in extensions:
@@ -123,8 +125,10 @@ def render_all(temps):
 	for f in files:
 
 		# Template(s) provided?
-		if temps is None: rend.render(f,None)
-		else: rend.render(f, temps)
+		if temps is None: previous = rend.render(f,None,previous)
+		else: previous = rend.render(f,temps,previous)
+
+	psd.close_document()
 
 def render_target(temps):
 	"""
@@ -136,8 +140,8 @@ def render_target(temps):
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Template(s) provided?
-	if temps is None: rend.render(file[0], None)
-	else: rend.render(file[0],temps)
+	if temps is None: rend.render(file[0],None,None)
+	else: rend.render(file[0],temps,None)
 
 def render_custom(scryfall, template):
 	"""

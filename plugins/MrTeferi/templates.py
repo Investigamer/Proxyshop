@@ -66,12 +66,17 @@ class KaldheimTemplate (temp.NormalTemplate):
     def template_suffix (self):
         return "Kaldheim"
 
+    def __init__ (self, layout, file):
+        if not cfg.remove_reminder:
+            layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
+        super().__init__(layout, file)
+
     def enable_frame_layers (self):
 
         # PT Box, no title boxes for this one
         if self.is_creature:
             # Check if vehicle
-            if self.layout.type_line.find("Vehicle") >= 0:
+            if "Vehicle" in self.layout.type_line:
                 psd.getLayer("Vehicle", con.layers['PT_BOX']).visible = True
             else: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
         else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
@@ -229,3 +234,49 @@ class PromoClassicTemplate (temp.NormalClassicTemplate):
 
         # Add the promo star
         psd.getLayer("Promo Star", con.layers['TEXT_AND_ICONS']).visible = True
+
+class ColorshiftedTemplate (temp.NormalTemplate):
+    """
+     * Planar Chaos era colorshifted template
+     * Rendered from CC and MSE assets
+    """
+    def template_file_name (self):
+        return "MrTeferi/colorshifted"
+
+    def template_suffix (self):
+        return "Shifted"
+
+    def __init__ (self, layout, file):
+        # Classic footer
+        layout.no_collector = True
+        super().__init__(layout, file)
+
+        # White brush and artist for black border
+        if layout.pinlines[0:1] == "B" and len(layout.pinlines) < 3:
+            psd.getLayer("Artist","Legal").textItem.color = psd.rgb_white()
+            psd.getLayer("Brush B", "Legal").visible = False
+            psd.getLayer("Brush W", "Legal").visible = True
+
+    def enable_frame_layers (self):
+
+        # PT Box, no title boxes for this one
+        if self.is_creature:
+            # Check if vehicle
+            if self.layout.type_line.find("Vehicle") >= 0:
+                psd.getLayer("Vehicle", con.layers['PT_BOX']).visible = True
+            else: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
+
+        # Pinlines
+        psd.getLayer(self.layout.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
+
+        # Legendary crown
+        if self.is_legendary:
+            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
+            psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
+            psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
+
+        # Alternate titleboxes
+        if "Artifact" in self.layout.type_line and self.layout.pinlines != "Artifact":
+            if self.is_legendary: psd.getLayer("Legendary", "Artifact Twins").visible = True
+            else: psd.getLayer("Normal", "Artifact Twins").visible = True

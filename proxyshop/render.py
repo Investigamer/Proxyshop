@@ -8,6 +8,7 @@ from datetime import timedelta
 from proxyshop import layouts, core
 import proxyshop.constants as con
 import proxyshop.scryfall as scry
+import proxyshop.helpers as psd
 
 def retrieve_card_info (filename):
     """
@@ -39,21 +40,17 @@ def retrieve_card_info (filename):
     }
 
 
-def render (file,template):
+def render (file,template,previous):
     """
     Set up this render job, then execute
     """
     # pylint: disable=R0912, R1722
-    # TODO: specify the desired template for a card in the filename?
     start = timer()
     card = retrieve_card_info(os.path.basename(str(file)))
 
-    # Basic land?
+    # If basic, manually call the BasicLand layout OBJ
     if card['name'] in con.basic_land_names:
-
-        # Manually call the BasicLand layout OBJ
-        layout = layouts.BasicLand(card['name'], card['artist'], card['set'].upper())
-
+        layout = layouts.BasicLand(card['name'], card['artist'], card['set'])
     else:
 
         # Get the scryfall info
@@ -83,6 +80,12 @@ def render (file,template):
 
     if card_template:
 
+        # Close the open document if current template aligns with previous
+        if previous is not None:
+            if previous is not card_template:
+                try: psd.close_document()
+                except: pass
+
         # Include collector number
         try: layout.collector_number = scryfall['collector_number']
         except: layout.collector_number = None
@@ -95,9 +98,13 @@ def render (file,template):
         result = card_template(layout, file).execute()
 
     else: core.handle("No template found for layout: {layout.card_class}")
-    # Execution time
+
+    # Timer result, return template class
     end = timer()
-    if result: print("Time completed: "+str(timedelta(seconds=end-start))[2:-7]+"\n")
+    if result:
+        print("Time completed: "+str(timedelta(seconds=end-start))[2:-7]+"\n")
+        return card_template
+    return None
 
 def render_custom (file,template,scryfall):
     """
@@ -106,12 +113,9 @@ def render_custom (file,template,scryfall):
     # pylint: disable=R0912, R1722
     start = timer()
 
-    # Basic land?
+    # If basic, manually call the BasicLand layout OBJ
     if scryfall['name'] in con.basic_land_names:
-
-        # Manually call the BasicLand layout OBJ
-        layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'].upper())
-
+        layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'])
     else:
 
         # Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes

@@ -263,9 +263,9 @@ def apply_stroke(stroke_weight, stroke_color):
     desc608.putObject(app.charIDToTypeID("T   "), idLefx, desc609)
     app.executeAction(app.charIDToTypeID("setd"), desc608, ps.DialogModes.DisplayNoDialogs)
 
-def save_and_close(file_name):
+def save_document_png(file_name):
     """
-     * Save the current document to /out/ as a PNG, close without saving.
+     * Save the current document to /out/ as a PNG.
     """
     idsave = app.charIDToTypeID("save")
     desc3 = ps.ActionDescriptor()
@@ -287,11 +287,10 @@ def save_and_close(file_name):
     idCpy = app.charIDToTypeID("Cpy ")
     desc3.putBoolean(idCpy, True)
     app.executeAction(idsave, desc3, ps.DialogModes.DisplayNoDialogs)
-    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
-def save_and_close_jpeg(file_name):
+def save_document_jpeg(file_name):
     """
-     * Save the current document to /out/ as a PNG, close without saving.
+     * Save the current document to /out/ as a JPEG.
     """
     desc34 = ps.ActionDescriptor()
     desc35 = ps.ActionDescriptor()
@@ -311,18 +310,30 @@ def save_and_close_jpeg(file_name):
     desc34.putEnumerated(
         app.stringIDToTypeID("saveStage"),
         app.stringIDToTypeID("saveStageType"),
-        app.stringIDToTypeID("saveSucceeded") )
+        app.stringIDToTypeID("saveSucceeded"))
     app.executeAction(
         app.charIDToTypeID("save"),
         desc34,
-        ps.SaveOptions.DoNotSaveChanges )
-    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+        ps.SaveOptions.DoNotSaveChanges)
 
 def close_document():
     """
     Close the document
     """
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+
+def reset_document(filename):
+    """
+    Reset all changes to the current document
+    """
+    idslct = app.charIDToTypeID( "slct" )
+    desc9 = ps.ActionDescriptor()
+    idnull = app.charIDToTypeID( "null" )
+    ref1 = ps.ActionReference()
+    idSnpS = app.charIDToTypeID( "SnpS" )
+    ref1.putName( idSnpS, filename )
+    desc9.putReference( idnull, ref1 )
+    app.executeAction( idslct, desc9, ps.DialogModes.DisplayNoDialogs )
 
 def get_text_layer_color(layer):
     """

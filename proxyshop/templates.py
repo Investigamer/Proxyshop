@@ -122,7 +122,8 @@ class BaseTemplate():
         """
          * Opens the template's PSD file in Photoshop.
         """
-        app.load(os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}"))
+        self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}")
+        app.load(self.file_path)
         # TODO: if that's the file that's currently open, reset instead of opening?
 
     def enable_frame_layers (self):
@@ -177,24 +178,27 @@ class BaseTemplate():
 
         # Format file name
         suffix = self.template_suffix()
-        if suffix: filename = f"{self.layout.name} ({suffix})"
-        else: filename = self.layout.name
+        if suffix: file_name = f"{self.layout.name} ({suffix})"
+        else: file_name = self.layout.name
 
         # Exit early defined?
         try: self.exit_early
         except: self.exit_early = False
 
-        # Exit early?
-        if self.exit_early:
-            input(f"{filename} rendered successfully! Manual editing enabled, press enter to exit...")
-            core.exit_app()
-        elif cfg.exit_early:
-            input(f"{filename} rendered successfully! Manual editing enabled, press enter to exit...")
-            core.exit_app()
-        else:
-            if cfg.save_jpeg: psd.save_and_close_jpeg(filename)
-            else: psd.save_and_close(filename)
-            print(f"{filename} rendered successfully!")
+        # Manual edit step?
+        if self.exit_early or cfg.exit_early:
+            input("Manual editing enabled! Make any necessary adjustments, then press enter to continue...\n")
+            print("Saving document...")
+
+        # Save the document
+        try:
+            if cfg.save_jpeg: psd.save_document_jpeg(file_name)
+            else: psd.save_document_png(file_name)
+            print(f"{file_name} rendered successfully!")
+
+            # Reset document
+            psd.reset_document(os.path.basename(self.file_path))
+        except: pass
         return True
 
 # Extend this for more functionality than BaseTemplate

@@ -46,6 +46,7 @@ def scale_text_to_fit_reference(layer, reference_layer):
     * Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
     * The resulting text layer will have equal font and lead sizes.
     """
+    if reference_layer is None: return True
     text_item = layer.textItem
     starting_font_size = text_item.size
     font_size = starting_font_size

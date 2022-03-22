@@ -6,6 +6,7 @@ from glob import glob
 from pathlib import Path
 import proxyshop.settings as cfg
 import proxyshop.render as rend
+import proxyshop.helpers as psd
 cwd = os.getcwd()
 
 # Make sure out folder exists
@@ -13,6 +14,7 @@ Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Select all images in art folder
 files = []
+previous = None
 folder = os.path.join(cwd, "art")
 extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
 for ext in extensions:
@@ -26,7 +28,9 @@ else: templates = None
 for f in files:
 
 	# Template(s) provided?
-	if templates is None: rend.render(f,None)
+	if templates is None: rend.render(f,None,previous)
 	else:
 		for t in templates:
-			rend.render(f,t)
+			previous = rend.render(f,t,previous)
+
+psd.close_document()
