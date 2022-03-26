@@ -233,7 +233,7 @@ symbols = {
     "{B/G/P}": "Qqp",
     "{G/U/P}": "Qqp",
     "{U/R/P}": "Qqp",
-    "{R/W/P}": "Qqp", # To do: Implement hybrid phyrexian
+    "{R/W/P}": "Qqp",
     "{E}": "e",
     "{T}": "ot",
     "{X}": "ox",

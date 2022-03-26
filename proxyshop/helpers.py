@@ -485,3 +485,60 @@ def apply_vibrant_saturation(VibValue, SatValue):
     desc232.putInteger( idvibrance, VibValue )
     desc232.putInteger( app.charIDToTypeID("Strt"), SatValue )
     app.executeAction( idvibrance, desc232, ps.DialogModes.DisplayNoDialogs )
+
+def fill_expansion_symbol(reference, stroke_color=rgb_black()):
+    """
+    Give the symbol a background for open space symbols (i.e. M10)
+    """
+
+    # Magic Wand contiguous outside symbol
+    coords = ps.ActionDescriptor()
+    coords.putUnitDouble(app.CharIDToTypeID( "Hrzn" ),app.CharIDToTypeID( "#Pxl" ), 100.000000 )
+    coords.putUnitDouble(app.CharIDToTypeID( "Vrtc" ),app.CharIDToTypeID( "#Pxl" ), 100.000000 )
+    click1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref1.putProperty(app.CharIDToTypeID( "Chnl" ), app.CharIDToTypeID( "fsel" ) )
+    click1.putReference(app.CharIDToTypeID( "null" ), ref1 )
+    click1.putObject(app.CharIDToTypeID( "T   " ), app.CharIDToTypeID( "Pnt " ), coords )
+    click1.putInteger(app.CharIDToTypeID( "Tlrn" ), 12 )
+    click1.putBoolean(app.CharIDToTypeID( "AntA" ), True )
+    app.executeAction(app.CharIDToTypeID("setd"), click1 )
+
+    # Invert selection
+    app.activeDocument.selection.invert()
+
+    # Magic Wand cross select
+    click2 = ps.ActionDescriptor()
+    ref2 = ps.ActionReference()
+    ref2.putProperty(app.CharIDToTypeID( "Chnl" ), app.CharIDToTypeID( "fsel" ) )
+    click2.putReference(app.CharIDToTypeID( "null" ), ref2 )
+    click2.putObject(app.CharIDToTypeID( "T   " ), app.CharIDToTypeID( "Pnt " ), coords )
+    click2.putInteger(app.CharIDToTypeID( "Tlrn" ), 12 )
+    click2.putBoolean(app.CharIDToTypeID( "AntA" ), True )
+    click2.putBoolean(app.CharIDToTypeID( "Cntg" ), False )
+    app.executeAction(app.CharIDToTypeID("IntW"), click2 )
+
+    # Make a new layer
+    layer = app.activeDocument.artLayers.add()
+    layer.name = "Expansion Mask"
+    layer.blendMode = ps.BlendMode.NormalBlend
+    layer.visible = True
+    layer.moveAfter(reference)
+
+    # Fill selection with stroke color
+    app.foregroundColor = stroke_color
+    click3 = ps.ActionDescriptor()
+    click3.putObject(app.CharIDToTypeID( "From" ), app.CharIDToTypeID( "Pnt " ), coords )
+    click3.putInteger(app.CharIDToTypeID( "Tlrn" ), 0)
+    click3.putEnumerated(
+        app.CharIDToTypeID( "Usng" ),
+        app.CharIDToTypeID( "FlCn" ),
+        app.CharIDToTypeID( "FrgC" ))
+    click3.putBoolean( app.CharIDToTypeID( "Cntg" ), False )
+    app.executeAction( app.CharIDToTypeID( "Fl  " ), click3 )
+
+    # Clear Selection
+    clear_selection()
+
+    # Maximum filter to keep the antialiasing normal
+    layer.applyMaximum(1)

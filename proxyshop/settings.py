@@ -19,6 +19,7 @@ file_ext = cfg['CONF']['Photoshop.Ext']
 auto_symbol = cfg.getboolean('CONF','Auto.Set.Symbol')
 auto_symbol_size = cfg.getboolean('CONF','Auto.Symbol.Size')
 symbol_stroke = cfg['CONF']['Symbol.Stroke.Size']
+fill_symbol = cfg.getboolean('CONF','Fill.Symbol.Background')
 
 # Text options
 remove_flavor = cfg.getboolean('CONF','No.Flavor.Text')

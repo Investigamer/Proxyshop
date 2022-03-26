@@ -14,7 +14,6 @@ Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Select all images in art folder
 files = []
-previous = None
 folder = os.path.join(cwd, "art")
 extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
 for ext in extensions:
@@ -24,13 +23,12 @@ for ext in extensions:
 if cfg.template: templates = cfg.template.split(",")
 else: templates = None
 
-# Run through each file
-for f in files:
-
-	# Template(s) provided?
-	if templates is None: rend.render(f,None,previous)
-	else:
-		for t in templates:
-			previous = rend.render(f,t,previous)
+# Render the file batch in each template
+if templates is None:
+	for f in files: previous = rend.render(f,None,previous)
+else:
+	previous = None
+	for t in templates:
+		for f in files: previous = rend.render(f,t,previous)
 
 psd.close_document()

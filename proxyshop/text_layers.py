@@ -182,6 +182,18 @@ class ExpansionSymbolField (TextField):
             mask_layer = psd.getLayer(self.rarity, self.layer.parent)
             mask_layer.visible = True
             psd.apply_stroke(cfg.symbol_stroke, psd.rgb_black())
+            psd.select_layer_pixels(self.layer)
+            app.activeDocument.activeLayer = mask_layer
+            psd.align_horizontal()
+            psd.align_vertical()
+            psd.clear_selection()
+
+        # Fill in the expansion symbol?
+        if cfg.fill_symbol:
+            app.activeDocument.activeLayer = self.layer
+            if self.rarity == con.rarity_common: psd.fill_expansion_symbol(self.reference, psd.rgb_white())
+            else: psd.fill_expansion_symbol(self.reference)
+
 
 class BasicFormattedTextField (TextField):
     """

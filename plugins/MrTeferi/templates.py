@@ -278,5 +278,8 @@ class ColorshiftedTemplate (temp.NormalTemplate):
 
         # Alternate titleboxes
         if "Artifact" in self.layout.type_line and self.layout.pinlines != "Artifact":
-            if self.is_legendary: psd.getLayer("Legendary", "Artifact Twins").visible = True
-            else: psd.getLayer("Normal", "Artifact Twins").visible = True
+            if self.is_legendary: psd.getLayer("Legendary Artifact", "Twins").visible = True
+            else: psd.getLayer("Normal Artifact", "Twins").visible = True
+        elif "Land" in self.layout.type_line:
+            if self.is_legendary: psd.getLayer("Legendary Land", "Twins").visible = True
+            else: psd.getLayer("Normal Land", "Twins").visible = True
