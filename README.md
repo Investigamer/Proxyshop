@@ -14,6 +14,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
 # Requirements
+  * Windows 10 (currently incompatible with Mac OSX)
   * A copy of Photoshop (2015-2022 Tested)
   * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
   * The following fonts, included in fonts folder:
