@@ -129,10 +129,10 @@ class SilvanMDFCBackTemplate (temp.NormalTemplate):
 
         if self.is_legendary:
             # legendary crown
-            crown = psd.getLayerSetL(con.layers['LEGENDARY_CROWN'])
+            crown = psd.getLayerSet(con.layers['LEGENDARY_CROWN'])
             psd.getLayer(self.layout.pinlines, crown).visible = True
             border = psd.getLayerSet(con.layers['BORDER'])
-            psd.getLayer(con.layers['NORMAL_BORDER'], border).visible = false
+            psd.getLayer(con.layers['NORMAL_BORDER'], border).visible = False
             psd.getLayer(con.layers['LEGENDARY_BORDER'], border).visible = True
 
         if self.is_companion:

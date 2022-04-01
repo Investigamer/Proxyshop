@@ -30,7 +30,7 @@ def render_target(selections):
 
 # Setup Kinter
 root = Tk()
-root.title("Proxyshop v1.0.5")
+root.title("Proxyshop v1.0.7")
 root.geometry("800x600")
 root.minsize(520, 455)
 root.maxsize(520, 455)

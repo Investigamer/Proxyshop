@@ -17,7 +17,7 @@ if cfg.template: templates = cfg.template.split(",")
 else: templates = None
 
 # Template(s) provided?
-if templates is None: rend.render(file[0], None)
+if templates is None: rend.render(file[0], None, None)
 else:
 	for t in templates:
-		rend.render(file[0],t)
+		rend.render(file[0],t,None)

@@ -60,7 +60,7 @@ class BaseTemplate():
             and self.layout.rarity
             and self.layout.card_count
             and cfg.real_collector
-            and not self.layout.no_collector):
+            and not self.layout.no_collector ):
 
             # Reveal collector group, hide old layers
             collector_layer = psd.getLayerSet(con.layers['COLLECTOR'], con.layers['LEGAL'])
@@ -124,7 +124,6 @@ class BaseTemplate():
         """
         self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}")
         app.load(self.file_path)
-        # TODO: if that's the file that's currently open, reset instead of opening?
 
     def enable_frame_layers (self):
         """
@@ -438,7 +437,8 @@ class NormalClassicTemplate (StarterTemplate):
                 text_color = psd.get_text_layer_color(rules_text),
                 flavor_text = self.layout.flavor_text,
                 is_centered = is_centered,
-                reference_layer = reference_layer
+                reference_layer = reference_layer,
+                fix_length = False
             )
         )
 
@@ -1193,7 +1193,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         self.tx_layers.append(
             txt_layers.TextField(
                 layer = psd.getLayer(con.layers['TEXT'], psd.getLayerSet(con.layers['STARTING_LOYALTY'], loyalty_group)),
-                text_contents = self.layout.scryfall['loyalty'],
+                text_contents = self.layout.loyalty,
                 text_color = psd.rgb_white(),
             )
         )
@@ -1221,6 +1221,9 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
     def template_file_name (self):
         return "pw-extended"
+
+    def template_suffix(self):
+        return "Extended"
 
     def enable_background (self):
         pass

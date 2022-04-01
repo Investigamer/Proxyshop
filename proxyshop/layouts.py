@@ -80,12 +80,12 @@ class BaseLayout:
         self.card_class = self.get_default_class()
         if self.card_class == con.transform_front_class and self.face == con.Faces['BACK']:
             self.card_class = con.transform_back_class
-            if self.type_line.find("Land") >= 0: self.card_class = con.ixalan_class
+            if "Land" in self.type_line: self.card_class = con.ixalan_class
         elif self.card_class == con.mdfc_front_class and self.face == con.Faces['BACK']:
             self.card_class = con.mdfc_back_class
-        elif self.type_line.find("Planeswalker") >= 0:
+        elif "Planeswalker" in self.type_line:
             self.card_class = con.planeswalker_class
-        #elif self.type_line.find("Snow") >= 0:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
+        #elif "Snow" in self.type_line:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
         #    self.card_class = con.snow_class
         elif "Mutate" in self.keywords:
             self.card_class = con.mutate_class
@@ -113,6 +113,10 @@ class NormalLayout (BaseLayout):
         except: self.color_indicator = None
         try: self.scryfall_scan = self.scryfall['image_uris']['large']
         except: self.scryfall_scan = None
+
+        # Planeswalker
+        if 'Planeswalker' in self.type_line:
+            self.loyalty = self.scryfall['loyalty']
 
     def get_default_class(self):
         return con.normal_class
@@ -142,6 +146,10 @@ class TransformLayout (BaseLayout):
         except: self.other_face_toughness = None
         try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']
         except: self.color_indicator = None
+
+        # Planeswalker
+        if 'Planeswalker' in self.type_line:
+            self.loyalty = self.scryfall['card_faces'][self.face]['loyalty']
 
         # TODO: REVISIT FOR MIDNIGHT HUNT etc
         # TODO: safe to assume the first frame effect will be the transform icon?

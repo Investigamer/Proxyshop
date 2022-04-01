@@ -11,9 +11,9 @@ class App:
     Card creator App
     """
     def __init__(self, root):
-        
+
         # The window
-        root.title("Proxyshop v1.0.5 - Card Creator")
+        root.title("Proxyshop v1.0.7 - Card Creator")
         width=600
         height=410
         screenwidth = root.winfo_screenwidth()

@@ -54,7 +54,7 @@ def scale_text_to_fit_reference(layer, reference_layer):
     scaled = False
 
     # Reduce the reference height by 64 pixels to avoid text landing on the top/bottom bevels
-    reference_height = psd.compute_layer_dimensions(reference_layer)['height']-64.0
+    reference_height = psd.compute_layer_dimensions(reference_layer)['height']-60
     layer_height = psd.compute_text_layer_dimensions(layer)['height']
 
     while reference_height < layer_height:
@@ -256,7 +256,13 @@ class FormattedTextArea (FormattedTextField):
      * until the text fits within the reference layer's bounds (in 0.25 pt increments), then rasterise the text layer, and centre it vertically
      * with respect to the reference layer's pixels.
     """
-    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, is_centered=False):
+    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, is_centered=False, fix_length=True):
+
+        # Prepare for text being too long
+        if len(text_contents) > 300 and fix_length:
+            layer.textItem.size = (layer.textItem.size-0.5)
+            layer.textItem.leading = (layer.textItem.leading-0.5)
+
         super().__init__(layer, text_contents, text_color, flavor_text, is_centered)
         self.reference_layer = reference_layer
 
