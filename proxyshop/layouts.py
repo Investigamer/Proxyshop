@@ -125,6 +125,14 @@ class TransformLayout (BaseLayout):
     """
     Used for transform cards
     """
+    def __init__(self, scryfall, card_name):
+        super().__init__(scryfall, card_name)
+        # Planeswalker
+        if 'Planeswalker' in self.type_line:
+            self.loyalty = self.scryfall['card_faces'][self.face]['loyalty']
+            if self.face == con.Faces['BACK']: self.card_class = con.pw_tf_back_class
+            else: self.card_class = con.pw_tf_front_class
+
     # pylint: disable=R0902
     def unpack_scryfall(self):
         super().unpack_scryfall()
@@ -197,6 +205,14 @@ class ModalDoubleFacedLayout (BaseLayout):
     Used for Modal Double Faced cards
     """
     # pylint: disable=R0902
+    def __init__(self, scryfall, card_name):
+        super().__init__(scryfall, card_name)
+        # Planeswalker
+        if 'Planeswalker' in self.type_line:
+            self.loyalty = self.scryfall['card_faces'][self.face]['loyalty']
+            if self.face == con.Faces['BACK']: self.card_class = con.pw_mdfc_back_class
+            else: self.card_class = con.pw_mdfc_front_class
+
     def unpack_scryfall(self):
         super().unpack_scryfall()
         self.face = determine_card_face(self.scryfall, self.card_name_raw)
