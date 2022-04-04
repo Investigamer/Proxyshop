@@ -3,6 +3,7 @@ GLOBAL CONSTANTS
 Keep all global variables here.
 """
 import os
+from pathlib import Path
 from proxyshop.helpers import ps
 from proxyshop import settings
 cfg = settings.config()
@@ -11,6 +12,8 @@ cwd = os.getcwd()
 # PATHS
 json_custom_path = os.path.join(cwd, "tmp\\custom.json")
 scryfall_scan_path = os.path.join(cwd, "tmp\\card.jpg")
+Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Card classes - finer grained than Scryfall layouts
 normal_class = "normal"

@@ -2,15 +2,11 @@
 RENDER TARGET IMAGE
 """
 import os
-from pathlib import Path
 import proxyshop.constants as con
 import proxyshop.render as rend
 import proxyshop.helpers as psd
 file = psd.app.openDialog()
 cwd = os.getcwd()
-
-# Make sure out folder exists
-Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Split templates if defined
 if con.cfg.template: templates = con.cfg.template.split(",")

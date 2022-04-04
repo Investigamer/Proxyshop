@@ -3,14 +3,10 @@ RENDER ALL IMAGES IN ART FOLDER
 """
 import os
 from glob import glob
-from pathlib import Path
 import proxyshop.render as rend
 import proxyshop.helpers as psd
 import proxyshop.constants as con
 cwd = os.getcwd()
-
-# Make sure out folder exists
-Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Select all images in art folder
 files = []

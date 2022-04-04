@@ -6,7 +6,6 @@ import os
 from glob import glob
 from tkinter import *
 from tkinter import ttk
-from pathlib import Path
 import proxyshop.render as rend
 import proxyshop.helpers as psd
 from proxyshop.helpers import app
@@ -111,8 +110,6 @@ def render_all(temps):
 	RENDER ALL IMAGES IN ART FOLDER
 	Using our custom JSON
 	"""
-	# Make sure out folder exists
-	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Select all images in art folder
 	files = []
@@ -136,9 +133,6 @@ def render_target(temps):
 	"""
 	file = app.openDialog()
 
-	# Make sure out folder exists
-	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-
 	# Template(s) provided?
 	if temps is None: rend.render(file[0],None,None)
 	else: rend.render(file[0],temps,None)
@@ -149,9 +143,6 @@ def render_custom(scryfall, template):
 	RENDER TARGET IMAGE
 	"""
 	file = app.openDialog()
-
-	# Make sure out folder exists
-	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Template(s) provided?
 	rend.render_custom(file[0],template,scryfall)
