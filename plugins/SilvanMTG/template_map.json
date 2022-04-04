@@ -1,19 +1,11 @@
 {
 	"normal": {
-		"other": {
-			"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanExtendedTemplate"]
-		}
+		"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanExtendedTemplate"]
 	},
 	"mdfc_front": {
-		"default" : ["plugins.SilvanMTG.templates", "SilvanMDFCFrontTemplate"],
-		"other": {
-			"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanMDFCFrontTemplate"]
-		}
+		"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanMDFCFrontTemplate"]
 	},
 	"mdfc_back": {
-		"default": ["plugins.SilvanMTG.templates", "SilvanMDFCBackTemplate"],
-		"other": {
-			"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanMDFCBackTemplate"]
-		}
+		"Silvan Extended": ["plugins.SilvanMTG.templates", "SilvanMDFCBackTemplate"]
 	}
 }

@@ -1,24 +1,18 @@
 {
 	"normal": {
-		"other": {
-			"Sketch": ["plugins.MrTeferi.templates", "SketchTemplate"],
-			"Male MPC": ["plugins.MrTeferi.templates", "MaleMPCTemplate"],
-			"Kaldheim": ["plugins.MrTeferi.templates", "KaldheimTemplate"],
-			"Phyrexian": ["plugins.MrTeferi.templates", "PhyrexianTemplate"],
-			"Colorshifted": ["plugins.MrTeferi.templates", "ColorshiftedTemplate"],
-			"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"],
-			"Classic Promo": ["plugins.MrTeferi.templates", "PromoClassicTemplate"],
-			"Double Feature": ["plugins.MrTeferi.templates", "DoubleFeatureTemplate"]
-		}
+		"Sketch": ["plugins.MrTeferi.templates", "SketchTemplate"],
+		"Male MPC": ["plugins.MrTeferi.templates", "MaleMPCTemplate"],
+		"Kaldheim": ["plugins.MrTeferi.templates", "KaldheimTemplate"],
+		"Phyrexian": ["plugins.MrTeferi.templates", "PhyrexianTemplate"],
+		"Colorshifted": ["plugins.MrTeferi.templates", "ColorshiftedTemplate"],
+		"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"],
+		"Classic Promo": ["plugins.MrTeferi.templates", "PromoClassicTemplate"],
+		"Double Feature": ["plugins.MrTeferi.templates", "DoubleFeatureTemplate"]
 	},
 	"transform_front": {
-		"other": {
-			"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"]
-		}
+		"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"]
 	},
 	"transform_back": {
-		"other": {
-			"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"]
-		}
+		"Crimson Fang": ["plugins.MrTeferi.templates", "CrimsonFangTemplate"]
 	}
 }

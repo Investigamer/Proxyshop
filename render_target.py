@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 import proxyshop.settings as cfg
 import proxyshop.render as rend
-from proxyshop.helpers import app
-file = app.openDialog()
+import proxyshop.helpers as psd
+file = psd.app.openDialog()
 cwd = os.getcwd()
 
 # Make sure out folder exists
@@ -21,3 +21,6 @@ if templates is None: rend.render(file[0], None, None)
 else:
 	for t in templates:
 		rend.render(file[0],t,None)
+
+# Close document
+psd.close_document()

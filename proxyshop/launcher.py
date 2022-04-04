@@ -18,7 +18,9 @@ card_types = {
 	"Normal": ["normal"],
 	"MDFC": ["mdfc_front", "mdfc_back"],
 	"Transform": ["transform_front", "transform_back"],
-	"Planeswalker": ["planeswalker"],
+	"Planeswalker": ["pw_tf_front","pw_tf_back"],
+	"Planeswalker MDFC": ["pw_mdfc_front","pw_mdfc_back"],
+	"Planeswalker Transform": ["planeswalker"],
 	"Basic Land": ["basic"]
 }
 
@@ -73,8 +75,7 @@ def get_listbox(c_type, tab):
 	lb = Listbox(tab, listvariable=lb_options, selectmode=SINGLE, height=20, bd=0, exportselection=0)
 
 	# TODO: Sort templates alphabetical
-	layout = card_types[c_type][0]
-	temps = templates[layout]['other']
+	temps = templates[card_types[c_type][0]]
 	"""
 	d = templates[layout]['other']
 	t_normal = d["Normal"]
@@ -97,11 +98,11 @@ def get_my_templates(lb):
 		for i in lb[key].curselection():
 			this_temp = lb[key].get(i)
 		for lay in card_types[key]:
-			temps[lay] = templates[lay]["other"][this_temp]
+			temps[lay] = templates[lay][this_temp]
 
 	for key in templates:
 		if key not in temps:
-			temps[key] = templates[key]["default"]
+			temps[key] = templates[key]["Normal"]
 
 	return temps
 
@@ -127,7 +128,6 @@ def render_all(temps):
 		# Template(s) provided?
 		if temps is None: previous = rend.render(f,None,previous)
 		else: previous = rend.render(f,temps,previous)
-
 	psd.close_document()
 
 def render_target(temps):
@@ -142,6 +142,7 @@ def render_target(temps):
 	# Template(s) provided?
 	if temps is None: rend.render(file[0],None,None)
 	else: rend.render(file[0],temps,None)
+	psd.close_document()
 
 def render_custom(scryfall, template):
 	"""
@@ -154,3 +155,4 @@ def render_custom(scryfall, template):
 
 	# Template(s) provided?
 	rend.render_custom(file[0],template,scryfall)
+	psd.close_document()

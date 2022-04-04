@@ -19,7 +19,7 @@ class BaseTemplate():
      * Set up variables for things which are common to all templates (artwork and artist credit).
      * Classes extending this base class are expected to populate the following properties at minimum: self.art_reference
     """
-    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201, R1710
+    # pylint: disable=E1101, E1128, R0912, R0915, W0212, R1722, W0201, R1710, R0902
     def __init__ (self, layout, file):
         # Setup inherited info, tx_layers, template PSD
         self.failed = False
@@ -1227,6 +1227,153 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
 
     def enable_background (self):
         pass
+
+class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
+    """
+     * Template for the back faces of modal double faced Planeswalker cards.
+    """
+    def template_file_name (self):
+        return "pw-mdfc-back"
+
+    def dfc_layer_group (self):
+        """
+        Layer group containing double face elements
+        """
+        return con.layers['MDFC_BACK']
+
+    def basic_text_layers (self, text_and_icons):
+        super().basic_text_layers(text_and_icons)
+
+        # set visibility of top & bottom mdfc elements and set text of left & right text
+        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.docref)
+        mdfc_group = psd.getLayerSet(self.dfc_layer_group(), text_and_icons)
+        mdfc_group_top = psd.getLayerSet(con.layers['TOP'], mdfc_group)
+        mdfc_group_bottom = psd.getLayerSet(con.layers['BOTTOM'], mdfc_group)
+        psd.getLayer(self.layout.twins, mdfc_group_top).visible = True
+        psd.getLayer(self.layout.other_face_twins, mdfc_group_bottom).visible = True
+        left = psd.getLayer(con.layers['LEFT'], mdfc_group)
+        right = psd.getLayer(con.layers['RIGHT'], mdfc_group)
+        self.tx_layers.extend([
+            txt_layers.BasicFormattedTextField(
+                layer = right,
+                text_contents = self.layout.other_face_right,
+                text_color = psd.get_text_layer_color(right),
+            ),
+            txt_layers.ScaledTextField(
+                layer = left,
+                text_contents = self.layout.other_face_left,
+                text_color = psd.get_text_layer_color(left),
+                reference_layer = right,
+            )
+        ])
+
+
+class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
+    """
+     * Template for the front faces of modal double faced Planeswalker cards.
+    """
+    def template_file_name (self):
+        return "pw-mdfc-front"
+
+    def dfc_layer_group (self):
+        return con.layers['MDFC_FRONT']
+
+class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
+    """
+     * An extended version of Planeswalker MDFC Back template.
+    """
+    def template_file_name (self):
+        return "pw-mdfc-back-extended"
+
+    def template_suffix(self):
+        return "Extended"
+
+    def enable_background (self):
+        app.activeDocument.activeLayer = self.art_layer
+        psd.content_fill_empty_area()
+
+class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
+    """
+     * An extended version of Planeswalker MDFC Front template.
+    """
+    def template_file_name (self):
+        return "pw-mdfc-front-extended"
+
+    def template_suffix(self):
+        return "Extended"
+
+    def enable_background (self):
+        app.activeDocument.activeLayer = self.art_layer
+        psd.content_fill_empty_area()
+
+class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
+    """
+     * Template for the back faces of transform cards.
+    """
+    def template_file_name (self):
+        return "pw-tf-back"
+
+    def dfc_layer_group (self):
+        """
+        Layer group containing double face elements
+        """
+        return con.layers['TF_BACK']
+
+    def basic_text_layers (self, text_and_icons):
+        # Uf eldrazi card, set the color of the rules text, type line, and power/toughness to black
+        transform_group = psd.getLayerSet(self.dfc_layer_group(), text_and_icons)
+        color_indicator = psd.getLayerSet(con.layers['COLOR_INDICATOR'], self.docref)
+        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
+        psd.getLayer(self.layout.pinlines, color_indicator).visible = True
+        super().basic_text_layers(text_and_icons)
+
+class PlaneswalkerTransformFrontTemplate (PlaneswalkerTemplate):
+    """
+     * Template for the back faces of transform cards.
+    """
+    def template_file_name (self):
+        return "pw-tf-front"
+
+    def dfc_layer_group (self):
+        """
+        Layer group containing double face elements
+        """
+        return con.layers['TF_FRONT']
+
+    def basic_text_layers (self, text_and_icons):
+        # Uf eldrazi card, set the color of the rules text, type line, and power/toughness to black
+        transform_group = psd.getLayerSet(self.dfc_layer_group(), text_and_icons)
+        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
+        super().basic_text_layers(text_and_icons)
+
+    def enable_background (self):
+        super().enable_background()
+        app.activeDocument.activeLayer = self.art_layer
+        psd.content_fill_empty_area()
+
+class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTemplate):
+    """
+     * An extended version of Planeswalker MDFC Back template.
+    """
+    def template_file_name (self):
+        return "pw-tf-back-extended"
+
+    def template_suffix(self):
+        return "Extended"
+
+    def enable_background (self):
+        app.activeDocument.activeLayer = self.art_layer
+        psd.content_fill_empty_area()
+
+class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemplate):
+    """
+     * An extended version of Planeswalker MDFC Front template.
+    """
+    def template_file_name (self):
+        return "pw-tf-front-extended"
+
+    def template_suffix(self):
+        return "Extended"
 
 """
 Misc. Templates

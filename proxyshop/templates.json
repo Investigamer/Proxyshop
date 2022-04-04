@@ -1,107 +1,78 @@
 {
 	"normal": {
-		"default": ["proxyshop.templates", "NormalTemplate"], 
-		"other": {
-			"Normal": ["proxyshop.templates", "NormalTemplate"],
-			"Classic": ["proxyshop.templates", "NormalClassicTemplate"],
-			"Fullart": ["proxyshop.templates", "NormalFullartTemplate"],
-			"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
-			"Invention": ["proxyshop.templates", "InventionTemplate"],
-			"Invention Silver": ["proxyshop.templates", "InventionSilverTemplate"],
-			"Stargazing": ["proxyshop.templates", "StargazingTemplate"],
-			"Expedition": ["proxyshop.templates", "ExpeditionTemplate"],
-			"Womens Day": ["proxyshop.templates", "WomensDayTemplate"],
-			"Miracle": ["proxyshop.templates", "MiracleTemplate"],
-			"Snow": ["proxyshop.templates", "SnowTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "NormalTemplate"],
+		"Classic": ["proxyshop.templates", "NormalClassicTemplate"],
+		"Fullart": ["proxyshop.templates", "NormalFullartTemplate"],
+		"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
+		"Invention": ["proxyshop.templates", "InventionTemplate"],
+		"Invention Silver": ["proxyshop.templates", "InventionSilverTemplate"],
+		"Stargazing": ["proxyshop.templates", "StargazingTemplate"],
+		"Expedition": ["proxyshop.templates", "ExpeditionTemplate"],
+		"Womens Day": ["proxyshop.templates", "WomensDayTemplate"],
+		"Miracle": ["proxyshop.templates", "MiracleTemplate"],
+		"Snow": ["proxyshop.templates", "SnowTemplate"]
 	},
 	"transform_front": {
-		"default": ["proxyshop.templates", "TransformFrontTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "TransformFrontTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "TransformFrontTemplate"]
 	},
 	"transform_back": {
-		"default": ["proxyshop.templates", "TransformBackTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "TransformBackTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "TransformBackTemplate"]
 	},
 	"ixalan": {
-		"default": ["proxyshop.templates", "IxalanTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "IxalanTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "IxalanTemplate"]
 	},
 	"mdfc_front": {
-		"default": ["proxyshop.templates", "MDFCFrontTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "MDFCFrontTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "MDFCFrontTemplate"]
 	},
 	"mdfc_back": {
-		"default": ["proxyshop.templates", "MDFCBackTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "MDFCBackTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "MDFCBackTemplate"]
 	},
 	"mutate": {
-		"default": ["proxyshop.templates", "MutateTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "MutateTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "MutateTemplate"]
 	},
 	"adventure": {
-		"default": ["proxyshop.templates", "AdventureTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "AdventureTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "AdventureTemplate"]
 	},
 	"leveler": {
-		"default": ["proxyshop.templates", "LevelerTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "LevelerTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "LevelerTemplate"]
 	},
 	"saga": {
-		"default": ["proxyshop.templates", "SagaTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "SagaTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "SagaTemplate"]
 	},
 	"miracle": {
-		"default": ["proxyshop.templates", "MiracleTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "MiracleTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "MiracleTemplate"]
 	},
 	"planeswalker": {
-		"default": ["proxyshop.templates", "PlaneswalkerTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "PlaneswalkerTemplate"],
-			"Extended": ["proxyshop.templates", "PlaneswalkerExtendedTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "PlaneswalkerTemplate"],
+		"Extended": ["proxyshop.templates", "PlaneswalkerExtendedTemplate"]
+	},
+	"pw_tf_front": {
+		"Normal": ["proxyshop.templates", "PlaneswalkerTransformFrontTemplate"],
+		"Extended": ["proxyshop.templates", "PlaneswalkerTransformFrontExtendedTemplate"]
+	},
+	"pw_tf_back": {
+		"Normal": ["proxyshop.templates", "PlaneswalkerTransformBackTemplate"],
+		"Extended": ["proxyshop.templates", "PlaneswalkerTransformBackExtendedTemplate"]
+	},
+	"pw_mdfc_front": {
+		"Normal": ["proxyshop.templates", "PlaneswalkerMDFCFrontTemplate"],
+		"Extended": ["proxyshop.templates", "PlaneswalkerMDFCFrontExtendedTemplate"]
+	},
+	"pw_mdfc_back": {
+		"Normal": ["proxyshop.templates", "PlaneswalkerMDFCBackTemplate"],
+		"Extended": ["proxyshop.templates", "PlaneswalkerMDFCBackExtendedTemplate"]
 	},
 	"snow": {
-		"default": ["proxyshop.templates", "SnowTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "SnowTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "SnowTemplate"]
 	},
 	"basic": {
-		"default": ["proxyshop.templates", "BasicLandTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "BasicLandTemplate"],
-			"Theros": ["proxyshop.templates", "BasicLandTherosTemplate"],
-			"Classic": ["proxyshop.templates", "BasicLandClassicTemplate"],
-			"Unstable": ["proxyshop.templates", "BasicLandUnstableTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "BasicLandTemplate"],
+		"Theros": ["proxyshop.templates", "BasicLandTherosTemplate"],
+		"Classic": ["proxyshop.templates", "BasicLandClassicTemplate"],
+		"Unstable": ["proxyshop.templates", "BasicLandUnstableTemplate"]
 	},
 	"planar": {
-		"default": ["proxyshop.templates", "PlanarTemplate"],
-		"other": {
-			"Normal": ["proxyshop.templates", "PlanarTemplate"]
-		}
+		"Normal": ["proxyshop.templates", "PlanarTemplate"]
 	}
 
 }
