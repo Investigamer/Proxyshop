@@ -6,9 +6,9 @@ import proxyshop.text_layers as txt_layers
 from proxyshop import format_text
 import proxyshop.templates as temp
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 import proxyshop.helpers as psd
 app = psd.app
+cfg = con.cfg
 
 class SilvanExtendedTemplate (temp.NormalTemplate):
     """

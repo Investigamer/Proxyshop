@@ -4,7 +4,6 @@ LOADS PLUGINS AND TEMPLATES
 import os
 import sys
 import json
-import configparser
 from glob import glob
 from pathlib import Path
 from datetime import datetime as dt

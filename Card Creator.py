@@ -13,7 +13,7 @@ class App:
     def __init__(self, root):
 
         # The window
-        root.title("Proxyshop v1.0.7 - Card Creator")
+        root.title("Proxyshop v1.0.8 - Card Creator")
         width=600
         height=410
         screenwidth = root.winfo_screenwidth()
@@ -263,4 +263,126 @@ if __name__ == "__main__":
     app = App(gui)
     gui.mainloop()
 
-#{"object":"card","id":"92ea1575-eb64-43b5-b604-c6e23054f228","oracle_id":"9ae669dd-7e60-4649-b96e-35da28be641a","multiverse_ids":[476047],"mtgo_id":78718,"arena_id":70462,"tcgplayer_id":198424,"cardmarket_id":398984,"name":"Korvold, Fae-Cursed King","lang":"en","released_at":"2019-10-04","uri":"https://api.scryfall.com/cards/92ea1575-eb64-43b5-b604-c6e23054f228","scryfall_uri":"https://scryfall.com/card/eld/329/korvold-fae-cursed-king?utm_source=api","layout":"normal","highres_image":true,"image_status":"highres_scan","image_uris":{"small":"https://c1.scryfall.com/file/scryfall-cards/small/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150","normal":"https://c1.scryfall.com/file/scryfall-cards/normal/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150","large":"https://c1.scryfall.com/file/scryfall-cards/large/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150","png":"https://c1.scryfall.com/file/scryfall-cards/png/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.png?1571197150","art_crop":"https://c1.scryfall.com/file/scryfall-cards/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150","border_crop":"https://c1.scryfall.com/file/scryfall-cards/border_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150"},"mana_cost":"{2}{B}{R}{G}","cmc":5.0,"type_line":"Legendary Creature — Dragon Noble","oracle_text":"Flying\nWhenever Korvold, Fae-Cursed King enters the battlefield or attacks, sacrifice another permanent.\nWhenever you sacrifice a permanent, put a +1/+1 counter on Korvold and draw a card.","power":"4","toughness":"4","colors":["B","G","R"],"color_identity":["B","G","R"],"keywords":["Flying"],"legalities":{"standard":"not_legal","future":"not_legal","historic":"legal","gladiator":"legal","pioneer":"legal","modern":"legal","legacy":"legal","pauper":"not_legal","vintage":"legal","penny":"not_legal","commander":"legal","brawl":"not_legal","historicbrawl":"legal","alchemy":"not_legal","paupercommander":"not_legal","duel":"legal","oldschool":"not_legal","premodern":"not_legal"},"games":["arena","paper","mtgo"],"reserved":false,"foil":true,"nonfoil":true,"finishes":["nonfoil","foil"],"oversized":false,"promo":false,"reprint":false,"variation":false,"set_id":"a90a7b2f-9dd8-4fc7-9f7d-8ea2797ec782","set":"eld","set_name":"Throne of Eldraine","set_type":"expansion","set_uri":"https://api.scryfall.com/sets/a90a7b2f-9dd8-4fc7-9f7d-8ea2797ec782","set_search_uri":"https://api.scryfall.com/cards/search?order=set\u0026q=e%3Aeld\u0026unique=prints","scryfall_set_uri":"https://scryfall.com/sets/eld?utm_source=api","rulings_uri":"https://api.scryfall.com/cards/92ea1575-eb64-43b5-b604-c6e23054f228/rulings","prints_search_uri":"https://api.scryfall.com/cards/search?order=released\u0026q=oracleid%3A9ae669dd-7e60-4649-b96e-35da28be641a\u0026unique=prints","collector_number":"329","digital":false,"rarity":"mythic","flavor_text":"Transformed at his own wedding, he promptly ate the banquet, the gifts, and the guests.","card_back_id":"0aeebaf5-8c7d-4636-9e82-8c27447861f7","artist":"Wisnu Tan","artist_ids":["f2d36cdd-a4e9-43ba-b2ad-9d514f6706d4"],"illustration_id":"0cf18675-723c-4d6d-9ec2-c0a1d0331b41","border_color":"black","frame":"2015","frame_effects":["legendary"],"security_stamp":"oval","full_art":false,"textless":false,"booster":false,"story_spotlight":false,"promo_types":["brawldeck"],"edhrec_rank":1735,"preview":{"source":"Wizards of the Coast","source_uri":"https://magic.wizards.com/en/articles/archive/card-preview/inside-throne-eldraine-brawl-decks-2019-09-04","previewed_at":"2019-09-04"},"prices":{"usd":"9.83","usd_foil":"9.52","usd_etched":null,"eur":"17.50","eur_foil":"12.50","tix":"8.19"},"related_uris":{"gatherer":"https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=476047","tcgplayer_infinite_articles":"https://infinite.tcgplayer.com/search?contentMode=article\u0026game=magic\u0026partner=scryfall\u0026q=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall","tcgplayer_infinite_decks":"https://infinite.tcgplayer.com/search?contentMode=deck\u0026game=magic\u0026partner=scryfall\u0026q=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall","edhrec":"https://edhrec.com/route/?cc=Korvold%2C+Fae-Cursed+King","mtgtop8":"https://mtgtop8.com/search?MD_check=1\u0026SB_check=1\u0026cards=Korvold%2C+Fae-Cursed+King"},"purchase_uris":{"tcgplayer":"https://www.tcgplayer.com/product/198424?page=1\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall","cardmarket":"https://www.cardmarket.com/en/Magic/Products/Search?referrer=scryfall\u0026searchString=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=card_prices\u0026utm_medium=text\u0026utm_source=scryfall","cardhoarder":"https://www.cardhoarder.com/cards/78718?affiliate_id=scryfall\u0026ref=card-profile\u0026utm_campaign=affiliate\u0026utm_medium=card\u0026utm_source=scryfall"}}
+"""
+EXAMPLE CARD OBJECT - SCRYFALL
+{
+    "object":"card",
+    "id":"92ea1575-eb64-43b5-b604-c6e23054f228",
+    "oracle_id":"9ae669dd-7e60-4649-b96e-35da28be641a",
+    "multiverse_ids":[476047],
+    "mtgo_id":78718,
+    "arena_id":70462,
+    "tcgplayer_id":198424,
+    "cardmarket_id":398984,
+    "name":"Korvold, Fae-Cursed King",
+    "lang":"en",
+    "released_at":"2019-10-04",
+    "uri":"https://api.scryfall.com/cards/92ea1575-eb64-43b5-b604-c6e23054f228",
+    "scryfall_uri":"https://scryfall.com/card/eld/329/korvold-fae-cursed-king?utm_source=api",
+    "layout":"normal",
+    "highres_image":true,
+    "image_status":"highres_scan",
+    "image_uris":{
+        "small":"https://c1.scryfall.com/file/scryfall-cards/small/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150",
+        "normal":"https://c1.scryfall.com/file/scryfall-cards/normal/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150",
+        "large":"https://c1.scryfall.com/file/scryfall-cards/large/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150",
+        "png":"https://c1.scryfall.com/file/scryfall-cards/png/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.png?1571197150",
+        "art_crop":"https://c1.scryfall.com/file/scryfall-cards/art_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150",
+        "border_crop":"https://c1.scryfall.com/file/scryfall-cards/border_crop/front/9/2/92ea1575-eb64-43b5-b604-c6e23054f228.jpg?1571197150"
+    },
+    "mana_cost":"{2}{B}{R}{G}",
+    "cmc":5.0,
+    "type_line":"Legendary Creature — Dragon Noble",
+    "oracle_text":"Flying\nWhenever Korvold, Fae-Cursed King enters the battlefield or attacks, sacrifice another permanent.\nWhenever you sacrifice a permanent, put a +1/+1 counter on Korvold and draw a card.",
+    "power":"4",
+    "toughness":"4",
+    "colors":["B","G","R"],
+    "color_identity":["B","G","R"],
+    "keywords":["Flying"],
+    "legalities":{
+        "standard":"not_legal",
+        "future":"not_legal",
+        "historic":"legal",
+        "gladiator":"legal",
+        "pioneer":"legal",
+        "modern":"legal",
+        "legacy":"legal",
+        "pauper":"not_legal",
+        "vintage":"legal",
+        "penny":"not_legal",
+        "commander":"legal",
+        "brawl":"not_legal",
+        "historicbrawl":"legal",
+        "alchemy":"not_legal",
+        "paupercommander":"not_legal",
+        "duel":"legal",
+        "oldschool":"not_legal",
+        "premodern":"not_legal"
+    },
+    "games":["arena","paper","mtgo"],
+    "reserved":false,
+    "foil":true,
+    "nonfoil":true,
+    "finishes":["nonfoil","foil"],
+    "oversized":false,
+    "promo":false,
+    "reprint":false,
+    "variation":false,
+    "set_id":"a90a7b2f-9dd8-4fc7-9f7d-8ea2797ec782",
+    "set":"eld",
+    "set_name":"Throne of Eldraine",
+    "set_type":"expansion",
+    "set_uri":"https://api.scryfall.com/sets/a90a7b2f-9dd8-4fc7-9f7d-8ea2797ec782",
+    "set_search_uri":"https://api.scryfall.com/cards/search?order=set\u0026q=e%3Aeld\u0026unique=prints",
+    "scryfall_set_uri":"https://scryfall.com/sets/eld?utm_source=api",
+    "rulings_uri":"https://api.scryfall.com/cards/92ea1575-eb64-43b5-b604-c6e23054f228/rulings",
+    "prints_search_uri":"https://api.scryfall.com/cards/search?order=released\u0026q=oracleid%3A9ae669dd-7e60-4649-b96e-35da28be641a\u0026unique=prints",
+    "collector_number":"329",
+    "digital":false,
+    "rarity":"mythic",
+    "flavor_text":"Transformed at his own wedding, he promptly ate the banquet, the gifts, and the guests.",
+    "card_back_id":"0aeebaf5-8c7d-4636-9e82-8c27447861f7",
+    "artist":"Wisnu Tan",
+    "artist_ids":["f2d36cdd-a4e9-43ba-b2ad-9d514f6706d4"],
+    "illustration_id":"0cf18675-723c-4d6d-9ec2-c0a1d0331b41",
+    "border_color":"black",
+    "frame":"2015",
+    "frame_effects":["legendary"],
+    "security_stamp":"oval",
+    "full_art":false,
+    "textless":false,
+    "booster":false,
+    "story_spotlight":false,
+    "promo_types":["brawldeck"],
+    "edhrec_rank":1735,
+    "preview":{
+        "source":"Wizards of the Coast",
+        "source_uri":"https://magic.wizards.com/en/articles/archive/card-preview/inside-throne-eldraine-brawl-decks-2019-09-04",
+        "previewed_at":"2019-09-04"
+    },
+    "prices":{
+        "usd":"9.83",
+        "usd_foil":"9.52",
+        "usd_etched":null,
+        "eur":"17.50",
+        "eur_foil":"12.50",
+        "tix":"8.19"
+    },
+    "related_uris":{
+        "gatherer":"https://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=476047",
+        "tcgplayer_infinite_articles":
+            "https://infinite.tcgplayer.com/search?contentMode=article\u0026game=magic\u0026partner=scryfall\u0026q=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall",
+        "tcgplayer_infinite_decks":
+            "https://infinite.tcgplayer.com/search?contentMode=deck\u0026game=magic\u0026partner=scryfall\u0026q=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall",
+        "edhrec":
+            "https://edhrec.com/route/?cc=Korvold%2C+Fae-Cursed+King",
+        "mtgtop8":
+            "https://mtgtop8.com/search?MD_check=1\u0026SB_check=1\u0026cards=Korvold%2C+Fae-Cursed+King"
+    },
+    "purchase_uris":{
+        "tcgplayer":"https://www.tcgplayer.com/product/198424?page=1\u0026utm_campaign=affiliate\u0026utm_medium=api\u0026utm_source=scryfall",
+        "cardmarket":"https://www.cardmarket.com/en/Magic/Products/Search?referrer=scryfall\u0026searchString=Korvold%2C+Fae-Cursed+King\u0026utm_campaign=card_prices\u0026utm_medium=text\u0026utm_source=scryfall",
+        "cardhoarder":"https://www.cardhoarder.com/cards/78718?affiliate_id=scryfall\u0026ref=card-profile\u0026utm_campaign=affiliate\u0026utm_medium=card\u0026utm_source=scryfall"
+    }
+}
+"""

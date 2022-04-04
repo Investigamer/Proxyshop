@@ -5,8 +5,8 @@ import os
 import proxyshop.text_layers as txt_layers
 from proxyshop import format_text, core
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 import proxyshop.helpers as psd
+cfg = con.cfg
 app = psd.app
 ps = psd.ps
 

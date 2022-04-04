@@ -4,6 +4,8 @@ Keep all global variables here.
 """
 import os
 from proxyshop.helpers import ps
+from proxyshop import settings
+cfg = settings.config()
 cwd = os.getcwd()
 
 # PATHS

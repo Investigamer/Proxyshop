@@ -6,10 +6,10 @@ import sys
 from tkinter import *
 from tkinter import ttk
 import proxyshop.launcher as gui
-from proxyshop.settings import cfg
-import proxyshop.settings as conf
+import proxyshop.constants as con
 sys.stdin.reconfigure(encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')
+cfg = con.cfg
 cwd = os.getcwd()
 
 def render_all(selections):
@@ -28,9 +28,9 @@ def render_target(selections):
 	update_config()
 	gui.render_target(my_temps)
 
-# Setup Kinter
+# Setup window
 root = Tk()
-root.title("Proxyshop v1.0.7")
+root.title("Proxyshop v1.0.8")
 root.geometry("800x600")
 root.minsize(520, 455)
 root.maxsize(520, 455)
@@ -39,7 +39,7 @@ root.maxsize(520, 455)
 f_root_t = Frame(root)
 f_root_t.pack(fill=X)
 
-# Root frame top
+# Root frame bottom
 f_root_b = LabelFrame(root)
 f_root_b.pack(fill=X, padx=6, pady=5)
 
@@ -61,17 +61,17 @@ ManualEdit = BooleanVar()
 
 # Settings elements
 cb_AutoSetSymbol = Checkbutton(f_settings, text="Auto Set Symbol", variable=AutoSetSymbol)
-if conf.auto_symbol: cb_AutoSetSymbol.select()
+if cfg.auto_symbol: cb_AutoSetSymbol.select()
 cb_AutoSymbolSize = Checkbutton(f_settings, text="Auto Symbol Size", variable=AutoSymbolSize)
-if conf.auto_symbol_size: cb_AutoSymbolSize.select()
+if cfg.auto_symbol_size: cb_AutoSymbolSize.select()
 cb_NoReminder = Checkbutton(f_settings, text="No Reminder Text", variable=NoReminder)
-if conf.remove_reminder: cb_NoReminder.select()
+if cfg.remove_reminder: cb_NoReminder.select()
 cb_NoFlavor = Checkbutton(f_settings, text="No Flavor Text", variable=NoFlavor)
-if conf.remove_flavor: cb_NoFlavor.select()
+if cfg.remove_flavor: cb_NoFlavor.select()
 cb_SaveJPEG = Checkbutton(f_settings, text="Save as JPEG", variable=SaveJPEG)
-if conf.save_jpeg: cb_SaveJPEG.select()
+if cfg.save_jpeg: cb_SaveJPEG.select()
 cb_ManualEdit = Checkbutton(f_settings, text="Manual Edit Step", variable=ManualEdit)
-if conf.exit_early: cb_ManualEdit.select()
+if cfg.exit_early: cb_ManualEdit.select()
 
 # Add settings to grid
 cb_AutoSetSymbol.grid(row=0, column=0, sticky="w")
@@ -111,14 +111,14 @@ def update_config():
 	"""
 	Update config with chosen settings
 	"""
-	cfg.set("CONF", "Auto.Set.Symbol", str(AutoSetSymbol.get()))
-	cfg.set("CONF", "Auto.Symbol.Size", str(AutoSymbolSize.get()))
-	cfg.set("CONF", "No.Flavor.Text", str(NoFlavor.get()))
-	cfg.set("CONF", "No.Reminder.Text", str(NoReminder.get()))
-	cfg.set("CONF", "Render.JPEG", str(SaveJPEG.get()))
-	cfg.set("CONF", "Manual.Edit", str(ManualEdit.get()))
+	cfg.conf.set("CONF", "Auto.Set.Symbol", str(AutoSetSymbol.get()))
+	cfg.conf.set("CONF", "Auto.Symbol.Size", str(AutoSymbolSize.get()))
+	cfg.conf.set("CONF", "No.Flavor.Text", str(NoFlavor.get()))
+	cfg.conf.set("CONF", "No.Reminder.Text", str(NoReminder.get()))
+	cfg.conf.set("CONF", "Render.JPEG", str(SaveJPEG.get()))
+	cfg.conf.set("CONF", "Manual.Edit", str(ManualEdit.get()))
 	with open("config.ini", "w", encoding="utf-8") as config_file:
-		cfg.write(config_file)
-		config_file.close()
+		cfg.conf.write(config_file)
+	cfg.reload()
 
 root.mainloop()

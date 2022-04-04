@@ -4,9 +4,9 @@ RENDER ALL IMAGES IN ART FOLDER
 import os
 from glob import glob
 from pathlib import Path
-import proxyshop.settings as cfg
 import proxyshop.render as rend
 import proxyshop.helpers as psd
+import proxyshop.constants as con
 cwd = os.getcwd()
 
 # Make sure out folder exists
@@ -20,7 +20,7 @@ for ext in extensions:
 	files.extend(glob(os.path.join(folder,ext)))
 
 # Split templates if defined
-if cfg.template: templates = cfg.template.split(",")
+if con.cfg.template: templates = con.cfg.template.split(",")
 else: templates = None
 
 # Render the file batch in each template

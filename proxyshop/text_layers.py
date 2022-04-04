@@ -3,9 +3,9 @@ TEXT LAYER MODULE
 """
 import proxyshop.helpers as psd
 import proxyshop.constants as con
-import proxyshop.settings as cfg
 from proxyshop import format_text
 from proxyshop.helpers import ps, app
+cfg = con.cfg
 
 def scale_text_right_overlap(layer, reference_layer):
     """
@@ -24,14 +24,16 @@ def scale_text_right_overlap(layer, reference_layer):
     reference_left_bound = reference_layer.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
-    # guard against the reference's left bound being left of the layer's left bound or the reference being malformed otherwise
-    if reference_left_bound:
-        if reference_left_bound < layer_left_bound:
-            return None
-    layer_font_size = layer.textItem.size  # returns unit value
-    while layer_right_bound > reference_left_bound - 24:  # minimum 24 px gap
-        layer_font_size = layer_font_size - step_size
-        layer.textItem.size = layer_font_size
+
+    # Obtain proper spacing for this document size
+    spacing = int((app.activeDocument.width/3264)*60)
+
+    # Guard against the reference's left bound being left of the layer's left bound or other irregularities
+    if reference_left_bound < layer_left_bound: return None
+
+    # Step down the font till it clears the reference
+    while layer_right_bound > (reference_left_bound-spacing):  # minimum 24 px gap
+        layer.textItem.size = layer.textItem.size - step_size
         layer_right_bound = layer.bounds[2]
 
     # Fix corrected reference layer
@@ -53,8 +55,11 @@ def scale_text_to_fit_reference(layer, reference_layer):
     step_size = 0.25
     scaled = False
 
+    # Obtain proper spacing for this document size
+    spacing = int((app.activeDocument.width/3264)*60)
+
     # Reduce the reference height by 64 pixels to avoid text landing on the top/bottom bevels
-    reference_height = psd.compute_layer_dimensions(reference_layer)['height']-60
+    reference_height = psd.compute_layer_dimensions(reference_layer)['height']-spacing
     layer_height = psd.compute_text_layer_dimensions(layer)['height']
 
     while reference_height < layer_height:
