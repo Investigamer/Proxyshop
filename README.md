@@ -29,7 +29,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
 * Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
 * Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.
-* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "ProxyCreator" in the Legal layer group.
+* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "Creator" in the Legal layer group.
 
 # Usage Guide (GUI)
 <img align="right" src="https://i.imgur.com/aNSNtU2.png" />
