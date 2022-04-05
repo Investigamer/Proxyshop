@@ -162,18 +162,18 @@ class BaseTemplate():
             return False
 
         # Input and format each text layer
-        try:
-            print("Formatting text...", end=" ", flush=True)
-            for this_layer in self.tx_layers:
-                this_layer.execute()
-            print("done!", flush=True)
-        except:
+        #try:
+        print("Formatting text...", end=" ", flush=True)
+        for this_layer in self.tx_layers:
+            this_layer.execute()
+        print("done!", flush=True)
+        """except:
             self.failed = core.handle(
                 "This card is incompatible with this Template!",
                 self.layout.name,
                 self.template_file_name())
             psd.close_document()
-            return False
+            return False"""
 
         # Format file name
         suffix = self.template_suffix()
@@ -249,8 +249,8 @@ class StarterTemplate (BaseTemplate):
 
         mana_cost = psd.getLayer(con.layers['MANA_COST'], text_and_icons)
         expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        if cfg.auto_symbol_size: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
-        else: expansion_reference = None
+        try: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+        except: expansion_reference = None
         self.tx_layers.extend([
             txt_layers.BasicFormattedTextField(
                 layer = mana_cost,
@@ -843,8 +843,8 @@ class IxalanTemplate (NormalTemplate):
 
         # Expansion symbol
         expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        if cfg.auto_symbol_size: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
-        else: expansion_reference = None
+        try: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+        except: expansion_reference = None
 
         self.tx_layers.extend([
             txt_layers.TextField(
@@ -1395,7 +1395,8 @@ class PlanarTemplate (StarterTemplate):
         name = psd.getLayer(con.layers['NAME'], text_and_icons)
         type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
         expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+        try: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+        except: expansion_reference = None
 
         # Overwrite self.tx_layers
         self.tx_layers = [
@@ -1484,8 +1485,8 @@ class BasicLandTemplate (BaseTemplate):
 
     def enable_frame_layers (self):
         psd.getLayer(self.layout.name).visible = True
-        if cfg.auto_symbol_size: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'])
-        else: expansion_reference = None
+        try: expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'])
+        except: expansion_reference = None
         self.tx_layers.append(
             txt_layers.ExpansionSymbolField(
                 layer = psd.getLayer("Expansion Symbol"),

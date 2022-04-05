@@ -17,9 +17,9 @@ card_types = {
 	"Normal": ["normal"],
 	"MDFC": ["mdfc_front", "mdfc_back"],
 	"Transform": ["transform_front", "transform_back"],
-	"Planeswalker": ["pw_tf_front","pw_tf_back"],
-	"Planeswalker MDFC": ["pw_mdfc_front","pw_mdfc_back"],
-	"Planeswalker Transform": ["planeswalker"],
+	"Planeswalker": ["planeswalker"],
+	"PW MDFC": ["pw_mdfc_front","pw_mdfc_back"],
+	"PW Transform": ["pw_tf_front","pw_tf_back"],
 	"Basic Land": ["basic"]
 }
 
