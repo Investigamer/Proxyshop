@@ -162,18 +162,18 @@ class BaseTemplate():
             return False
 
         # Input and format each text layer
-        #try:
-        print("Formatting text...", end=" ", flush=True)
-        for this_layer in self.tx_layers:
-            this_layer.execute()
-        print("done!", flush=True)
-        """except:
+        try:
+            print("Formatting text...", end=" ", flush=True)
+            for this_layer in self.tx_layers:
+                this_layer.execute()
+            print("done!", flush=True)
+        except:
             self.failed = core.handle(
                 "This card is incompatible with this Template!",
                 self.layout.name,
                 self.template_file_name())
             psd.close_document()
-            return False"""
+            return False
 
         # Format file name
         suffix = self.template_suffix()
