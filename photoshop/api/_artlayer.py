@@ -10,6 +10,12 @@ from photoshop.api.text_item import TextItem
 
 # pylint: disable=too-many-public-methods, too-many-arguments
 class ArtLayer(Photoshop):
+    """An object within a document that contains the visual elements of the image
+
+    (equivalent to a layer in the Adobe Photoshop application).
+
+    """
+
     def __init__(self, parent: Any = None):
         super().__init__(parent=parent)
 
@@ -39,10 +45,12 @@ class ArtLayer(Photoshop):
 
     @property
     def fillOpacity(self):
+        """he interior opacity of the layer. Range: 0.0 to 100.0."""
         return self.app.fillOpacity
 
     @fillOpacity.setter
     def fillOpacity(self, value):
+        """he interior opacity of the layer. Range: 0.0 to 100.0."""
         self.app.fillOpacity = value
 
     @property
@@ -62,8 +70,8 @@ class ArtLayer(Photoshop):
         self.app.filterMaskFeather = value
 
     @property
-    def grouped(self):
-        """bool: If true, the layer is grouped with the layer below."""
+    def grouped(self) -> bool:
+        """If true, the layer is grouped with the layer below."""
         return self.app.grouped
 
     @grouped.setter
@@ -437,10 +445,6 @@ class ArtLayer(Photoshop):
     def remove(self):
         layer = f'app.activeDocument.artLayers.getByName("{self.app.name}")'
         self.eval_javascript(f"{layer}.remove()")
-    
-    def delete(self):
-        layer = f'app.activeDocument.artLayers.getByName("{self.app.name}")'
-        self.eval_javascript(f"{layer}.remove()")
 
     def rasterize(self, target: RasterizeType):
         self.app.rasterize(target)
@@ -452,7 +456,7 @@ class ArtLayer(Photoshop):
         self.app.move(relativeObject, insertionLocation)
 
     def merge(self):
-        self.app.merge()
+        return ArtLayer(self.app.merge())
 
     def link(self, with_layer):
         self.app.link(with_layer)
@@ -464,4 +468,4 @@ class ArtLayer(Photoshop):
         self.app.invert()
 
     def duplicate(self, relativeObject=None, insertionLocation=None):
-        return self.app.duplicate(relativeObject, insertionLocation)
+        return ArtLayer(self.app.duplicate(relativeObject, insertionLocation))

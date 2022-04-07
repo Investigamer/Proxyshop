@@ -48,12 +48,12 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
     hybrid_symbols = ["W/U", "U/B", "B/R", "R/G", "G/W", "W/B", "B/G", "G/U", "U/R", "R/W"]
     twins = ""
 
-    if type_line.find(con.layers['LAND']) >= 0:
+    if con.layers['LAND'] in type_line:
 
         # Check if it has a basic land subtype
         basic_identity = ""
         for key, basic in basic_colors.items():
-            if type_line.find(key) >= 0:
+            if key in type_line:
                 # The land has this basic type on its type_line
                 basic_identity += basic
 
@@ -76,13 +76,12 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
 
         # Iterate over rules text lines
         for line in rules_lines:
-
             # Identify if the card is a fetchland
-            if line.lower().find("search your library") >= 0:
-                if line.lower().find("cycling") < 0:
+            if "search your library" in line.lower():
+                if "cycling" not in line.lower():
                     # Fetchland of some kind, find basic land types
                     for key, basic in basic_colors.items():
-                        if line.find(key) >= 0:
+                        if key in line:
                             # The land has this basic type in the line of rules text where it fetches
                             basic_identity += basic
 
@@ -114,7 +113,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
                     }
                 elif line.find(con.layers['LAND'].lower()) >= 0:
                     # Assume we get here when the land fetches for any basic
-                    if line.find("tapped") < 0 or line.find("untap") >= 0:
+                    if "tapped" not in line or "untap" in line:
                         # Gold fetchland
                         return {
                             'background': con.layers['LAND'],
@@ -131,7 +130,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
                     }
 
             # Check if the line adds one mana of any color
-            if line.lower().find("add") >= 0 and line.find("mana") >= 0:
+            if "add" in line.lower() and "mana" in line:
                 if ( line.find("color ") > 0
                     or line.find("colors ") > 0
                     or line.find("color.") > 0
@@ -141,11 +140,8 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
                     # If the ability doesn't include the phrases "enters the battlefield", "Remove a charge
                     # counter", and "luck counter", and doesn't include the word "Sacrifice", then it's
                     # considered a gold land
-                    if ( line.find("enters the battlefield") < 0
-                        and line.find("Remove a charge counter") < 0
-                        and line.find("Sacrifice") < 0
-                        and line.find("luck counter") < 0
-                    ):
+                    phrases = ["enters the battlefield", "Remove a charge counter", "Sacrifice", "luck counter"]
+                    if not any(x in line for x in phrases):
                         # This is a gold land - use gold twins and pinlines
                         return {
                             'background': con.layers['LAND'],
@@ -155,13 +151,11 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
                         }
 
             # Count how many colors of mana the card can explicitly tap to add
-            tap_index = line.find("{T}")
-            colon_index = line.find(":")
-            if tap_index < colon_index and line.lower().find("add") >= 0:
+            if line.find("{T}") < line.find(":") and "add " in line.lower():
                 # This line taps to add mana of some color
                 # Count how many colors the line can tap for, and add them all to colors_tapped
                 for color in colors:
-                    if line.find(f"{color}") >= 0 and colors_tapped.find(color) < 0:
+                    if "{"+color+"}" in line and color not in colors_tapped:
                         # Add this color to colors_tapped
                         colors_tapped += color
 
@@ -191,7 +185,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
     # NONLAND CARD - Decide on the color identity of the card, as far as the frame is concerned
     # e.g. Noble Hierarch's color identity is [W, U, G], but the card is considered green, frame-wise
     color_identity = ""
-    if mana_cost == "" or (mana_cost == "{0}" and type_line.find(con.layers['ARTIFACT']) < 0):
+    if mana_cost == "" or (mana_cost == "{0}" and con.layers['ARTIFACT'] not in type_line):
         # Card with no mana cost
         # Assume that all nonland cards with no mana cost are mono-colored
         if color_identity_array is None: color_identity = ""
@@ -215,7 +209,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
 
     # Identify if the card is a full-art colorless card, e.g. colorless
     # Assume all non-land cards with the word "Devoid" in their rules text use the BFZ colorless frame
-    devoid = bool(oracle_text.find("Devoid") >= 0 and len(color_identity) > 0)
+    devoid = bool("Devoid" in oracle_text and len(color_identity) > 0)
     if (len(color_identity) <= 0 and type_line.find(con.layers['ARTIFACT']) < 0) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
         # colorless-style card identified
         background = con.layers['COLORLESS']

@@ -30,7 +30,7 @@ def render_target(selections):
 
 # Setup window
 root = Tk()
-root.title("Proxyshop v1.0.8")
+root.title(f"Proxyshop {con.version}")
 root.geometry("800x600")
 root.minsize(520, 455)
 root.maxsize(520, 455)
@@ -121,4 +121,5 @@ def update_config():
 		cfg.conf.write(config_file)
 	cfg.reload()
 
-root.mainloop()
+if __name__ == '__main__':
+	root.mainloop()

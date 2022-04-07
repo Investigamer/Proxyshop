@@ -92,7 +92,7 @@ def compute_text_layer_dimensions(layer):
     layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
     layer_copy.rasterize(ps.RasterizeType.TextContents)
     dimensions = compute_layer_dimensions(layer_copy)
-    layer_copy.delete()
+    layer_copy.remove()
     return dimensions
 
 def select_layer_pixels(layer):
@@ -542,3 +542,18 @@ def fill_expansion_symbol(reference, stroke_color=rgb_black()):
 
     # Maximum filter to keep the antialiasing normal
     layer.applyMaximum(1)
+
+def select_current_layer():
+    # select pixels of active layer
+    desc307 = ps.ActionDescriptor()
+    ref257 = ps.ActionReference()
+    ref257.putProperty(app.charIDToTypeID("Chnl"), app.charIDToTypeID("fsel"))
+    desc307.putReference(app.charIDToTypeID("null"), ref257)
+    ref258 = ps.ActionReference()
+    idChnl = app.charIDToTypeID("Chnl")
+    ref258.putEnumerated(idChnl, idChnl, app.charIDToTypeID("Trsp"))
+    desc307.putReference( app.charIDToTypeID("T   "), ref258)
+    app.executeAction(
+        app.charIDToTypeID("setd"),
+        desc307,
+        ps.DialogModes.DisplayNoDialogs)

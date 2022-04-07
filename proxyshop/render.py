@@ -75,7 +75,7 @@ def render (file,template,previous):
 
     # Get our template and layout class maps
     if isinstance(template, dict):
-        card_template = core.get_template_class(template[layout.card_class])
+        card_template = core.get_template(template[layout.card_class])
     else: card_template = core.get_template(template, layout.card_class)
 
     if card_template:
@@ -123,7 +123,7 @@ def render_custom (file,template,scryfall):
         except: core.handle(f"Layout '{scryfall['layout']}' is not supported.")
 
     # Get our template and layout class maps
-    if isinstance(template, list): card_template = core.get_template_class(template)
+    if isinstance(template, list): card_template = core.get_template(template)
     else: core.handle("Template not found!")
 
     if card_template:

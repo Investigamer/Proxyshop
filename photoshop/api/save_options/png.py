@@ -3,6 +3,8 @@ from photoshop.api._core import Photoshop
 
 
 class ExportOptionsSaveForWeb(Photoshop):
+    """Options for exporting Save For Web files."""
+
     object_name = "ExportOptionsSaveForWeb"
 
     def __init__(self):
@@ -51,6 +53,15 @@ class ExportOptionsSaveForWeb(Photoshop):
     @dither.setter
     def dither(self, value):
         self.app.dither = value
+
+    def as_javascript(self) -> str:
+        """Is patch function to make as javascript."""
+        return f"""
+        var opts;
+        opts = new ExportOptionsSaveForWeb();
+        opts.PNG8 = {str(self.PNG8).lower()};
+        opts.quality = {self.quality};
+        """
 
 
 class PNGSaveOptions(Photoshop):

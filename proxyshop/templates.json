@@ -1,78 +1,78 @@
 {
 	"normal": {
-		"Normal": ["proxyshop.templates", "NormalTemplate"],
-		"Classic": ["proxyshop.templates", "NormalClassicTemplate"],
-		"Fullart": ["proxyshop.templates", "NormalFullartTemplate"],
-		"Extended": ["proxyshop.templates", "NormalExtendedTemplate"],
-		"Invention": ["proxyshop.templates", "InventionTemplate"],
-		"Invention Silver": ["proxyshop.templates", "InventionSilverTemplate"],
-		"Stargazing": ["proxyshop.templates", "StargazingTemplate"],
-		"Expedition": ["proxyshop.templates", "ExpeditionTemplate"],
-		"Womens Day": ["proxyshop.templates", "WomensDayTemplate"],
-		"Miracle": ["proxyshop.templates", "MiracleTemplate"],
-		"Snow": ["proxyshop.templates", "SnowTemplate"]
+		"Normal": "NormalTemplate",
+		"Classic": "NormalClassicTemplate",
+		"Fullart": "NormalFullartTemplate",
+		"Extended": "NormalExtendedTemplate",
+		"Invention": "InventionTemplate",
+		"Invention Silver": "InventionSilverTemplate",
+		"Stargazing": "StargazingTemplate",
+		"Expedition": "ExpeditionTemplate",
+		"Womens Day": "WomensDayTemplate",
+		"Miracle": "MiracleTemplate",
+		"Snow": "SnowTemplate"
 	},
 	"transform_front": {
-		"Normal": ["proxyshop.templates", "TransformFrontTemplate"]
+		"Normal": "TransformFrontTemplate"
 	},
 	"transform_back": {
-		"Normal": ["proxyshop.templates", "TransformBackTemplate"]
+		"Normal": "TransformBackTemplate"
 	},
 	"ixalan": {
-		"Normal": ["proxyshop.templates", "IxalanTemplate"]
+		"Normal": "IxalanTemplate"
 	},
 	"mdfc_front": {
-		"Normal": ["proxyshop.templates", "MDFCFrontTemplate"]
+		"Normal": "MDFCFrontTemplate"
 	},
 	"mdfc_back": {
-		"Normal": ["proxyshop.templates", "MDFCBackTemplate"]
+		"Normal": "MDFCBackTemplate"
 	},
 	"mutate": {
-		"Normal": ["proxyshop.templates", "MutateTemplate"]
+		"Normal": "MutateTemplate"
 	},
 	"adventure": {
-		"Normal": ["proxyshop.templates", "AdventureTemplate"]
+		"Normal": "AdventureTemplate"
 	},
 	"leveler": {
-		"Normal": ["proxyshop.templates", "LevelerTemplate"]
+		"Normal": "LevelerTemplate"
 	},
 	"saga": {
-		"Normal": ["proxyshop.templates", "SagaTemplate"]
+		"Normal": "SagaTemplate"
 	},
 	"miracle": {
-		"Normal": ["proxyshop.templates", "MiracleTemplate"]
+		"Normal": "MiracleTemplate"
 	},
 	"planeswalker": {
-		"Normal": ["proxyshop.templates", "PlaneswalkerTemplate"],
-		"Extended": ["proxyshop.templates", "PlaneswalkerExtendedTemplate"]
+		"Normal": "PlaneswalkerTemplate",
+		"Extended": "PlaneswalkerExtendedTemplate"
 	},
 	"pw_tf_front": {
-		"Normal": ["proxyshop.templates", "PlaneswalkerTransformFrontTemplate"],
-		"Extended": ["proxyshop.templates", "PlaneswalkerTransformFrontExtendedTemplate"]
+		"Normal": "PlaneswalkerTransformFrontTemplate",
+		"Extended": "PlaneswalkerTransformFrontExtendedTemplate"
 	},
 	"pw_tf_back": {
-		"Normal": ["proxyshop.templates", "PlaneswalkerTransformBackTemplate"],
-		"Extended": ["proxyshop.templates", "PlaneswalkerTransformBackExtendedTemplate"]
+		"Normal": "PlaneswalkerTransformBackTemplate",
+		"Extended": "PlaneswalkerTransformBackExtendedTemplate"
 	},
 	"pw_mdfc_front": {
-		"Normal": ["proxyshop.templates", "PlaneswalkerMDFCFrontTemplate"],
-		"Extended": ["proxyshop.templates", "PlaneswalkerMDFCFrontExtendedTemplate"]
+		"Normal": "PlaneswalkerMDFCFrontTemplate",
+		"Extended": "PlaneswalkerMDFCFrontExtendedTemplate"
 	},
 	"pw_mdfc_back": {
-		"Normal": ["proxyshop.templates", "PlaneswalkerMDFCBackTemplate"],
-		"Extended": ["proxyshop.templates", "PlaneswalkerMDFCBackExtendedTemplate"]
+		"Normal": "PlaneswalkerMDFCBackTemplate",
+		"Extended": "PlaneswalkerMDFCBackExtendedTemplate"
 	},
 	"snow": {
-		"Normal": ["proxyshop.templates", "SnowTemplate"]
+		"Normal": "SnowTemplate"
 	},
 	"basic": {
-		"Normal": ["proxyshop.templates", "BasicLandTemplate"],
-		"Theros": ["proxyshop.templates", "BasicLandTherosTemplate"],
-		"Classic": ["proxyshop.templates", "BasicLandClassicTemplate"],
-		"Unstable": ["proxyshop.templates", "BasicLandUnstableTemplate"]
+		"Normal": "BasicLandTemplate",
+		"Theros": "BasicLandTherosTemplate",
+		"Classic": "BasicLandClassicTemplate",
+		"Unstable": "BasicLandUnstableTemplate"
 	},
 	"planar": {
-		"Normal": ["proxyshop.templates", "PlanarTemplate"]
+		"Normal": "PlanarTemplate"
 	}
 
 }

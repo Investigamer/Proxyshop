@@ -8,6 +8,7 @@ from proxyshop.helpers import ps
 from proxyshop import settings
 cfg = settings.config()
 cwd = os.getcwd()
+version = "v1.0.9"
 
 # PATHS
 json_custom_path = os.path.join(cwd, "tmp\\custom.json")

@@ -4,16 +4,17 @@ Card creator
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import scrolledtext
-from proxyshop import launcher
+from proxyshop import launcher, constants as con
 
 class App:
     """
     Card creator App
     """
+    # pylint: disable=R0902, R0914, R0915
     def __init__(self, root):
 
         # The window
-        root.title("Proxyshop v1.0.8 - Card Creator")
+        root.title(f"Proxyshop {con.version} - Card Creator")
         width=600
         height=410
         screenwidth = root.winfo_screenwidth()
@@ -182,7 +183,7 @@ class App:
 
         # Template options
         self.templates = []
-        for key in launcher.templates["normal"]["other"]:
+        for key in launcher.templates["normal"]:
             self.templates.append(key)
         self.template = tk.StringVar()
         self.template.set(self.templates[0])
@@ -228,7 +229,7 @@ class App:
             "color_identity": self.tb_ColorIdentity.get(),
             "layout": "normal"
         }
-        temp = launcher.templates["normal"]["other"][self.template.get()]
+        temp = launcher.templates["normal"][self.template.get()]
         launcher.render_custom(scryfall, temp)
 
     def validate_num(self, P):

@@ -81,6 +81,18 @@ def vertically_align_text(layer, reference_layer):
     app.activeDocument.activeLayer = layer
     psd.align_vertical()
     psd.clear_selection()
+    """
+    METHOD FOR KEEPING UNRASTERIZED - Needs work to accomodate vertically_nudge_creature_text
+    duplicate = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+    app.activeDocument.activeLayer = duplicate
+    duplicate.rasterize(ps.RasterizeType.TextContents)
+    y = duplicate.bounds[1]
+    psd.select_layer_pixels(reference_layer)
+    psd.align_vertical()
+    psd.clear_selection()
+    y = duplicate.bounds[1]-y
+    layer.translate(0,y)
+    """
 
 def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
     """

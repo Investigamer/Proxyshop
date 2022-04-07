@@ -1,0 +1,18 @@
+{
+	"normal": {
+		"Sketch": "SketchTemplate",
+		"Male MPC": "MaleMPCTemplate",
+		"Kaldheim": "KaldheimTemplate",
+		"Phyrexian": "PhyrexianTemplate",
+		"Colorshifted": "ColorshiftedTemplate",
+		"Crimson Fang": "CrimsonFangTemplate",
+		"Classic Promo": "PromoClassicTemplate",
+		"Double Feature": "DoubleFeatureTemplate"
+	},
+	"transform_front": {
+		"Crimson Fang": "CrimsonFangTemplate"
+	},
+	"transform_back": {
+		"Crimson Fang": "CrimsonFangTemplate"
+	}
+}

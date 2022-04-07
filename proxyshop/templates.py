@@ -97,8 +97,8 @@ class BaseTemplate():
         else:
 
             # Layers we need
-            set_layer = psd.getLayer("Set", con.layers['LEGAL'])
-            artist_layer = psd.getLayer(con.layers['ARTIST'], con.layers['LEGAL'])
+            set_layer = psd.getLayer("Set", legal_layer)
+            artist_layer = psd.getLayer(con.layers['ARTIST'], legal_layer)
 
             # Fill set info / artist info
             set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
@@ -206,7 +206,6 @@ class StarterTemplate (BaseTemplate):
      * A BaseTemplate with a few extra features. In most cases this will be your starter template
      * you want to extend for the most important functionality.
     """
-    # TODO: Add TF and MDFC stuff here? (both normal and planeswalker temps need to inherit them)
     # pylint: disable=E1101
     def __init__ (self, layout, file):
         super().__init__(layout, file)

@@ -32,6 +32,7 @@ from photoshop.api.text_item import TextItem
 __all__ = [  # noqa: F405
     "ActionDescriptor",
     "ActionReference",
+	"ActionList",
     "Application",
     "constants",
     "enumerations",
