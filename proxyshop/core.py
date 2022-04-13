@@ -2,14 +2,32 @@
 LOADS PLUGINS AND TEMPLATES
 """
 import os
+import re
 import sys
 import json
 from glob import glob
 from pathlib import Path
 from datetime import datetime as dt
 from importlib import util, import_module
-from proxyshop import helpers as psd
+from proxyshop.settings import cfg
 cwd = os.getcwd()
+
+# Card types with more than 1 template
+card_types = {
+    "Normal": ["normal"],
+    "MDFC": ["mdfc_front", "mdfc_back"],
+    "Transform": ["transform_front", "transform_back"],
+    "Planeswalker": ["planeswalker"],
+    "PW MDFC": ["pw_mdfc_front", "pw_mdfc_back"],
+    "PW Transform": ["pw_tf_front", "pw_tf_back"],
+    "Basic Land": ["basic"]
+}
+
+
+"""
+TEMPLATE FUNCTIONS
+"""
+
 
 def get_template(template, layout=None):
     """
@@ -37,6 +55,7 @@ def get_template(template, layout=None):
     temp_mod = util.module_from_spec(spec)
     spec.loader.exec_module(temp_mod)
     return getattr(temp_mod, selected_template[1])
+
 
 def get_templates():
     """
@@ -71,24 +90,85 @@ def get_templates():
             try:
                 for key, val in j.items():
                     # Add to existing templates
-                    for k,v in val.items():
+                    for k, v in val.items():
                         main_json[key][k] = [f"proxyshop\\plugins\\{Path(folder).stem}\\templates.py",v]
             except: pass
 
     return main_json
+
+
+def get_my_templates(sel):
+    """
+    Retrieve templates based on user selection
+    """
+    temps = {}
+    templates = get_templates()
+    # Create new dict of selected templates
+    for key in card_types:
+        for k in sel:
+            if k == key:
+                for lay in card_types[key]:
+                    temps[lay] = templates[lay][sel[k]]
+
+    # Add default template for any unselected
+    for l in templates:
+        if l not in temps:
+            temps[l] = templates[l]["Normal"]
+    return temps
+
+
+"""
+CARD FUNCTIONS
+"""
+
+
+def retrieve_card_info (filename):
+    """
+    Retrieve card name and (if specified) artist from the input file.
+    """
+    # Extract just the cardname
+    sep = [' {', ' [', ' (']
+    fn_split = re.split('|'.join(map(re.escape, sep)), filename[:-4])
+    name = fn_split[0]
+
+    # Look for creator, artist, set
+    creator = re.findall(r'\{+(.*?)\}', filename)
+    artist = re.findall(r'\(+(.*?)\)', filename)
+    set_code = re.findall(r'\[+(.*?)\]', filename)
+
+    # Check for these values
+    if creator: creator = creator[0]
+    else: creator = None
+    if artist: artist = artist[0]
+    else: artist = None
+    if set_code: set_code = set_code[0]
+    else: set_code = None
+
+    return {
+        'name': name,
+        'artist': artist,
+        'set': set_code,
+        'creator': creator
+    }
+
 
 def handle(text, card=None, template=None):
     """
     Handle error messages smoothly
     """
     if card:
-
+        from proxyshop import helpers as psd
         # Log the failure
         time = dt.now().strftime("%m/%d/%Y %H:%M")
         if template: log_text = f"{card} ({template}) [{time}]\n"
         else: log_text = f"{card} [{time}]\n"
         with open(os.path.join(cwd, "tmp/failed.txt"), "a", encoding="utf-8") as log:
             log.write(log_text)
+
+        # Auto skip
+        if cfg.skip_failed:
+            print(f"{text}\nI've saved {card} to the Failed.txt log.\n")
+            return True
 
         # Ask user if we should continue?
         choice = input(f"{text}\nI've saved {card} to the Failed.txt log.\nContinue to the next card? (y/n)\n")
@@ -103,6 +183,7 @@ def handle(text, card=None, template=None):
 
     input(f"{text}\nPress enter to exit...")
     sys.exit()
+
 
 def exit_app():
     """

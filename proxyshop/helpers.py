@@ -2,10 +2,11 @@
 PHOTOSHOP HELPER FUNCTIONS
 """
 import os
-import proxyshop.scryfall as scry
-import proxyshop.constants as con
+from proxyshop.scryfall import card_scan
 import photoshop.api as ps
+cwd = os.getcwd()
 app = ps.Application()
+
 
 def getLayer(name, group=None):
     """
@@ -31,6 +32,7 @@ def getLayer(name, group=None):
     # None found
     return None
 
+
 def getLayerSet(name, group=None):
     """
      * Retrieve layer group
@@ -44,6 +46,7 @@ def getLayerSet(name, group=None):
         return group.layerSets.getByName(name)
     # Look through entire document
     return app.activeDocument.layerSets.getByName(name)
+
 
 def rgb_black():
     """
@@ -94,6 +97,17 @@ def compute_text_layer_dimensions(layer):
     dimensions = compute_layer_dimensions(layer_copy)
     layer_copy.remove()
     return dimensions
+
+def compute_text_layer_bounds(layer):
+    """
+     * Return an object with the specified text layer's bounding box.
+    """
+
+    layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+    layer_copy.rasterize(ps.RasterizeType.TextContents)
+    layer_bounds = layer.bounds
+    layer_copy.remove()
+    return layer_bounds
 
 def select_layer_pixels(layer):
     """
@@ -282,7 +296,7 @@ def save_document_png(file_name):
     idPNGF = app.charIDToTypeID("PNGF")
     desc3.putObject(idAs, idPNGF, desc4)
     idIn = app.charIDToTypeID("In  ")
-    file_name_with_path = os.path.join(con.cwd, f"out/{file_name}.png")
+    file_name_with_path = os.path.join(cwd, f"out/{file_name}.png")
     desc3.putPath(idIn, file_name_with_path)
     idCpy = app.charIDToTypeID("Cpy ")
     desc3.putBoolean(idCpy, True)
@@ -304,7 +318,7 @@ def save_document_jpeg(file_name):
         app.charIDToTypeID("JPEG"),
         desc35)
     desc34.putPath(app.charIDToTypeID("In  "),
-        os.path.join(con.cwd, f"out/{file_name}.png"))
+        os.path.join(cwd, f"out/{file_name}.jpg"))
     desc34.putInteger(app.charIDToTypeID("DocI"), 349 )
     desc34.putBoolean(app.charIDToTypeID("Cpy "), True)
     desc34.putEnumerated(
@@ -420,7 +434,7 @@ def insert_scryfall_scan(image_url):
     """
      * Downloads the specified scryfall scan and inserts it into a new layer next to the active layer. Returns the new layer.
     """
-    scryfall_scan = scry.card_scan(image_url)
+    scryfall_scan = card_scan(image_url)
     if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
     return None
 

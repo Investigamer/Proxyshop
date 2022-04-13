@@ -1,0 +1,78 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import Gradient kivy_gradient.Gradient
+#:import ScrollView kivy.uix.scrollview.ScrollView
+
+<Console>:
+    size_hint: 1, .4
+    orientation: "horizontal"
+    padding: 10
+    canvas:
+        Color:
+            rgba: get_color_from_hex("#666666")
+        Rectangle:
+            size: root.size
+            pos: root.pos
+    BoxLayout:
+        padding: 10,10,10,10
+        size_hint: 4, 1
+        canvas:
+            Color:
+                rgba: get_color_from_hex("#222222")
+            Rectangle:
+                size: self.width-10,self.height
+                pos: self.pos
+        ScrollView:
+            id: viewport
+            always_overscroll: False
+            do_scroll_x: False
+            size_hint: 1, 1
+            GridLayout:
+                cols: 1
+                padding: 0
+                spacing: 0
+                size_hint: (1,None)
+                height: self.minimum_height
+                ConsoleOutput:
+                    padding: (0,0)
+                    size_hint: 1,None
+                    id: console_output
+                    markup: True
+                    font_size: 18
+                    text: "All systems go! Let's make a proxy.\n"
+                    text_size: self.width, None
+                    size: self.texture_size
+                    text_autoupdate: True
+                    halign: "left"
+                    valign: "top"
+    ConsoleControls:
+        id: console_controls
+        orientation: "vertical"
+        spacing: 4
+        Button:
+            disabled: True
+            text: "Coming soon.."
+        Button:
+            disabled: True
+            text: "Coming soon.."
+        HoverButton:
+            options: ["Go for it!", "Hurry up!", "Do it!", "Let's go!", "Next!"]
+            hover_color: "#4a5f8a"
+            id: continue_btn
+            on_press: console_controls.choose()
+            disabled: True
+            text: "Continue"
+            font_size: 18
+            background_normal: ""
+            background_disabled_normal: ""
+            background_color: get_color_from_hex("#283c5e")
+        HoverButton:
+            options: ["STOP!", "End it now!", "No more!", "QUIT!", "Quiddit!", "Enough!"]
+            hover_color: "#8a4a50"
+            id: cancel_btn
+            on_press: console_controls.choose(False)
+            disabled: True
+            text: "Cancel"
+            font_size: 18
+            background_normal: ""
+            background_disabled_normal: ""
+            background_color: get_color_from_hex("#63272d")

@@ -3,12 +3,13 @@ MRTEFERI TEMPLATES
 """
 # pylint: disable=C0116, E0401
 from proxyshop import format_text
-#import proxyshop.text_layers as txt_layers
+import proxyshop.text_layers as txt_layers
 import proxyshop.templates as temp
+from proxyshop.settings import cfg
 import proxyshop.constants as con
 import proxyshop.helpers as psd
-app = psd.app
-cfg = con.cfg
+import photoshop.api as ps
+app = ps.Application()
 lyr = con.layers
 
 """

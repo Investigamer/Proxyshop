@@ -7,6 +7,37 @@ import proxyshop.constants as con
 import proxyshop.helpers as psd
 from proxyshop.helpers import ps, app
 
+# Symbol colors
+rgb_c = ps.SolidColor()
+rgb_c.rgb.red = 204
+rgb_c.rgb.green = 194
+rgb_c.rgb.blue = 193
+
+rgb_w = ps.SolidColor()
+rgb_w.rgb.red = 255
+rgb_w.rgb.green = 251
+rgb_w.rgb.blue = 214
+
+rgb_u = ps.SolidColor()
+rgb_u.rgb.red = 170
+rgb_u.rgb.green = 224
+rgb_u.rgb.blue = 250
+
+rgb_b = ps.SolidColor()
+rgb_b.rgb.red = 159
+rgb_b.rgb.green = 146
+rgb_b.rgb.blue = 143
+
+rgb_r = ps.SolidColor()
+rgb_r.rgb.red = 249
+rgb_r.rgb.green = 169
+rgb_r.rgb.blue = 143
+
+rgb_g = ps.SolidColor()
+rgb_g.rgb.red = 154
+rgb_g.rgb.green = 211
+rgb_g.rgb.blue = 175
+
 def locate_symbols(input_string):
     """
      * Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG, and determine
@@ -69,22 +100,22 @@ def determine_symbol_colors(symbol, symbol_length):
      * Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
     """
     symbol_color_map = {
-        "W": con.rgb_w,
-        "U": con.rgb_u,
-        "B": con.rgb_c,
-        "R": con.rgb_r,
-        "G": con.rgb_g,
-        "2": con.rgb_c,
+        "W": rgb_w,
+        "U": rgb_u,
+        "B": rgb_c,
+        "R": rgb_r,
+        "G": rgb_g,
+        "2": rgb_c,
     }
 
     # for hybrid symbols with generic mana, use the black symbol color rather than colorless for B
     hybrid_symbol_color_map = {
-        "W": con.rgb_w,
-        "U": con.rgb_u,
-        "B": con.rgb_b,
-        "R": con.rgb_r,
-        "G": con.rgb_g,
-        "2": con.rgb_c,
+        "W": rgb_w,
+        "U": rgb_u,
+        "B": rgb_b,
+        "R": rgb_r,
+        "G": rgb_g,
+        "2": rgb_c,
     }
 
     # SPECIAL SYMBOLS
@@ -93,7 +124,7 @@ def determine_symbol_colors(symbol, symbol_length):
         return [psd.rgb_black()]
     elif symbol == "{S}":
         # snow symbol
-        return [con.rgb_c, psd.rgb_black(), psd.rgb_white()]
+        return [rgb_c, psd.rgb_black(), psd.rgb_white()]
     elif symbol == "{Q}":
         # untap symbol
         return [psd.rgb_black(), psd.rgb_white()]
@@ -132,7 +163,7 @@ def determine_symbol_colors(symbol, symbol_length):
     normal_symbol_match = re.match(normal_symbol_regex, symbol)
     if normal_symbol_match: return [symbol_color_map[normal_symbol_match[1]], psd.rgb_black()]
 
-    if symbol_length == 2: return [con.rgb_c, psd.rgb_black()]
+    if symbol_length == 2: return [rgb_c, psd.rgb_black()]
     print(f"Encountered a symbol that I don't know how to color: {symbol}")
     return None
 

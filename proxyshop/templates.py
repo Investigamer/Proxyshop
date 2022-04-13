@@ -3,16 +3,18 @@ CORE TEMPLATES
 """
 import os
 import proxyshop.text_layers as txt_layers
-from proxyshop import format_text, core
+from proxyshop import format_text, gui
 import proxyshop.constants as con
+from proxyshop.settings import cfg
 import proxyshop.helpers as psd
-cfg = con.cfg
-app = psd.app
-ps = psd.ps
+from photoshop import api as ps
+app = ps.Application()
+console = gui.console_handler
 
 # Ensure scaling with pixels, font size with points
 app.preferences.rulerUnits = ps.Units.Pixels
 app.preferences.typeUnits = ps.Units.Points
+
 
 class BaseTemplate():
     """
@@ -27,8 +29,12 @@ class BaseTemplate():
         self.file = file
         self.tx_layers = []
         try: self.load_template()
-        except:
-            core.handle("PSD not found! Make sure to download the photoshop templates.")
+        except Exception:
+            result = console.log_error(
+                "PSD not found! Make sure to download the photoshop templates!",
+                self.layout.name,
+                self.template_file_name()
+            )
 
         # Flavor/reminder text
         if cfg.remove_flavor: self.layout.flavor_text = ""
@@ -56,11 +62,13 @@ class BaseTemplate():
             except: pass
 
         # Use realistic collector information? Is the necessary info available?
-        if ( self.layout.collector_number
+        if (
+            self.layout.collector_number
             and self.layout.rarity
             and self.layout.card_count
             and cfg.real_collector
-            and not self.layout.no_collector ):
+            and not self.layout.no_collector
+        ):
 
             # Reveal collector group, hide old layers
             collector_layer = psd.getLayerSet(con.layers['COLLECTOR'], con.layers['LEGAL'])
@@ -150,30 +158,28 @@ class BaseTemplate():
 
         # Enable the layers we need
         try:
-            print("Enabling frame layers...", end=" ", flush=True)
+            console.update("Enabling frame layers...")
             self.enable_frame_layers()
-            print("done!", flush=True)
-        except:
-            self.failed = core.handle(
+        except Exception:
+            result = console.log_error(
                 "This card is incompatible with this Template!",
                 self.layout.name,
-                self.template_file_name())
-            psd.close_document()
-            return False
+                self.template_file_name()
+            )
+            return result
 
         # Input and format each text layer
         try:
-            print("Formatting text...", end=" ", flush=True)
+            console.update("Formatting text...")
             for this_layer in self.tx_layers:
                 this_layer.execute()
-            print("done!", flush=True)
-        except:
-            self.failed = core.handle(
+        except Exception:
+            result = console.log_error(
                 "This card is incompatible with this Template!",
                 self.layout.name,
-                self.template_file_name())
-            psd.close_document()
-            return False
+                self.template_file_name()
+            )
+            return result
 
         # Format file name
         suffix = self.template_suffix()
@@ -182,22 +188,24 @@ class BaseTemplate():
 
         # Exit early defined?
         try: self.exit_early
-        except: self.exit_early = False
+        except Exception: self.exit_early = False
 
         # Manual edit step?
         if self.exit_early or cfg.exit_early:
-            input("Manual editing enabled! Make any necessary adjustments, then press enter to continue...\n")
-            print("Saving document...")
+            console.wait(
+                "Manual editing enabled! When you're ready to save, click continue..."
+            )
+            console.update("Saving document...\n")
 
         # Save the document
         try:
             if cfg.save_jpeg: psd.save_document_jpeg(file_name)
             else: psd.save_document_png(file_name)
-            print(f"{file_name} rendered successfully!")
+            console.update(f"[b]{file_name}[/b] rendered successfully!\n")
 
             # Reset document
             psd.reset_document(os.path.basename(self.file_path))
-        except: pass
+        except Exception: console.update(f"Error during save process!\nMake sure the file saved.\n")
         return True
 
 # Extend this for more functionality than BaseTemplate
@@ -398,7 +406,8 @@ class NormalTemplate (StarterTemplate):
             psd.getLayer(self.layout.pinlines, con.layers['COMPANION']).visible = True
 
         if (self.is_legendary and self.layout.is_nyx) or self.is_companion:
-            # legendary crown on nyx background - enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
+            # Legendary crown on nyx background
+            # Enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
             super().enable_hollow_crown(crown, pinlines)
 
 # CLASSIC TEMPLATE, NORMAL
@@ -481,6 +490,7 @@ class NormalExtendedTemplate (NormalTemplate):
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
         super().__init__(layout, file)
 
+
 class NormalFullartTemplate (NormalTemplate):
     """
      * Normal full art template (Also called "Universes Beyond")
@@ -490,6 +500,7 @@ class NormalFullartTemplate (NormalTemplate):
 
     def template_suffix (self):
         return "Fullart"
+
 
 class WomensDayTemplate (NormalTemplate):
     """
@@ -605,6 +616,7 @@ class InventionTemplate (NormalTemplate):
             psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
             psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
             super().enable_hollow_crown(crown, pinlines)
+
 
 class InventionSilverTemplate (InventionTemplate):
     """
@@ -882,6 +894,7 @@ class IxalanTemplate (NormalTemplate):
     def enable_frame_layers (self):
         psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
 
+
 # MDFC CARDS
 class MDFCBackTemplate (NormalTemplate):
     """
@@ -931,6 +944,7 @@ class MDFCFrontTemplate (MDFCBackTemplate):
 
     def dfc_layer_group (self):
         return con.layers['MDFC_FRONT']
+
 
 """
 Templates similar to NormalTemplate with new features
@@ -1117,6 +1131,7 @@ class SagaTemplate (NormalTemplate):
         psd.getLayer(self.layout.background, con.layers['TEXTBOX']).visible = True
         psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
 
+
 """
 Planeswalker templates
 """
@@ -1227,6 +1242,7 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     def enable_background (self):
         pass
 
+
 class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
     """
      * Template for the back faces of modal double faced Planeswalker cards.
@@ -1277,6 +1293,7 @@ class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
     def dfc_layer_group (self):
         return con.layers['MDFC_FRONT']
 
+
 class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
     """
      * An extended version of Planeswalker MDFC Back template.
@@ -1291,6 +1308,7 @@ class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
         app.activeDocument.activeLayer = self.art_layer
         psd.content_fill_empty_area()
 
+
 class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
     """
      * An extended version of Planeswalker MDFC Front template.
@@ -1304,6 +1322,7 @@ class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
     def enable_background (self):
         app.activeDocument.activeLayer = self.art_layer
         psd.content_fill_empty_area()
+
 
 class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
     """
@@ -1325,6 +1344,7 @@ class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
         psd.getLayer(self.layout.transform_icon, transform_group).visible = True
         psd.getLayer(self.layout.pinlines, color_indicator).visible = True
         super().basic_text_layers(text_and_icons)
+
 
 class PlaneswalkerTransformFrontTemplate (PlaneswalkerTemplate):
     """
@@ -1350,6 +1370,7 @@ class PlaneswalkerTransformFrontTemplate (PlaneswalkerTemplate):
         app.activeDocument.activeLayer = self.art_layer
         psd.content_fill_empty_area()
 
+
 class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTemplate):
     """
      * An extended version of Planeswalker MDFC Back template.
@@ -1364,6 +1385,7 @@ class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTempla
         app.activeDocument.activeLayer = self.art_layer
         psd.content_fill_empty_area()
 
+
 class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemplate):
     """
      * An extended version of Planeswalker MDFC Front template.
@@ -1373,6 +1395,7 @@ class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemp
 
     def template_suffix(self):
         return "Extended"
+
 
 """
 Misc. Templates
@@ -1463,6 +1486,7 @@ class PlanarTemplate (StarterTemplate):
         # No need to enable layers
         pass
 
+
 """
 Basic land Templates
 """
@@ -1495,6 +1519,7 @@ class BasicLandTemplate (BaseTemplate):
             )
         )
 
+
 class BasicLandUnstableTemplate (BaseTemplate):
     """
      * Basic land template for the borderless basics from Unstable.
@@ -1514,6 +1539,7 @@ class BasicLandUnstableTemplate (BaseTemplate):
     def enable_frame_layers (self):
         psd.getLayer(self.layout.name).visible = True
 
+
 class BasicLandTherosTemplate (BasicLandTemplate):
     """
      * Basic land template for the full-art Nyx basics from Theros: Beyond Death.
@@ -1523,6 +1549,7 @@ class BasicLandTherosTemplate (BasicLandTemplate):
 
     def template_suffix (self):
         return f"Theros - {self.layout.artist}"
+
 
 class BasicLandClassicTemplate (BasicLandTemplate):
     """

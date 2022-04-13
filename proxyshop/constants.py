@@ -4,11 +4,8 @@ Keep all global variables here.
 """
 import os
 from pathlib import Path
-from proxyshop.helpers import ps
-from proxyshop import settings
-cfg = settings.config()
 cwd = os.getcwd()
-version = "v1.0.9"
+version = "v1.1.0"
 
 # PATHS
 json_custom_path = os.path.join(cwd, "tmp\\custom.json")
@@ -196,37 +193,6 @@ modal_indent = 5.7
 line_break_lead = 2.4
 flavor_text_lead = 4.4
 
-# Symbol colors
-rgb_c = ps.SolidColor()
-rgb_c.rgb.red = 204
-rgb_c.rgb.green = 194
-rgb_c.rgb.blue = 193
-
-rgb_w = ps.SolidColor()
-rgb_w.rgb.red = 255
-rgb_w.rgb.green = 251
-rgb_w.rgb.blue = 214
-
-rgb_u = ps.SolidColor()
-rgb_u.rgb.red = 170
-rgb_u.rgb.green = 224
-rgb_u.rgb.blue = 250
-
-rgb_b = ps.SolidColor()
-rgb_b.rgb.red = 159
-rgb_b.rgb.green = 146
-rgb_b.rgb.blue = 143
-
-rgb_r = ps.SolidColor()
-rgb_r.rgb.red = 249
-rgb_r.rgb.green = 169
-rgb_r.rgb.blue = 143
-
-rgb_g = ps.SolidColor()
-rgb_g.rgb.red = 154
-rgb_g.rgb.green = 211
-rgb_g.rgb.blue = 175
-
 # NDPMTG font dictionary to translate Scryfall symbols to font character sequences
 symbols = {
     "{W/P}": "Qp",
@@ -383,6 +349,7 @@ ability_words = [
     "Cone of Cold",
     "Brave the Stench",
     "Search the Body",
+    "Search the Room",
     "Bewitching Whispers",
     "Whispers of the Grave",
     "Animate Walking Statue",
