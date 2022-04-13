@@ -25,7 +25,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # Setup and Usage Guide (GUI)
 * Extract release into a folder of your choice.
-* Inside that folder create a folder called "templates", download the templates linked above and drop them inside.
+* Download the templates linked above and drop them inside the templates folder. Make sure to keep named plugin folders like "MrTeferi" intact in the templates folder.
 * Launch `Proxyshop.exe`.
 * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which will allow you to render your own custom cards.
 * The next set of tabs are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.

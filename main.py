@@ -4,6 +4,7 @@ PROXYSHOP - GUI LAUNCHER
 import os
 import sys
 import threading
+from time import perf_counter
 from glob import glob
 from queue import Queue
 from kivy.app import App
@@ -13,7 +14,7 @@ from kivy.factory import Factory
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.resources import resource_add_path, resource_find
+from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
@@ -22,8 +23,7 @@ from proxyshop.scryfall import card_info, set_info
 from proxyshop.constants import basic_land_names
 from proxyshop.core import retrieve_card_info
 from proxyshop.settings import cfg
-from proxyshop import core, gui, layouts, creator
-
+from proxyshop import core, gui, layouts
 Config.set('graphics', 'resizable', '0')
 Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '620')
@@ -105,9 +105,13 @@ class ProxyshopApp(App):
 
 		# Template(s) provided?
 		que = Queue()
+		start_t = perf_counter()
 		th1 = threading.Thread(target=self.render, args=(file[0], temps, que), daemon=True)
 		th1.start()
+		gui.console_handler.await_cancel(th1)
 		th1.join()
+		end_t = perf_counter()
+		if que.get(): gui.console_handler.update(f"[i]Time completed: {int(end_t-start_t)} seconds[/i]\n")
 		del que
 
 		# Return to normal
@@ -134,16 +138,19 @@ class ProxyshopApp(App):
 
 		# Run through each file
 		for f in files:
+			start_t = perf_counter()
 			que = Queue()
 			th1 = threading.Thread(target=self.render, args=(f, temps, que), daemon=True)
 			th1.start()
+			gui.console_handler.await_cancel(th1)
 			th1.join()
-			result = que.get()
-			if result is False:
+			end_t = perf_counter()
+			if que.get() is False:
 				try: self.close_document()
 				except Exception: pass
 				self.enable_buttons()
 				return None
+			else: gui.console_handler.update(f"[i]Time completed: {str(int(end_t-start_t))} seconds[/i]\n")
 			del que
 
 		# Return to normal
@@ -268,7 +275,8 @@ class ProxyshopApp(App):
 	@staticmethod
 	def close_document():
 		app = ps.Application()
-		app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+		try: app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+		except Exception: return None
 
 	def disable_buttons(self):
 		self.root.ids.rend_targ_btn.disabled = True

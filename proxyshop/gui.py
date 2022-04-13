@@ -1,7 +1,10 @@
+import ctypes
 import os
 import random
+import sys
 import time
 from datetime import datetime as dt
+from kivy.app import App
 from kivy.core.text import LabelBase
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty, ObjectProperty
@@ -78,7 +81,6 @@ class Console (BoxLayout):
     def __init__(self, **kwargs):
         kv = Builder.load_file(os.path.join(cwd, "proxyshop/console.kv"))
         super().__init__(**kwargs)
-        self.view = None
 
     def update(self, msg):
         output = self.ids.console_output
@@ -86,32 +88,76 @@ class Console (BoxLayout):
         self.ids.viewport.scroll_y = 0
 
     def log_error(self, msg, card, template=None):
-        time = dt.now().strftime("%m/%d/%Y %H:%M")
-        if template: log_text = f"{card} ({template}) [{time}]\n"
-        else: log_text = f"{card} [{time}]\n"
+        cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
+        if template: log_text = f"{card} ({template}) [{cur_time}]\n"
+        else: log_text = f"{card} [{cur_time}]\n"
         with open(os.path.join(cwd, "tmp/failed.txt"), "a", encoding="utf-8") as log:
             log.write(log_text)
         return self.error(msg)
 
     def error(self, msg):
+        """
+        Display error, wait for user to cancel or continue.
+        """
+        self.end_await()
         msg = f"[color=#a84747]{msg}[/color]\nContinue to next card?"
         self.update(msg)
         self.ids.continue_btn.disabled = False
         self.ids.cancel_btn.disabled = False
         result = self.ids.console_controls.wait()
         if not result:
-            self.update("Understood! Canceling render operation.\n")
-        else: self.update("Alrighty, starting next card!\n")
+            self.update("Understood! Canceling render operation.")
+        else: self.update("Alrighty, starting next card!")
         self.ids.continue_btn.disabled = True
         self.ids.cancel_btn.disabled = True
         return result
 
     def wait(self, msg):
+        """
+        Wait for user to continue.
+        """
+        self.end_await()
         self.update(msg)
         self.ids.continue_btn.disabled = False
         self.ids.console_controls.wait()
         self.ids.continue_btn.disabled = True
         return True
+
+    def await_cancel(self, thr):
+        """
+        Await for user to cancel the operation.
+        Auto-returns if the render finishes.
+        """
+        self.ids.console_controls.success = False
+        self.ids.cancel_btn.disabled = False
+        self.ids.console_controls.await_cancel()
+        if not self.ids.console_controls.success:
+            self.ids.cancel_btn.disabled = True
+            App.get_running_app().enable_buttons()
+            print(1)
+            self.kill_thread(thr)
+            self.update("Canceling render process!\n")
+            sys.exit()
+        else: return True
+
+    def end_await(self):
+        """
+        Ends the await cancel loop
+        """
+        self.ids.console_controls.success = True
+        self.ids.console_controls.running = False
+        self.ids.cancel_btn.disabled = True
+
+    @staticmethod
+    def kill_thread(thr):
+        """
+        Kill current render thread.
+        thread: threading.Thread object
+        """
+        thread_id = thr.ident
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
+        if res > 1: ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+
 
 
 class ConsoleOutput (Label):
@@ -122,19 +168,30 @@ class ConsoleOutput (Label):
 class ConsoleControls (BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.running = True
         self.waiting = False
+        self.success = True
         self.choice = False
 
     def wait(self):
         self.waiting = True
         while self.waiting:
-            time.sleep(1)
+            time.sleep(.5)
         return self.choice
 
     def choose(self, confirm=True):
         if confirm: self.choice = True
-        else: self.choice = False
+        else:
+            self.choice = False
+            self.running = False
+            self.success = False
         self.waiting = False
+
+    def await_cancel(self):
+        self.running = True
+        while self.running:
+            time.sleep(1)
+        return None
 
 
 class HoverButton(Button, HoverBehavior):

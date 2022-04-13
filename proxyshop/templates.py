@@ -201,11 +201,12 @@ class BaseTemplate():
         try:
             if cfg.save_jpeg: psd.save_document_jpeg(file_name)
             else: psd.save_document_png(file_name)
-            console.update(f"[b]{file_name}[/b] rendered successfully!\n")
+            console.update(f"[b]{file_name}[/b] rendered successfully!")
 
             # Reset document
             psd.reset_document(os.path.basename(self.file_path))
-        except Exception: console.update(f"Error during save process!\nMake sure the file saved.\n")
+        except Exception: console.update(f"Error during save process!\nMake sure the file saved.")
+        console.end_await()
         return True
 
 # Extend this for more functionality than BaseTemplate
