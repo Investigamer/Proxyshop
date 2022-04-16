@@ -1,3 +1,8 @@
+"""
+GUI Functions
+Console Display
+"""
+
 import ctypes
 import os
 import random
@@ -78,16 +83,26 @@ def get_font(name, default="Roboto"):
 
 
 class Console (BoxLayout):
+    """
+    Main console class
+    """
     def __init__(self, **kwargs):
-        kv = Builder.load_file(os.path.join(cwd, "proxyshop/console.kv"))
+        Builder.load_file(os.path.join(cwd, "proxyshop/console.kv"))
         super().__init__(**kwargs)
 
     def update(self, msg):
+        """
+        Add text to console
+        """
         output = self.ids.console_output
         output.text += msg+"\n"
         self.ids.viewport.scroll_y = 0
 
     def log_error(self, msg, card, template=None):
+        """
+        Log failed card in tmp
+        Then prompt error request
+        """
         cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
         if template: log_text = f"{card} ({template}) [{cur_time}]\n"
         else: log_text = f"{card} [{cur_time}]\n"
@@ -134,7 +149,6 @@ class Console (BoxLayout):
         if not self.ids.console_controls.success:
             self.ids.cancel_btn.disabled = True
             App.get_running_app().enable_buttons()
-            print(1)
             self.kill_thread(thr)
             self.update("Canceling render process!\n")
             sys.exit()
@@ -159,13 +173,18 @@ class Console (BoxLayout):
         if res > 1: ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
 
 
-
 class ConsoleOutput (Label):
+    """
+    Label displaying console output
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 class ConsoleControls (BoxLayout):
+    """
+    Console control buttons
+    """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.running = True
@@ -174,12 +193,18 @@ class ConsoleControls (BoxLayout):
         self.choice = False
 
     def wait(self):
+        """
+        Force wait until user makes a choice
+        """
         self.waiting = True
         while self.waiting:
             time.sleep(.5)
         return self.choice
 
     def choose(self, confirm=True):
+        """
+        Define the response, end wait
+        """
         if confirm: self.choice = True
         else:
             self.choice = False
@@ -188,6 +213,9 @@ class ConsoleControls (BoxLayout):
         self.waiting = False
 
     def await_cancel(self):
+        """
+        Await for user cancelling during render process
+        """
         self.running = True
         while self.running:
             time.sleep(1)

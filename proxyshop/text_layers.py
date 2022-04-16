@@ -18,7 +18,8 @@ def scale_text_right_overlap(layer, reference_layer):
         contents = str(reference_layer.textItem.contents)
         if contents in ("", " "):
             reference_layer.textItem.contents = "."
-    except Exception: pass
+    except Exception:
+        return None
 
     # Can't find UnitValue object in python api
     step_size = 0.25
@@ -30,18 +31,15 @@ def scale_text_right_overlap(layer, reference_layer):
     spacing = int((app.activeDocument.width/3264)*60)
 
     # Guard against the reference's left bound being left of the layer's left bound or other irregularities
-    if reference_left_bound < layer_left_bound: return None
-
-    # Step down the font till it clears the reference
-    while layer_right_bound > (reference_left_bound-spacing):  # minimum 24 px gap
-        layer.textItem.size = layer.textItem.size - step_size
-        layer_right_bound = layer.bounds[2]
+    if reference_left_bound >= layer_left_bound:
+        # Step down the font till it clears the reference
+        while layer_right_bound > (reference_left_bound-spacing):  # minimum 24 px gap
+            layer.textItem.size = layer.textItem.size - step_size
+            layer_right_bound = layer.bounds[2]
 
     # Fix corrected reference layer
-    try:
-        if str(reference_layer.textItem.contents) == ".":
-            reference_layer.textItem.contents = contents
-    except: pass
+    if str(reference_layer.textItem.contents) == ".":
+        reference_layer.textItem.contents = contents
 
 
 # TODO: Multiple layers, each with a reference, that scale together until they all fit their references?

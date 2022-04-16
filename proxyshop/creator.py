@@ -1,5 +1,5 @@
 """
-Card creator
+CARD CREATOR TAB
 """
 import os
 import threading

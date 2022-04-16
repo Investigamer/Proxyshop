@@ -178,7 +178,7 @@ class ProxyshopApp(App):
 				try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
 				except KeyError:
 					choice = console.update(f"Layout '{scryfall['layout']}' is not supported!\n")
-					return False
+					return choice
 				except TypeError:
 					console.update(f"Layout is not supported!\n")
 					return False
@@ -259,7 +259,7 @@ class ProxyshopApp(App):
 
 			# Get our template, execute
 			card_template = core.get_template(temps[layout.card_class])
-			if card_template is self.previous: self.close_document()
+			if card_template is not self.previous: self.close_document()
 			result = card_template(layout, file).execute()
 			self.previous = card_template
 			q.put(result)
@@ -322,7 +322,7 @@ class CreatorTab(TabbedPanelItem):
 	Custom card creator tab
 	"""
 	def __init__(self, **kwargs):
-		kv = Builder.load_file(os.path.join(cwd, "proxyshop/creator.kv"))
+		Builder.load_file(os.path.join(cwd, "proxyshop/creator.kv"))
 		self.text = "Custom Creator"
 		super().__init__(**kwargs)
 		self.add_widget(CreatorPanels())
@@ -389,6 +389,14 @@ class TemplateList(GridLayout):
 			btn[name].all = btn
 
 
+class TemplateView(ScrollView):
+	"""
+	Scrollable viewport for template lists
+	"""
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
+
 class SettingButton(ToggleButton):
 	"""
 	Toggle button to change user settings.
@@ -430,6 +438,6 @@ if __name__ == '__main__':
 	# Launch the app
 	__version__ = "v1.1.0"
 	Factory.register('HoverBehavior', gui.HoverBehavior)
-	kv = Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
+	Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
 	ProxyshopApp().run()
 
