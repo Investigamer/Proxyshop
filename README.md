@@ -2,7 +2,7 @@
 Photoshop scripting to generate high-quality Magic card renders, original concept developed by Chilli-Axe, rewritten in Python for extended functionality. If you need help with this app, join our discord: https://discord.gg/qdR2S4nQ6U
 
 <p align="center">
-  <a href="https://discord.gg/3kXw2qQwRH">
+  <a href="https://discord.gg/YaxAe4KZaM">
     <img alt="Discord" src="https://img.shields.io/discord/889831317066358815?label=Discord&style=plastic">
   </a>
   <img alt="Maintenance" src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen?style=plastic">
