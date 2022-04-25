@@ -26,6 +26,7 @@ def scale_text_right_overlap(layer, reference_layer):
     reference_left_bound = reference_layer.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
+    old_size = layer.textItem.size
 
     # Obtain proper spacing for this document size
     spacing = int((app.activeDocument.width/3264)*60)
@@ -36,6 +37,10 @@ def scale_text_right_overlap(layer, reference_layer):
         while layer_right_bound > (reference_left_bound-spacing):  # minimum 24 px gap
             layer.textItem.size = layer.textItem.size - step_size
             layer_right_bound = layer.bounds[2]
+
+    # Shift baseline up to keep text centered vertically
+    if old_size > layer.textItem.size:
+        layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * 0.3)
 
     # Fix corrected reference layer
     if str(reference_layer.textItem.contents) == ".":
@@ -75,18 +80,13 @@ def scale_text_to_fit_reference(layer, reference_layer):
 
 def vertically_align_text(layer, reference_layer):
     """
-     * Rasterize a given text layer and centre it vertically with respect to the bounding box of a reference layer.
+     * Centers a given text layer vertically with respect to the bounding box of a reference layer.
     """
-    layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-    layer_copy.rasterize(ps.RasterizeType.TextContents)
-    psd.select_layer_pixels(reference_layer)
-    app.activeDocument.activeLayer = layer_copy
-    psd.align_vertical()
-    psd.clear_selection()
-    layer_dimensions = psd.compute_text_layer_bounds(layer)
-    layer_copy_dimensions = psd.compute_text_layer_bounds(layer_copy)
-    layer.translate(0, layer_copy_dimensions[1]-layer_dimensions[1])
-    layer_copy.remove()
+    ref_height = psd.compute_layer_dimensions(reference_layer)['height']
+    lay_height = psd.compute_text_layer_dimensions(layer)['height']
+    bound_delta = reference_layer.bounds[1]-layer.bounds[1]
+    height_delta = ref_height - lay_height
+    layer.translate(0, bound_delta + height_delta / 2)
 
 
 def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
@@ -95,44 +95,19 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
     """
     # Does the layer needs to be nudged?
     if layer.bounds[2] >= reference_layer.bounds[0]:
-        # Make rasterized copy, hide the old layer
-        new_layer = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-        new_layer.rasterize(ps.RasterizeType.TextContents)
-        layer.visible = False
-
+        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        app.activeDocument.activeLayer = layer_copy
         psd.select_layer_pixels(reference_layer)
-        app.activeDocument.activeLayer = new_layer
-
-        # copy the contents of the active layer within the current selection to a new layer
-        app.executeAction(
-            app.charIDToTypeID("CpTL"),
-            None,
-            ps.DialogModes.DisplayNoDialogs)
-        desc5 = ps.ActionDescriptor()
-        desc6 = ps.ActionDescriptor()
-        ref4 = ps.ActionReference()
-        idLyr = app.charIDToTypeID("Lyr ")
-        ref4.putEnumerated(
-            idLyr,
-            app.charIDToTypeID("Ordn"),
-            app.charIDToTypeID("Trgt"))
-        desc5.putReference(app.charIDToTypeID("null"), ref4)
-        desc6.putString(app.charIDToTypeID("Nm  "), "Extra Bit")
-        desc5.putObject(app.charIDToTypeID("T   "), idLyr, desc6)
-        app.executeAction(
-            app.charIDToTypeID("setd"),
-            desc5,
-            ps.DialogModes.DisplayNoDialogs)
-
+        app.activeDocument.selection.invert()
+        app.activeDocument.selection.clear()
+        
         # determine how much the rules text overlaps the power/toughness by
-        extra_bit_layer = psd.getLayer("Extra Bit", new_layer.parent)
-        delta = top_reference_layer.bounds[3] - extra_bit_layer.bounds[3]
-        extra_bit_layer.visible = False
-
-        if delta < 0: new_layer.applyOffset(0, delta, ps.OffsetUndefinedAreas.OffsetSetToLayerFill)
+        delta = top_reference_layer.bounds[3] - layer_copy.bounds[3]
+        if delta < 0: layer.translate(0, delta)
 
         psd.clear_selection()
-
+        layer_copy.delete()
 
 # Class definitions
 class TextField ():
@@ -313,8 +288,8 @@ class CreatureFormattedTextArea (FormattedTextArea):
      * overlaps with another specified reference layer (which should represent the bounds of the power/toughness box), the layer will be shifted
      * vertically by just enough to ensure that it doesn't overlap.
     """
-    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, pt_reference_layer, pt_top_reference_layer, is_centered=False):
-        super().__init__(layer, text_contents, text_color, flavor_text, reference_layer, is_centered)
+    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, pt_reference_layer, pt_top_reference_layer, is_centered=False, fix_length=True):
+        super().__init__(layer, text_contents, text_color, flavor_text, reference_layer, is_centered, fix_length)
         self.pt_reference_layer = pt_reference_layer
         self.pt_top_reference_layer = pt_top_reference_layer
 
