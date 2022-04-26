@@ -107,7 +107,7 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
         if delta < 0: layer.translate(0, delta)
 
         psd.clear_selection()
-        layer_copy.delete()
+        layer_copy.remove()
 
 # Class definitions
 class TextField:
@@ -288,7 +288,17 @@ class CreatureFormattedTextArea (FormattedTextArea):
      * overlaps with another specified reference layer (which should represent the bounds of the power/toughness box), the layer will be shifted
      * vertically by just enough to ensure that it doesn't overlap.
     """
-    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, pt_reference_layer, pt_top_reference_layer, is_centered=False, fix_length=True):
+    def __init__(
+            self,
+            layer,
+            text_contents,
+            text_color,
+            flavor_text,
+            reference_layer,
+            pt_reference_layer,
+            pt_top_reference_layer,
+            is_centered=False, fix_length=True
+    ):
         super().__init__(layer, text_contents, text_color, flavor_text, reference_layer, is_centered, fix_length)
         self.pt_reference_layer = pt_reference_layer
         self.pt_top_reference_layer = pt_top_reference_layer

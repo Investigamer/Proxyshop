@@ -19,8 +19,16 @@ card_types = {
     "Transform": ["transform_front", "transform_back"],
     "Planeswalker": ["planeswalker"],
     "PW MDFC": ["pw_mdfc_front", "pw_mdfc_back"],
-    "PW Transform": ["pw_tf_front", "pw_tf_back"],
-    "Basic Land": ["basic"]
+    "PW TF": ["pw_tf_front", "pw_tf_back"],
+    "Basic Land": ["basic"],
+    "Ixalan": ["ixalan"],
+    "Mutate": ["mutate"],
+    "Adventure": ["adventure"],
+    "Leveler": ["leveler"],
+    "Saga": ["saga"],
+    "Miracle": ["miracle"],
+    "Snow": ["snow"],
+    "Planar": ["planar"]
 }
 
 

@@ -18,17 +18,22 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
 from proxyshop.creator import CreatorPanels
-from proxyshop.scryfall import card_info, set_info
+from proxyshop.scryfall import card_info
 from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info
 from proxyshop.settings import cfg
 from proxyshop import core, gui, layouts
+
+# App configuration
 Config.set('graphics', 'resizable', '0')
 Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '620')
-card_types = core.card_types
-cwd = os.getcwd()
 Config.write()
+
+# Core vars
+card_types = core.card_types
+templates = core.get_templates()
+cwd = os.getcwd()
 
 
 class ProxyshopApp(App):
@@ -71,28 +76,13 @@ class ProxyshopApp(App):
 					btn.all[key].disabled = False
 					btn.all[key].state = "normal"
 
-	def update_config(self):
-		"""
-		Update config file with chosen settings
-		"""
-		cfg.file.set("CONF", "Auto.Set.Symbol", str(self.conf['auto_set_symbol']))
-		cfg.file.set("CONF", "Auto.Symbol.Size", str(self.conf['auto_symbol_size']))
-		cfg.file.set("CONF", "Fill.Symbol.Background", str(self.conf['fill_symbol']))
-		cfg.file.set("CONF", "Render.JPEG", str(self.conf['save_JPEG']))
-		cfg.file.set("CONF", "No.Flavor.Text", str(self.conf['no_flavor']))
-		cfg.file.set("CONF", "No.Reminder.Text", str(self.conf['no_reminder']))
-		cfg.file.set("CONF", "Manual.Edit", str(self.conf['manual_edit']))
-		cfg.file.set("CONF", "Skip.Failed", str(self.conf['skip_failed']))
-		with open("config.ini", "w", encoding="utf-8") as config_file:
-			cfg.file.write(config_file)
-
 	def render_target(self):
 		"""
 		RENDER TARGET IMAGE
 		"""
 		# Setup step
 		self.disable_buttons()
-		self.update_config()
+		cfg.update(self.conf)
 		temps = core.get_my_templates(self.temps)
 
 		# Open file in PS
@@ -102,7 +92,7 @@ class ProxyshopApp(App):
 			self.enable_buttons()
 			return None
 
-		# Load default config, start new thread
+		# Load default config/constants, start new thread
 		self.load_defaults()
 		start_t = perf_counter()
 		th1 = threading.Thread(target=self.render, args=(file[0], temps), daemon=True)
@@ -124,7 +114,7 @@ class ProxyshopApp(App):
 		"""
 		# Setup step
 		self.disable_buttons()
-		self.update_config()
+		cfg.update(self.conf)
 		temps = core.get_my_templates(self.temps)
 
 		# Select all images in art folder
@@ -159,6 +149,9 @@ class ProxyshopApp(App):
 		"""
 		Set up custom render job, then execute
 		"""
+		self.disable_buttons()
+		cfg.update(self.conf)
+		self.load_defaults()
 		console = gui.console_handler
 		try:
 			app = ps.Application()
@@ -182,8 +175,8 @@ class ProxyshopApp(App):
 
 			# Get our template and layout class maps
 			try: card_template = core.get_template(temp)
-			except Exception:
-				console.update(f"Template not found!\n")
+			except Exception as e:
+				console.update(f"Template not found!\n", e)
 				return None
 
 			# Additional variables
@@ -198,6 +191,7 @@ class ProxyshopApp(App):
 			self.close_document()
 		except Exception as e:
 			console.update(f"General error! Maybe Photoshop was busy?\n", e)
+		self.enable_buttons()
 
 	def render(self, file, temps):
 		"""
@@ -247,7 +241,7 @@ class ProxyshopApp(App):
 	def close_document():
 		app = ps.Application()
 		try: app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
-		except Exception: return None
+		except Exception as e: return e
 
 	@staticmethod
 	def load_defaults():
@@ -327,31 +321,36 @@ class TemplateModule(TabbedPanel):
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
 		self._tab_layout.padding = '0dp', '10dp', '0dp', '0dp'
-		self.card_types = card_types
+		self.card_types = []
 		temp_tabs = {}
 		scroll_box = {}
 
 		# Add a list of buttons inside a scroll box to each tab
-		for t in self.card_types:
-			scroll_box[t] = ScrollView()
-			scroll_box[t].add_widget(TemplateList(t))
-			temp_tabs[t] = TabbedPanelItem(text=t)
-			temp_tabs[t].content = scroll_box[t]
-			self.add_widget(temp_tabs[t])
+		for t in card_types:
+
+			# Get the list of templates for this type
+			temps_t = templates[card_types[t][0]]
+			temps = ["Normal"]
+			temps_t.pop("Normal")
+			temps.extend(sorted(temps_t))
+			del temps_t
+
+			# Add tab if more than 1 template available
+			if len(temps) > 1:
+				scroll_box[t] = TemplateView()
+				scroll_box[t].add_widget(TemplateList(t, temps))
+				temp_tabs[t] = TabbedPanelItem(text=t)
+				temp_tabs[t].content = scroll_box[t]
+				self.add_widget(temp_tabs[t])
+				self.card_types.append(t)
 
 
 class TemplateList(GridLayout):
 	"""
 	Builds a listbox of templates based on a given type
 	"""
-	def __init__(self, c_type, **kwargs):
+	def __init__(self, c_type, temps, **kwargs):
 		super().__init__(**kwargs)
-		# Get the list of templates for this type
-		temps_t = core.get_templates()[card_types[c_type][0]]
-		temps = ["Normal"]
-		temps_t.pop("Normal")
-		temps.extend(sorted(temps_t))
-		del temps_t
 
 		# Create a list of buttons
 		btn = {}
@@ -398,6 +397,8 @@ class SettingButton(ToggleButton):
 class TemplateButton(ToggleButton):
 	"""
 	Button to select active template for card type.
+	@param name: Name of template display on the button.
+	@param c_type: Card type of this template.
 	"""
 	def __init__(self, name, c_type, **kwargs):
 		super().__init__(**kwargs)
@@ -412,8 +413,7 @@ if __name__ == '__main__':
 		resource_add_path(os.path.join(sys._MEIPASS))
 
 	# Launch the app
-	__version__ = "v1.1.0"
+	__version__ = "v1.1.1"
 	Factory.register('HoverBehavior', gui.HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
 	ProxyshopApp().run()
-

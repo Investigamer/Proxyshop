@@ -27,6 +27,7 @@ class Config:
 		self.template = None
 		self.save_artist_name = None
 		self.file = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
+		self.file.optionxform = str
 		self.file.read(conf, encoding="utf-8")
 		self.load()
 
@@ -34,29 +35,38 @@ class Config:
 		"""
 		Load the config values
 		"""
-		# Manual expansion symbol (Keyrune cheatsheet)
-		self.symbol_char = self.file['CONF']['Expansion.Symbol']
-
-		# Stop after formatting for manual intervention
+		# CONF section
 		self.exit_early = self.file.getboolean('CONF', 'Manual.Edit')
-		self.save_jpeg = self.file.getboolean('CONF', 'Render.JPEG')
-		self.file_ext = self.file['CONF']['Photoshop.Ext']
 		self.skip_failed = self.file.getboolean('CONF', 'Skip.Failed')
-		self.save_artist_name = self.file.getboolean('CONF', 'Save.Artist.Name')
 
-		# Auto symbol, sizing, and outline
-		self.auto_symbol = self.file.getboolean('CONF', 'Auto.Set.Symbol')
-		self.auto_symbol_size = self.file.getboolean('CONF', 'Auto.Symbol.Size')
-		self.symbol_stroke = self.file['CONF']['Symbol.Stroke.Size']
-		self.fill_symbol = self.file.getboolean('CONF', 'Fill.Symbol.Background')
+		# FILE section
+		self.save_jpeg = self.file.getboolean('FILES', 'Render.JPEG')
+		self.file_ext = self.file['FILES']['Photoshop.Ext']
+		self.save_artist_name = self.file.getboolean('FILES', 'Save.Artist.Name')
 
-		# Text options
-		self.remove_flavor = self.file.getboolean('CONF', 'No.Flavor.Text')
-		self.remove_reminder = self.file.getboolean('CONF', 'No.Reminder.Text')
-		self.real_collector = self.file.getboolean('CONF', 'True.Collector.Info')
+		# TEXT section
+		self.remove_flavor = self.file.getboolean('TEXT', 'No.Flavor.Text')
+		self.remove_reminder = self.file.getboolean('TEXT', 'No.Reminder.Text')
+		self.real_collector = self.file.getboolean('TEXT', 'True.Collector.Info')
 
-		# Chosen template or multiple templates (comma separated)
-		self.template = self.file['CONF']['Template']
+		# SYMBOLS section
+		self.symbol_char = self.file['SYMBOLS']['Default.Symbol']
+		self.auto_symbol = self.file.getboolean('SYMBOLS', 'Auto.Set.Symbol')
+		self.auto_symbol_size = self.file.getboolean('SYMBOLS', 'Auto.Symbol.Size')
+		self.symbol_stroke = self.file['SYMBOLS']['Symbol.Stroke.Size']
+		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
+
+	def update(self, c):
+		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(c['auto_set_symbol']))
+		self.file.set("SYMBOLS", "Auto.Symbol.Size", str(c['auto_symbol_size']))
+		self.file.set("SYMBOLS", "Fill.Symbol.Background", str(c['fill_symbol']))
+		self.file.set("FILES", "Render.JPEG", str(c['save_JPEG']))
+		self.file.set("TEXT", "No.Flavor.Text", str(c['no_flavor']))
+		self.file.set("TEXT", "No.Reminder.Text", str(c['no_reminder']))
+		self.file.set("CONF", "Manual.Edit", str(c['manual_edit']))
+		self.file.set("CONF", "Skip.Failed", str(c['skip_failed']))
+		with open("config.ini", "w", encoding="utf-8") as config_file:
+			self.file.write(config_file)
 
 	def reload(self, conf=os.path.join(cwd, "config.ini")):
 		"""

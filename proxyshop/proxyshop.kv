@@ -3,6 +3,9 @@
 #:import get_font proxyshop.gui.get_font
 #:import HoverButton proxyshop.gui.HoverButton
 #:import Thread threading.Thread
+<TabbedPanelHeader>
+    cols: 5
+
 <ProxyshopPanels>:
     orientation: "vertical"
     AppTabs:
@@ -98,10 +101,10 @@
                         on_press: Thread(target=app.render_all, daemon=True).start()
                         background_color: get_color_from_hex("#376aa3")
                 TemplateModule:
-                    tab_width: (self.width)/len(self.card_types)
+                    tab_pos: "top_mid"
                     do_default_tab: False
                     tab_spacing: 0
-                    tab_height: 30
+                    tab_height: 26
                     size_hint_y: 2
                     pos: -5,0
         CreatorTab:

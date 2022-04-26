@@ -10,7 +10,10 @@ app = ps.Application()
 
 def getLayer(name, group=None):
     """
-    Retrieve layer
+    Retrieve layer object.
+    @param name: Name of the layer
+    @param group: Parent group name or object.
+    @return: Layer object requested
     """
     if group is None:
         # No set given
@@ -35,7 +38,10 @@ def getLayer(name, group=None):
 
 def getLayerSet(name, group=None):
     """
-    Retrieve layer group
+    Retrieve layer group object.
+    @param name: Name of the group
+    @param group: Parent group name or object.
+    @return: Group object requested.
     """
     if group:
         if isinstance(group, str):

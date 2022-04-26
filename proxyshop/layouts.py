@@ -94,10 +94,8 @@ class BaseLayout:
             self.card_count = None
 
         # Automatic set symbol enabled?
-        if cfg.auto_symbol:
-            if self.set in con.set_symbols:
-                self.symbol = con.set_symbols[self.set]
-            else: self.symbol = cfg.symbol_char
+        if cfg.auto_symbol and self.set in con.set_symbols:
+            self.symbol = con.set_symbols[self.set]
         else: self.symbol = cfg.symbol_char
 
         # Optional vars
