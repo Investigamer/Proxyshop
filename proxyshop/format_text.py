@@ -1,87 +1,94 @@
 """
 Utility functions to format text
 """
-# pylint: disable=R0911, R0914, R0915, R1705
 import re
-import proxyshop.constants as con
+import photoshop.api as ps
 import proxyshop.helpers as psd
-from proxyshop.helpers import ps, app
+from proxyshop.constants import con
+from proxyshop.gui import console_handler as console
+app = ps.Application()
 
 # Symbol colors
 rgb_c = ps.SolidColor()
-rgb_c.rgb.red = 204
-rgb_c.rgb.green = 194
-rgb_c.rgb.blue = 193
+rgb_c.rgb.red = con.rgb_c['r']
+rgb_c.rgb.green = con.rgb_c['g']
+rgb_c.rgb.blue = con.rgb_c['b']
 
 rgb_w = ps.SolidColor()
-rgb_w.rgb.red = 255
-rgb_w.rgb.green = 251
-rgb_w.rgb.blue = 214
+rgb_w.rgb.red = con.rgb_w['r']
+rgb_w.rgb.green = con.rgb_w['g']
+rgb_w.rgb.blue = con.rgb_w['b']
 
 rgb_u = ps.SolidColor()
-rgb_u.rgb.red = 170
-rgb_u.rgb.green = 224
-rgb_u.rgb.blue = 250
+rgb_u.rgb.red = con.rgb_u['r']
+rgb_u.rgb.green = con.rgb_u['g']
+rgb_u.rgb.blue = con.rgb_u['b']
 
 rgb_b = ps.SolidColor()
-rgb_b.rgb.red = 159
-rgb_b.rgb.green = 146
-rgb_b.rgb.blue = 143
+rgb_b.rgb.red = con.rgb_b['r']
+rgb_b.rgb.green = con.rgb_b['g']
+rgb_b.rgb.blue = con.rgb_b['b']
 
 rgb_r = ps.SolidColor()
-rgb_r.rgb.red = 249
-rgb_r.rgb.green = 169
-rgb_r.rgb.blue = 143
+rgb_r.rgb.red = con.rgb_r['r']
+rgb_r.rgb.green = con.rgb_r['g']
+rgb_r.rgb.blue = con.rgb_r['b']
 
 rgb_g = ps.SolidColor()
-rgb_g.rgb.red = 154
-rgb_g.rgb.green = 211
-rgb_g.rgb.blue = 175
+rgb_g.rgb.red = con.rgb_g['r']
+rgb_g.rgb.green = con.rgb_g['g']
+rgb_g.rgb.blue = con.rgb_g['b']
+
 
 def locate_symbols(input_string):
     """
-     * Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG, and determine
-     * the colors those characters need to be. Returns an object with the modified input string and a list of symbol indices.
+    Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG,
+    and determine the colors those characters need to be. Returns an object with the modified input string and
+    a list of symbol indices.
     """
+    symbol = ""
     symbol_re = r"(\{.*?\})"
     symbol_indices = []
-    #try:
-    while True:
-        match = re.search(symbol_re, input_string)
-        if match:
-            symbol = match[1]
-            symbol_index = match.span()[0]
-            symbol_char = con.symbols[symbol]
-            input_string = input_string.replace(symbol, symbol_char, 1)
-            symbol_indices.extend([{
-                'index': symbol_index,
-                'colors': determine_symbol_colors(symbol, len(symbol_char))
-            }])
-        else: break
-    #except: print(f"Encountered a formatted character in braces that doesn't map to characters: {symbol}")
+    try:
+        while True:
+            match = re.search(symbol_re, input_string)
+            if match:
+                symbol = match[1]
+                symbol_index = match.span()[0]
+                symbol_char = con.symbols[symbol]
+                input_string = input_string.replace(symbol, symbol_char, 1)
+                symbol_indices.extend([{
+                    'index': symbol_index,
+                    'colors': determine_symbol_colors(symbol, len(symbol_char))
+                }])
+            else: break
+    except Exception as e:
+        console.update(
+            f"Encountered a formatted character in braces that doesn't map to characters: {symbol}", e
+        )
     return {
         'input_string': input_string,
         'symbol_indices': symbol_indices
     }
 
+
 def locate_italics(input_string, italics_strings):
     """
-     * Locate all instances of italic strings in the input string and record their start and end indices.
-     * Returns a list of italic string indices (start and end).
+    Locate all instances of italic strings in the input string and record their start and end indices.
+    Returns a list of italic string indices (start and end).
     """
     italics_indices = []
 
     for italics in italics_strings:
-        start_index = 0
-        end_index = 0
 
         # replace symbols with their character representations in the italic string
         if italics.find("}") >= 0:
             for key, symbol in con.symbols.items():
                 try: italics = italics.replace(key, symbol)
-                except: pass
+                except Exception as e: console.log_exception(e)
 
         # Locate Italicized text
+        end_index = 0
         while True:
             start_index = input_string.find(italics, end_index)
             end_index = start_index + len(italics)
@@ -94,10 +101,10 @@ def locate_italics(input_string, italics_strings):
 
     return italics_indices
 
-# Formatting for different symbol types
+
 def determine_symbol_colors(symbol, symbol_length):
     """
-     * Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+    Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
     """
     symbol_color_map = {
         "W": rgb_w,
@@ -108,7 +115,7 @@ def determine_symbol_colors(symbol, symbol_length):
         "2": rgb_c,
     }
 
-    # for hybrid symbols with generic mana, use the black symbol color rather than colorless for B
+    # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
     hybrid_symbol_color_map = {
         "W": rgb_w,
         "U": rgb_u,
@@ -119,14 +126,14 @@ def determine_symbol_colors(symbol, symbol_length):
     }
 
     # SPECIAL SYMBOLS
-    if symbol  in ("{E}", "{CHAOS}"):
-        # energy or chaos symbols
+    if symbol in ("{E}", "{CHAOS}"):
+        # Energy or chaos symbols
         return [psd.rgb_black()]
     elif symbol == "{S}":
-        # snow symbol
+        # Snow symbol
         return [rgb_c, psd.rgb_black(), psd.rgb_white()]
     elif symbol == "{Q}":
-        # untap symbol
+        # Untap symbol
         return [psd.rgb_black(), psd.rgb_white()]
 
     # Phyrexian
@@ -167,6 +174,7 @@ def determine_symbol_colors(symbol, symbol_length):
     print(f"Encountered a symbol that I don't know how to color: {symbol}")
     return None
 
+
 def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_colors, layer_font_size):
     """
      * Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
@@ -182,10 +190,10 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
         desc1.putInteger(app.charIDToTypeID("T   "), symbol_index + i + 1)
         desc2.putString(
             app.stringIDToTypeID("fontPostScriptName"),
-            con.font_name_ndpmtg) # NDPMTG font name
+            con.font_mana) # NDPMTG default
         desc2.putString(
             app.charIDToTypeID("FntN"),
-            con.font_name_ndpmtg) # NDPMTG font name
+            con.font_mana) # NDPMTG default
         desc2.putUnitDouble(
             app.charIDToTypeID("Sz  "),
             app.charIDToTypeID("#Pnt"),
@@ -212,13 +220,16 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
         current_ref = desc1
     return current_ref
 
+
 def format_text(input_string, italics_strings, flavor_index, is_centered):
     """
-     * Inserts the given string into the active layer and formats it according to def parameters with symbols
+     * Inserts the given string into the active layer and formats it according to defined parameters with symbols
      * from the NDPMTG font.
      * @param {str} input_string The string to insert into the active layer
-     * @param {Array[str]} italic_strings An array containing strings that are present in the main input string and should be italicised
-     * @param {int} flavor_index The index at which linebreak spacing should be increased and any subsequent chars should be italicised (where the card's flavor text begins)
+     * @param {Array[str]} italic_strings An array containing strings that are present in the main input string
+     and should be italicised
+     * @param {int} flavor_index The index at which linebreak spacing should be increased and any subsequent
+     chars should be italicised (where the card's flavor text begins)
      * @param {boolean} is_centered Whether or not the input text should be centre-justified
     """
 
@@ -266,7 +277,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     idendIndent = app.stringIDToTypeID("endIndent")
     idsetd = app.charIDToTypeID("setd")
     idTxLr = app.charIDToTypeID("TxLr")
-    idFrom = app.charIDToTypeID("From")
     idT = app.charIDToTypeID("T   ")
     idFntN = app.charIDToTypeID("FntN")
     idSz = app.charIDToTypeID("Sz  ")
@@ -287,8 +297,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_descriptor.putString(app.charIDToTypeID("Txt "), input_string)
     desc25.putInteger(idFrom, 0)
     desc25.putInteger(idT, len(input_string))
-    desc26.putString(idfontPostScriptName, con.font_name_mplantin)  # MPlantin font name
-    desc26.putString(idFntN, con.font_name_mplantin)  # MPlantin font name
+    desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
+    desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc26.putUnitDouble(idSz, idPnt, layer_font_size)
     desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
     desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
@@ -307,8 +317,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc125.putInteger(idFrom, italics_indice['start_index'])  # italics start index
         desc125.putInteger(idT, italics_indice['end_index'])  # italics end index
         desc126 = ps.ActionDescriptor()
-        desc126.putString(idfontPostScriptName, con.font_name_mplantin_italic)  # MPlantin italic font name
-        desc126.putString(idFntN, con.font_name_mplantin_italic)  # MPlantin italic font name
+        desc126.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+        desc126.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
         desc126.putUnitDouble(idSz, idPnt, layer_font_size)
         desc126.putBoolean(idautoLeading, False)
         desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
@@ -326,7 +336,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
         descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
         descTemp.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-        desc126.putObject( idClr, idRGBC, descTemp )
+        desc126.putObject(idClr, idRGBC, descTemp)
         # End
         desc125.putObject(idTxtS, idTxtS, desc126)
         current_layer_ref = desc125
@@ -347,18 +357,18 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     # paragraph formatting
     desc141.putInteger(idFrom, 0)
     desc141.putInteger(idT, len(input_string))  # input string length
-    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0.000000)
-    desc142.putUnitDouble(idstartIndent, idPnt, 0.000000)
-    desc142.putUnitDouble(idendIndent, idPnt, 0.000000)
+    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
+    desc142.putUnitDouble(idstartIndent, idPnt, 0)
+    desc142.putUnitDouble(idendIndent, idPnt, 0)
     if is_centered:  # line break lead
         desc142.putUnitDouble(idspaceBefore, idPnt, 0)
     else:
         desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
-    desc142.putUnitDouble(idspaceAfter, idPnt, 0.000000)
+    desc142.putUnitDouble(idspaceAfter, idPnt, 0)
     desc142.putInteger(app.stringIDToTypeID("dropCapMultiplier"), 1)
     desc142.putEnumerated(idleadingType, idleadingType, app.stringIDToTypeID("leadingBelow"))
-    desc143.putString(idfontPostScriptName, con.font_name_ndpmtg)  # NDPMTG font name
-    desc143.putString(idFntN, con.font_name_mplantin)  # MPlantin font name
+    desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+    desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc143.putBoolean(idautoLeading, False)
     primary_action_descriptor.putList(idparagraphStyleRange, list13)
     primary_action_descriptor.putList(idkerningRange, list14)
@@ -374,11 +384,11 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc141.putInteger(idT, endIndexBullet + 1)
         desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent) # negative modal indent
         desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent) # modal indent
-        desc142.putUnitDouble(idspaceBefore, idPnt, 1.0)
-        desc142.putUnitDouble(idspaceAfter, idPnt, 0.000000)
+        desc142.putUnitDouble(idspaceBefore, idPnt, 1)
+        desc142.putUnitDouble(idspaceAfter, idPnt, 0)
         desc143 = ps.ActionDescriptor()
-        desc143.putString(idfontPostScriptName, con.font_name_ndpmtg)  # NDPMTG font name
-        desc143.putString(idFntN, con.font_name_mplantin)
+        desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+        desc143.putString(idFntN, con.font_rules_text) # MPlantin default
         desc143.putUnitDouble(idSz, idPnt, 11.998500)  # TODO: what's this?
         desc143.putBoolean(idautoLeading, False)
         desc142.putObject(app.stringIDToTypeID("defaultStyle"), idTxtS, desc143)
@@ -400,7 +410,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc142.putUnitDouble(idstartIndent, idPnt, 0)
         idimpliedStartIndent = app.stringIDToTypeID("impliedStartIndent")
         desc142.putUnitDouble(idimpliedStartIndent, idPnt, 0)
-        desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead)  # lead size between rules text and flavor text
+        desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead) # lead size between rules text and flavor text
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
@@ -428,6 +438,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     app.activeDocument.activeLayer.textItem.justification = layer_justification
     app.activeDocument.activeLayer.textItem.hyphenation = False
 
+
 def generate_italics(card_text):
     """
      * Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
@@ -439,7 +450,7 @@ def generate_italics(card_text):
         start_index = card_text.find("(", end_index)
         if start_index >= 0:
             end_index = card_text.find(")", start_index + 1)
-            end_index+=1
+            end_index += 1
             italic_text.extend([card_text[start_index:end_index]])
         else: reminder_text = False
 
@@ -450,21 +461,23 @@ def generate_italics(card_text):
     # italic_text.color = psd.rgb_grey()
     return italic_text
 
+
 def format_text_wrapper():
     """
-     * Wrapper for format_text which runs the function with the active layer's current text contents and auto-generated italics array.
-     * flavor text index and centered text not supported.
-     * Super useful to add as a script action in Photoshop for making cards manually!
+     Wrapper for format_text which runs the function with the active layer's current text contents
+     and auto-generated italics array. Flavor text index and centered text not supported.
+     Super useful to add as a script action in Photoshop for making cards manually!
     """
     card_text = app.activeDocument.activeLayer.textItem.contents
     italic_text = generate_italics(card_text)
     italic_text.color = psd.rgb_grey()
     format_text(card_text, italic_text, -1, False)
 
+
 def strip_reminder_text(oracle_text):
     """
-     * Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
-     * If this would empty the string, instead return the original string.
+    Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
+    If this would empty the string, instead return the original string.
     """
     oracle_text_stripped = re.sub(r"\([^()]*\)", "", oracle_text)
 

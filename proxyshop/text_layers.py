@@ -2,7 +2,7 @@
 TEXT LAYER MODULE
 """
 import proxyshop.helpers as psd
-import proxyshop.constants as con
+from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import format_text
 from proxyshop.helpers import ps, app
@@ -135,17 +135,17 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
 
 
 # Class definitions
-class TextField ():
+class TextField:
     """
     A generic TextField, which allows you to set a text layer's contents and text color.
     """
-    def __init__ (self, layer, text_contents, text_color):
+    def __init__(self, layer, text_contents, text_color):
         self.layer = layer
         self.text_contents = ""
         if text_contents: self.text_contents = text_contents.replace("\n", "\r")
         self.text_color = text_color
 
-    def execute (self):
+    def execute(self):
         """
         Enables and fills the text field
         """
@@ -223,7 +223,7 @@ class BasicFormattedTextField (TextField):
      * show the mana cost 2R with text contents "o2or" with characters being appropriately colored.
      * Doesn't support flavor text or centered text. For use with fields like mana costs and planeswalker abilities.
     """
-    def execute (self):
+    def execute(self):
         super().execute()
 
         # Format text
@@ -279,12 +279,12 @@ class FormattedTextArea (FormattedTextField):
      * until the text fits within the reference layer's bounds (in 0.25 pt increments), then rasterise the text layer, and centre it vertically
      * with respect to the reference layer's pixels.
     """
-    def __init__ (self, layer, text_contents, text_color, flavor_text, reference_layer, is_centered=False, fix_length=True):
+    def __init__(self, layer, text_contents, text_color, flavor_text, reference_layer, is_centered=False, fix_length=True):
 
         # Prepare for text being too long
-        if len(text_contents) > 300 and fix_length:
-            layer.textItem.size = (layer.textItem.size-0.5)
-            layer.textItem.leading = (layer.textItem.leading-0.5)
+        if fix_length and len(text_contents) > 300:
+            layer.textItem.size = (layer.textItem.size-0.75)
+            layer.textItem.leading = (layer.textItem.leading-0.75)
 
         super().__init__(layer, text_contents, text_color, flavor_text, is_centered)
         self.reference_layer = reference_layer

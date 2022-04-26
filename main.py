@@ -6,7 +6,6 @@ import sys
 import threading
 from time import perf_counter
 from glob import glob
-from queue import Queue
 from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
@@ -20,7 +19,7 @@ from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
 from proxyshop.creator import CreatorPanels
 from proxyshop.scryfall import card_info, set_info
-from proxyshop.constants import basic_land_names
+from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info
 from proxyshop.settings import cfg
 from proxyshop import core, gui, layouts
@@ -46,6 +45,7 @@ class ProxyshopApp(App):
 
 		# User data
 		self.previous = None
+		self.result = True
 		self.panels = None
 		self.temps = {}
 		self.conf = {
@@ -85,7 +85,6 @@ class ProxyshopApp(App):
 		cfg.file.set("CONF", "Skip.Failed", str(self.conf['skip_failed']))
 		with open("config.ini", "w", encoding="utf-8") as config_file:
 			cfg.file.write(config_file)
-		cfg.reload()
 
 	def render_target(self):
 		"""
@@ -103,16 +102,15 @@ class ProxyshopApp(App):
 			self.enable_buttons()
 			return None
 
-		# Template(s) provided?
-		que = Queue()
+		# Load default config, start new thread
+		self.load_defaults()
 		start_t = perf_counter()
-		th1 = threading.Thread(target=self.render, args=(file[0], temps, que), daemon=True)
+		th1 = threading.Thread(target=self.render, args=(file[0], temps), daemon=True)
 		th1.start()
 		gui.console_handler.await_cancel(th1)
 		th1.join()
 		end_t = perf_counter()
-		if que.get(): gui.console_handler.update(f"[i]Time completed: {int(end_t-start_t)} seconds[/i]\n")
-		del que
+		if self.result: gui.console_handler.update(f"[i]Time completed: {int(end_t-start_t)} seconds[/i]\n")
 
 		# Return to normal
 		self.previous = None
@@ -138,20 +136,19 @@ class ProxyshopApp(App):
 
 		# Run through each file
 		for f in files:
+			self.load_defaults()
 			start_t = perf_counter()
-			que = Queue()
-			th1 = threading.Thread(target=self.render, args=(f, temps, que), daemon=True)
+			th1 = threading.Thread(target=self.render, args=(f, temps), daemon=True)
 			th1.start()
 			gui.console_handler.await_cancel(th1)
 			th1.join()
 			end_t = perf_counter()
-			if que.get() is False:
+			if self.result is False:
 				try: self.close_document()
 				except Exception: pass
 				self.enable_buttons()
 				return None
 			else: gui.console_handler.update(f"[i]Time completed: {str(int(end_t-start_t))} seconds[/i]\n")
-			del que
 
 		# Return to normal
 		self.previous = None
@@ -171,112 +168,91 @@ class ProxyshopApp(App):
 			)
 
 			# If basic, manually call the BasicLand layout OBJ
-			if scryfall['name'] in basic_land_names:
+			if scryfall['name'] in con.basic_land_names:
 				layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'])
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
-				except KeyError:
-					choice = console.update(f"Layout '{scryfall['layout']}' is not supported!\n")
-					return choice
-				except TypeError:
-					console.update(f"Layout is not supported!\n")
-					return False
+				except KeyError as e:
+					console.update(f"Layout '{scryfall['layout']}' is not supported!\n", e)
+					return None
+				except TypeError as e:
+					console.update(f"Layout is not supported!\n", e)
+					return None
 
 			# Get our template and layout class maps
 			try: card_template = core.get_template(temp)
 			except Exception:
 				console.update(f"Template not found!\n")
-				return False
+				return None
 
 			# Additional variables
-			if scryfall['card_count'] is not "":
-				layout.card_count = scryfall['card_count']
-			if scryfall['collector_number'] is not "":
-				layout.collector_number = scryfall['collector_number']
 			layout.creator = None
 
 			# Select and execute the template
 			try: card_template(layout, file).execute()
-			except Exception:
-				console.update(f"Layout '{scryfall['layout']}' is not supported!\n")
+			except Exception as e:
+				console.update(f"Layout '{scryfall['layout']}' is not supported!\n", e)
 				self.close_document()
-				return False
+				return None
 			self.close_document()
-		except Exception:
-			console.update(f"General error! Maybe Photoshop was busy?\n")
+		except Exception as e:
+			console.update(f"General error! Maybe Photoshop was busy?\n", e)
 
-	def render(self, file, temps, q):
+	def render(self, file, temps):
 		"""
 		Set up this render job, then execute
 		"""
 		console = gui.console_handler
-		try:
-			card = retrieve_card_info(os.path.basename(str(file)))
+		# Get basic card information
+		card = retrieve_card_info(os.path.basename(str(file)))
 
-			# Basic or no?
-			if card['name'] in basic_land_names:
-				# If basic, manually call the BasicLand layout OBJ
-				layout = layouts.BasicLand(card['name'], card['artist'], card['set'])
-				scryfall = {}
-			else:
-				# Get the scryfall info
-				scryfall = card_info(card['name'], card['set'])
-				if isinstance(scryfall, bool):
-					q.put(scryfall)
-					return scryfall
+		# Basic or no?
+		if card['name'] in con.basic_land_names:
+			# If basic, manually call the BasicLand layout OBJ
+			layout = layouts.BasicLand(card['name'], card['artist'], card['set'])
+		else:
+			# Get the scryfall info
+			scryfall = card_info(card['name'], card['set'])
+			if isinstance(scryfall, bool):
+				self.result = scryfall
+				return scryfall
 
-				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
-				try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
-				except KeyError:
-					choice = console.error(
-						f"Layout '{scryfall['layout']}' is not supported!"
-					)
-					q.put(choice)
-					return choice
-				except TypeError:
-					choice = console.error(
-						f"Layout not supported!"
-					)
-					q.put(choice)
-					return choice
+			# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
+			try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
+			except KeyError as e:
+				choice = console.error(
+					f"Layout not supported!", e
+				)
+				self.result = choice
+				return choice
+			except Exception as e:
+				choice = console.error(
+					f"Layout '{scryfall['layout']}' is not supported!", e
+				)
+				self.result = choice
+				return choice
 
-			# Get full set info from scryfall
-			mtgset = set_info(layout.set)
+		# Creator name and manual artist
+		layout.creator = card['creator']
+		if card['artist']: layout.artist = card['artist']
 
-			# CREATOR NAME
-			layout.creator = card['creator']
-			# REPLACE ARTIST
-			if card['artist']: layout.artist = card['artist']
-			# COLLECTOR NUMBER
-			try: layout.collector_number = scryfall['collector_number']
-			except Exception: layout.collector_number = None
-			# CARD COUNT
-			try: layout.card_count = mtgset['printed_size']
-			except Exception:
-				try: layout.card_count = mtgset['card_count']
-				except Exception: layout.card_count = None
-
-			# Get our template, execute
-			card_template = core.get_template(temps[layout.card_class])
-			if card_template is not self.previous: self.close_document()
-			result = card_template(layout, file).execute()
-			self.previous = card_template
-			q.put(result)
-			return result
-		except Exception:
-			# Very broad error
-			choice = console.error(
-				f"General error! Maybe Photoshop was busy..."
-			)
-			q.put(choice)
-			return choice
+		# Get our template, execute
+		card_template = core.get_template(temps[layout.card_class])
+		if card_template is not self.previous: self.close_document()
+		self.result = card_template(layout, file).execute()
+		self.previous = card_template
 
 	@staticmethod
 	def close_document():
 		app = ps.Application()
 		try: app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 		except Exception: return None
+
+	@staticmethod
+	def load_defaults():
+		cfg.reload()
+		con.reload()
 
 	def disable_buttons(self):
 		self.root.ids.rend_targ_btn.disabled = True

@@ -3,7 +3,6 @@ CARD CREATOR TAB
 """
 import os
 import threading
-from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput

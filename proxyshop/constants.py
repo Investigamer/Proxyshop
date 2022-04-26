@@ -2,16 +2,19 @@
 GLOBAL CONSTANTS
 Keep all global variables here.
 """
+import json
 import os
 from pathlib import Path
 cwd = os.getcwd()
 version = "v1.1.0"
 
+# Ensure mandatory folders are created
+Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
+
 # PATHS
 json_custom_path = os.path.join(cwd, "tmp\\custom.json")
 scryfall_scan_path = os.path.join(cwd, "tmp\\card.jpg")
-Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # Card classes - finer grained than Scryfall layouts
 normal_class = "normal"
@@ -181,12 +184,18 @@ Faces = {
     "BACK": 1,
 }
 
+# font_name_mplantin = "MPlantin"
+# font_name_mplantin_italic = "MPlantin-Italic"
+# font_name_ndpmtg = "NDPMTG"
+# font_name_beleren_smallcaps = "Beleren Small Caps Bold"
+# font_name_relay_medium = "Relay-Medium"
+
 # Font names
-font_name_mplantin = "MPlantin"
-font_name_mplantin_italic = "MPlantin-Italic"
-font_name_ndpmtg = "NDPMTG"
-font_name_beleren_smallcaps = "Beleren Small Caps Bold"
-font_name_relay_medium = "Relay-Medium"
+font_rules_text = "MPlantin"
+font_rules_text_italic = "MPlantin-Italic"
+font_mana = "NDPMTG"
+font_subtext = "Beleren Small Caps Bold"
+font_collector = "Relay-Medium"
 
 # Font spacing
 modal_indent = 5.7
@@ -266,7 +275,6 @@ ability_words = [
     "Channel",
     "Chroma",
     "Cohort",
-    "varellation",
     "Converge",
     "Council's dilemma",
     "Delirium",
@@ -395,244 +403,88 @@ rarity_mythic = "mythic"
 rarity_special = "special"
 rarity_bonus = "bonus"
 
-# SET SYMBOL LIBRARY
-set_symbol_library = {
-    "MTG": "", # Default for not found
-    "LEA": "",
-    "LEB": "",
-    "2ED": "",
-    "ARN": "",
-    "ATQ": "",
-    "3ED": "",
-    "LEG": "",
-    "DRK": "",
-    "FEM": "",
-    "4ED": "",
-    "ICE": "",
-    "CHR": "",
-    "HML": "",
-    "ALL": "",
-    "MIR": "",
-    "VIS": "",
-    "5ED": "",
-    "POR": "",
-    "WTH": "",
-    "TMP": "",
-    "STH": "",
-    "EXO": "",
-    "P02": "",
-    "UGL": "",
-    "USG": "",
-    "ATH": "",
-    "ULG": "",
-    "6ED": "",
-    "PTK": "",
-    "UDS": "",
-    "S99": "",
-    "MMQ": "",
-    "BRB": "",
-    "NEM": "",
-    "S00": "",
-    "PCY": "",
-    "INV": "",
-    "BTD": "",
-    "PLS": "",
-    "7ED": "",
-    "APC": "",
-    "ODY": "",
-    "DKM": "",
-    "TOR": "",
-    "JUD": "",
-    "ONS": "",
-    "LGN": "",
-    "SCG": "",
-    "8ED": "",
-    "MRD": "",
-    "DST": "",
-    "5DN": "",
-    "CHK": "",
-    "UNH": "",
-    "BOK": "",
-    "SOK": "",
-    "9ED": "",
-    "RAV": "",
-    "GPT": "",
-    "DIS": "",
-    "CSP": "",
-    "TSP": "",
-    "PLC": "",
-    "FUT": "",
-    "10E": "",
-    "LRW": "",
-    "EVG": "",
-    "MOR": "",
-    "SHM": "",
-    "EVE": "",
-    "DRB": "",
-    "ME2": "",
-    "ALA": "",
-    "DD2": "",
-    "CON": "",
-    "DDC": "",
-    "ARB": "",
-    "M10": "",
-    "V09": "",
-    "HOP": "",
-    "ME3": "",
-    "ZEN": "",
-    "DDD": "",
-    "H09": "",
-    "WWK": "",
-    "DDE": "",
-    "ROE": "",
-    "DPA": "",
-    "ARC": "",
-    "M11": "",
-    "V10": "",
-    "DDF": "",
-    "SOM": "",
-    #"TD0": "", MTGO
-    "PD2": "",
-    "ME4": "",
-    "MBS": "",
-    "DDG": "",
-    "NPH": "",
-    "CMD": "",
-    "M12": "",
-    "V11": "",
-    "DDH": "",
-    "ISD": "",
-    "PD3": "",
-    "DKA": "",
-    "DDI": "",
-    "AVR": "",
-    "PC2": "",
-    "M13": "",
-    "V12": "",
-    "DDJ": "",
-    "RTR": "",
-    "CM1": "",
-    "TD2": "",
-    "GTC": "",
-    "DDK": "",
-    "DGM": "",
-    "MMA": "",
-    "M14": "",
-    "V13": "",
-    "DDL": "",
-    "THS": "",
-    "C13": "",
-    "BNG": "",
-    "DDM": "",
-    "JOU": "",
-    "MD1": "",
-    "CNS": "",
-    "VMA": "",
-    "M15": "",
-    "V14": "",
-    "DDN": "",
-    "KTK": "",
-    "C14": "",
-    "FRF": "",
-    "DDO": "",
-    "DTK": "",
-    "TPR": "",
-    "MM2": "",
-    "ORI": "",
-    "V15": "",
-    "DDP": "",
-    "BFZ": "",
-    "EXP": "",
-    "C15": "",
-    "PZ1": "",
-    "OGW": "",
-    "DDQ": "",
-    "W16": "",
-    "SOI": "",
-    "EMA": "",
-    "EMN": "",
-    "V16": "",
-    "CN2": "",
-    "DDR": "",
-    "KLD": "",
-    "MPS": "",
-    "PZ2": "",
-    "C16": "",
-    "PCA": "",
-    "AER": "",
-    "MM3": "",
-    "DDS": "",
-    "W17": "",
-    "AKH": "",
-    "MP2": "",
-    "CMA": "",
-    "E01": "",
-    "HOU": "",
-    "C17": "",
-    "XLN": "",
-    "DDT": "",
-    "IMA": "",
-    "E02": "",
-    "V17": "",
-    "UST": "",
-    "RIX": "",
-    "A25": "",
-    "DDU": "",
-    "DOM": "",
-    "CM2": "",
-    "BBD": "",
-    "SS1": "",
-    "GS1": "",
-    "M19": "",
-    "C18": "",
-    "GRN": "",
-    "GNT": "",
-    "UMA": "",
-    "MED": "",
-    "RNA": "",
-    "WAR": "",
-    "MH1": "",
-    "SS2": "",
-    "M20": "",
-    "C19": "",
-    "ELD": "",
-    "GN2": "",
-    "THB": "",
-    "UND": "",
-    "IKO": "",
-    "C20": "",
-    "SS3": "",
-    "M21": "",
-    "JMP": "",
-    "2XM": "",
-    "AKR": "",
-    "ZNR": "",
-    "ZNE": "",
-    "ZNC": "",
-    "KLR": "",
-    "CMR": "",
-    "CMC": "",
-    "CC1": "",
-    "KHM": "",
-    "KHC": "",
-    "TSR": "",
-    "STX": "",
-    "STA": "",
-    "C21": "",
-    "MH2": "",
-    "AFR": "",
-    "AFC": "",
-    "SLD": "",
-    "J21": "",
-    "MID": "",
-    "MIC": "",
-    "DCI": "", #Judge Promo
-    "VOW": "",
-    "VOC": "",
-    "NEO": "",
-    "NEC": "",
-    "UNF": "",
-    "Y22": "",
-    "CC2": "",
-    "HED": ""
-}
+# Symbol colors
+rgb_c = {'r': 204, 'g': 194, 'b': 193}
+rgb_w = {'r': 255, 'g': 251, 'b': 214}
+rgb_u = {'r': 170, 'g': 224, 'b': 250}
+rgb_b = {'r': 159, 'g': 146, 'b': 143}
+rgb_r = {'r': 249, 'g': 169, 'b': 143}
+rgb_g = {'r': 154, 'g': 211, 'b': 175}
+
+# Import symbol library
+with open(os.path.join(cwd, "proxyshop/symbols.json"), encoding="utf-8-sig") as js:
+    set_symbols = json.load(js)
+
+
+class Con:
+    def __init__(self):
+        # PATHS
+        self.cwd = cwd
+        self.json_custom_path = json_custom_path
+        self.scryfall_scan_path = scryfall_scan_path
+
+        # Card classes - finer grained than Scryfall layouts
+        self.normal_class = normal_class
+        self.transform_front_class = transform_front_class
+        self.transform_back_class = transform_back_class
+        self.ixalan_class = ixalan_class
+        self.mdfc_front_class = mdfc_front_class
+        self.mdfc_back_class = mdfc_back_class
+        self.mutate_class = mutate_class
+        self.adventure_class = adventure_class
+        self.leveler_class = leveler_class
+        self.saga_class = saga_class
+        self.miracle_class = miracle_class
+        self.planeswalker_class = planeswalker_class
+        self.pw_tf_front_class = pw_tf_front_class
+        self.pw_tf_back_class = pw_tf_back_class
+        self.pw_mdfc_front_class = pw_mdfc_front_class
+        self.pw_mdfc_back_class = pw_mdfc_back_class
+        self.snow_class = snow_class
+        self.basic_class = basic_class
+        self.planar_class = planar_class
+
+        # Layer names
+        self.layers = layers
+        self.default_layer = default_layer
+
+        # Cards
+        self.symbols = symbols
+        self.ability_words = ability_words
+        self.basic_land_names = basic_land_names
+        self.set_symbols = set_symbols
+        self.Faces = Faces
+
+        # Font names
+        self.font_rules_text = font_rules_text
+        self.font_rules_text_italic = font_rules_text_italic
+        self.font_mana = font_mana
+        self.font_subtext = font_subtext
+        self.font_collector = font_collector
+
+        # Font spacing
+        self.modal_indent = modal_indent
+        self.line_break_lead = line_break_lead
+        self.flavor_text_lead = flavor_text_lead
+
+        # Card rarities
+        self.rarity_common = rarity_common
+        self.rarity_uncommon = rarity_uncommon
+        self.rarity_rare = rarity_rare
+        self.rarity_mythic = rarity_mythic
+        self.rarity_special = rarity_special
+        self.rarity_bonus = rarity_bonus
+
+        # Symbol colors
+        self.rgb_c = rgb_c
+        self.rgb_w = rgb_w
+        self.rgb_u = rgb_u
+        self.rgb_b = rgb_b
+        self.rgb_r = rgb_r
+        self.rgb_g = rgb_g
+
+    def reload(self):
+        self.__init__()
+
+# Global instance
+con = Con()

@@ -154,6 +154,7 @@ cython_debug/
 /art
 /out
 /tmp
+/dist_old
 /templates
 test.py
 tester.py

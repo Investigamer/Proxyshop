@@ -4,8 +4,7 @@ FUNCTIONS THAT INTERACT WITH SCRYFALL
 import json
 from urllib import request, parse, error
 from proxyshop.constants import scryfall_scan_path
-from proxyshop import core, gui
-console = gui.console_handler
+from proxyshop.gui import console_handler as console
 
 
 def card_info(card_name, card_set=None):
@@ -20,22 +19,15 @@ def card_info(card_name, card_set=None):
             with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}&set={parse.quote(card_set)}"
             ) as card:
-                console.update(
-                    f"Found Scryfall data: [b]{card_name} [{card_set}][/b]"
-                )
+                console.update(f"Found Scryfall data: [b]{card_name} [{card_set}][/b]")
                 return add_meld_info(json.loads(card.read()))
         else:
-            with request.urlopen(
-                f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}"
-            ) as card:
-                console.update(
-                    f"Found Scryfall data: [b]{card_name}[/b]"
-                )
+            with request.urlopen(f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}") as card:
+                console.update(f"Found Scryfall data: [b]{card_name}[/b]")
                 return add_meld_info(json.loads(card.read()))
-    except error.HTTPError:
-        choice = console.error(
-            f"Scryfall failed to find '[b]{card_name}[/b]'."
-        )
+    except error.HTTPError as e:
+        # HTTP request failed
+        choice = console.error(f"Scryfall failed to find '[b]{card_name}[/b]'.", e)
         return choice
 
 
@@ -45,17 +37,12 @@ def set_info(set_code):
     `set_code`: The set to look for, ex: MH2
     """
     try:
-        with request.urlopen(
-            f"https://api.scryfall.com/sets/{parse.quote(set_code)}"
-        ) as mtg_set:
-            console.update(
-                f"Found Scryfall data for Set: [b]{set_code}[/b]"
-            )
+        with request.urlopen(f"https://api.scryfall.com/sets/{parse.quote(set_code)}") as mtg_set:
+            console.update(f"Found Scryfall data for Set: [b]{set_code.upper()}[/b]")
             return json.loads(mtg_set.read())
-    except error.HTTPError:
-        console.update(
-            f"Couldn't retrieve [b][{set_code}][/b] expansion info. Continuing without it."
-        )
+    except error.HTTPError as e:
+        # HTTP request failed
+        console.update(f"Couldn't retrieve [b][{set_code}][/b] expansion info. Continuing without it.", e)
         return None
 
 
@@ -65,13 +52,10 @@ def card_scan(img_url):
     """
     try:
         request.urlretrieve(img_url, scryfall_scan_path)
-        console.update(
-            f"Downloaded Scryfall scan at URL: [url]{img_url}[/url]"
-        )
-    except error.HTTPError:
-        console.update(
-            f"Couldn't retrieve scryfall image scan! Continuing without it."
-        )
+        console.update(f"Downloaded Scryfall scan!")
+    except error.HTTPError as e:
+        # HTTP request failed
+        console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
         return None
     with open(scryfall_scan_path, encoding="utf-8") as file:
         return file.name

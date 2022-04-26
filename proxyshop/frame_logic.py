@@ -1,7 +1,8 @@
 """
 Functions handling logic for card frames
 """
-import proxyshop.constants as con
+from proxyshop.constants import con
+
 
 def fix_color_pair(pair):
     """
@@ -25,7 +26,8 @@ def fix_color_pair(pair):
                 return colorPair
     return None
 
-def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array):
+
+def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array, color_indicator):
     """
     * Figure out which layers to use for pinlines, background, twins
     * Also define the color identity
@@ -185,14 +187,14 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array)
     # NONLAND CARD - Decide on the color identity of the card, as far as the frame is concerned
     # e.g. Noble Hierarch's color identity is [W, U, G], but the card is considered green, frame-wise
     color_identity = ""
+
+    # Card with no mana cost
     if mana_cost == "" or (mana_cost == "{0}" and con.layers['ARTIFACT'] not in type_line):
-        # Card with no mana cost
-        # Assume that all nonland cards with no mana cost are mono-colored
+        # If `colour_indicator` is defined for this card, use that as the colour identity
+        # Otherwise, use `colour_identity` as the colour identity
         if color_identity_array is None: color_identity = ""
-        # else color_identity = color_identity_array[0]
-        else:
-            color_identity = "".join(color_identity_array)
-            if len(color_identity) == 2: color_identity = fix_color_pair(color_identity)
+        elif color_indicator: color_identity = "".join(color_indicator)
+        else: color_identity = "".join(color_identity_array)
     else:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost

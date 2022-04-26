@@ -86,6 +86,9 @@ def get_templates():
                     with open(os.path.join(cwd, f"proxyshop\\plugins\\{Path(folder).stem}\\{name}"), encoding="utf-8") as this_json:
                         j = json.load(this_json)
 
+                # Add to sys.path
+                sys.path.append(os.path.join(cwd, f"proxyshop/plugins/{Path(folder).stem}"))
+
             # Loop through keys in plugin json
             try:
                 for key, val in j.items():
