@@ -74,6 +74,7 @@ class Config:
 		"""
 		del self.file
 		self.file = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
+		self.file.optionxform = str
 		self.file.read(conf, encoding="utf-8")
 		self.load()
 
