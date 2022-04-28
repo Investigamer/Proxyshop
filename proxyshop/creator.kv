@@ -11,6 +11,7 @@
     tab_spacing: 0
 
 <CreatorNormalLayout>:
+    id: creator_norm
     cols: 1
     BoxLayout:
         size_hint_y: .75
@@ -139,6 +140,7 @@
             on_press: Thread(target=root.render, args=(app,), daemon=True).start()
 
 <CreatorPlaneswalkerLayout>:
+    id: creator_pw
     cols: 1
     BoxLayout:
         size_hint_y: .75
@@ -275,6 +277,7 @@
             on_press: Thread(target=root.render, args=(app,), daemon=True).start()
 
 <CreatorSagaLayout>:
+    id: creator_saga
     cols: 1
     BoxLayout:
         size_hint_y: .75

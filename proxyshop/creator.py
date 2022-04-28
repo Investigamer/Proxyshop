@@ -18,28 +18,29 @@ DISPLAY ELEMENTS
 class CreatorPanels(TabbedPanel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.add_widget(
-            CreatorTabItem(CreatorNormalLayout, "normal", "Normal")
-        )
-        self.add_widget(CreatorTabItem(
-            CreatorPlaneswalkerLayout, "planeswalker", "Planeswalker")
-        )
-        self.add_widget(
-            CreatorTabItem(CreatorSagaLayout, "saga", "Saga")
-        )
+
+        # Establish the tab contents
+        self.creator_normal_layout = CreatorNormalLayout(self, "normal")
+        self.creator_pw_layout = CreatorPlaneswalkerLayout(self, "planeswalker")
+        self.creator_saga_layout = CreatorSagaLayout(self, "saga")
+
+        # Add the widgets
+        self.add_widget(CreatorTabItem(self.creator_normal_layout, text="Normal"))
+        self.add_widget(CreatorTabItem(self.creator_pw_layout, text="Planeswalker"))
+        self.add_widget(CreatorTabItem(self.creator_saga_layout, text="Saga"))
         self._tab_layout.padding = '0dp', '0dp', '0dp', '0dp'
 
 
 class CreatorTabItem(TabbedPanelItem):
-    def __init__(self, layout, c_type, name, **kwargs):
+    def __init__(self, widget, **kwargs):
         super().__init__(**kwargs)
-        self.text = name
-        self.add_widget(layout(c_type))
+        self.add_widget(widget)
 
 
 class CreatorLayout(GridLayout):
-    def __init__(self, c_type, **kwargs):
+    def __init__(self, parent, c_type, **kwargs):
         # Get our templates alphabetical
+        self.root = parent
         self.selected_template = "Normal"
         temps_t = core.get_templates()[c_type]
         self.templates = ["Normal"]
@@ -49,8 +50,27 @@ class CreatorLayout(GridLayout):
         super().__init__(**kwargs)
 
     def select_template(self, spinner):
+        """
+        Choose which template to render with.
+        @param spinner: Spinner dropdown list object.
+        """
         self.selected_template = spinner.text
-        print(self.selected_template)
+
+    def disable_buttons(self):
+        """
+        Disable all creator tab render buttons.
+        """
+        self.root.creator_normal_layout.ids.render_norm.disabled = True
+        self.root.creator_pw_layout.ids.render_pw.disabled = True
+        self.root.creator_saga_layout.ids.render_saga.disabled = True
+
+    def enable_buttons(self):
+        """
+        Enable all creator tab render buttons.
+        """
+        self.root.creator_normal_layout.ids.render_norm.disabled = False
+        self.root.creator_pw_layout.ids.render_pw.disabled = False
+        self.root.creator_saga_layout.ids.render_saga.disabled = False
 
 
 class CreatorNormalLayout(CreatorLayout):
@@ -75,11 +95,11 @@ class CreatorNormalLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["normal"][self.ids.template.text]
-        self.ids.render_norm.disabled = True
+        self.disable_buttons()
         th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
         th.start()
         th.join()
-        self.ids.render_norm.disabled = False
+        self.enable_buttons()
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
@@ -107,11 +127,11 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["planeswalker"][self.ids.template.text]
-        self.ids.render_pw.disabled = True
+        self.disable_buttons()
         th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
         th.start()
         th.join()
-        self.ids.render_pw.disabled = True
+        self.enable_buttons()
 
 
 class CreatorSagaLayout(CreatorLayout):
@@ -149,11 +169,11 @@ class CreatorSagaLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["saga"][self.ids.template.text]
-        self.ids.render_saga.disabled = True
+        self.disable_buttons()
         th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
         th.start()
         th.join()
-        self.ids.render_saga.disabled = False
+        self.enable_buttons()
 
 
 """

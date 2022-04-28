@@ -540,11 +540,8 @@ class StargazingTemplate (NormalTemplate):
     NormalTemplate are largely identical, but this template doesn't have normal background textures,
     only the Nyxtouched ones.
     """
-    def template_file_name(self):
-        return "stargazing"
-
-    def template_suffix(self):
-        return "Stargazing"
+    def template_file_name(self): return "stargazing"
+    def template_suffix(self): return "Stargazing"
 
     def __init__(self, layout, file):
         # Strip out reminder text
@@ -559,7 +556,6 @@ class InventionTemplate (NormalTemplate):
      but is otherwise similar.
     """
     def template_file_name(self): return "masterpiece"
-
     def template_suffix(self): return "Masterpiece"
 
     def __init__(self, layout, file):

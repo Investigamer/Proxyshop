@@ -170,7 +170,7 @@ class ProxyshopApp(App):
 					console.update(f"Layout '{scryfall['layout']}' is not supported!\n", e)
 					return None
 				except TypeError as e:
-					console.update(f"Layout is not supported!\n", e)
+					console.update(f"Layout not supported!\n", e)
 					return None
 
 			# Get our template and layout class maps
@@ -192,6 +192,7 @@ class ProxyshopApp(App):
 		except Exception as e:
 			console.update(f"General error! Maybe Photoshop was busy?\n", e)
 		self.enable_buttons()
+		console.update("")
 
 	def render(self, file, temps):
 		"""
