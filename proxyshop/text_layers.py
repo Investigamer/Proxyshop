@@ -15,9 +15,12 @@ def scale_text_right_overlap(layer, reference_layer):
     """
     # Correct for empty reference layer
     try:
-        contents = str(reference_layer.textItem.contents)
-        if contents in ("", " "):
-            reference_layer.textItem.contents = "."
+        if reference_layer.kind is ps.LayerKind.TextLayer:
+            contents = str(reference_layer.textItem.contents)
+            if contents in ("", " "):
+                reference_layer.textItem.contents = "."
+        elif reference_layer.bounds == [0, 0, 0, 0]:
+            return None
     except Exception:
         return None
 
@@ -43,8 +46,9 @@ def scale_text_right_overlap(layer, reference_layer):
         layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * 0.3)
 
     # Fix corrected reference layer
-    if str(reference_layer.textItem.contents) == ".":
-        reference_layer.textItem.contents = contents
+    if reference_layer.kind is ps.LayerKind.TextLayer: 
+        if str(reference_layer.textItem.contents) == ".":
+            reference_layer.textItem.contents = contents
 
 
 # TODO: Multiple layers, each with a reference, that scale together until they all fit their references?
