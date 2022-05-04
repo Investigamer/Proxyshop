@@ -44,7 +44,8 @@ class BaseTemplate:
         # Flavor/reminder text
         if cfg.remove_flavor: self.layout.flavor_text = ""
         try:
-            if self.layout.oracle_text and cfg.remove_reminder:
+            # Full art basic lands have no oracle_text. Check for existence of attribute first.
+            if hasattr(self.layout, 'oracle_text') and self.layout.oracle_text and cfg.remove_reminder:
                 self.layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
         finally: pass
 
