@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 cwd = os.getcwd()
-version = "v1.1.0"
 
 # Ensure mandatory folders are created
 Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
@@ -403,13 +402,30 @@ rarity_mythic = "mythic"
 rarity_special = "special"
 rarity_bonus = "bonus"
 
-# Symbol colors
+# Symbol colors basic
+rgb_primary = {'r': 0, 'g': 0, 'b': 0}
+rgb_secondary = {'r': 255, 'g': 255, 'b': 255}
+
+# Symbol colors outer
 rgb_c = {'r': 204, 'g': 194, 'b': 193}
 rgb_w = {'r': 255, 'g': 251, 'b': 214}
 rgb_u = {'r': 170, 'g': 224, 'b': 250}
-rgb_b = {'r': 159, 'g': 146, 'b': 143}
+rgb_b = {'r': 204, 'g': 194, 'b': 193}
+rgb_bh = {'r': 159, 'g': 146, 'b': 143}
 rgb_r = {'r': 249, 'g': 169, 'b': 143}
 rgb_g = {'r': 154, 'g': 211, 'b': 175}
+
+# Symbol colors inner
+rgbi_c = rgb_primary
+rgbi_w = rgb_primary
+rgbi_u = rgb_primary
+rgbi_b = rgb_primary
+rgbi_bh = rgb_primary
+rgbi_r = rgb_primary
+rgbi_g = rgb_primary
+
+# Creator toggle features
+align_classic_quote = False
 
 # Import symbol library
 with open(os.path.join(cwd, "proxyshop/symbols.json"), encoding="utf-8-sig") as js:
@@ -480,8 +496,21 @@ class Con:
         self.rgb_w = rgb_w
         self.rgb_u = rgb_u
         self.rgb_b = rgb_b
+        self.rgb_bh = rgb_bh
         self.rgb_r = rgb_r
         self.rgb_g = rgb_g
+        self.rgbi_c = rgbi_c
+        self.rgbi_w = rgbi_w
+        self.rgbi_u = rgbi_u
+        self.rgbi_b = rgbi_b
+        self.rgbi_bh = rgbi_bh
+        self.rgbi_r = rgbi_r
+        self.rgbi_g = rgbi_g
+        self.rgb_primary = rgb_primary
+        self.rgb_secondary = rgb_secondary
+
+        # Creator toggle features
+        self.align_classic_quote = align_classic_quote
 
     def reload(self):
         self.__init__()

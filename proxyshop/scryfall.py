@@ -19,16 +19,18 @@ def card_info(card_name, card_set=None):
             with request.urlopen(
                 f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}&set={parse.quote(card_set)}"
             ) as card:
-                console.update(f"Found Scryfall data: [b]{card_name} [{card_set}][/b]")
+                console.update(f"Card data found: [b]{card_name} [{card_set}][/b]")
                 return add_meld_info(json.loads(card.read()))
         else:
             with request.urlopen(f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}") as card:
-                console.update(f"Found Scryfall data: [b]{card_name}[/b]")
+                console.update(f"Card data found: [b]{card_name}[/b]")
                 return add_meld_info(json.loads(card.read()))
     except error.HTTPError as e:
-        # HTTP request failed
-        choice = console.error(f"Scryfall failed to find '[b]{card_name}[/b]'.", e)
-        return choice
+        # HTTP Request error
+        if not card_set: card_set = ""
+        else: card_set = f" [{card_set}]"
+        console.update(f"Card NOT found: [b]{card_name}{card_set}[/b]")
+        return str(e)
 
 
 def set_info(set_code):
@@ -38,11 +40,12 @@ def set_info(set_code):
     """
     try:
         with request.urlopen(f"https://api.scryfall.com/sets/{parse.quote(set_code)}") as mtg_set:
-            console.update(f"Found Scryfall data for Set: [b]{set_code.upper()}[/b]")
+            # console.update(f", Set data found: [b]{set_code.upper()}[/b]", end="")
             return json.loads(mtg_set.read())
     except error.HTTPError as e:
         # HTTP request failed
-        console.update(f"Couldn't retrieve [b][{set_code}][/b] expansion info. Continuing without it.", e)
+        console.log_exception(e)
+        # console.update(f", [color=#dec052]Set data missing: [b][{set_code}][/b][/color]", e, "")
         return None
 
 

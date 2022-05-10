@@ -90,12 +90,12 @@ class Console (BoxLayout):
         Builder.load_file(os.path.join(cwd, "proxyshop/console.kv"))
         super().__init__(**kwargs)
 
-    def update(self, msg, e=None):
+    def update(self, msg="", e=None, end="\n"):
         """
         Add text to console
         """
         output = self.ids.console_output
-        output.text += msg+"\n"
+        output.text += msg+end
         self.ids.viewport.scroll_y = 0
         if e: self.log_exception(e)
 
@@ -111,7 +111,7 @@ class Console (BoxLayout):
             log.write(log_text)
         return self.error(msg, e)
 
-    def error(self, msg, e=None):
+    def error(self, msg, e=None, color=True, continue_msg="Continue to next card?"):
         """
         Display error, wait for user to cancel or continue.
         """
@@ -119,8 +119,8 @@ class Console (BoxLayout):
         self.end_await()
 
         # Notify user
-        msg = f"[color=#a84747]{msg}[/color]\nContinue to next card?"
-        self.update(msg)
+        if color: self.update(f"[color=#a84747]{msg}[/color]\nContinue to next card?")
+        else: self.update(f"{msg}\n{continue_msg}")
 
         # Log exception if given
         if e: self.log_exception(e)
@@ -133,9 +133,7 @@ class Console (BoxLayout):
         result = self.ids.console_controls.wait()
 
         # Cancel or don't
-        if not result:
-            self.update("Understood! Canceling render operation.")
-        else: self.update("Alrighty, starting next card!")
+        if not result: self.update("Understood! Canceling render operation.")
 
         # Disable buttons
         self.ids.continue_btn.disabled = True

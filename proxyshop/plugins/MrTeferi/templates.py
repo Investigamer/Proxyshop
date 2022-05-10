@@ -37,9 +37,9 @@ class KaldheimTemplate (temp.NormalTemplate):
     def template_file_name(self): return "MrTeferi/kaldheim"
     def template_suffix(self): return "Kaldheim"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.remove_reminder = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def enable_frame_layers(self):
 
@@ -71,7 +71,7 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     def template_suffix(self): return "Fang"
 
     def enable_frame_layers(self):
-        # Twins if tf card
+        # Twins if transform card
         tf_twins = self.layout.twins+"-mdfc"
 
         # Transform stuff + twins
@@ -164,9 +164,9 @@ class MaleMPCTemplate (temp.NormalTemplate):
     def template_file_name(self): return "MrTeferi/male-mpc"
     def template_suffix(self): return "Extended Black"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.remove_reminder = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
 
 """
@@ -196,11 +196,11 @@ class ColorshiftedTemplate (temp.NormalTemplate):
     def template_file_name(self): return "MrTeferi/colorshifted"
     def template_suffix(self): return "Shifted"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
 
         # Classic footer
         cfg.real_collector = False
-        super().__init__(layout, file)
+        super().__init__(layout)
 
         # White brush and artist for black border
         if layout.pinlines[0:1] == "B" and len(layout.pinlines) < 3:

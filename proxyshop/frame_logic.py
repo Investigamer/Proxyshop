@@ -133,10 +133,12 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
 
             # Check if the line adds one mana of any color
             if "add" in line.lower() and "mana" in line:
-                if ( line.find("color ") > 0
-                    or line.find("colors ") > 0
-                    or line.find("color.") > 0
-                    or line.find("colors.") > 0
+                if (
+                    "color " in line
+                    or "colors " in line
+                    or "color." in line
+                    or "colors." in line
+                    or "any type" in line
                 ):
                     # Identified an ability of a potentially gold land
                     # If the ability doesn't include the phrases "enters the battlefield", "Remove a charge

@@ -8,36 +8,72 @@ from proxyshop.constants import con
 from proxyshop.gui import console_handler as console
 app = ps.Application()
 
-# Symbol colors
-rgb_c = ps.SolidColor()
-rgb_c.rgb.red = con.rgb_c['r']
-rgb_c.rgb.green = con.rgb_c['g']
-rgb_c.rgb.blue = con.rgb_c['b']
 
-rgb_w = ps.SolidColor()
-rgb_w.rgb.red = con.rgb_w['r']
-rgb_w.rgb.green = con.rgb_w['g']
-rgb_w.rgb.blue = con.rgb_w['b']
+class SymbolMapper:
+    def __init__(self, reloaded=False):
 
-rgb_u = ps.SolidColor()
-rgb_u.rgb.red = con.rgb_u['r']
-rgb_u.rgb.green = con.rgb_u['g']
-rgb_u.rgb.blue = con.rgb_u['b']
+        # Tack whether mappings have been reloaded
+        self.reloaded = reloaded
 
-rgb_b = ps.SolidColor()
-rgb_b.rgb.red = con.rgb_b['r']
-rgb_b.rgb.green = con.rgb_b['g']
-rgb_b.rgb.blue = con.rgb_b['b']
+        # Symbol colors outer
+        self.rgb_c = psd.get_rgb(con.rgb_c['r'], con.rgb_c['g'], con.rgb_c['b'])
+        self.rgb_w = psd.get_rgb(con.rgb_w['r'], con.rgb_w['g'], con.rgb_w['b'])
+        self.rgb_u = psd.get_rgb(con.rgb_u['r'], con.rgb_u['g'], con.rgb_u['b'])
+        self.rgb_b = psd.get_rgb(con.rgb_b['r'], con.rgb_b['g'], con.rgb_b['b'])
+        self.rgb_bh = psd.get_rgb(con.rgb_bh['r'], con.rgb_bh['g'], con.rgb_bh['b'])
+        self.rgb_r = psd.get_rgb(con.rgb_r['r'], con.rgb_r['g'], con.rgb_r['b'])
+        self.rgb_g = psd.get_rgb(con.rgb_g['r'], con.rgb_g['g'], con.rgb_g['b'])
 
-rgb_r = ps.SolidColor()
-rgb_r.rgb.red = con.rgb_r['r']
-rgb_r.rgb.green = con.rgb_r['g']
-rgb_r.rgb.blue = con.rgb_r['b']
+        # Symbol colors inner
+        self.rgbi_c = psd.get_rgb(con.rgbi_c['r'], con.rgbi_c['g'], con.rgbi_c['b'])
+        self.rgbi_w = psd.get_rgb(con.rgbi_w['r'], con.rgbi_w['g'], con.rgbi_w['b'])
+        self.rgbi_u = psd.get_rgb(con.rgbi_u['r'], con.rgbi_u['g'], con.rgbi_u['b'])
+        self.rgbi_b = psd.get_rgb(con.rgbi_b['r'], con.rgbi_b['g'], con.rgbi_b['b'])
+        self.rgbi_bh = psd.get_rgb(con.rgbi_bh['r'], con.rgbi_bh['g'], con.rgbi_bh['b'])
+        self.rgbi_r = psd.get_rgb(con.rgbi_r['r'], con.rgbi_r['g'], con.rgbi_r['b'])
+        self.rgbi_g = psd.get_rgb(con.rgbi_g['r'], con.rgbi_g['g'], con.rgbi_g['b'])
 
-rgb_g = ps.SolidColor()
-rgb_g.rgb.red = con.rgb_g['r']
-rgb_g.rgb.green = con.rgb_g['g']
-rgb_g.rgb.blue = con.rgb_g['b']
+        # Primary inner color (black default)
+        self.rgb_primary = psd.get_rgb(
+            con.rgb_primary['r'],
+            con.rgb_primary['g'],
+            con.rgb_primary['b']
+        )
+
+        # Secondary inner color (white default)
+        self.rgb_secondary = psd.get_rgb(
+            con.rgb_secondary['r'],
+            con.rgb_secondary['g'],
+            con.rgb_secondary['b']
+        )
+
+        # Symbol map for regular mana symbols
+        self.color_map = {
+            "W": self.rgb_w,
+            "U": self.rgb_u,
+            "B": self.rgb_b,
+            "R": self.rgb_r,
+            "G": self.rgb_g,
+            "2": self.rgb_c
+        }
+        self.color_map_inner = {
+            "W": self.rgbi_w,
+            "U": self.rgbi_u,
+            "B": self.rgbi_b,
+            "R": self.rgbi_r,
+            "G": self.rgbi_g,
+            "2": self.rgbi_c,
+        }
+
+        # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
+        self.hybrid_color_map = self.color_map
+        self.hybrid_color_map['B'] = self.rgb_bh
+        self.hybrid_color_map_inner = self.color_map_inner
+        self.hybrid_color_map_inner['B'] = self.rgbi_bh
+
+    def reload(self):
+        if not self.reloaded:
+            self.__init__(True)
 
 
 def locate_symbols(input_string):
@@ -64,7 +100,7 @@ def locate_symbols(input_string):
             else: break
     except Exception as e:
         console.update(
-            f"Encountered a formatted character in braces that doesn't map to characters: {symbol}", e
+            f"Encountered a symbol I don't recognize: {symbol}", e
         )
     return {
         'input_string': input_string,
@@ -106,72 +142,69 @@ def determine_symbol_colors(symbol, symbol_length):
     """
     Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
     """
-    symbol_color_map = {
-        "W": rgb_w,
-        "U": rgb_u,
-        "B": rgb_c,
-        "R": rgb_r,
-        "G": rgb_g,
-        "2": rgb_c,
-    }
-
-    # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
-    hybrid_symbol_color_map = {
-        "W": rgb_w,
-        "U": rgb_u,
-        "B": rgb_b,
-        "R": rgb_r,
-        "G": rgb_g,
-        "2": rgb_c,
-    }
+    # Ensure symbol mappings are up-to-date
+    sym.reload()
 
     # SPECIAL SYMBOLS
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
-        return [psd.rgb_black()]
+        return [sym.rgb_primary]
     elif symbol == "{S}":
         # Snow symbol
-        return [rgb_c, psd.rgb_black(), psd.rgb_white()]
+        return [sym.rgb_c, sym.rgb_primary, sym.rgb_secondary]
     elif symbol == "{Q}":
         # Untap symbol
-        return [psd.rgb_black(), psd.rgb_white()]
+        return [sym.rgb_primary, sym.rgb_secondary]
 
     # Phyrexian
     phyrexian_regex = r"\{([W,U,B,R,G])\/P\}"
     phyrexian_match = re.match(phyrexian_regex, symbol)
-    if phyrexian_match: return [hybrid_symbol_color_map[phyrexian_match[1]], psd.rgb_black()]
+    if phyrexian_match:
+        return [
+            sym.hybrid_color_map[phyrexian_match[1]],
+            sym.hybrid_color_map_inner[phyrexian_match[1]]
+        ]
 
     # Phyrexian hybrid
     phyrexian_hybrid_regex = r"\{([W,U,B,R,G])\/([W,U,B,R,G])\/P\}"
     phyrexian_hybrid_match = re.match(phyrexian_hybrid_regex, symbol)
     if phyrexian_hybrid_match:
         return [
-            symbol_color_map[phyrexian_hybrid_match[2]],
-            symbol_color_map[phyrexian_hybrid_match[1]],
-            psd.rgb_black()
+            sym.color_map[phyrexian_hybrid_match[2]],
+            sym.color_map[phyrexian_hybrid_match[1]],
+            sym.color_map_inner[phyrexian_hybrid_match[2]],
+            sym.color_map_inner[phyrexian_hybrid_match[1]]
         ]
 
     # Hybrid
     hybrid_regex = r"\{([2,W,U,B,R,G])\/([W,U,B,R,G])\}"
     hybrid_match = re.match(hybrid_regex, symbol)
     if hybrid_match:
-        color_map = symbol_color_map
+        color_map = sym.color_map
         if hybrid_match[1] == "2":
             # Use the darker color for black's symbols for 2/B hybrid symbols
-            color_map = hybrid_symbol_color_map
+            color_map = sym.hybrid_color_map
         return [
             color_map[hybrid_match[2]],
             color_map[hybrid_match[1]],
-            psd.rgb_black(),
-            psd.rgb_black()
+            sym.color_map_inner[hybrid_match[2]],
+            sym.color_map_inner[hybrid_match[1]]
         ]
 
+    # Normal mana symbol
     normal_symbol_regex = r"\{([W,U,B,R,G])\}"
     normal_symbol_match = re.match(normal_symbol_regex, symbol)
-    if normal_symbol_match: return [symbol_color_map[normal_symbol_match[1]], psd.rgb_black()]
+    if normal_symbol_match:
+        return [
+            sym.color_map[normal_symbol_match[1]],
+            sym.color_map_inner[normal_symbol_match[1]]
+        ]
 
-    if symbol_length == 2: return [rgb_c, psd.rgb_black()]
-    print(f"Encountered a symbol that I don't know how to color: {symbol}")
+    # Weird situation?
+    if symbol_length == 2: return [sym.rgb_c, sym.rgb_primary]
+
+    # Nothing matching found!
+    console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
     return None
 
 
@@ -251,7 +284,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     # Prepare action descriptor and reference variables
     layer_font_size = app.activeDocument.activeLayer.textItem.size
     layer_text_color = app.activeDocument.activeLayer.textItem.color
-    # layer_text_color = rgb_grey()
     primary_action_descriptor = ps.ActionDescriptor()
     primary_action_list = ps.ActionList()
     desc119 = ps.ActionDescriptor()
@@ -310,12 +342,12 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
-    for italics_indice in italics_indices:
+    for italics_index in italics_indices:
         # Italics text
         primary_action_list.putObject(idTxtt, current_layer_ref)
         desc125 = ps.ActionDescriptor()
-        desc125.putInteger(idFrom, italics_indice['start_index'])  # italics start index
-        desc125.putInteger(idT, italics_indice['end_index'])  # italics end index
+        desc125.putInteger(idFrom, italics_index['start_index'])  # italics start index
+        desc125.putInteger(idT, italics_index['end_index'])  # italics end index
         desc126 = ps.ActionDescriptor()
         desc126.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
         desc126.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
@@ -342,12 +374,12 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         current_layer_ref = desc125
 
     # Format each symbol correctly
-    for symbol_indice in symbol_indices:
+    for symbol_index in symbol_indices:
         current_layer_ref = format_symbol(
             primary_action_list = primary_action_list,
             starting_layer_ref = current_layer_ref,
-            symbol_index = symbol_indice['index'],
-            symbol_colors = symbol_indice['colors'],
+            symbol_index = symbol_index['index'],
+            symbol_colors = symbol_index['colors'],
             layer_font_size = layer_font_size,
         )
 
@@ -389,7 +421,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc143 = ps.ActionDescriptor()
         desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
         desc143.putString(idFntN, con.font_rules_text) # MPlantin default
-        desc143.putUnitDouble(idSz, idPnt, 11.998500)  # TODO: what's this?
+        desc143.putUnitDouble(idSz, idPnt, 12)  # TODO: What's this? 11.998500
         desc143.putBoolean(idautoLeading, False)
         desc142.putObject(app.stringIDToTypeID("defaultStyle"), idTxtS, desc143)
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
@@ -430,12 +462,26 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
+    # Optional, align last line to right
+    if input_string.find('"\r—') > 0 and con.align_classic_quote:
+
+        # Get start and ending index of quotation credit
+        index_start = input_string.find('"\r—') + 2
+        index_end = len(input_string) - 1
+
+        # Align this part, disable justification reset
+        primary_action_descriptor = classic_align_right(primary_action_descriptor, index_start, index_end)
+        disable_justify = True
+
+    else: disable_justify = False
+
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
     app.executeAction(idsetd, desc119, ps.DialogModes.DisplayNoDialogs)
 
-    # Reset layer's justification and disable hypenation
-    app.activeDocument.activeLayer.textItem.justification = layer_justification
+    # Reset layer's justification if needed and disable hyphenation
+    if not disable_justify:
+        app.activeDocument.activeLayer.textItem.justification = layer_justification
     app.activeDocument.activeLayer.textItem.hyphenation = False
 
 
@@ -458,7 +504,6 @@ def generate_italics(card_text):
     for ability_word in con.ability_words:
         italic_text.extend([ability_word + " \u2014"])  # Include em dash
 
-    # italic_text.color = psd.rgb_grey()
     return italic_text
 
 
@@ -486,3 +531,27 @@ def strip_reminder_text(oracle_text):
     if oracle_text_stripped != "":
         return oracle_text_stripped
     return oracle_text
+
+
+def classic_align_right(primedesc, start, end):
+    desc145 = ps.ActionDescriptor()
+    list15 = ps.ActionList()
+    idFrom = app.charIDtoTypeID("From")
+    desc145.putInteger(idFrom, start)
+    idT = app.charIDtoTypeID("T   ")
+    desc145.putInteger(idT, end)
+    desc1265 = ps.ActionDescriptor()
+    idstyleSheetHasParent = app.stringIDToTypeID("styleSheetHasParent")
+    desc1265.putBoolean(idstyleSheetHasParent, True)
+    idAlgn = app.charIDtoTypeID("Algn")
+    idAlg = app.charIDtoTypeID("Alg ")
+    idRght = app.charIDtoTypeID("Rght")
+    desc1265.putEnumerated(idAlgn, idAlg, idRght)
+    idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
+    desc145.putObject(idparagraphStyle, idparagraphStyle, desc1265)
+    idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
+    list15.putObject(idparagraphStyleRange, desc145)
+    primedesc.putList(idparagraphStyleRange, list15)
+    return primedesc
+
+sym = SymbolMapper()

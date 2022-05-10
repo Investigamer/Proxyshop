@@ -3,6 +3,8 @@
 #:import get_font proxyshop.gui.get_font
 #:import HoverButton proxyshop.gui.HoverButton
 #:import Thread threading.Thread
+#:import cfg proxyshop.settings.cfg
+
 <TabbedPanelHeader>
     cols: 5
 
@@ -23,17 +25,17 @@
         ProxyshopTab:
             text: "Render Cards"
             spacing: 0
-            ProxyshopTabContainer:
+            BoxLayout:
                 id: container
                 orientation: "vertical"
                 padding: 0
                 spacing: 0
-                SettingsModule:
+                GridLayout:
                     cols: 5
                     rows: 2
                     padding: [2,3,2,1]
                     spacing: [1,2]
-                    size_hint: (1, .4)
+                    size_hint: (1, .3)
                     canvas:
                         Color:
                             rgba: get_color_from_hex("#000000")
@@ -41,29 +43,25 @@
                             size: self.size
                             pos: self.pos
                     SettingButton:
-                        name: "auto_set_symbol"
                         text: "Auto Set Symbol"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.auto_symbol)
+                        on_state: cfg.update_setting(self.state, 'auto_symbol')
                     SettingButton:
-                        name: "auto_symbol_size"
                         text: "Auto Symbol Size"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.auto_symbol_size)
+                        on_state: cfg.update_setting(self.state, 'auto_symbol_size')
                     SettingButton:
-                        name: "fill_symbol"
                         text: "Auto Symbol Fill"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.fill_symbol)
+                        on_state: cfg.update_setting(self.state, 'fill_symbol')
                     SettingButton:
-                        name: "save_JPEG"
                         text: "JPEG Saving"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.save_jpeg)
+                        on_state: cfg.update_setting(self.state, 'save_jpeg')
                     HoverButton:
                         id: rend_targ_btn
                         text: "Render Target"
@@ -71,29 +69,25 @@
                         on_press: Thread(target=app.render_target, daemon=True).start()
                         background_color: get_color_from_hex("#376aa3")
                     SettingButton:
-                        name: "no_reminder"
                         text: "No Reminder Text"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.remove_reminder)
+                        on_state: cfg.update_setting(self.state, 'remove_reminder')
                     SettingButton:
-                        name: "no_flavor"
                         text: "No Flavor Text"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.remove_flavor)
+                        on_state: cfg.update_setting(self.state, 'remove_flavor')
                     SettingButton:
-                        name: "manual_edit"
                         text: "Manual Edit Step"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.exit_early)
+                        on_state: cfg.update_setting(self.state, 'exit_early')
                     SettingButton:
                         text: "Skip Failed Cards"
-                        name: "skip_failed"
                         font_size: 16
-                        state: self.initial_state(app)
-                        on_state: self.on_toggle(app)
+                        state: self.initial_state(cfg.skip_failed)
+                        on_state: cfg.update_setting(self.state, 'skip_failed')
                     HoverButton:
                         id: rend_all_btn
                         text: "Render All"
@@ -105,8 +99,14 @@
                     do_default_tab: False
                     tab_spacing: 0
                     tab_height: 26
-                    size_hint_y: 2
+                    size_hint: (1, 2)
                     pos: -5,0
+                    canvas:
+                        Color:
+                            rgb: get_color_from_hex('#2e2e2e')
+                        Rectangle:
+                            size: self.size
+                            pos: self.pos
         CreatorTab:
             text: "Custom Creator"
 

@@ -302,6 +302,8 @@ class ModalDoubleFacedLayout (BaseLayout):
         except KeyError: self.toughness = None
         try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']
         except KeyError: self.color_indicator = None
+        try: self.color_indicator_other = self.scryfall['card_faces'][self.other_face]['color_indicator']
+        except KeyError: self.color_indicator_other = None
         try: self.color_identity_other = self.scryfall['card_faces'][self.other_face]['color_identity']
         except KeyError: self.color_identity_other = self.color_identity
 
@@ -317,7 +319,8 @@ class ModalDoubleFacedLayout (BaseLayout):
             self.scryfall['card_faces'][self.other_face]['mana_cost'],
             self.scryfall['card_faces'][self.other_face]['type_line'],
             self.scryfall['card_faces'][self.other_face]['oracle_text'],
-            self.color_identity_other)['twins']
+            self.color_identity_other,
+            self.color_indicator_other)['twins']
 
         # Opposite card info
         other_face_type_line_split = self.scryfall['card_faces'][self.other_face]['type_line'].split(" ")

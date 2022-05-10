@@ -18,10 +18,10 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
     def template_file_name(self): return "SilvanMTG/extended"
     def template_suffix(self): return "Extended"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # strip out reminder text for extended cards
         cfg.remove_reminder = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def enable_frame_layers(self):
 
@@ -81,9 +81,8 @@ class SilvanMDFCBackTemplate (temp.NormalTemplate):
     def dfc_layer_group(self): return con.layers['MDFC_BACK']
     def template_suffix(self): return "Extended"
 
-    def __init__(self, layout, file):
-        self.layout = layout
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
 
         # Set visibility of top & bottom mdfc elements and set text of left & right text
         mdfc_group = psd.getLayerSet(self.dfc_layer_group(), con.layers['TEXT_AND_ICONS'])

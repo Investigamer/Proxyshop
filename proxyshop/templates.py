@@ -22,11 +22,10 @@ class BaseTemplate:
     Set up variables for things which are common to all templates (artwork and artist credit).
     Classes extending this base class are expected to populate the following properties at minimum: self.art_reference
     """
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # Setup inherited info, tx_layers, template PSD
         self.failed = False
         self.layout = layout
-        self.file = file
         self.tx_layers = []
         try: self.file_path = self.load_template()
         except Exception as e:
@@ -42,11 +41,10 @@ class BaseTemplate:
         self.legal_layer = psd.getLayerSet(con.layers['LEGAL'])
 
         # Flavor/reminder text
-        if cfg.remove_flavor: self.layout.flavor_text = ""
-        try:
-            if self.layout.oracle_text and cfg.remove_reminder:
-                self.layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
-        finally: pass
+        if hasattr(self.layout, 'flavor_text') and cfg.remove_flavor:
+            self.layout.flavor_text = ""
+        if hasattr(self.layout, 'oracle_text') and cfg.remove_reminder:
+            self.layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
 
         # Add collector info
         self.collector_info()
@@ -101,6 +99,7 @@ class BaseTemplate:
         """
         Opens the template's PSD file in Photoshop.
         """
+        console.update("Loading PSD template file...")
         file_path = os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}")
         app.load(file_path)
         return file_path
@@ -109,7 +108,7 @@ class BaseTemplate:
         """
         Loads the specified art file into the specified layer.
         """
-        psd.paste_file(self.art_layer, self.file)
+        psd.paste_file(self.art_layer, self.layout.file)
 
     def template_file_name(self):
         """
@@ -129,6 +128,11 @@ class BaseTemplate:
         Enable the correct layers for this card's frame.
         """
         return None
+
+    def post_text_layers(self):
+        """
+        Write code that will be processed after text layers are executed.
+        """
 
     def post_execute(self):
         """
@@ -173,6 +177,9 @@ class BaseTemplate:
             )
             return result
 
+        # Post text layer formatting
+        self.post_text_layers()
+
         # Format file name
         suffix = self.template_suffix()
         if cfg.save_artist_name:
@@ -208,8 +215,8 @@ class StarterTemplate (BaseTemplate):
     A BaseTemplate with a few extra features. In most cases this will be your starter template
     you want to extend for the most important functionality.
     """
-    def __init__(self, layout, file):
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
         try: self.is_creature = bool(self.layout.power and self.layout.toughness)
         except AttributeError: self.is_creature = False
         try: self.is_legendary = bool(self.layout.type_line.find("Legendary") >= 0)
@@ -310,8 +317,8 @@ class NormalTemplate (StarterTemplate):
     def template_file_name(self):
         return "normal"
 
-    def __init__(self, layout, file):
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
 
         # If colorless, use fullart
         if self.layout.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
@@ -334,12 +341,14 @@ class NormalTemplate (StarterTemplate):
          * You're encouraged to override this method if a template extending this one doesn't have the option for
          * creating creature cards (e.g. miracles).
         """
-        # Center the rules text if the card has no flavor text, text all in one line, and that line is fairly short
-        is_centered = bool(
-            len(self.layout.flavor_text) <= 1
-            and len(self.layout.oracle_text) <= 70
-            and "\n" not in self.layout.oracle_text
-        )
+        # Center the rules text if the card has no flavor text, text all in one line, and that line is short
+        if hasattr(self, 'center_rules'): is_centered = self.center_rules
+        else:
+            is_centered = bool(
+                len(self.layout.flavor_text) <= 1
+                and len(self.layout.oracle_text) <= 70
+                and "\n" not in self.layout.oracle_text
+            )
 
         if self.is_creature:
             # Creature card - set up creature layer for rules text and insert p/t
@@ -421,11 +430,12 @@ class NormalClassicTemplate (StarterTemplate):
     def template_file_name(self): return "normal-classic"
     def template_suffix(self): return "Classic"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # No collector info for Classic
         cfg.real_collector = False
+        # con.align_classic_quote = True
         if layout.background == con.layers['COLORLESS']: layout.background = con.layers['ARTIFACT']
-        super().__init__(layout, file)
+        super().__init__(layout)
         self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
 
         # Basic text
@@ -486,10 +496,10 @@ class NormalExtendedTemplate (NormalTemplate):
     def template_file_name(self): return "normal-extended"
     def template_suffix(self): return "Extended"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # Strip out reminder text for extended
         cfg.remove_reminder = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
 
 class NormalFullartTemplate (NormalTemplate):
@@ -509,10 +519,10 @@ class WomensDayTemplate (NormalTemplate):
     def template_file_name(self): return "womensday"
     def template_suffix(self): return "Showcase"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # Strip out reminder text for fullart
         cfg.remove_reminder = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def enable_frame_layers(self):
 
@@ -543,11 +553,11 @@ class StargazingTemplate (NormalTemplate):
     def template_file_name(self): return "stargazing"
     def template_suffix(self): return "Stargazing"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # Strip out reminder text
         cfg.remove_reminder = True
         layout.is_nyx = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
 
 class InventionTemplate (NormalTemplate):
@@ -558,7 +568,7 @@ class InventionTemplate (NormalTemplate):
     def template_file_name(self): return "masterpiece"
     def template_suffix(self): return "Masterpiece"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # Strip reminder text
         cfg.remove_reminder = True
         self.is_colorless = False
@@ -569,7 +579,7 @@ class InventionTemplate (NormalTemplate):
             layout.twins = "Bronze"
             layout.background = "Bronze"
 
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def enable_frame_layers(self):
 
@@ -596,10 +606,10 @@ class InventionSilverTemplate (InventionTemplate):
     """
      * Kaladesh Invention template, Silver choice.
     """
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         layout.twins = "Silver"
         layout.background = "Silver"
-        super().__init__(layout, file)
+        super().__init__(layout)
 
 
 class ExpeditionTemplate (NormalTemplate):
@@ -610,11 +620,11 @@ class ExpeditionTemplate (NormalTemplate):
     def template_file_name(self): return "znrexp"
     def template_suffix(self): return "Expedition"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         # strip out reminder text
         if not cfg.remove_reminder:
             layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def rules_text_and_pt_layers(self, text_and_icons):
 
@@ -710,8 +720,8 @@ class TransformBackTemplate (NormalTemplate):
         """
         return con.layers['TF_BACK']
 
-    def __init__(self, layout, file):
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
         # set transform icon
         transform_group = psd.getLayerSet(self.dfc_layer_group(), con.layers['TEXT_AND_ICONS'])
         psd.getLayer(self.layout.transform_icon, transform_group).visible = True
@@ -740,10 +750,10 @@ class TransformFrontTemplate (TransformBackTemplate):
     def template_file_name(self): return "tf-front"
     def dfc_layer_group(self): return con.layers['TF_FRONT']
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         try: self.other_face_is_creature = bool(layout.other_face_power and layout.other_face_toughness)
         except AttributeError: self.other_face_is_creature = False
-        super().__init__(layout, file)
+        super().__init__(layout)
 
         # if creature on back face, set flipside power/toughness
         if self.other_face_is_creature:
@@ -872,8 +882,8 @@ class MDFCBackTemplate (NormalTemplate):
     def template_file_name(self): return "mdfc-back"
     def dfc_layer_group(self): return con.layers['MDFC_BACK']
 
-    def __init__(self, layout, file):
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
 
         # set visibility of top & bottom mdfc elements and set text of left & right text
         mdfc_group = psd.getLayerSet(self.dfc_layer_group(), con.layers['TEXT_AND_ICONS'])
@@ -920,14 +930,14 @@ class MutateTemplate (NormalTemplate):
     """
     def template_file_name(self): return "mutate"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
 
         # Split self.oracle_text between mutate text and actual text before calling super()
         split_rules_text = layout.oracle_text.split("\n")
         layout.mutate_text = split_rules_text[0]
         layout.oracle_text = "\n".join(split_rules_text[1:len(split_rules_text)])
 
-        super().__init__(layout, file)
+        super().__init__(layout)
 
         # Add mutate text
         text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
@@ -953,8 +963,8 @@ class AdventureTemplate (NormalTemplate):
     """
     def template_file_name(self): return "adventure"
 
-    def __init__(self, layout, file):
-        super().__init__(layout, file)
+    def __init__(self, layout):
+        super().__init__(layout)
 
         # Add adventure name, mana cost, type line, and rules text fields to self.tx_layers
         text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
@@ -998,9 +1008,9 @@ class LevelerTemplate (NormalTemplate):
     """
     def template_file_name(self): return "leveler"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.exit_early = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
     def rules_text_and_pt_layers(self, text_and_icons):
         # Overwrite to add level abilities
@@ -1065,9 +1075,9 @@ class SagaTemplate (NormalTemplate):
     """
     def template_file_name(self): return "saga"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.exit_early = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
         # Paste scryfall scan
         app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TWINS'])
@@ -1108,9 +1118,9 @@ class PlaneswalkerTemplate (StarterTemplate):
     """
     def template_file_name(self): return "pw"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.exit_early = True
-        super().__init__(layout, file)
+        super().__init__(layout)
 
         # Which art frame?
         if self.layout.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
@@ -1349,9 +1359,9 @@ class PlanarTemplate (StarterTemplate):
     """
     def template_file_name(self): return "planar"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.exit_early = True
-        super().__init__(layout, file)
+        super().__init__(layout)
         self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
 
         # Card name, type line, expansion symbol
@@ -1440,10 +1450,10 @@ class BasicLandTemplate (BaseTemplate):
     """
     def template_file_name(self): return "basic"
 
-    def __init__(self, layout, file):
+    def __init__(self, layout):
         cfg.save_artist_name = True
         cfg.real_collector = False
-        super().__init__(layout, file)
+        super().__init__(layout)
         self.art_reference = psd.getLayer(con.layers['BASIC_ART_FRAME'])
 
     def enable_frame_layers(self):

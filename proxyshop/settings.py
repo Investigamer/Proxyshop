@@ -56,17 +56,21 @@ class Config:
 		self.symbol_stroke = self.file['SYMBOLS']['Symbol.Stroke.Size']
 		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
 
-	def update(self, c):
-		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(c['auto_set_symbol']))
-		self.file.set("SYMBOLS", "Auto.Symbol.Size", str(c['auto_symbol_size']))
-		self.file.set("SYMBOLS", "Fill.Symbol.Background", str(c['fill_symbol']))
-		self.file.set("FILES", "Render.JPEG", str(c['save_JPEG']))
-		self.file.set("TEXT", "No.Flavor.Text", str(c['no_flavor']))
-		self.file.set("TEXT", "No.Reminder.Text", str(c['no_reminder']))
-		self.file.set("CONF", "Manual.Edit", str(c['manual_edit']))
-		self.file.set("CONF", "Skip.Failed", str(c['skip_failed']))
+	def update(self):
+		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(self.auto_symbol))
+		self.file.set("SYMBOLS", "Auto.Symbol.Size", str(self.auto_symbol_size))
+		self.file.set("SYMBOLS", "Fill.Symbol.Background", str(self.fill_symbol))
+		self.file.set("FILES", "Render.JPEG", str(self.save_jpeg))
+		self.file.set("TEXT", "No.Flavor.Text", str(self.remove_flavor))
+		self.file.set("TEXT", "No.Reminder.Text", str(self.remove_reminder))
+		self.file.set("CONF", "Manual.Edit", str(self.exit_early))
+		self.file.set("CONF", "Skip.Failed", str(self.skip_failed))
 		with open("config.ini", "w", encoding="utf-8") as config_file:
 			self.file.write(config_file)
+
+	def update_setting(self, state, setting):
+		if state == "down": setattr(self, setting, True)
+		else: setattr(self, setting, False)
 
 	def reload(self, conf=os.path.join(cwd, "config.ini")):
 		"""
