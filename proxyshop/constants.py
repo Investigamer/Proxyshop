@@ -434,6 +434,10 @@ with open(os.path.join(cwd, "proxyshop/symbols.json"), encoding="utf-8-sig") as 
 
 class Con:
     def __init__(self):
+        self.load_values()
+
+    def load_values(self):
+
         # PATHS
         self.cwd = cwd
         self.json_custom_path = json_custom_path
@@ -513,7 +517,7 @@ class Con:
         self.align_classic_quote = align_classic_quote
 
     def reload(self):
-        self.__init__()
+        self.load_values()
 
 # Global instance
 con = Con()

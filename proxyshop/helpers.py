@@ -6,7 +6,8 @@ from proxyshop.scryfall import card_scan
 import photoshop.api as ps
 cwd = os.getcwd()
 app = ps.Application()
-
+sID = app.stringIDToTypeID
+cID = app.charIDToTypeID
 
 def getLayer(name, group=None):
     """
@@ -426,23 +427,21 @@ def replace_text(layer, replace_this, replace_with):
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
     """
     app.activeDocument.activeLayer = layer
-    idreplace = app.stringIDToTypeID("replace")
     desc22 = ps.ActionDescriptor()
-    ref3 = ps.ActionReference()
-    ref3.putProperty(app.charIDToTypeID("Prpr"), idreplace)
-    ref3.putEnumerated(app.charIDToTypeID("TxLr"),
-        app.charIDToTypeID("Ordn"),
-        app.charIDToTypeID("Al  "))
-    desc22.putReference(app.charIDToTypeID("null"), ref3)
     desc23 = ps.ActionDescriptor()
-    desc23.putString(app.stringIDToTypeID("find"), replace_this)
+    ref3 = ps.ActionReference()
+    idreplace = sID("replace")
+    ref3.putProperty(cID("Prpr"), sID("replace"))
+    ref3.putEnumerated(cID("TxLr"), cID("Ordn"), cID("Al  "))
+    desc22.putReference(cID("null"), ref3)
+    desc23.putString(sID("find"), replace_this)
     desc23.putString(idreplace, replace_with)
-    desc23.putBoolean(app.stringIDToTypeID("checkAll"), True)
-    desc23.putBoolean(app.charIDToTypeID("Fwd "), True)
-    desc23.putBoolean(app.stringIDToTypeID("caseSensitive"), False)
-    desc23.putBoolean(app.stringIDToTypeID("wholeWord"), False)
-    desc23.putBoolean(app.stringIDToTypeID("ignoreAccents"), True)
-    desc22.putObject(app.charIDToTypeID("Usng"), app.stringIDToTypeID("findReplace"), desc23)
+    desc23.putBoolean(sID("checkAll"), False)
+    desc23.putBoolean(cID("Fwd "), True)
+    desc23.putBoolean(sID("caseSensitive"), False)
+    desc23.putBoolean(sID("wholeWord"), False)
+    desc23.putBoolean(sID("ignoreAccents"), True)
+    desc22.putObject(cID("Usng"), sID("findReplace"), desc23)
     app.executeAction(idreplace, desc22, ps.DialogModes.DisplayNoDialogs)
 
 
