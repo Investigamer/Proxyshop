@@ -5,10 +5,13 @@ import os
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
 import photoshop.api as ps
+
+# QOL Definitions
 cwd = os.getcwd()
 app = ps.Application()
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
+NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
 
 def getLayer(name, group=None):
@@ -101,6 +104,34 @@ def get_rgb(r, g, b):
     return color
 
 
+def layer_bounds_no_effects(layer):
+    """
+    Returns the bounds of a given layer without its effects applied.
+    @param layer: A layer object
+    @return list: Pixel location top left, top right, bottom left, bottom right.
+    """
+    current = app.activeDocument.activeLayer
+    app.activeDocument.activeLayer = layer
+    bounds = app.eval_javascript(
+        f"""app.activeDocument.activeLayer.boundsNoEffects"""
+    )
+    app.activeDocument.activeLayer = current
+    return [int(num) for num in bounds.replace(" px", "").split(",")]
+
+
+def layer_dimensions_no_effects(layer):
+    """
+    Compute the dimensions of a layer without its effects applied.
+    @param layer: A layer object
+    @return dict: Height and width of the layer
+    """
+    bounds = layer_bounds_no_effects(layer)
+    return {
+        'width': bounds[2] - bounds[0],
+        'height': bounds[3] - bounds[1],
+    }
+
+
 def compute_layer_dimensions(layer):
     """
     Return an object with the specified layer's width and height (computed from its bounds).
@@ -168,16 +199,16 @@ def align(align_type):
     desc = ps.ActionDescriptor()
     ref = ps.ActionReference()
     ref.putEnumerated(
-        app.charIDToTypeID("Lyr "),
-        app.charIDToTypeID("Ordn"),
-        app.charIDToTypeID("Trgt"))
-    desc.putReference(app.charIDToTypeID("null"), ref)
+        cID("Lyr "),
+        cID("Ordn"),
+        cID("Trgt"))
+    desc.putReference(cID("null"), ref)
     desc.putEnumerated(
-        app.charIDToTypeID("Usng"),
-        app.charIDToTypeID("ADSt"),
-        app.charIDToTypeID(align_type))
+        cID("Usng"),
+        cID("ADSt"),
+        cID(align_type))
     app.executeAction(
-        app.charIDToTypeID("Algn"),
+        cID("Algn"),
         desc,
         ps.DialogModes.DisplayNoDialogs)
 
@@ -242,14 +273,14 @@ def set_active_layer_mask(visible=True):
     desc3078 = ps.ActionDescriptor()
     desc3079 = ps.ActionDescriptor()
     ref1567 = ps.ActionReference()
-    idLyr = app.charIDToTypeID("Lyr ")
+    idLyr = cID("Lyr ")
     ref1567.putEnumerated(idLyr,
-        app.charIDToTypeID("Ordn"),
-        app.charIDToTypeID("Trgt"))
-    desc3078.putReference(app.charIDToTypeID("null"), ref1567)
-    desc3079.putBoolean(app.charIDToTypeID("UsrM"), visible)
-    desc3078.putObject(app.charIDToTypeID("T   "), idLyr, desc3079)
-    app.executeAction(app.charIDToTypeID("setd"), desc3078, ps.DialogModes.DisplayNoDialogs)
+        cID("Ordn"),
+        cID("Trgt"))
+    desc3078.putReference(cID("null"), ref1567)
+    desc3079.putBoolean(cID("UsrM"), visible)
+    desc3078.putObject(cID("T   "), idLyr, desc3079)
+    app.executeAction(cID("setd"), desc3078, ps.DialogModes.DisplayNoDialogs)
 
 
 def enable_active_layer_mask():
@@ -275,69 +306,38 @@ def apply_stroke(stroke_weight, stroke_color):
     desc610 = ps.ActionDescriptor()
     desc611 = ps.ActionDescriptor()
     ref149 = ps.ActionReference()
-    idLefx = app.charIDToTypeID("Lefx")
-    idFrFX = app.charIDToTypeID("FrFX")
-    idPrc = app.charIDToTypeID("#Prc")
-    ref149.putProperty(app.charIDToTypeID("Prpr"), idLefx)
-    ref149.putEnumerated(
-        app.charIDToTypeID("Lyr "),
-        app.charIDToTypeID("Ordn"),
-        app.charIDToTypeID("Trgt"))
-    desc608.putReference(app.charIDToTypeID("null"), ref149)
-    desc609.putUnitDouble(app.charIDToTypeID("Scl "), idPrc, 200.000000)
-    desc610.putBoolean(app.charIDToTypeID("enab"), True)
-    desc610.putEnumerated(
-        app.charIDToTypeID("Styl"),
-        app.charIDToTypeID("FStl"),
-        app.charIDToTypeID("OutF"))
-    desc610.putEnumerated(
-        app.charIDToTypeID("PntT"),
-        app.charIDToTypeID("FrFl"),
-        app.charIDToTypeID("SClr"))
-    desc610.putEnumerated(
-        app.charIDToTypeID("Md  "),
-        app.charIDToTypeID("BlnM"),
-        app.charIDToTypeID("Nrml"))
-    desc610.putUnitDouble(
-        app.charIDToTypeID("Opct"),
-        idPrc, 100.000000)
-    desc610.putUnitDouble(
-        app.charIDToTypeID("Sz  "),
-        app.charIDToTypeID("#Pxl"),
-        int(stroke_weight))
-    desc611.putDouble(app.charIDToTypeID("Rd  "), stroke_color.rgb.red)
-    desc611.putDouble(app.charIDToTypeID("Grn "), stroke_color.rgb.green)
-    desc611.putDouble(app.charIDToTypeID("Bl  "), stroke_color.rgb.blue)
-    desc610.putObject(app.charIDToTypeID("Clr "), app.charIDToTypeID("RGBC"), desc611)
-    desc609.putObject(idFrFX, idFrFX, desc610)
-    desc608.putObject(app.charIDToTypeID("T   "), idLefx, desc609)
-    app.executeAction(app.charIDToTypeID("setd"), desc608, ps.DialogModes.DisplayNoDialogs)
+    ref149.putProperty(cID("Prpr"), cID("Lefx"))
+    ref149.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
+    desc608.putReference(cID("null"), ref149)
+    desc609.putUnitDouble(cID("Scl "), cID("#Prc"), 200)
+    desc610.putBoolean(cID("enab"), True)
+    desc610.putEnumerated(cID("Styl"), cID("FStl"), cID("OutF"))
+    desc610.putEnumerated(cID("PntT"), cID("FrFl"), cID("SClr"))
+    desc610.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
+    desc610.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
+    desc610.putUnitDouble(cID("Sz  "), cID("#Pxl"), int(stroke_weight))
+    desc611.putDouble(cID("Rd  "), stroke_color.rgb.red)
+    desc611.putDouble(cID("Grn "), stroke_color.rgb.green)
+    desc611.putDouble(cID("Bl  "), stroke_color.rgb.blue)
+    desc610.putObject(cID("Clr "), cID("RGBC"), desc611)
+    desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
+    desc608.putObject(cID("T   "), cID("Lefx"), desc609)
+    app.executeAction(cID("setd"), desc608, ps.DialogModes.DisplayNoDialogs)
 
 
 def save_document_png(file_name):
     """
     Save the current document to /out/ as a PNG.
     """
-    idsave = app.charIDToTypeID("save")
     desc3 = ps.ActionDescriptor()
-    idAs = app.charIDToTypeID("As  ")
-    idCmpr = app.charIDToTypeID("Cmpr")
     desc4 = ps.ActionDescriptor()
-    idPGIT = app.charIDToTypeID("PGIT")
-    idPGIN = app.charIDToTypeID("PGIN")
-    desc4.putEnumerated(idPGIT, idPGIT, idPGIN)
-    idPNGf = app.charIDToTypeID("PNGf")
-    idPGAd = app.charIDToTypeID("PGAd")
-    desc4.putEnumerated(idPNGf, idPNGf, idPGAd)
-    desc4.putInteger(idCmpr, 3)
-    idPNGF = app.charIDToTypeID("PNGF")
-    desc3.putObject(idAs, idPNGF, desc4)
-    idIn = app.charIDToTypeID("In  ")
-    file_name_with_path = os.path.join(cwd, f"out/{file_name}.png")
-    desc3.putPath(idIn, file_name_with_path)
-    idCpy = app.charIDToTypeID("Cpy ")
-    desc3.putBoolean(idCpy, True)
-    app.executeAction(idsave, desc3, ps.DialogModes.DisplayNoDialogs)
+    desc4.putEnumerated(cID("PGIT"), cID("PGIT"), cID("PGIN"))
+    desc4.putEnumerated(cID("PNGf"), cID("PNGf"), cID("PGAd"))
+    desc4.putInteger(cID("Cmpr"), 3)
+    desc3.putObject(cID("As  "), cID("PNGF"), desc4)
+    desc3.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.png"))
+    desc3.putBoolean(cID("Cpy "), True)
+    app.executeAction(cID("save"), desc3, NO_DIALOG)
 
 
 def save_document_jpeg(file_name):
@@ -346,27 +346,15 @@ def save_document_jpeg(file_name):
     """
     desc34 = ps.ActionDescriptor()
     desc35 = ps.ActionDescriptor()
-    desc35.putInteger(app.charIDToTypeID("EQlt"), 12)
-    desc35.putInteger(app.charIDToTypeID("Scns"), 3)
-    idMttC = app.charIDToTypeID("MttC")
-    idNone = app.charIDToTypeID("None")
-    desc35.putEnumerated(idMttC, idMttC, idNone)
-    desc34.putObject(
-        app.charIDToTypeID("As  "),
-        app.charIDToTypeID("JPEG"),
-        desc35)
-    desc34.putPath(app.charIDToTypeID("In  "),
-        os.path.join(cwd, f"out/{file_name}.jpg"))
-    desc34.putInteger(app.charIDToTypeID("DocI"), 349 )
-    desc34.putBoolean(app.charIDToTypeID("Cpy "), True)
-    desc34.putEnumerated(
-        app.stringIDToTypeID("saveStage"),
-        app.stringIDToTypeID("saveStageType"),
-        app.stringIDToTypeID("saveSucceeded"))
-    app.executeAction(
-        app.charIDToTypeID("save"),
-        desc34,
-        ps.SaveOptions.DoNotSaveChanges)
+    desc35.putInteger(cID("EQlt"), 12)
+    desc35.putInteger(cID("Scns"), 3)
+    desc35.putEnumerated(cID("MttC"), cID("MttC"), cID("None"))
+    desc34.putObject(cID("As  "), cID("JPEG"), desc35)
+    desc34.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.jpg"))
+    desc34.putInteger(cID("DocI"), 349)
+    desc34.putBoolean(cID("Cpy "), True)
+    desc34.putEnumerated(sID("saveStage"), sID("saveStageType"), sID("saveSucceeded"))
+    app.executeAction(cID("save"), desc34, ps.SaveOptions.DoNotSaveChanges)
 
 
 def close_document():
@@ -380,14 +368,14 @@ def reset_document(filename):
     """
     Reset all changes to the current document
     """
-    idslct = app.charIDToTypeID( "slct" )
+    idslct = cID("slct")
     desc9 = ps.ActionDescriptor()
-    idnull = app.charIDToTypeID( "null" )
+    idnull = cID("null")
     ref1 = ps.ActionReference()
-    idSnpS = app.charIDToTypeID( "SnpS" )
-    ref1.putName( idSnpS, filename )
-    desc9.putReference( idnull, ref1 )
-    app.executeAction( idslct, desc9, ps.DialogModes.DisplayNoDialogs )
+    idSnpS = cID("SnpS")
+    ref1.putName(idSnpS, filename)
+    desc9.putReference(idnull, ref1)
+    app.executeAction(idslct, desc9, NO_DIALOG)
 
 
 def get_text_layer_color(layer):
@@ -409,11 +397,11 @@ def create_new_layer(layer_name=None):
     """
     if layer_name is None: layer_name = "Layer"
 
-    # create new layer at top of layers
+    # Create new layer at top of layers
     active_layer = app.activeDocument.activeLayer
     layer = app.activeDocument.artLayers.add()
 
-    # name it & set blend mode to normal
+    # Name it & set blend mode to normal
     layer.name = layer_name
     layer.blendMode = ps.BlendMode.NormalBlend
     layer.visible = True
@@ -449,7 +437,7 @@ def replace_text(layer, find, replace):
     desc32.putBoolean(sID("wholeWord"), False)
     desc32.putBoolean(sID("ignoreAccents"), True)
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
-    app.executeAction(sID("findReplace"), desc31, ps.DialogModes.DisplayErrorDialogs)
+    app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
 
 
 def paste_file(layer, file):
@@ -497,16 +485,13 @@ def content_fill_empty_area():
     # select pixels of active layer
     desc307 = ps.ActionDescriptor()
     ref257 = ps.ActionReference()
-    ref257.putProperty(app.charIDToTypeID("Chnl"), app.charIDToTypeID("fsel"))
-    desc307.putReference(app.charIDToTypeID("null"), ref257)
+    ref257.putProperty(cID("Chnl"), cID("fsel"))
+    desc307.putReference(cID("null"), ref257)
     ref258 = ps.ActionReference()
-    idChnl = app.charIDToTypeID("Chnl")
-    ref258.putEnumerated(idChnl, idChnl, app.charIDToTypeID("Trsp"))
-    desc307.putReference( app.charIDToTypeID("T   "), ref258)
-    app.executeAction(
-        app.charIDToTypeID("setd"),
-        desc307,
-        ps.DialogModes.DisplayNoDialogs)
+    idChnl = cID("Chnl")
+    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    desc307.putReference(cID("T   "), ref258)
+    app.executeAction(cID("setd"), desc307, NO_DIALOG)
 
     # rasterise
     docRef = app.activeDocument
@@ -521,23 +506,10 @@ def content_fill_empty_area():
 
     # content aware fill
     desc12 = ps.ActionDescriptor()
-    desc12.putEnumerated(
-        app.charIDToTypeID("Usng"),
-        app.charIDToTypeID("FlCn"),
-        app.stringIDToTypeID("contentAware"))
-    desc12.putUnitDouble(
-        app.charIDToTypeID("Opct"),
-        app.charIDToTypeID("#Prc"),
-        100.000000)
-    desc12.putEnumerated(
-        app.charIDToTypeID("Md  "),
-        app.charIDToTypeID("BlnM"),
-        app.charIDToTypeID("Nrml"))
-    app.executeAction(
-        app.charIDToTypeID("Fl  "),
-        desc12,
-        ps.DialogModes.DisplayNoDialogs)
-
+    desc12.putEnumerated(cID("Usng"), cID("FlCn"), sID("contentAware"))
+    desc12.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
+    desc12.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
+    app.executeAction(cID("Fl  "), desc12, NO_DIALOG)
     selection.deselect()
 
 
@@ -546,11 +518,11 @@ def apply_vibrant_saturation(VibValue, SatValue):
     Experimental scoot action
     """
     # dialogMode (Have dialog popup?)
-    idvibrance = app.stringIDToTypeID("vibrance")
+    idvibrance = sID("vibrance")
     desc232 = ps.ActionDescriptor()
-    desc232.putInteger( idvibrance, VibValue )
-    desc232.putInteger( app.charIDToTypeID("Strt"), SatValue )
-    app.executeAction( idvibrance, desc232, ps.DialogModes.DisplayNoDialogs )
+    desc232.putInteger(idvibrance, VibValue)
+    desc232.putInteger(cID("Strt"), SatValue)
+    app.executeAction(idvibrance, desc232, ps.DialogModes.DisplayNoDialogs)
 
 
 def fill_expansion_symbol(reference, stroke_color=rgb_black()):
@@ -560,16 +532,16 @@ def fill_expansion_symbol(reference, stroke_color=rgb_black()):
 
     # Magic Wand contiguous outside symbol
     coords = ps.ActionDescriptor()
-    coords.putUnitDouble(app.CharIDToTypeID( "Hrzn" ),app.CharIDToTypeID( "#Pxl" ), 100)
-    coords.putUnitDouble(app.CharIDToTypeID( "Vrtc" ),app.CharIDToTypeID( "#Pxl" ), 100)
+    coords.putUnitDouble(cID("Hrzn"),cID("#Pxl"), 100)
+    coords.putUnitDouble(cID("Vrtc"),cID("#Pxl"), 100)
     click1 = ps.ActionDescriptor()
     ref1 = ps.ActionReference()
-    ref1.putProperty(app.CharIDToTypeID( "Chnl" ), app.CharIDToTypeID( "fsel" ) )
-    click1.putReference(app.CharIDToTypeID( "null" ), ref1 )
-    click1.putObject(app.CharIDToTypeID( "T   " ), app.CharIDToTypeID( "Pnt " ), coords )
-    click1.putInteger(app.CharIDToTypeID( "Tlrn" ), 12 )
-    click1.putBoolean(app.CharIDToTypeID( "AntA" ), True )
-    app.executeAction(app.CharIDToTypeID("setd"), click1 )
+    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    click1.putReference(cID("null"), ref1)
+    click1.putObject(cID("T   "), cID("Pnt "), coords)
+    click1.putInteger(cID("Tlrn"), 12)
+    click1.putBoolean(cID("AntA"), True)
+    app.executeAction(cID("setd"), click1)
 
     # Invert selection
     app.activeDocument.selection.invert()
@@ -577,13 +549,13 @@ def fill_expansion_symbol(reference, stroke_color=rgb_black()):
     # Magic Wand cross select
     click2 = ps.ActionDescriptor()
     ref2 = ps.ActionReference()
-    ref2.putProperty(app.CharIDToTypeID( "Chnl" ), app.CharIDToTypeID( "fsel" ) )
-    click2.putReference(app.CharIDToTypeID( "null" ), ref2 )
-    click2.putObject(app.CharIDToTypeID( "T   " ), app.CharIDToTypeID( "Pnt " ), coords )
-    click2.putInteger(app.CharIDToTypeID( "Tlrn" ), 12 )
-    click2.putBoolean(app.CharIDToTypeID( "AntA" ), True )
-    click2.putBoolean(app.CharIDToTypeID( "Cntg" ), False )
-    app.executeAction(app.CharIDToTypeID("IntW"), click2 )
+    ref2.putProperty(cID("Chnl"), cID("fsel"))
+    click2.putReference(cID("null"), ref2)
+    click2.putObject(cID("T   "), cID("Pnt "), coords)
+    click2.putInteger(cID("Tlrn"), 12)
+    click2.putBoolean(cID("AntA"), True)
+    click2.putBoolean(cID("Cntg"), False)
+    app.executeAction(cID("IntW"), click2)
 
     # Make a new layer
     layer = app.activeDocument.artLayers.add()
@@ -595,14 +567,11 @@ def fill_expansion_symbol(reference, stroke_color=rgb_black()):
     # Fill selection with stroke color
     app.foregroundColor = stroke_color
     click3 = ps.ActionDescriptor()
-    click3.putObject(app.CharIDToTypeID( "From" ), app.CharIDToTypeID( "Pnt " ), coords )
-    click3.putInteger(app.CharIDToTypeID( "Tlrn" ), 0)
-    click3.putEnumerated(
-        app.CharIDToTypeID( "Usng" ),
-        app.CharIDToTypeID( "FlCn" ),
-        app.CharIDToTypeID( "FrgC" ))
-    click3.putBoolean( app.CharIDToTypeID( "Cntg" ), False )
-    app.executeAction( app.CharIDToTypeID( "Fl  " ), click3 )
+    click3.putObject(cID("From"), cID("Pnt "), coords)
+    click3.putInteger(cID("Tlrn"), 0)
+    click3.putEnumerated(cID("Usng"), cID("FlCn"), cID("FrgC"))
+    click3.putBoolean(cID("Cntg"), False)
+    app.executeAction(cID("Fl  "), click3)
 
     # Clear Selection
     clear_selection()
@@ -615,15 +584,12 @@ def select_current_layer():
     """
     Select pixels of active layer
     """
-    desc307 = ps.ActionDescriptor()
-    ref257 = ps.ActionReference()
-    ref257.putProperty(app.charIDToTypeID("Chnl"), app.charIDToTypeID("fsel"))
-    desc307.putReference(app.charIDToTypeID("null"), ref257)
+    des1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
     ref258 = ps.ActionReference()
-    idChnl = app.charIDToTypeID("Chnl")
-    ref258.putEnumerated(idChnl, idChnl, app.charIDToTypeID("Trsp"))
-    desc307.putReference( app.charIDToTypeID("T   "), ref258)
-    app.executeAction(
-        app.charIDToTypeID("setd"),
-        desc307,
-        ps.DialogModes.DisplayNoDialogs)
+    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    des1.putReference(cID("null"), ref1)
+    idChnl = cID("Chnl")
+    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    des1.putReference(cID("T   "), ref258)
+    app.executeAction(cID("setd"), des1, NO_DIALOG)
