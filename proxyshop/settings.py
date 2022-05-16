@@ -7,10 +7,22 @@ import os
 cwd = os.getcwd()
 
 
+# For object permanence
+class Singleton(type):
+	_instances = {}
+
+	def __call__(cls, *args, **kwargs):
+		if cls not in cls._instances:
+			cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+		return cls._instances[cls]
+
+
 class Config:
 	"""
 	Build our config info
 	"""
+	__metaclass__ = Singleton
+
 	def __init__(self, conf=os.path.join(cwd, "config.ini")):
 		self.file = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
 		self.file.optionxform = str
