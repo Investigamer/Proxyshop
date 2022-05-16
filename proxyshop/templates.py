@@ -82,7 +82,7 @@ class BaseTemplate:
             # Apply the collector info
             collector_top.contents = \
                 f"{self.layout.collector_number}/{self.layout.card_count} {self.layout.rarity_letter}"
-            psd.replace_text(collector_bottom, "SET", self.layout.set)
+            psd.replace_text(collector_bottom, "SET", str(self.layout.set))
             psd.replace_text(collector_bottom, "Artist", self.layout.artist)
 
         else:

@@ -10,10 +10,10 @@ app = ps.Application()
 
 
 class SymbolMapper:
-    def __init__(self, reloaded=False):
+    def __init__(self):
+        self.load_values()
 
-        # Tack whether mappings have been reloaded
-        self.reloaded = reloaded
+    def load_values(self):
 
         # Symbol colors outer
         self.rgb_c = psd.get_rgb(con.rgb_c['r'], con.rgb_c['g'], con.rgb_c['b'])
@@ -72,8 +72,7 @@ class SymbolMapper:
         self.hybrid_color_map_inner['B'] = self.rgbi_bh
 
     def reload(self):
-        if not self.reloaded:
-            self.__init__(True)
+        self.load_values()
 
 
 def locate_symbols(input_string):

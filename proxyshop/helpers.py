@@ -3,11 +3,13 @@ PHOTOSHOP HELPER FUNCTIONS
 """
 import os
 from proxyshop.scryfall import card_scan
+from proxyshop.settings import cfg
 import photoshop.api as ps
 cwd = os.getcwd()
 app = ps.Application()
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
+
 
 def getLayer(name, group=None):
     """
@@ -422,27 +424,32 @@ def create_new_layer(layer_name=None):
     return layer
 
 
-def replace_text(layer, replace_this, replace_with):
+def replace_text(layer, find, replace):
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
     """
     app.activeDocument.activeLayer = layer
-    desc22 = ps.ActionDescriptor()
-    desc23 = ps.ActionDescriptor()
+
+    # Find and replace
+    desc31 = ps.ActionDescriptor()
     ref3 = ps.ActionReference()
-    idreplace = sID("replace")
-    ref3.putProperty(cID("Prpr"), sID("replace"))
-    ref3.putEnumerated(cID("TxLr"), cID("Ordn"), cID("Al  "))
-    desc22.putReference(cID("null"), ref3)
-    desc23.putString(sID("find"), replace_this)
-    desc23.putString(idreplace, replace_with)
-    desc23.putBoolean(sID("checkAll"), False)
-    desc23.putBoolean(cID("Fwd "), True)
-    desc23.putBoolean(sID("caseSensitive"), False)
-    desc23.putBoolean(sID("wholeWord"), False)
-    desc23.putBoolean(sID("ignoreAccents"), True)
-    desc22.putObject(cID("Usng"), sID("findReplace"), desc23)
-    app.executeAction(idreplace, desc22, ps.DialogModes.DisplayNoDialogs)
+    desc32 = ps.ActionDescriptor()
+    ref3.putProperty(sID("property"), sID("findReplace"))
+    ref3.putEnumerated(sID("textLayer"), sID("active"), sID("targetEnum"))
+    desc31.putReference(sID("target"), ref3)
+    desc32.putString(sID("find"), f"{find}")
+    desc32.putString(sID("replace"), f"{replace}")
+    # Developmental fix for non-targeted replacement
+    if cfg.targeted_replace:
+        app.bringToFront()
+        desc32.putBoolean(sID("checkAll"), False)
+    else: desc32.putBoolean(sID("checkAll"), True)
+    desc32.putBoolean(sID("forward"), True)
+    desc32.putBoolean(sID("caseSensitive"), False)
+    desc32.putBoolean(sID("wholeWord"), False)
+    desc32.putBoolean(sID("ignoreAccents"), True)
+    desc31.putObject(sID("using"), sID("findReplace"), desc32)
+    app.executeAction(sID("findReplace"), desc31, ps.DialogModes.DisplayErrorDialogs)
 
 
 def paste_file(layer, file):
