@@ -66,9 +66,9 @@ class SymbolMapper:
         }
 
         # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
-        self.hybrid_color_map = self.color_map
+        self.hybrid_color_map = self.color_map.copy()
         self.hybrid_color_map['B'] = self.rgb_bh
-        self.hybrid_color_map_inner = self.color_map_inner
+        self.hybrid_color_map_inner = self.color_map_inner.copy()
         self.hybrid_color_map_inner['B'] = self.rgbi_bh
 
     def reload(self):
@@ -171,8 +171,8 @@ def determine_symbol_colors(symbol, symbol_length):
         return [
             sym.color_map[phyrexian_hybrid_match[2]],
             sym.color_map[phyrexian_hybrid_match[1]],
-            sym.color_map_inner[phyrexian_hybrid_match[2]],
-            sym.color_map_inner[phyrexian_hybrid_match[1]]
+            sym.color_map_inner[phyrexian_hybrid_match[1]],
+            sym.color_map_inner[phyrexian_hybrid_match[2]]
         ]
 
     # Hybrid
@@ -186,8 +186,8 @@ def determine_symbol_colors(symbol, symbol_length):
         return [
             color_map[hybrid_match[2]],
             color_map[hybrid_match[1]],
-            sym.color_map_inner[hybrid_match[2]],
-            sym.color_map_inner[hybrid_match[1]]
+            sym.color_map_inner[hybrid_match[1]],
+            sym.color_map_inner[hybrid_match[2]]
         ]
 
     # Normal mana symbol
@@ -264,11 +264,13 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
      chars should be italicised (where the card's flavor text begins)
      * @param {boolean} is_centered Whether or not the input text should be centre-justified
     """
+    # Is the active layer a text layer?
+    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
 
-    # record the layer's justification before modifying the layer in case it's reset along the way
+    # Record the layer's justification before modifying the layer in case it's reset along the way
     layer_justification = app.activeDocument.activeLayer.textItem.justification
 
-    # TODO: check that the active layer is a text layer, and raise an issue if not
+    # Check if the flavor text contains a quote
     if flavor_index > 0: quote_index = input_string.find("\r", flavor_index + 3)
     else: quote_index = 0
 
@@ -448,18 +450,18 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
-    if quote_index > 0:
-        # Adjust line break spacing if there's a line break in the flavor text
-        desc141 = ps.ActionDescriptor()
-        desc141.putInteger(idFrom, quote_index + 3)
-        idT = app.charIDToTypeID("T   ")
-        desc141.putInteger(idT, len(input_string))
-        desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-        desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        list13.putObject(idparagraphStyleRange, desc141)
-        primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        list14 = ps.ActionList()
-        primary_action_descriptor.putList(idkerningRange, list14)
+        if quote_index > 0:
+            # Adjust line break spacing if there's a line break in the flavor text
+            desc141 = ps.ActionDescriptor()
+            desc141.putInteger(idFrom, quote_index + 3)
+            idT = app.charIDToTypeID("T   ")
+            desc141.putInteger(idT, len(input_string))
+            desc142.putUnitDouble(idspaceBefore, idPnt, 0)
+            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
+            list13.putObject(idparagraphStyleRange, desc141)
+            primary_action_descriptor.putList(idparagraphStyleRange, list13)
+            list14 = ps.ActionList()
+            primary_action_descriptor.putList(idkerningRange, list14)
 
     # Optional, align last line to right
     if input_string.find('"\r—') > 0 and con.align_classic_quote:
@@ -533,6 +535,13 @@ def strip_reminder_text(oracle_text):
 
 
 def classic_align_right(primedesc, start, end):
+    """
+    Align the quote credit of --Name to the right like on some classic cards.
+    @param primedesc: Existing ActionDescriptor object
+    @param start: Starting index of the quote string
+    @param end: Ending index of the quote string
+    @return: Returns the existing ActionDescriptor with changes applied
+    """
     desc145 = ps.ActionDescriptor()
     list15 = ps.ActionList()
     idFrom = app.charIDtoTypeID("From")
@@ -552,5 +561,100 @@ def classic_align_right(primedesc, start, end):
     list15.putObject(idparagraphStyleRange, desc145)
     primedesc.putList(idparagraphStyleRange, list15)
     return primedesc
+
+
+def scale_text_right_overlap(layer, reference):
+    """
+    Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 24 px clearance from a reference layer's left bound.
+    @param layer: The text item layer to scale.
+    @param reference: Reference layer we need to avoid.
+    """
+    # Ensure a proper reference layer
+    contents = None
+    if not reference: return
+    if reference.kind is ps.LayerKind.TextLayer:
+        if reference.textItem.contents in ("", " "):
+            contents = reference.textItem.contents
+            reference.textItem.contents = "."
+    elif reference.bounds == [0, 0, 0, 0]:
+        return
+
+    # Can't find UnitValue object in python api
+    step_size = 0.25
+    reference_left_bound = reference.bounds[0]
+    layer_left_bound = layer.bounds[0]
+    layer_right_bound = layer.bounds[2]
+    old_size = layer.textItem.size
+
+    # Obtain proper spacing for this document size
+    spacing = int((app.activeDocument.width / 3264) * 60)
+
+    # Guard against the reference's left bound being left of the layer's left bound
+    if reference_left_bound >= layer_left_bound:
+        # Step down the font till it clears the reference
+        while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
+            layer.textItem.size = layer.textItem.size - step_size
+            layer_right_bound = layer.bounds[2]
+
+    # Shift baseline up to keep text centered vertically
+    if old_size > layer.textItem.size:
+        layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * 0.3)
+
+    # Fix corrected reference layer
+    if contents: reference.textItem.contents = contents
+
+
+def scale_text_to_fit_reference(layer, reference_layer):
+    """
+    Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
+    The resulting text layer will have equal font and lead sizes.
+    """
+    # Establish base variables, ensure a level of spacing at the margins
+    if reference_layer is None: return
+    spacing = int((app.activeDocument.width / 3264) * 60)
+    ref_height = psd.get_layer_dimensions(reference_layer)['height'] - spacing
+    font_size = layer.textItem.size
+    step_size = 0.25
+
+    # step down font and lead sizes by the step size, and update those sizes in the layer
+    while ref_height < psd.compute_text_layer_dimensions(layer)['height']:
+        font_size -= step_size
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+
+
+def vertically_align_text(layer, reference_layer):
+    """
+    Centers a given text layer vertically with respect to the bounding box of a reference layer.
+    """
+    ref_height = psd.get_layer_dimensions(reference_layer)['height']
+    lay_height = psd.compute_text_layer_dimensions(layer)['height']
+    bound_delta = reference_layer.bounds[1] - layer.bounds[1]
+    height_delta = ref_height - lay_height
+    layer.translate(0, bound_delta + height_delta / 2)
+
+
+def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
+    """
+    Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
+    determined by the given reference layers.
+    """
+    # Does the layer needs to be nudged?
+    if layer.bounds[2] >= reference_layer.bounds[0]:
+        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        app.activeDocument.activeLayer = layer_copy
+        psd.select_layer_pixels(reference_layer)
+        app.activeDocument.selection.invert()
+        app.activeDocument.selection.clear()
+
+        # Determine how much the rules text overlaps the power/toughness by
+        delta = top_reference_layer.bounds[3] - layer_copy.bounds[3]
+        if delta < 0: layer.translate(0, delta)
+
+        psd.clear_selection()
+        layer_copy.remove()
+
 
 sym = SymbolMapper()

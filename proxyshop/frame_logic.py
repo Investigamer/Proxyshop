@@ -20,11 +20,9 @@ def fix_color_pair(pair):
         con.layers['UR'],
         con.layers['RW']
     ]
-    for colorPair in color_pairs:
-        if pair.find(colorPair[0]) >= 0:
-            if pair.find(colorPair[1]) >= 0:
-                return colorPair
-    return None
+    if pair in color_pairs: return pair
+    elif pair[::-1] in color_pairs: return pair[::-1]
+    else: return None
 
 
 def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array, color_indicator):

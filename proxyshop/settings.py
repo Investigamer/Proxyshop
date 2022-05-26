@@ -17,6 +17,7 @@ class Singleton(type):
 		return cls._instances[cls]
 
 
+# Global app-wide settings configuration
 class Config:
 	"""
 	Build our config info
@@ -57,6 +58,7 @@ class Config:
 
 		# EXPERIMENTAL section
 		self.targeted_replace = self.file.getboolean('EXPERIMENTAL', 'Targeted.Replace')
+		self.flavor_divider = self.file.getboolean('EXPERIMENTAL', 'Flavor.Divider')
 
 	def update(self):
 		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(self.auto_symbol))
@@ -85,4 +87,5 @@ class Config:
 			self.file.read_file(file)
 		self.load()
 
+# Global settings object
 cfg = Config()

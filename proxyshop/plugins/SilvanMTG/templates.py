@@ -97,14 +97,12 @@ class SilvanMDFCBackTemplate (temp.NormalTemplate):
         self.tx_layers.extend([
             txt_layers.BasicFormattedTextField(
                 layer = right,
-                text_contents = self.layout.other_face_right,
-                text_color = psd.get_text_layer_color(right),
+                contents = self.layout.other_face_right
             ),
             txt_layers.ScaledTextField(
                 layer = left,
-                text_contents = self.layout.other_face_left,
-                text_color = psd.get_text_layer_color(left),
-                reference_layer = right,
+                contents = self.layout.other_face_left,
+                reference = right
             ),
         ])
 

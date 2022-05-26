@@ -181,7 +181,8 @@ class Console (BoxLayout):
         Log python exception.
         """
         cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
-        e = f"[{cur_time}]\n{e}\n"
+        e = f"[{cur_time}] Line: {e.__traceback__.tb_lineno}\n" \
+            f"{e.__traceback__.tb_frame.f_code.co_filename}: {e}\n"
         with open(os.path.join(cwd, "tmp/error.txt"), "a", encoding="utf-8") as log:
             log.write(e)
 

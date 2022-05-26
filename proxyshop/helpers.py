@@ -1,6 +1,7 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
+import _ctypes
 import os
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
@@ -13,33 +14,43 @@ sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
 NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
+# Ensure scaling with pixels, font size with points
+app.preferences.rulerUnits = ps.Units.Pixels
+app.preferences.typeUnits = ps.Units.Points
 
-def getLayer(name, group=None):
+
+def getLayer(name: str, group=None):
     """
     Retrieve layer object.
     @param name: Name of the layer
-    @param group: Parent group name or object.
+    @param group: Group name/object, or ordered list of group names/objects
     @return: Layer object requested
     """
+    layer_set = None
     if group is None:
-        # No set given
+        # No LayerSet given
         for layer in app.activeDocument.layers:
-            if layer.name == name:
-                return layer
-    else:
-        if isinstance(group, str):
-            # Set name given
-            layer_set = app.activeDocument.layerSets.getByName(group)
-            for layer in layer_set.layers:
-                if layer.name == name:
-                    return layer
-        else:
-            # Set object given
-            for layer in group.layers:
-                if layer.name == name:
-                    return layer
-    # None found
-    return None
+            if layer.name == name: return layer
+    elif isinstance(group, str):
+        # LayerSet name given
+        layer_set = app.activeDocument.layerSets.getByName(group)
+    elif isinstance(group, (tuple, list)):
+        # List of layerSet names/objects given
+        for g in group:
+            # First in list or not?
+            if not layer_set:
+                if isinstance(g, str): layer_set = app.activeDocument.layerSets.getByName(g)
+                else: layer_set = g
+            else:
+                if isinstance(g, str): layer_set = getLayerSet(g, layer_set)
+                else: layer_set = g
+    else: layer_set = group
+    # Else, assume layerSet object given
+
+    # Find our layer
+    for layer in layer_set.layers:
+        if layer.name == name:
+            return layer
 
 
 def getLayerSet(name, group=None):
@@ -62,7 +73,8 @@ def getLayerSet(name, group=None):
 
 def rgb_black():
     """
-    Creates and returns a Solidcolor with RGB values for solid black.
+    Creates a black SolidColor object.
+    @return: SolidColor object
     """
     color = ps.SolidColor()
     color.rgb.red = 0
@@ -73,7 +85,8 @@ def rgb_black():
 
 def rgb_grey():
     """
-    Creates and returns a Solidcolor with RGB values for solid black.
+    Creates a grey SolidColor object.
+    @return: SolidColor object.
     """
     color = ps.SolidColor()
     color.rgb.red = 170
@@ -84,7 +97,8 @@ def rgb_grey():
 
 def rgb_white():
     """
-    Creates and returns a Solidcolor with RGB values for solid white.
+    Creates a white SolidColor object.
+    @return: SolidColor object.
     """
     color = ps.SolidColor()
     color.rgb.red = 255
@@ -95,7 +109,11 @@ def rgb_white():
 
 def get_rgb(r, g, b):
     """
-    Creates and returns a SolidColor with RGB values given.
+    Creates a SolidColor object with the given RGB values.
+    @param r: Integer from 0 to 255 for red spectrum.
+    @param g: Integer from 0 to 255 for green spectrum.
+    @param b: Integer from 0 to 255 for blue spectrum.
+    @return: SolidColor object.
     """
     color = ps.SolidColor()
     color.rgb.red = r
@@ -113,13 +131,13 @@ def layer_bounds_no_effects(layer):
     current = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
     bounds = app.eval_javascript(
-        f"""app.activeDocument.activeLayer.boundsNoEffects"""
+        "app.activeDocument.activeLayer.boundsNoEffects"
     )
     app.activeDocument.activeLayer = current
     return [int(num) for num in bounds.replace(" px", "").split(",")]
 
 
-def layer_dimensions_no_effects(layer):
+def get_dimensions_no_effects(layer):
     """
     Compute the dimensions of a layer without its effects applied.
     @param layer: A layer object
@@ -132,9 +150,11 @@ def layer_dimensions_no_effects(layer):
     }
 
 
-def compute_layer_dimensions(layer):
+def get_layer_dimensions(layer):
     """
-    Return an object with the specified layer's width and height (computed from its bounds).
+    Compute the width and height dimensions of a layer.
+    @param layer: A layer object
+    @return dict: Height and width of the layer.
     """
     return {
         'width': layer.bounds[2]-layer.bounds[0],
@@ -149,7 +169,7 @@ def compute_text_layer_dimensions(layer):
     """
     layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
     layer_copy.rasterize(ps.RasterizeType.TextContents)
-    dimensions = compute_layer_dimensions(layer_copy)
+    dimensions = get_layer_dimensions(layer_copy)
     layer_copy.remove()
     return dimensions
 
@@ -158,7 +178,6 @@ def compute_text_layer_bounds(layer):
     """
     Return an object with the specified text layer's bounding box.
     """
-
     layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
     layer_copy.rasterize(ps.RasterizeType.TextContents)
     layer_bounds = layer.bounds
@@ -190,7 +209,7 @@ def clear_selection():
     app.activeDocument.selection.select([])
 
 
-def align(align_type):
+def align(align_type = "AdCH"):
     """
     Align the currently active layer to current selection, vertically or horizontally.
     Used with align_vertical() or align_horizontal().
@@ -198,19 +217,10 @@ def align(align_type):
     """
     desc = ps.ActionDescriptor()
     ref = ps.ActionReference()
-    ref.putEnumerated(
-        cID("Lyr "),
-        cID("Ordn"),
-        cID("Trgt"))
+    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
     desc.putReference(cID("null"), ref)
-    desc.putEnumerated(
-        cID("Usng"),
-        cID("ADSt"),
-        cID(align_type))
-    app.executeAction(
-        cID("Algn"),
-        desc,
-        ps.DialogModes.DisplayNoDialogs)
+    desc.putEnumerated(cID("Usng"), cID("ADSt"), cID(align_type))
+    app.executeAction(cID("Algn"), desc, NO_DIALOG)
 
 
 def align_vertical():
@@ -232,13 +242,16 @@ def frame_layer(layer, reference_layer):
     Scale a layer equally to the bounds of a reference layer, then centre the layer vertically and horizontally
     within those bounds.
     """
-    layer_dimensions = compute_layer_dimensions(layer)
-    reference_dimensions = compute_layer_dimensions(reference_layer)
+    # Get layer and reference dimensions
+    layer_dimensions = get_layer_dimensions(layer)
+    reference_dimensions = get_layer_dimensions(reference_layer)
 
     # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    scale_factor = 100 * max(reference_dimensions['width'] / layer_dimensions['width'], reference_dimensions['height'] / layer_dimensions['height'])
+    scale_factor = 100 * max(reference_dimensions['width'] / layer_dimensions['width'],
+                             reference_dimensions['height'] / layer_dimensions['height'])
     layer.resize(scale_factor, scale_factor, ps.AnchorPosition.TopLeft)
 
+    # Align the layer
     select_layer_pixels(reference_layer)
     app.activeDocument.activeLayer = layer
     align_horizontal()
@@ -246,21 +259,23 @@ def frame_layer(layer, reference_layer):
     clear_selection()
 
 
-def frame_expansion_symbol(layer, reference_layer, centered):
+def frame_expansion_symbol(layer, reference_layer, centered = False):
     """
     Scale a layer equally to the bounds of a reference layer, then centre the layer vertically and horizontally
     within those bounds.
     """
-    layer_dimensions = compute_layer_dimensions(layer)
-    reference_dimensions = compute_layer_dimensions(reference_layer)
+    # Get layer and reference dimensions
+    layer_dimensions = get_layer_dimensions(layer)
+    reference_dimensions = get_layer_dimensions(reference_layer)
 
     # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    scale_factor = 100 * min(reference_dimensions['width'] / layer_dimensions['width'], reference_dimensions['height'] / layer_dimensions['height'])
+    scale_factor = 100 * min(reference_dimensions['width'] / layer_dimensions['width'],
+                             reference_dimensions['height'] / layer_dimensions['height'])
     layer.resize(scale_factor, scale_factor, ps.AnchorPosition.MiddleRight)
 
+    # Frame the layer
     select_layer_pixels(reference_layer)
     app.activeDocument.activeLayer = layer
-
     if centered: align_horizontal()
     align_vertical()
     clear_selection()
@@ -273,13 +288,10 @@ def set_active_layer_mask(visible=True):
     desc3078 = ps.ActionDescriptor()
     desc3079 = ps.ActionDescriptor()
     ref1567 = ps.ActionReference()
-    idLyr = cID("Lyr ")
-    ref1567.putEnumerated(idLyr,
-        cID("Ordn"),
-        cID("Trgt"))
+    ref1567.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
     desc3078.putReference(cID("null"), ref1567)
     desc3079.putBoolean(cID("UsrM"), visible)
-    desc3078.putObject(cID("T   "), idLyr, desc3079)
+    desc3078.putObject(cID("T   "), cID("Lyr "), desc3079)
     app.executeAction(cID("setd"), desc3078, ps.DialogModes.DisplayNoDialogs)
 
 
@@ -367,6 +379,7 @@ def close_document():
 def reset_document(filename):
     """
     Reset all changes to the current document
+    @param filename: Document file name
     """
     idslct = cID("slct")
     desc9 = ps.ActionDescriptor()
@@ -382,18 +395,20 @@ def get_text_layer_color(layer):
     """
     Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
     against errors and null values by defaulting to rgb_black() in the event of a problem.
+    @param layer: Layer object that must be TextLayer
     """
     try:
-        text_layer_color = layer.textItem.color
-        if text_layer_color is None: text_layer_color = rgb_black()
-    except:
-        text_layer_color = rgb_black()
-    return text_layer_color
+        if layer.kind == ps.LayerKind.TextLayer:
+            return layer.textItem.color
+        else: return rgb_black()
+    except _ctypes.COMError: return rgb_black()
 
 
 def create_new_layer(layer_name=None):
     """
     Creates a new layer below the currently active layer. The layer will be visible.
+    @param layer_name: Optional name for the new layer
+    @return: Newly created layer object
     """
     if layer_name is None: layer_name = "Layer"
 
@@ -415,6 +430,9 @@ def create_new_layer(layer_name=None):
 def replace_text(layer, find, replace):
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
+    @param layer: Layer object to search through.
+    @param find: Text string to search for.
+    @param replace: Text string to replace matches with.
     """
     app.activeDocument.activeLayer = layer
 
@@ -443,24 +461,28 @@ def replace_text(layer, find, replace):
 def paste_file(layer, file):
     """
     Pastes the given file into the specified layer.
+    @param layer: Layer object to paste the image into.
+    @param file: Filepath of the image to open.
     """
+    # Select the correct layer, then load the file
     prev_active_layer = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
     app.load(file)
-    # note context switch to art file
+
+    # Select the entire image, copy it, and close the file
     app.activeDocument.selection.selectAll()
     app.activeDocument.selection.copy()
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
-    # note context switch back to template
-    app.activeDocument.paste()
 
-    # return document to previous state
+    # Paste the image into the specific layer, then switch back
+    app.activeDocument.paste()
     app.activeDocument.activeLayer = prev_active_layer
 
 
 def paste_file_into_new_layer(file):
     """
-    Wrapper for paste_file which creates a new layer for the file next to the active layer. Returns the new layer.
+    Wrapper for paste_file which creates a new layer for the file next to the active layer.
+    Returns the new layer.
     """
     new_layer = create_new_layer("New Layer")
     paste_file(new_layer, file)
@@ -469,7 +491,8 @@ def paste_file_into_new_layer(file):
 
 def insert_scryfall_scan(image_url):
     """
-    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer. Returns the new layer.
+    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
+    Returns the new layer.
     """
     scryfall_scan = card_scan(image_url)
     if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
@@ -482,7 +505,7 @@ def content_fill_empty_area():
     This script rasterizes the active layer and fills all empty pixels in the canvas
     on the layer using content-aware fill.
     """
-    # select pixels of active layer
+    # Select pixels of active layer
     desc307 = ps.ActionDescriptor()
     ref257 = ps.ActionReference()
     ref257.putProperty(cID("Chnl"), cID("fsel"))
@@ -493,18 +516,18 @@ def content_fill_empty_area():
     desc307.putReference(cID("T   "), ref258)
     app.executeAction(cID("setd"), desc307, NO_DIALOG)
 
-    # rasterise
+    # Rasterize
     docRef = app.activeDocument
     active_layer = docRef.activeLayer
     active_layer.rasterize(ps.RasterizeType.EntireLayer)
 
-    # manipulate selection - invert, expand 8px, smooth 4px
+    # Manipulate selection - invert, expand 8px, smooth 4px
     selection = docRef.selection
     selection.invert()
     selection.expand(10)
     selection.smooth(4)
 
-    # content aware fill
+    # Content aware fill
     desc12 = ps.ActionDescriptor()
     desc12.putEnumerated(cID("Usng"), cID("FlCn"), sID("contentAware"))
     desc12.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
@@ -515,7 +538,9 @@ def content_fill_empty_area():
 
 def apply_vibrant_saturation(VibValue, SatValue):
     """
-    Experimental scoot action
+    Experimental scoot action to add vibrancy and saturation.
+    @param VibValue: Vibrancy level integer
+    @param SatValue: Saturation level integer
     """
     # dialogMode (Have dialog popup?)
     idvibrance = sID("vibrance")
@@ -525,15 +550,16 @@ def apply_vibrant_saturation(VibValue, SatValue):
     app.executeAction(idvibrance, desc232, ps.DialogModes.DisplayNoDialogs)
 
 
-def fill_expansion_symbol(reference, stroke_color=rgb_black()):
+def fill_expansion_symbol(reference, color=rgb_black()):
     """
     Give the symbol a background for open space symbols (i.e. M10)
+    @param reference: Reference layer to put the new fill layer underneath
+    @param color: Color of the background fill
     """
-
     # Magic Wand contiguous outside symbol
     coords = ps.ActionDescriptor()
-    coords.putUnitDouble(cID("Hrzn"),cID("#Pxl"), 100)
-    coords.putUnitDouble(cID("Vrtc"),cID("#Pxl"), 100)
+    coords.putUnitDouble(cID("Hrzn"), cID("#Pxl"), 100)
+    coords.putUnitDouble(cID("Vrtc"), cID("#Pxl"), 100)
     click1 = ps.ActionDescriptor()
     ref1 = ps.ActionReference()
     ref1.putProperty(cID("Chnl"), cID("fsel"))
@@ -565,7 +591,7 @@ def fill_expansion_symbol(reference, stroke_color=rgb_black()):
     layer.moveAfter(reference)
 
     # Fill selection with stroke color
-    app.foregroundColor = stroke_color
+    app.foregroundColor = color
     click3 = ps.ActionDescriptor()
     click3.putObject(cID("From"), cID("Pnt "), coords)
     click3.putInteger(cID("Tlrn"), 0)
