@@ -1,0 +1,18 @@
+{
+  "Normal": {
+    "Silvan Extended": {
+      "file": "extended.psd",
+      "id": "12qSjPe7W5obNWGz0H828rR8rSn9O2Kby"
+    }
+  },
+  "MDFC": {
+    "Silvan Extended Front": {
+      "file": "extended-mdfc-front.psd",
+      "id": "1ALesKmMQ_1icVr5gF4nsaVFsHsmdemar"
+    },
+    "Silvan Extended Back": {
+      "file": "extended-mdfc-back.psd",
+      "id": "1XTuL2i2eFXxIy1kuoagbX6m6xQVVRd0j"
+    }
+  }
+}

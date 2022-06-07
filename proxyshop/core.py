@@ -5,11 +5,13 @@ import os
 import re
 import sys
 import json
+import pydrive2.auth
 from glob import glob
 from pathlib import Path
-from datetime import datetime as dt
 from importlib import util, import_module
-from proxyshop.settings import cfg
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+from proxyshop.constants import con
 cwd = os.getcwd()
 
 # Card types with more than 1 template
@@ -79,12 +81,12 @@ def get_templates():
         main_json = {}
         for key, val in this_json.items():
             main_json[key] = {}
-            for k,v in val.items():
-                main_json[key][k] = [None,v]
+            for k, v in val.items():
+                main_json[key][k] = [None, v]
 
     # Iterate through folders
     for folder in folders:
-        if Path(folder).stem == "__pycache__": pass
+        if Path(folder).stem == "__pycache__": continue
         else:
             j = []
             for name in os.listdir(folder):
@@ -163,37 +165,235 @@ def retrieve_card_info (filename):
     }
 
 
-def handle(text, card=None, template=None):
+"""
+UPDATE FUNCTIONS
+"""
+
+
+def check_for_updates():
     """
-    Handle error messages smoothly
+    Check our app manifest for base template updates.
+    Also check any plugins for an update manifest.
+    @return: Dict containing base temps and plugins temps needing updates.
     """
-    if card:
-        from proxyshop import helpers as psd
-        # Log the failure
-        time = dt.now().strftime("%m/%d/%Y %H:%M")
-        if template: log_text = f"{card} ({template}) [{time}]\n"
-        else: log_text = f"{card} [{time}]\n"
-        with open(os.path.join(cwd, "tmp/failed.txt"), "a", encoding="utf-8") as log:
-            log.write(log_text)
+    # Base vars
+    updates = {}
 
-        # Auto skip
-        if cfg.skip_failed:
-            print(f"{text}\nI've saved {card} to the Failed.txt log.\n")
-            return True
+    # Base app manifest
+    with open("proxyshop/manifest.json", encoding="utf-8") as f:
+        for cat, temps in json.load(f).items():
+            for name, temp in temps.items():
 
-        # Ask user if we should continue?
-        choice = input(f"{text}\nI've saved {card} to the Failed.txt log.\nContinue to the next card? (y/n)\n")
-        while True:
-            if choice == "y":
-                print("")
-                return True
-            if choice == "n":
-                psd.close_document()
-                sys.exit()
-            choice = input("No, seriously should I continue or not?\n")
+                # Is the ID valid?
+                if temp['id'] in ("", None, 0): continue
 
-    input(f"{text}\nPress enter to exit...")
-    sys.exit()
+                # Add important data to our temp dict
+                temp['type'] = cat
+                temp['name'] = name
+                temp['plugin'] = None
+                temp['manifest'] = os.path.join(cwd, 'proxyshop/manifest.json')
+
+                # Does this template need an update?
+                file = version_check(temp)
+                if file:
+                    if cat not in updates: updates[cat] = [file]
+                    else: updates[cat].append(file)
+
+    # Get plugin manifests
+    plugins = []
+    folders = glob(os.path.join(cwd, "proxyshop\\plugins\\*\\"))
+    for folder in folders:
+        if Path(folder).stem == "__pycache__": continue
+        elif 'manifest.json' in os.listdir(folder):
+            plugins.append({
+                'name': Path(folder).stem,
+                'path': os.path.join(folder, "manifest.json")
+            })
+
+    # Check the manifest of each plugin
+    for plug in plugins:
+        with open(plug['path'], encoding="utf-8") as f:
+            for cat, temps in json.load(f).items():
+                for name, temp in temps.items():
+
+                    # Is the ID valid?
+                    if temp['id'] in ("", None, 0): continue
+
+                    # Add important data to our temp dict
+                    temp['type'] = cat
+                    temp['name'] = name
+                    temp['plugin'] = plug['name']
+                    temp['manifest'] = plug['path']
+
+                    # Does this template need an update?
+                    file = version_check(temp, plug['name'])
+                    if file:
+                        if cat not in updates: updates[cat] = [file]
+                        else: updates[cat].append(file)
+
+    # Return dict of templates needing updates
+    return updates
+
+
+def version_check(temp, plugin = None):
+    """
+    Check if a given file is up-to-date based on the live file metadata.
+    @param temp: Template info from the manifest
+    @param plugin: Plugin name string
+    @return: True if it needs an update, False if it doesn't
+    """
+    # Get our current version
+
+    # Get our basic metadata dict
+    data = gdrive_metadata(temp['id'])
+    plugin_path = f"{plugin}/" if plugin else ""
+    full_path = os.path.join(cwd, f"templates/{plugin_path}{temp['file']}")
+    if 'description' not in data: data['description'] = "v1.0.0"
+    elif data['description'] == "": data['description'] = "v1.0.0"
+    current = get_current_version(temp['id'], full_path)
+
+    # Build our return
+    file = {
+        'id': data['id'],
+        'name': temp['name'],
+        'type': temp['type'],
+        'filename': data['title'],
+        'path': full_path,
+        'manifest': temp['manifest'],
+        'plugin': temp['plugin'],
+        'version_old': current,
+        'version_new': data['description'],
+        'size': data['fileSize']
+    }
+
+    # Yes update if file has never been downloaded
+    if not file['version_old']: return file
+
+    # No update if version is still FIRST version
+    if file['version_new'] in ("v1", "v1.0", "v1.0.0", "1", "1.0", "1.0.0", ""): return None
+
+    # Update if version doesn't match
+    if file['version_old'] != file['version_new']: return file
+    else: return None
+
+
+def get_current_version(id, path):
+    """
+    Checks the current on-file version of this template.
+    If the file is present, but no version tracked, fill in default.
+    @param id: Google Drive file ID
+    @param path: Path to the template PSD
+    @return: The current version, or None if not on-file
+    """
+    # Is it logged in the tracker?
+    if id in con.versions:
+        version = con.versions[id]
+    else: version = None
+
+    # Is the file available?
+    if os.path.exists(path):
+        if version: return version
+        else:
+            version = "v1.0.0"
+            con.versions[id] = version
+    else:
+        if version:
+            version = None
+            del con.versions[id]
+        else: return None
+
+    # Update the tracker
+    con.update_version_tracker()
+    return version
+
+
+def update_template(temp, callback):
+    """
+    Update a given template to the latest version.
+    @param temp: Dict containing template information.
+    @param callback: Callback method to update progress bar.
+    """
+    # Download using authorization?
+    version = gdrive_download(temp['id'], temp['path'], callback)
+
+    # Change the version to match the new version
+    con.versions[temp['id']] = temp['version_new']
+    con.update_version_tracker()
+
+
+def gdrive_metadata(file_id):
+    """
+    Get the metadata of a given template file.
+    @param file_id: ID of the Google Drive file
+    @return: Dict of metadata
+    """
+    # Try to authenticate the user
+    drive = authenticate_user()
+    file = drive.CreateFile({'id': file_id})
+    file.FetchMetadata(fetch_all=True)
+    return file.metadata
+
+
+def gdrive_download(file_id, path, callback):
+    """
+    Authenticate the user, download the file, return the new version.
+    @param file_id: Google Drive ID of the file
+    @param path: Path to save the file
+    @param callback: Callback method for updating progress
+    @return: String containing new version
+    """
+    # Try to authenticate the user
+    drive = authenticate_user()
+    if not drive: return None
+
+    # Set up the file info
+    file = drive.CreateFile({'id': file_id})
+    file.FetchMetadata()
+
+    # Return None if no description info
+    if 'description' not in file.metadata:
+        file.metadata['description'] = "v1.0.0"
+
+    # Download the file
+    chunk = int(file.metadata['fileSize']) / 20
+    file.GetContentFile(path, callback=callback, chunksize=chunk)
+    return file.metadata['description']
+
+
+def authenticate_user():
+    """
+    Create a GoogleDrive object using on-file gauth token or create
+    a new one by getting permission from the user.
+    @return: GoogleDrive object to use for downloads.
+    """
+    # Create gauth file if doesn't exist yet
+    try:
+        if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")):
+            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w') as fp:
+                fp.write("")
+
+        # Authenticate, fetch file and metadata
+        auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"), http_timeout=5)
+        auth.LocalWebserverAuth()
+        return GoogleDrive(auth)
+
+    except pydrive2.auth.AuthenticationRejected: return None
+    except pydrive2.auth.AuthenticationError: return None
+
+
+def check_for_authentication():
+    """
+    Check if the user has been authenticated.
+    """
+    if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")): return False
+    with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'r') as fp:
+        lines = fp.read()
+        if len(lines) > 0: return True
+        else: return False
+
+"""
+SYSTEM FUNCTIONS
+"""
 
 
 def exit_app():

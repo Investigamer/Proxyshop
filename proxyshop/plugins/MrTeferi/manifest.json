@@ -1,0 +1,32 @@
+{
+	"Normal": {
+		"Sketch": {
+			"file": "sketch.psd",
+			"id": ""
+		},
+		"Male MPC": {
+			"file": "male-mpc.psd",
+			"id": ""
+		},
+		"Kaldheim": {
+			"file": "kaldheim.psd",
+			"id": ""
+		},
+		"Phyrexian": {
+			"file": "phyrexian.psd",
+			"id": ""
+		},
+		"Colorshifted": {
+			"file": "colorshifted.psd",
+			"id": ""
+		},
+		"Crimson Fang": {
+			"file": "crimson-fang.psd",
+			"id": ""
+		},
+		"Double Feature": {
+			"file": "double-feature.psd",
+			"id": ""
+		}
+	}
+}

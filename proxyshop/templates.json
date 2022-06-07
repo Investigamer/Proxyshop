@@ -4,7 +4,7 @@
 		"Classic": "NormalClassicTemplate",
 		"Fullart": "NormalFullartTemplate",
 		"Extended": "NormalExtendedTemplate",
-		"Invention": "InventionTemplate",
+		"Invention Bronze": "InventionTemplate",
 		"Invention Silver": "InventionSilverTemplate",
 		"Stargazing": "StargazingTemplate",
 		"Expedition": "ExpeditionTemplate",
@@ -18,14 +18,14 @@
 	"transform_back": {
 		"Normal": "TransformBackTemplate"
 	},
-	"ixalan": {
-		"Normal": "IxalanTemplate"
-	},
 	"mdfc_front": {
 		"Normal": "MDFCFrontTemplate"
 	},
 	"mdfc_back": {
 		"Normal": "MDFCBackTemplate"
+	},
+	"ixalan": {
+		"Normal": "IxalanTemplate"
 	},
 	"mutate": {
 		"Normal": "MutateTemplate"

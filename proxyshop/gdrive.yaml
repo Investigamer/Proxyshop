@@ -1,0 +1,12 @@
+client_config_backend: settings
+client_config:
+  client_id: 1035022752245-8eqg138vlimg4u9outiq0ilethdmgcli.apps.googleusercontent.com
+  client_secret: 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
+
+save_credentials: True
+save_credentials_backend: file
+save_credentials_file: proxyshop/gauth.json
+
+get_refresh_token: True
+oauth_scope:
+  - https://www.googleapis.com/auth/drive.readonly

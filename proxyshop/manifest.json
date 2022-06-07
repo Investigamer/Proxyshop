@@ -1,0 +1,170 @@
+{
+    "Normal": {
+        "Normal": {
+            "file": "normal.psd",
+            "id": "1JNOzvuzcX3HayKJG34d_vs8KnG7GrHU1"
+        },
+        "Classic": {
+            "file": "normal-classic.psd",
+            "id": ""
+        },
+        "Fullart": {
+            "file": "normal-fullart.psd",
+            "id": ""
+        },
+        "Extended": {
+            "file": "normal-extended.psd",
+            "id": ""
+        },
+        "Invention": {
+            "file": "masterpiece.psd",
+            "id": ""
+        },
+        "Stargazing": {
+            "file": "stargazing.psd",
+            "id": "12xhxqIVeHnaBrGURrxwmFAsfUS4t0rO9"
+        },
+        "Expedition": {
+            "file": "znrexp.psd",
+            "id": ""
+        },
+        "Womens Day": {
+            "file": "womensday.psd",
+            "id": ""
+        },
+        "Miracle": {
+            "file": "miracle.psd",
+            "id": ""
+        },
+        "Snow": {
+            "file": "snow.psd",
+            "id": "1KTvgxYg0wS8YuLDoVjt37-0HaEMhZKvH"
+        }
+    },
+    "Transform": {
+        "Normal Front": {
+            "file": "tf-front.psd",
+            "id": ""
+        },
+        "Normal Back": {
+            "file": "tf-back.psd",
+            "id": "1QCwNqHRphAcFLw1RDf_rUwef_jRxKA9Q"
+        }
+    },
+    "MDFC": {
+        "Normal Front": {
+            "file": "mdfc-front.psd",
+            "id": ""
+        },
+        "Normal Back": {
+            "file": "mdfc-back.psd",
+            "id": ""
+        }
+    },
+    "Ixalan": {
+        "Normal": {
+            "file": "ixalan.psd",
+            "id": "1fUzdplOAzejAcd32w7rR2LZDb2Qc-sbV"
+        }
+    },
+    "Mutate": {
+        "Normal": {
+            "file": "mutate.psd",
+            "id": ""
+        }
+    },
+    "Adventure": {
+        "Normal": {
+            "file": "adventure.psd",
+            "id": "1ju9-bJVeYoZLpP2-Y2xoA71xnCd2H5SG"
+        }
+    },
+    "Leveler": {
+        "Normal": {
+            "file": "leveler.psd",
+            "id": ""
+        }
+    },
+    "Saga": {
+        "Normal": {
+            "file": "saga.psd",
+            "id": ""
+        }
+    },
+    "Miracle": {
+        "Normal": {
+            "file": "miracle.psd",
+            "id": ""
+        }
+    },
+    "Planeswalker": {
+        "Normal": {
+            "file": "pw.psd",
+            "id": ""
+        },
+        "Extended": {
+            "file": "pw-extended.psd",
+            "id": ""
+        }
+    },
+    "Planeswalker TF": {
+        "Normal Front": {
+            "file": "pw-tf-front.psd",
+            "id": ""
+        },
+        "Normal Back": {
+            "file": "pw-tf-back.psd",
+            "id": ""
+        },
+        "Extended Front": {
+            "file": "pw-tf-front-extended.psd",
+            "id": ""
+        },
+        "Extended Back": {
+            "file": "pw-tf-back-extended.psd",
+            "id": ""
+        }
+    },
+    "Planeswalker MDFC Front": {
+        "Normal Front": {
+            "file": "pw-mdfc-front.psd",
+            "id": ""
+        },
+        "Normal Back": {
+            "file": "pw-mdfc-back.psd",
+            "id": ""
+        },
+        "Extended Front": {
+            "file": "pw-mdfc-front-extended.psd",
+            "id": ""
+        },
+        "Extended Back": {
+            "file": "pw-mdfc-back-extended.psd",
+            "id": ""
+        }
+    },
+    "Basic Land": {
+        "Normal": {
+            "file": "basic.psd",
+            "id": "1mxkLM9Y_ubwnzpebIpYVAVOFArGezVFj"
+        },
+        "Classic": {
+            "file": "basic-classic.psd",
+            "id": "10e7c4-ar_w0cv11-7KcFoq6MGXYb8N9x"
+        },
+        "Theros": {
+            "file": "basic-theros.psd",
+            "id": "1HnoctB_iWvQawkEYjGwfupdAK3qhVdDO"
+        },
+        "Unstable": {
+            "file": "basic-unstable.psd",
+            "id": "141JNEiPJEG2FVMosUuNSamwQ_AMGphY7"
+        }
+    },
+    "Planar": {
+        "Normal": {
+            "file": "planar.psd",
+            "id": "12AMv1vsaG0WGHYa1MgQoDLynnQzhR3DU"
+        }
+    }
+}
