@@ -65,7 +65,6 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Modern style cards, normal and extended; transform and mdfc, front and back; basic lands, normal, Theros, and Unstable styles; planeswalkers, normal and extended; mutate, adventure, miracle, and snow cards; and various flavours of fancy frames - stargazing, universes beyond, masterpiece, ZNE expedition, and womensday.
 * Leveler and saga cards require manual intervention to position text layers, but are automated up until that point.
 * Planeswalkers also require manual intervention to position text layers and the ragged textbox divider, but are automated up until that point.
-* Flavor text divider is not supported, as rules text & flavour text are formatted in the same text layer, thus far it seems impractical to position the flavor text divider programmatically.
 
 # Google Drive Privacy Policy
 Proxyshop does not collect any information from uers, period.
