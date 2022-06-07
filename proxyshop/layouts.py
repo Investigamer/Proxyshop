@@ -26,6 +26,7 @@ class BasicLand:
         self.card_class = con.basic_class
         self.collector_number = None
         self.card_count = None
+        self.lang = cfg.lang.upper()
 
         # Optional vars
         if artist: self.artist = artist
@@ -68,6 +69,7 @@ class BaseLayout:
         self.rarity_letter = self.rarity[0:1].upper()
         self.artist = self.scryfall['artist']
         self.color_identity = self.scryfall['color_identity']
+        self.lang = self.scryfall['lang']
 
         # Prepare set code
         self.set = self.scryfall['set'].upper()
@@ -84,9 +86,9 @@ class BaseLayout:
         if 'card_count' not in scryfall:
             # Get set info to find card count
             self.mtgset = scry.set_info(self.scryfall['set'])
-            try: self.card_count = self.mtgset['printed_size']
+            try: self.card_count = self.mtgset['data']['baseSetSize']
             except KeyError or TypeError:
-                try: self.card_count = self.mtgset['card_count']
+                try: self.card_count = self.mtgset['data']['totalSetSize']
                 except KeyError or TypeError: self.card_count = ""
             if len(str(self.card_count)) == 2:
                 self.card_count = "0" + str(self.card_count)
@@ -95,6 +97,7 @@ class BaseLayout:
             elif len(str(self.card_count)) == 0:
                 self.card_count = None
         else: self.card_count = scryfall['card_count']
+        del self.mtgset
 
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
