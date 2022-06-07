@@ -2,31 +2,37 @@
 	"Normal": {
 		"Sketch": {
 			"file": "sketch.psd",
-			"id": ""
+			"id": "1LxhqeaFFYBPcEAC1kJ2W94lzeTYry19w"
 		},
 		"Male MPC": {
 			"file": "male-mpc.psd",
-			"id": ""
+			"id": "1YYQpLqZJAHnseNZMX6NLUvqf3jhXQ8wy"
 		},
 		"Kaldheim": {
 			"file": "kaldheim.psd",
-			"id": ""
+			"id": "1f0ouLgnpOSBXUuj5mvEPT1zeGPJp57Uu"
 		},
 		"Phyrexian": {
 			"file": "phyrexian.psd",
-			"id": ""
+			"id": "1whyaQCE3o3mO1k9omJwFIH0jX7RE4Xub"
 		},
 		"Colorshifted": {
 			"file": "colorshifted.psd",
-			"id": ""
+			"id": "1NjOmqY8xg_lRZ91dlutFQTgWMgytQ6F_"
 		},
 		"Crimson Fang": {
 			"file": "crimson-fang.psd",
-			"id": ""
+			"id": "1cSsy5MosXFsSbxPnJT0SXldZ5IZtokm3"
 		},
 		"Double Feature": {
 			"file": "double-feature.psd",
-			"id": ""
+			"id": "1AeGmIpKqjqNEQK8r33JXnYsoMgEepuHc"
+		}
+	},
+	"Basic Land": {
+		"Dark Mode": {
+			"file": "basic-dark-mode.psd",
+			"id": "1LPOhN4hVYkvYbn26XeSn_YBQ2p9gB3JV"
 		}
 	}
 }

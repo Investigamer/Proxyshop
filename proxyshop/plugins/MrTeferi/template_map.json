@@ -14,5 +14,8 @@
 	},
 	"transform_back": {
 		"Crimson Fang": "CrimsonFangTemplate"
+	},
+	"basic": {
+		"Dark Mode": "BasicLandDarkMode"
 	}
 }

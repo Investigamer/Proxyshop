@@ -6,19 +6,19 @@
         },
         "Classic": {
             "file": "normal-classic.psd",
-            "id": ""
+            "id": "1XqoqfopB-euMNkZ461n5Z9Z0h0zq0tw1"
         },
         "Fullart": {
             "file": "normal-fullart.psd",
-            "id": ""
+            "id": "15KLVbd9U5klYUNu6ULG0q2xcAavUoV5y"
         },
         "Extended": {
             "file": "normal-extended.psd",
-            "id": ""
+            "id": "1pROEod7I37syF7lFLP3j9DP4PTgcE-bc"
         },
         "Invention": {
             "file": "masterpiece.psd",
-            "id": ""
+            "id": "1mijGQdeavb_JUyTmxEEYToJER4KrBDQe"
         },
         "Stargazing": {
             "file": "stargazing.psd",
@@ -26,15 +26,15 @@
         },
         "Expedition": {
             "file": "znrexp.psd",
-            "id": ""
+            "id": "1d40Xy5KrmC1OZf-8AfkU7DSlKnPrWr2y"
         },
         "Womens Day": {
             "file": "womensday.psd",
-            "id": ""
+            "id": "1Wld2GJu9w9NX77gFzHeLseELeaCaDfqE"
         },
         "Miracle": {
             "file": "miracle.psd",
-            "id": ""
+            "id": "10LdT7M46ek7Kkz3Cnj19_wtGGZi6f4se"
         },
         "Snow": {
             "file": "snow.psd",
@@ -44,7 +44,7 @@
     "Transform": {
         "Normal Front": {
             "file": "tf-front.psd",
-            "id": ""
+            "id": "1F44D7_CKrXLAV4yzTi_HLO9bsUAgDzgX"
         },
         "Normal Back": {
             "file": "tf-back.psd",
@@ -54,11 +54,11 @@
     "MDFC": {
         "Normal Front": {
             "file": "mdfc-front.psd",
-            "id": ""
+            "id": "1qND_rcc2FuV3mXDb1Sh9qZ2fNG_PEdqP"
         },
         "Normal Back": {
             "file": "mdfc-back.psd",
-            "id": ""
+            "id": "1LePVD7a9tZRmxIEFL2V1g6K29AvRErQ_"
         }
     },
     "Ixalan": {
@@ -70,7 +70,7 @@
     "Mutate": {
         "Normal": {
             "file": "mutate.psd",
-            "id": ""
+            "id": "1HSR4-p1Vc536MplMMonPiL5lehM-cSGo"
         }
     },
     "Adventure": {
@@ -82,65 +82,59 @@
     "Leveler": {
         "Normal": {
             "file": "leveler.psd",
-            "id": ""
+            "id": "1LvR7HtFFvelR4rZ9vaXxB5SWN0XnFWMg"
         }
     },
     "Saga": {
         "Normal": {
             "file": "saga.psd",
-            "id": ""
-        }
-    },
-    "Miracle": {
-        "Normal": {
-            "file": "miracle.psd",
-            "id": ""
+            "id": "1TvkJtYxUOuI1RJm3mTEgbTuHyAo3296f"
         }
     },
     "Planeswalker": {
         "Normal": {
             "file": "pw.psd",
-            "id": ""
+            "id": "1uo5U1pF718KBjwcpqoG4EdZn0bW6v5-s"
         },
         "Extended": {
             "file": "pw-extended.psd",
-            "id": ""
+            "id": "1wdYl1Osh3gH61YxnlwogYzwTfrl5fObZ"
         }
     },
     "Planeswalker TF": {
         "Normal Front": {
             "file": "pw-tf-front.psd",
-            "id": ""
+            "id": "1lE7W7N1N23kzRHB9QJ9JbFrxL6lgbfHk"
         },
         "Normal Back": {
             "file": "pw-tf-back.psd",
-            "id": ""
+            "id": "1uynDELGeS6O8b9kpV_REug2TMdpoPFBp"
         },
         "Extended Front": {
             "file": "pw-tf-front-extended.psd",
-            "id": ""
+            "id": "1hnZF7p9QFIQdqDQ0M70Aprq1nd2VgvbI"
         },
         "Extended Back": {
             "file": "pw-tf-back-extended.psd",
-            "id": ""
+            "id": "1E12RHvaOqxgztcIPyh-KT_-DhfksiRUQ"
         }
     },
     "Planeswalker MDFC Front": {
         "Normal Front": {
             "file": "pw-mdfc-front.psd",
-            "id": ""
+            "id": "1ikAvX-w3gAVdVaGvushmNIIQ0PDL7Kc9"
         },
         "Normal Back": {
             "file": "pw-mdfc-back.psd",
-            "id": ""
+            "id": "1w6mHJlLT5XoMpRZkVu_6GjugsQGeuMGA"
         },
         "Extended Front": {
             "file": "pw-mdfc-front-extended.psd",
-            "id": ""
+            "id": "1CJ-dqm8-MORpx8heqwI9KeYmviv8JugE"
         },
         "Extended Back": {
             "file": "pw-mdfc-back-extended.psd",
-            "id": ""
+            "id": "1l7RCA7hGikzl1xC5XKmzl0vkBBCED3Ea"
         }
     },
     "Basic Land": {

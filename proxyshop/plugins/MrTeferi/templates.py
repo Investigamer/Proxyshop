@@ -234,3 +234,17 @@ class ColorshiftedTemplate (temp.NormalTemplate):
         elif "Land" in self.layout.type_line:
             if self.is_legendary: psd.getLayer("Legendary Land", "Twins").visible = True
             else: psd.getLayer("Normal Land", "Twins").visible = True
+
+
+"""
+BASIC LAND TEMPLATES
+"""
+
+
+class BasicLandDarkMode (temp.BasicLandTemplate):
+    """
+    Basic land Dark Mode
+    Credit to Vittorio Masia
+    """
+    def template_file_name(self): return "basic-dark-mode"
+    def template_suffix(self): return f"Dark - {self.layout.artist}"
