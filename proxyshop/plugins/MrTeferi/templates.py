@@ -246,5 +246,10 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
     Basic land Dark Mode
     Credit to Vittorio Masia
     """
-    def template_file_name(self): return "basic-dark-mode"
+    def template_file_name(self): return "MrTeferi/basic-dark-mode"
     def template_suffix(self): return f"Dark - {self.layout.artist}"
+
+    def collector_info(self):
+        artist = psd.getLayer(con.layers['ARTIST'], con.layers['LEGAL'])
+        psd.replace_text(artist, "Artist", self.layout.artist)
+

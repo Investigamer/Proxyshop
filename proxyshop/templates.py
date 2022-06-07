@@ -43,7 +43,14 @@ class BaseTemplate:
             self.layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
 
         # Add collector info
-        self.collector_info()
+        try: self.collector_info()
+        except Exception as e:
+            console.log_error(
+                "Encountered an error while inserting collector info!",
+                self.layout.name,
+                self.template_file_name(),
+                e
+            )
 
     def collector_info(self):
         """
