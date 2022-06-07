@@ -75,6 +75,9 @@ class BaseTemplate:
             collector_top = psd.getLayer(con.layers['TOP_LINE'], collector_layer).textItem
             collector_bottom = psd.getLayer(con.layers['BOTTOM_LINE'], collector_layer)
 
+            # Fill in language if needed
+            if self.layout.lang != "en": psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
+
             # Apply the collector info
             collector_top.contents = \
                 f"{self.layout.collector_number}/{self.layout.card_count} {self.layout.rarity_letter}"
@@ -86,6 +89,9 @@ class BaseTemplate:
             # Layers we need
             set_layer = psd.getLayer("Set", self.legal_layer)
             artist_layer = psd.getLayer(con.layers['ARTIST'], self.legal_layer)
+
+            # Fill in language if needed
+            if self.layout.lang != "en": psd.replace_text(set_layer, "EN", self.layout.lang.upper())
 
             # Fill set info / artist info
             set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
@@ -119,6 +125,18 @@ class BaseTemplate:
         """
         return None
 
+    def get_file_name(self):
+        """
+        Format the output filename.
+        Overwrite this function if your template has specific demands.
+        """
+        suffix = self.template_suffix()
+        if cfg.save_artist_name:
+            if suffix: suffix = f"{suffix} {self.layout.artist}"
+            else: suffix = self.layout.artist
+        if suffix: return f"{self.layout.name} ({suffix})"
+        else: return self.layout.name
+
     def enable_frame_layers(self):
         """
         Enable the correct layers for this card's frame.
@@ -129,12 +147,21 @@ class BaseTemplate:
         """
         Write code that will be processed after text layers are executed.
         """
+        pass
 
     def post_execute(self):
         """
         Write code that will be processed after execute completes.
         """
         pass
+
+    def reset(self):
+        """
+        Reset the document, purge the cache, end await.
+        """
+        psd.reset_document(os.path.basename(self.file_path))
+        app.purge(4)
+        console.end_await()
 
     def execute(self):
         """
@@ -143,6 +170,7 @@ class BaseTemplate:
         specified one. Don't override this method!
         """
         # Load in artwork and frame it
+        app.activeDocument.info.urgency = ps.Urgency.High
         self.load_artwork()
         psd.frame_layer(self.art_layer, self.art_reference)
 
@@ -157,6 +185,7 @@ class BaseTemplate:
                 self.template_file_name(),
                 e
             )
+            self.reset()
             return result
 
         # Input and format each text layer
@@ -171,18 +200,14 @@ class BaseTemplate:
                 self.template_file_name(),
                 e
             )
+            self.reset()
             return result
 
-        # Post text layer formatting
+        # Post text layer execution
         self.post_text_layers()
 
         # Format file name
-        suffix = self.template_suffix()
-        if cfg.save_artist_name:
-            if suffix: suffix = f"{suffix} {self.layout.artist}"
-            else: suffix = self.layout.artist
-        if suffix: file_name = f"{self.layout.name} ({suffix})"
-        else: file_name = self.layout.name
+        file_name = self.get_file_name()
 
         # Manual edit step?
         if cfg.exit_early:
@@ -194,14 +219,11 @@ class BaseTemplate:
             if cfg.save_jpeg: psd.save_document_jpeg(file_name)
             else: psd.save_document_png(file_name)
             console.update(f"[b]{file_name}[/b] rendered successfully!")
-
-            # Post execution code, then reset document
-            self.post_execute()
-            psd.reset_document(os.path.basename(self.file_path))
         except Exception as e: console.update(f"Error during save process!\nMake sure the file saved.", e)
 
-        # Return for next assignment
-        console.end_await()
+        # Post execution code, then reset document
+        self.post_execute()
+        self.reset()
         return True
 
 
@@ -360,6 +382,7 @@ class NormalTemplate (StarterTemplate):
                     contents = self.layout.oracle_text,
                     flavor = self.layout.flavor_text,
                     reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                     pt_reference = psd.getLayer(con.layers['PT_REFERENCE'], text_and_icons),
                     pt_top_reference = psd.getLayer(con.layers['PT_TOP_REFERENCE'], text_and_icons),
                     centered = is_centered
@@ -377,6 +400,7 @@ class NormalTemplate (StarterTemplate):
                     contents = self.layout.oracle_text,
                     flavor = self.layout.flavor_text,
                     reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                     centered = is_centered
                 )
             )
@@ -393,7 +417,12 @@ class NormalTemplate (StarterTemplate):
         psd.getLayer(self.layout.pinlines, pinlines).visible = True
 
         # Background
-        if self.layout.is_nyx: psd.getLayer(self.layout.background, con.layers['NYX']).visible = True
+        if self.layout.is_nyx:
+            try: psd.getLayer(self.layout.background, con.layers['NYX']).visible = True
+            except Exception as e:
+                # Template doesn't have Nyx layers
+                console.log_exception(e)
+                psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
         else: psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
 
         # Legendary crown
@@ -408,7 +437,9 @@ class NormalTemplate (StarterTemplate):
 
         # Enable companion texture
         if self.is_companion:
-            psd.getLayer(self.layout.pinlines, con.layers['COMPANION']).visible = True
+            try:  # Does this template have companion layers?
+                psd.getLayer(self.layout.pinlines, con.layers['COMPANION']).visible = True
+            except Exception as e: console.log_exception(e)
 
 
 class NormalClassicTemplate (StarterTemplate):
@@ -448,6 +479,7 @@ class NormalClassicTemplate (StarterTemplate):
                 flavor = self.layout.flavor_text,
                 centered = is_centered,
                 reference = reference_layer,
+                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                 fix_length = False
             )
         )
@@ -632,6 +664,7 @@ class ExpeditionTemplate (NormalTemplate):
                 contents = self.layout.oracle_text,
                 flavor = self.layout.flavor_text,
                 reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                 centered = False
             ),
         )
@@ -681,6 +714,7 @@ class MiracleTemplate (NormalTemplate):
                 contents = self.layout.oracle_text,
                 flavor = self.layout.flavor_text,
                 reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                 centered = False
             ),
         )
@@ -776,6 +810,7 @@ class TransformFrontTemplate (TransformBackTemplate):
                     flavor = self.layout.flavor_text,
                     centered = is_centered,
                     reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                     pt_reference = psd.getLayer(con.layers['PT_REFERENCE'], text_and_icons),
                     pt_top_reference = psd.getLayer(con.layers['PT_TOP_REFERENCE'], text_and_icons)
                 )
@@ -795,6 +830,7 @@ class TransformFrontTemplate (TransformBackTemplate):
                     flavor = self.layout.flavor_text,
                     centered = is_centered,
                     reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
                 )
             )
             power_toughness.visible = False
@@ -844,6 +880,7 @@ class IxalanTemplate (NormalTemplate):
                 flavor = self.layout.flavor_text,
                 centered = False,
                 reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
+                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
             )
         )
 
@@ -1124,8 +1161,7 @@ class PlaneswalkerTemplate (StarterTemplate):
                 self.tx_layers.append(
                     txt_layers.TextField(
                         layer = psd.getLayer(con.layers['COST'], loyalty_graphic),
-                        contents = ability[0:int(colon_index)],
-                        color = psd.rgb_white(),
+                        contents = ability[0:int(colon_index)]
                     )
                 )
                 ability = ability[int(colon_index)+2:]
@@ -1150,8 +1186,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         self.tx_layers.append(
             txt_layers.TextField(
                 layer = psd.getLayer(con.layers['TEXT'], [loyalty_group, con.layers['STARTING_LOYALTY']]),
-                contents = self.layout.loyalty,
-                color = psd.rgb_white(),
+                contents = self.layout.loyalty
             )
         )
 
