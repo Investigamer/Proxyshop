@@ -162,7 +162,7 @@ def get_layer_dimensions(layer):
     }
 
 
-def compute_text_layer_dimensions(layer):
+def get_text_layer_dimensions(layer):
     """
     Return an object with the specified text layer's width and height, which is achieved by rasterising
     the layer and computing its width and height from its bounds.
@@ -174,7 +174,7 @@ def compute_text_layer_dimensions(layer):
     return dimensions
 
 
-def compute_text_layer_bounds(layer):
+def get_text_layer_bounds(layer):
     """
     Return an object with the specified text layer's bounding box.
     """
@@ -183,6 +183,34 @@ def compute_text_layer_bounds(layer):
     layer_bounds = layer.bounds
     layer_copy.remove()
     return layer_bounds
+
+
+def lock_layer(layer, protection = "protectAll"):
+    """
+    Locks the given layer.
+    @param layer: A layer object
+    @param protection: protectAll to lock, protectNone to unlock
+    """
+    current = app.activeDocument.activeLayer
+    app.activeDocument.activeLayer = layer
+    desc819 = ps.ActionDescriptor()
+    ref378 = ps.ActionReference()
+    ref378.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
+    desc819.putReference(cID("null"), ref378)
+    desc820 = ps.ActionDescriptor()
+    desc820.putBoolean(sID(protection), True)
+    idlayerLocking = sID("layerLocking")
+    desc819.putObject(idlayerLocking, idlayerLocking, desc820)
+    app.executeAction(sID("applyLocking"), desc819, NO_DIALOG)
+    app.activeDocument.activeLayer = current
+
+
+def unlock_layer(layer):
+    """
+    Unlocks the given layer.
+    @param layer: A layer object
+    """
+    lock_layer(layer, "protectNone")
 
 
 def select_layer_pixels(layer):
@@ -239,7 +267,7 @@ def align_horizontal():
 
 def frame_layer(layer, reference_layer):
     """
-    Scale a layer equally to the bounds of a reference layer, then centre the layer vertically and horizontally
+    Scale a layer equally to the bounds of a reference layer, then center the layer vertically and horizontally
     within those bounds.
     """
     # Get layer and reference dimensions
@@ -363,7 +391,6 @@ def save_document_jpeg(file_name):
     desc35.putEnumerated(cID("MttC"), cID("MttC"), cID("None"))
     desc34.putObject(cID("As  "), cID("JPEG"), desc35)
     desc34.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.jpg"))
-    desc34.putInteger(cID("DocI"), 349)
     desc34.putBoolean(cID("Cpy "), True)
     desc34.putEnumerated(sID("saveStage"), sID("saveStageType"), sID("saveSucceeded"))
     app.executeAction(cID("save"), desc34, ps.SaveOptions.DoNotSaveChanges)
@@ -427,12 +454,13 @@ def create_new_layer(layer_name=None):
     return layer
 
 
-def replace_text(layer, find, replace):
+def replace_text(layer, find, replace, targeted = False):
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
     @param layer: Layer object to search through.
     @param find: Text string to search for.
     @param replace: Text string to replace matches with.
+    @param targeted: Force targeted replace (experimental).
     """
     app.activeDocument.activeLayer = layer
 
@@ -446,7 +474,7 @@ def replace_text(layer, find, replace):
     desc32.putString(sID("find"), f"{find}")
     desc32.putString(sID("replace"), f"{replace}")
     # Developmental fix for non-targeted replacement
-    if cfg.targeted_replace:
+    if cfg.targeted_replace or targeted:
         app.bringToFront()
         desc32.putBoolean(sID("checkAll"), False)
     else: desc32.putBoolean(sID("checkAll"), True)
