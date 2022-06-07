@@ -4,6 +4,7 @@ PROXYSHOP - GUI LAUNCHER
 import os
 import sys
 import threading
+import time
 from time import perf_counter
 from glob import glob
 from kivy.app import App
@@ -28,6 +29,7 @@ from proxyshop import core, gui, layouts
 Config.set('graphics', 'resizable', '0')
 Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '800')
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 Config.write()
 
 # Core vars
@@ -49,7 +51,7 @@ class ProxyshopApp(App):
 		self.cont_padding = 10
 
 		# User data
-		self.previous = None
+		self.assigned_layouts = {}
 		self.result = True
 		self.panels = None
 		self.temps = {}
@@ -115,16 +117,25 @@ class ProxyshopApp(App):
 		files = []
 		cards = []
 		types = {}
+		lthr = []
+		self.assigned_layouts = {}
 		folder = os.path.join(cwd, "art")
 		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
 		for ext in extensions:
 			files.extend(glob(os.path.join(folder, ext)))
 
 		# Run through each file, assigning layout
-		for f in files:
-			lay = self.assign_layout(f)
-			if isinstance(lay, str): failed.append(lay)
-			else: cards.append(lay)
+		for i, f in enumerate(files, start=0):
+			# lay = self.assign_layout(f)
+			lthr.append(threading.Thread(target=self.assign_layout, args=(f, i)))
+			lthr[i].start()
+			time.sleep(.05)
+
+		# Join each thread and check its return
+		for i, t in enumerate(lthr):
+			t.join()
+			if isinstance(self.assigned_layouts[i], str): failed.append(self.assigned_layouts[i])
+			else: cards.append(self.assigned_layouts[i])
 
 		# Did any cards fail to find?
 		if len(failed) > 0:
@@ -198,7 +209,8 @@ class ProxyshopApp(App):
 			# Select and execute the template
 			try:
 				layout.creator = None
-				card_template(layout, file).execute()
+				layout.file = file
+				card_template(layout).execute()
 				self.close_document()
 			except Exception as e:
 				console.update(f"Layout '{scryfall['layout']}' is not supported!\n", e)
@@ -210,13 +222,13 @@ class ProxyshopApp(App):
 		self.enable_buttons()
 		console.update("")
 
-	@staticmethod
-	def assign_layout(filename):
+	def assign_layout(self, filename, index=None):
 		"""
 		Assign layout object to a card.
 		@param filename: String including card name, plus optionally:
 			- artist name
 			- set code
+		@param index: The index to save this layout for assigned_layouts
 		@return: Layout object for this card
 		"""
 		console = gui.console_handler
@@ -231,21 +243,30 @@ class ProxyshopApp(App):
 		else:
 			# Get the scryfall info
 			scryfall = card_info(card['name'], card['set'])
-			if isinstance(scryfall, str):
+			if isinstance(scryfall, Exception):
+				# Scryfall returned and exception
 				console.log_exception(scryfall)
-				return f"Scryfall search failed - [color=#a84747]{card['name']}[/color]"
+				self.assigned_layouts[index] = f"Scryfall search failed - [color=#a84747]{card['name']}[/color]"
+				return self.assigned_layouts[index]
+			elif not scryfall:
+				# Scryfall returned NONE
+				self.assigned_layouts[index] = f"Scryfall search failed - [color=#a84747]{card['name']}[/color]"
+				return self.assigned_layouts[index]
 
 			# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 			try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
 			except Exception as e:
+				# Layout object couldn't be created
 				console.log_exception(e)
-				return f"Layout incompatible - [color=#a84747]{card['name']}[/color]"
+				self.assigned_layouts[index] = f"Layout incompatible - [color=#a84747]{card['name']}[/color]"
+				return self.assigned_layouts[index]
 
 		# Creator name, artist, filename
 		if card['artist']: layout.artist = card['artist']
 		layout.creator = card['creator']
 		layout.file = filename
-		return layout
+		self.assigned_layouts[index] = layout
+		return self.assigned_layouts[index]
 
 	def render(self, template, card):
 		"""
@@ -297,6 +318,11 @@ class ProxyshopApp(App):
 		return self.panels
 
 
+"""
+BASE CONTAINERS
+"""
+
+
 class ProxyshopPanels(BoxLayout):
 	"""
 	Container for overall app
@@ -320,6 +346,22 @@ class ProxyshopTab(TabbedPanelItem):
 	"""
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
+
+
+class CreatorTab(TabbedPanelItem):
+	"""
+	Custom card creator tab
+	"""
+	def __init__(self, **kwargs):
+		Builder.load_file(os.path.join(cwd, "proxyshop/creator.kv"))
+		self.text = "Custom Creator"
+		super().__init__(**kwargs)
+		self.add_widget(CreatorPanels())
+
+
+"""
+TEMPLATE MODULES
+"""
 
 
 class TemplateModule(TabbedPanel):
@@ -380,6 +422,19 @@ class TemplateView(ScrollView):
 		super().__init__(**kwargs)
 
 
+class TemplateButton(ToggleButton):
+	"""
+	Button to select active template for card type.
+	@param name: Name of template display on the button.
+	@param c_type: Card type of this template.
+	"""
+	def __init__(self, name, c_type, **kwargs):
+		super().__init__(**kwargs)
+		self.text = name
+		self.type = c_type
+		self.all = {}
+
+
 class SettingButton(ToggleButton):
 	"""
 	Toggle button to change user settings.
@@ -396,37 +451,13 @@ class SettingButton(ToggleButton):
 		else: return "normal"
 
 
-class TemplateButton(ToggleButton):
-	"""
-	Button to select active template for card type.
-	@param name: Name of template display on the button.
-	@param c_type: Card type of this template.
-	"""
-	def __init__(self, name, c_type, **kwargs):
-		super().__init__(**kwargs)
-		self.text = name
-		self.type = c_type
-		self.all = {}
-
-
-class CreatorTab(TabbedPanelItem):
-	"""
-	Custom card creator tab
-	"""
-	def __init__(self, **kwargs):
-		Builder.load_file(os.path.join(cwd, "proxyshop/creator.kv"))
-		self.text = "Custom Creator"
-		super().__init__(**kwargs)
-		self.add_widget(CreatorPanels())
-
-
 if __name__ == '__main__':
 	# Kivy packaging
 	if hasattr(sys, '_MEIPASS'):
 		resource_add_path(os.path.join(sys._MEIPASS))
 
 	# Launch the app
-	__version__ = "v1.1.2"
+	__version__ = "v1.1.3"
 	Factory.register('HoverBehavior', gui.HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
 	ProxyshopApp().run()
