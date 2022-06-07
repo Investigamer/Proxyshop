@@ -6,7 +6,12 @@ import photoshop.api as ps
 import proxyshop.helpers as psd
 from proxyshop.constants import con
 from proxyshop.gui import console_handler as console
+
+# QOL Definitions
 app = ps.Application()
+sID = app.stringIDToTypeID
+cID = app.charIDToTypeID
+NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
 
 class SymbolMapper:
@@ -129,10 +134,10 @@ def locate_italics(input_string, italics_strings):
             end_index = start_index + len(italics)
             if start_index < 0: break
 
-            italics_indices.extend([{
+            italics_indices.append({
                 'start_index': start_index,
                 'end_index': end_index,
-            }])
+            })
 
     return italics_indices
 
@@ -216,37 +221,37 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
         desc1 = ps.ActionDescriptor()
         desc2 = ps.ActionDescriptor()
         desc3 = ps.ActionDescriptor()
-        idTxtS = app.charIDToTypeID("TxtS")
-        primary_action_list.putObject(app.charIDToTypeID("Txtt"), current_ref)
-        desc1.putInteger(app.charIDToTypeID("From"), symbol_index + i)
-        desc1.putInteger(app.charIDToTypeID("T   "), symbol_index + i + 1)
+        idTxtS = cID("TxtS")
+        primary_action_list.putObject(cID("Txtt"), current_ref)
+        desc1.putInteger(cID("From"), symbol_index + i)
+        desc1.putInteger(cID("T   "), symbol_index + i + 1)
         desc2.putString(
-            app.stringIDToTypeID("fontPostScriptName"),
-            con.font_mana) # NDPMTG default
+            sID("fontPostScriptName"),
+            con.font_mana)  # NDPMTG default
         desc2.putString(
-            app.charIDToTypeID("FntN"),
-            con.font_mana) # NDPMTG default
+            cID("FntN"),
+            con.font_mana)  # NDPMTG default
         desc2.putUnitDouble(
-            app.charIDToTypeID("Sz  "),
-            app.charIDToTypeID("#Pnt"),
+            cID("Sz  "),
+            cID("#Pnt"),
             layer_font_size)
-        desc2.putBoolean(app.stringIDToTypeID("autoLeading"), False)
+        desc2.putBoolean(sID("autoLeading"), False)
         desc2.putUnitDouble(
-            app.charIDToTypeID("Ldng"),
-            app.charIDToTypeID("#Pnt"),
+            cID("Ldng"),
+            cID("#Pnt"),
             layer_font_size)
         desc3.putDouble(
-            app.charIDToTypeID("Rd  "),
-            color.rgb.red) # rgb value.red
+            cID("Rd  "),
+            color.rgb.red)  # rgb value.red
         desc3.putDouble(
-            app.charIDToTypeID("Grn "),
-            color.rgb.green) # rgb value.green
+            cID("Grn "),
+            color.rgb.green)  # rgb value.green
         desc3.putDouble(
-            app.charIDToTypeID("Bl  "),
-            color.rgb.blue) # rgb value.blue
+            cID("Bl  "),
+            color.rgb.blue)  # rgb value.blue
         desc2.putObject(
-            app.charIDToTypeID("Clr "),
-            app.charIDToTypeID("RGBC"),
+            cID("Clr "),
+            cID("RGBC"),
             desc3)
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
@@ -255,14 +260,13 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
 
 def format_text(input_string, italics_strings, flavor_index, is_centered):
     """
-     * Inserts the given string into the active layer and formats it according to defined parameters with symbols
-     * from the NDPMTG font.
-     * @param {str} input_string The string to insert into the active layer
-     * @param {Array[str]} italic_strings An array containing strings that are present in the main input string
-     and should be italicised
-     * @param {int} flavor_index The index at which linebreak spacing should be increased and any subsequent
-     chars should be italicised (where the card's flavor text begins)
-     * @param {boolean} is_centered Whether or not the input text should be centre-justified
+    Inserts the given string into the active layer and formats it according to defined parameters with symbols
+    from the NDPMTG font.
+    @param input_string: The string to insert into the active layer
+    @param italics_strings: An array containing strings that should be italicized within the input_string.
+    @param flavor_index: The index at which linebreak spacing should be increased and any subsequent
+    chars should be italicized (where the card's flavor text begins)
+    @param is_centered: Should the input text should be center-justified
     """
     # Is the active layer a text layer?
     if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
@@ -271,8 +275,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     layer_justification = app.activeDocument.activeLayer.textItem.justification
 
     # Check if the flavor text contains a quote
-    if flavor_index > 0: quote_index = input_string.find("\r", flavor_index + 3)
-    else: quote_index = 0
+    if flavor_index >= 0: quote_index = input_string.find("\r", flavor_index + 3)
+    else: quote_index = -1
 
     # Locate symbols and update the input string
     ret = locate_symbols(input_string)
@@ -297,37 +301,37 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc143 = ps.ActionDescriptor()
     list13 = ps.ActionList()
     list14 = ps.ActionList()
-    idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
-    idfontPostScriptName = app.stringIDToTypeID("fontPostScriptName")
-    idfirstLineIndent = app.stringIDToTypeID("firstLineIndent")
-    idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
-    idkerningRange = app.stringIDToTypeID("kerningRange")
-    idautoLeading = app.stringIDToTypeID("autoLeading")
-    idstartIndent = app.stringIDToTypeID("startIndent")
-    idspaceBefore = app.stringIDToTypeID("spaceBefore")
-    idleadingType = app.stringIDToTypeID("leadingType")
-    idspaceAfter = app.stringIDToTypeID("spaceAfter")
-    idendIndent = app.stringIDToTypeID("endIndent")
-    idsetd = app.charIDToTypeID("setd")
-    idTxLr = app.charIDToTypeID("TxLr")
-    idT = app.charIDToTypeID("T   ")
-    idFntN = app.charIDToTypeID("FntN")
-    idSz = app.charIDToTypeID("Sz  ")
-    idPnt = app.charIDToTypeID("#Pnt")
-    idClr = app.charIDToTypeID("Clr ")
-    idRd = app.charIDToTypeID("Rd  ")
-    idGrn = app.charIDToTypeID("Grn ")
-    idBl = app.charIDToTypeID("Bl  ")
-    idRGBC = app.charIDToTypeID("RGBC")
-    idLdng = app.charIDToTypeID("Ldng")
-    idTxtt = app.charIDToTypeID("Txtt")
-    idFrom = app.charIDToTypeID("From")
+    idkerningRange = sID("kerningRange")
+    idparagraphStyleRange = sID("paragraphStyleRange")
+    idfontPostScriptName = sID("fontPostScriptName")
+    idfirstLineIndent = sID("firstLineIndent")
+    idparagraphStyle = sID("paragraphStyle")
+    idautoLeading = sID("autoLeading")
+    idstartIndent = sID("startIndent")
+    idspaceBefore = sID("spaceBefore")
+    idleadingType = sID("leadingType")
+    idspaceAfter = sID("spaceAfter")
+    idendIndent = sID("endIndent")
+    idsetd = cID("setd")
+    idTxLr = cID("TxLr")
+    idT = cID("T   ")
+    idFntN = cID("FntN")
+    idSz = cID("Sz  ")
+    idPnt = cID("#Pnt")
+    idClr = cID("Clr ")
+    idRd = cID("Rd  ")
+    idGrn = cID("Grn ")
+    idBl = cID("Bl  ")
+    idRGBC = cID("RGBC")
+    idLdng = cID("Ldng")
+    idTxtt = cID("Txtt")
+    idFrom = cID("From")
     ref101.putEnumerated(
         idTxLr,
-        app.charIDToTypeID("Ordn"),
-        app.charIDToTypeID("Trgt"))
-    desc119.putReference(app.charIDToTypeID("null"), ref101)
-    primary_action_descriptor.putString(app.charIDToTypeID("Txt "), input_string)
+        cID("Ordn"),
+        cID("Trgt"))
+    desc119.putReference(cID("null"), ref101)
+    primary_action_descriptor.putString(cID("Txt "), input_string)
     desc25.putInteger(idFrom, 0)
     desc25.putInteger(idT, len(input_string))
     desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
@@ -339,7 +343,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putObject(idClr, idRGBC, desc27)
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
-    idTxtS = app.charIDToTypeID("TxtS")
+    idTxtS = cID("TxtS")
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
@@ -357,14 +361,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
         # Added
         descTemp = ps.ActionDescriptor()
-        """
-        # GREY
-        descTemp.putDouble(idRd, 170)  // text color.red
-        idGrn = app.charIDToTypeID("Grn ")
-        descTemp.putDouble(idGrn, 170)  // text color.green
-        idBl = app.charIDToTypeID("Bl  ")
-        descTemp.putDouble(idBl, 170)  // text color.blue
-        """
         # Default text box
         descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
         descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
@@ -398,8 +394,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     else:
         desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
     desc142.putUnitDouble(idspaceAfter, idPnt, 0)
-    desc142.putInteger(app.stringIDToTypeID("dropCapMultiplier"), 1)
-    desc142.putEnumerated(idleadingType, idleadingType, app.stringIDToTypeID("leadingBelow"))
+    desc142.putInteger(sID("dropCapMultiplier"), 1)
+    desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
     desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
     desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc143.putBoolean(idautoLeading, False)
@@ -412,59 +408,56 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         startIndexBullet = input_string.find("\u2022")
         endIndexBullet = input_string.rindex("\u2022")
         list13 = ps.ActionList()
+        list14 = ps.ActionList()
         desc141 = ps.ActionDescriptor()
         desc141.putInteger(idFrom, startIndexBullet)
         desc141.putInteger(idT, endIndexBullet + 1)
-        desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent) # negative modal indent
-        desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent) # modal indent
+        desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent)  # negative modal indent
+        desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent)  # modal indent
         desc142.putUnitDouble(idspaceBefore, idPnt, 1)
         desc142.putUnitDouble(idspaceAfter, idPnt, 0)
         desc143 = ps.ActionDescriptor()
         desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-        desc143.putString(idFntN, con.font_rules_text) # MPlantin default
-        desc143.putUnitDouble(idSz, idPnt, 12)  # TODO: What's this? 11.998500
+        desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
+        desc143.putUnitDouble(idSz, idPnt, 12)
         desc143.putBoolean(idautoLeading, False)
-        desc142.putObject(app.stringIDToTypeID("defaultStyle"), idTxtS, desc143)
+        desc142.putObject(sID("defaultStyle"), idTxtS, desc143)
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
-    if flavor_index > 0:
+    if flavor_index >= 0:
         # Adjust line break spacing if there's a line break in the flavor text
+        list14 = ps.ActionList()
         desc141 = ps.ActionDescriptor()
         desc141.putInteger(idFrom, flavor_index + 3)
-        idT = app.charIDToTypeID("T   ")
         desc141.putInteger(idT, flavor_index + 4)
         desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-        idimpliedFirstLineIndent = app.stringIDToTypeID("impliedFirstLineIndent")
+        idimpliedFirstLineIndent = sID("impliedFirstLineIndent")
         desc142.putUnitDouble(idimpliedFirstLineIndent, idPnt, 0)
         desc142.putUnitDouble(idstartIndent, idPnt, 0)
-        idimpliedStartIndent = app.stringIDToTypeID("impliedStartIndent")
-        desc142.putUnitDouble(idimpliedStartIndent, idPnt, 0)
-        desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead) # lead size between rules text and flavor text
+        desc142.putUnitDouble(sID("impliedStartIndent"), idPnt, 0)
+        desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead)  # Lead size between rules and flavor text
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
         list13.putObject(idparagraphStyleRange, desc141)
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        list14 = ps.ActionList()
         primary_action_descriptor.putList(idkerningRange, list14)
 
-        if quote_index > 0:
-            # Adjust line break spacing if there's a line break in the flavor text
-            desc141 = ps.ActionDescriptor()
-            desc141.putInteger(idFrom, quote_index + 3)
-            idT = app.charIDToTypeID("T   ")
-            desc141.putInteger(idT, len(input_string))
-            desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-            list13.putObject(idparagraphStyleRange, desc141)
-            primary_action_descriptor.putList(idparagraphStyleRange, list13)
-            list14 = ps.ActionList()
-            primary_action_descriptor.putList(idkerningRange, list14)
+    if quote_index >= 0:
+        # Adjust line break spacing if there's a line break in the flavor text
+        list14 = ps.ActionList()
+        desc141 = ps.ActionDescriptor()
+        desc141.putInteger(idFrom, quote_index + 3)
+        desc141.putInteger(idT, len(input_string))
+        desc142.putUnitDouble(idspaceBefore, idPnt, 0)
+        desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
+        list13.putObject(idparagraphStyleRange, desc141)
+        primary_action_descriptor.putList(idparagraphStyleRange, list13)
+        primary_action_descriptor.putList(idkerningRange, list14)
 
     # Optional, align last line to right
-    if input_string.find('"\r—') > 0 and con.align_classic_quote:
+    if input_string.find('"\r—') >= 0 and con.align_classic_quote:
 
         # Get start and ending index of quotation credit
         index_start = input_string.find('"\r—') + 2
@@ -478,7 +471,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
 
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
-    app.executeAction(idsetd, desc119, ps.DialogModes.DisplayNoDialogs)
+    app.executeAction(idsetd, desc119, NO_DIALOG)
 
     # Reset layer's justification if needed and disable hyphenation
     if not disable_justify:
@@ -544,20 +537,15 @@ def classic_align_right(primedesc, start, end):
     """
     desc145 = ps.ActionDescriptor()
     list15 = ps.ActionList()
-    idFrom = app.charIDtoTypeID("From")
-    desc145.putInteger(idFrom, start)
-    idT = app.charIDtoTypeID("T   ")
-    desc145.putInteger(idT, end)
+    desc145.putInteger(cID("From"), start)
+    desc145.putInteger(cID("T   "), end)
     desc1265 = ps.ActionDescriptor()
-    idstyleSheetHasParent = app.stringIDToTypeID("styleSheetHasParent")
+    idstyleSheetHasParent = sID("styleSheetHasParent")
     desc1265.putBoolean(idstyleSheetHasParent, True)
-    idAlgn = app.charIDtoTypeID("Algn")
-    idAlg = app.charIDtoTypeID("Alg ")
-    idRght = app.charIDtoTypeID("Rght")
-    desc1265.putEnumerated(idAlgn, idAlg, idRght)
-    idparagraphStyle = app.stringIDToTypeID("paragraphStyle")
+    desc1265.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
+    idparagraphStyle = sID("paragraphStyle")
     desc145.putObject(idparagraphStyle, idparagraphStyle, desc1265)
-    idparagraphStyleRange = app.stringIDToTypeID("paragraphStyleRange")
+    idparagraphStyleRange = sID("paragraphStyleRange")
     list15.putObject(idparagraphStyleRange, desc145)
     primedesc.putList(idparagraphStyleRange, list15)
     return primedesc
@@ -588,7 +576,7 @@ def scale_text_right_overlap(layer, reference):
     old_size = layer.textItem.size
 
     # Obtain proper spacing for this document size
-    spacing = int((app.activeDocument.width / 3264) * 60)
+    spacing = int((app.activeDocument.width / 3264) * 64)
 
     # Guard against the reference's left bound being left of the layer's left bound
     if reference_left_bound >= layer_left_bound:
@@ -612,13 +600,13 @@ def scale_text_to_fit_reference(layer, reference_layer):
     """
     # Establish base variables, ensure a level of spacing at the margins
     if reference_layer is None: return
-    spacing = int((app.activeDocument.width / 3264) * 60)
+    spacing = int((app.activeDocument.width / 3264) * 64)
     ref_height = psd.get_layer_dimensions(reference_layer)['height'] - spacing
     font_size = layer.textItem.size
     step_size = 0.25
 
     # step down font and lead sizes by the step size, and update those sizes in the layer
-    while ref_height < psd.compute_text_layer_dimensions(layer)['height']:
+    while ref_height < psd.get_layer_dimensions(layer)['height']:
         font_size -= step_size
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -629,7 +617,7 @@ def vertically_align_text(layer, reference_layer):
     Centers a given text layer vertically with respect to the bounding box of a reference layer.
     """
     ref_height = psd.get_layer_dimensions(reference_layer)['height']
-    lay_height = psd.compute_text_layer_dimensions(layer)['height']
+    lay_height = psd.get_layer_dimensions(layer)['height']
     bound_delta = reference_layer.bounds[1] - layer.bounds[1]
     height_delta = ref_height - lay_height
     layer.translate(0, bound_delta + height_delta / 2)
@@ -653,8 +641,10 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
         delta = top_reference_layer.bounds[3] - layer_copy.bounds[3]
         if delta < 0: layer.translate(0, delta)
 
+        # Clear selection, remove copy, return
         psd.clear_selection()
         layer_copy.remove()
+        return delta
 
 
 sym = SymbolMapper()
