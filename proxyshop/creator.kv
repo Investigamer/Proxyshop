@@ -1,5 +1,4 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
-#:import Gradient kivy_gradient.Gradient
 #:import HoverButton proxyshop.gui.HoverButton
 #:import gui proxyshop.gui
 #:import Thread threading.Thread
@@ -95,7 +94,7 @@
             hint_text: "Keyword,Keyword 2"
             multiline: False
             padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
-        TwoNumInput:
+        ThreeNumInput:
             id: power
             hint_text: "1"
             size_hint_x: .08
@@ -105,7 +104,7 @@
         Label:
             text: "/"
             size_hint_x: .05
-        TwoNumInput:
+        ThreeNumInput:
             id: toughness
             hint_text: "1"
             size_hint_x: .08
@@ -220,7 +219,7 @@
             multiline: False
             halign: "center"
             padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
-        TwoNumInput:
+        ThreeNumInput:
             id: loyalty
             hint_text: "6"
             size_hint_x: .3
