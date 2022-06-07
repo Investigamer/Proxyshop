@@ -1,9 +1,14 @@
 """
 FUNCTIONS THAT INTERACT WITH SCRYFALL
 """
+import http.client
+import os.path
+import time
 import json
+import requests
 from urllib import request, parse, error
-from proxyshop.constants import scryfall_scan_path
+from proxyshop.settings import cfg
+from proxyshop.constants import scryfall_scan_path, http_header
 from proxyshop.gui import console_handler as console
 
 
@@ -13,24 +18,72 @@ def card_info(card_name, card_set=None):
     `card_name`: Name of card
     `card_set`: OPTIONAL, Card set
     """
-    try:
-        # Set specified?
-        if card_set:
-            with request.urlopen(
-                f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}&set={parse.quote(card_set)}"
-            ) as card:
-                console.update(f"Card data found: [b]{card_name} [{card_set}][/b]")
-                return add_meld_info(json.loads(card.read()))
+    # Was an alternate language provided?
+    if cfg.lang != "en":
+
+        # Query the card in given language, have to use /card/search/
+        card = get_card_search(card_name, cfg.lang, card_set)
+        if isinstance(card, dict):
+            console.update(f"Card data found: [b]{card['name']} [{card['set'].upper()}][/b]")
+            return card
+        else: console.update(f"Reverting to English: [b]{card_name} [lang: {cfg.lang}][/b]", card)
+
+        # Try again in English
+        cfg.lang = "en"
+        return card_info(card_name, card_set)
+
+    else:
+
+        # Query the card using /card/named/
+        card = get_card_named(card_name, card_set)
+        if isinstance(card, dict):
+            # Search was successful
+            console.update(f"Card data found: [b]{card['name']} [{card['set'].upper()}][/b]")
+            return card
         else:
-            with request.urlopen(f"https://api.scryfall.com/cards/named?fuzzy={parse.quote(card_name)}") as card:
-                console.update(f"Card data found: [b]{card_name}[/b]")
-                return add_meld_info(json.loads(card.read()))
-    except error.HTTPError as e:
-        # HTTP Request error
-        if not card_set: card_set = ""
-        else: card_set = f" [{card_set}]"
-        console.update(f"Card NOT found: [b]{card_name}{card_set}[/b]")
-        return str(e)
+            # Search was unsuccessful
+            if not card_set: card_set = ""
+            else: card_set = f" [{card_set}]"
+            console.update(f"Scryfall FAILED: [b]{card_name}{card_set}[/b]", card)
+            return card
+
+
+def get_card_named(name, set_code=None):
+    # Set code given?
+    if set_code: code = f"&set={set_code}"
+    else: code = ""
+    err = None
+
+    # Query Scryfall
+    url = f'https://api.scryfall.com/cards/named?fuzzy={parse.quote(name)}{code}'
+    for i in range(3):
+        try:
+            card = requests.get(url, headers=http_header).json()
+            return add_meld_info(card)
+        except Exception as e: err = e
+        time.sleep(float(i / 3))
+    return err
+
+
+def get_card_search(name, lang="en", set_code=None):
+    # Set code given?
+    if set_code: code = f"+set:{set_code}"
+    else: code = ""
+    err = None
+
+    # Query Scryfall
+    url = f'https://api.scryfall.com/cards/search?q=!"{name}"+lang:{lang}{code}'
+    for i in range(3):
+        try:
+            card = requests.get(url, headers=http_header).json()
+            card = add_meld_info(card['data'][0])
+            card['name'] = card['printed_name']
+            card['oracle_text'] = card['printed_text']
+            card['type_line'] = card['printed_type_line']
+            return card
+        except Exception as e: err = e
+        time.sleep(float(i / 3))
+    return err
 
 
 def set_info(set_code):
@@ -38,15 +91,27 @@ def set_info(set_code):
     Search scryfall for a set
     `set_code`: The set to look for, ex: MH2
     """
-    try:
-        with request.urlopen(f"https://api.scryfall.com/sets/{parse.quote(set_code)}") as mtg_set:
-            # console.update(f", Set data found: [b]{set_code.upper()}[/b]", end="")
-            return json.loads(mtg_set.read())
-    except error.HTTPError as e:
-        # HTTP request failed
-        console.log_exception(e)
-        # console.update(f", [color=#dec052]Set data missing: [b][{set_code}][/b][/color]", e, "")
-        return None
+    # Has this set been logged?
+    filepath = os.path.join(os.getcwd(), f"proxyshop/datas/{set_code.upper()}.json")
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            return json.load(f)
+
+    err = None
+    url = f"http://mtgjson.com/api/v5/{set_code.upper()}.json"
+    # Try up to 5 times
+    for i in range(5):
+        try:
+            source = requests.get(url, headers=http_header).json()
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(source, f)
+            return source
+        except Exception as e:
+            # Remote disconnected
+            err = e
+        time.sleep(float(i/5))
+    console.log_exception(err)
+    return None
 
 
 def card_scan(img_url):
