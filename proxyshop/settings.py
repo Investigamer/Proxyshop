@@ -48,6 +48,7 @@ class Config:
 		self.remove_flavor = self.file.getboolean('TEXT', 'No.Flavor.Text')
 		self.remove_reminder = self.file.getboolean('TEXT', 'No.Reminder.Text')
 		self.real_collector = self.file.getboolean('TEXT', 'True.Collector.Info')
+		self.lang = self.file['TEXT']['Language']
 
 		# SYMBOLS section
 		self.symbol_char = self.file['SYMBOLS']['Default.Symbol']
