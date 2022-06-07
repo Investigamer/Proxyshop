@@ -158,3 +158,6 @@ cython_debug/
 /templates
 test.py
 tester.py
+/proxyshop/gauth.json
+/proxyshop/datas/
+/proxyshop/version_tracker.json
