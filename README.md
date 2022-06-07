@@ -67,7 +67,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Planeswalkers also require manual intervention to position text layers and the ragged textbox divider, but are automated up until that point.
 * Flavor text divider is not supported, as rules text & flavour text are formatted in the same text layer, thus far it seems impractical to position the flavor text divider programmatically.
 
-# GOOGLE DRIVE PRIVACY POLICY
+# Google Drive Privacy Policy
 Proxyshop does not collect any information from uers, period.
 Google Drive integration is purely for the purpose of keeping installed plugins up-to-date,
 our contributors almost always share their PSD files utilizing Google Drive, making it the easiest
