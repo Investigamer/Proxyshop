@@ -93,7 +93,10 @@ def get_templates():
 
                 # Load json
                 if name == "template_map.json":
-                    with open(os.path.join(cwd, f"proxyshop\\plugins\\{Path(folder).stem}\\{name}"), encoding="utf-8") as this_json:
+                    with open(
+                        os.path.join(cwd, f"proxyshop\\plugins\\{Path(folder).stem}\\{name}"),
+                        encoding="utf-8"
+                    ) as this_json:
                         j = json.load(this_json)
 
                 # Add to sys.path
@@ -104,8 +107,8 @@ def get_templates():
                 for key, val in j.items():
                     # Add to existing templates
                     for k, v in val.items():
-                        main_json[key][k] = [f"proxyshop\\plugins\\{Path(folder).stem}\\templates.py",v]
-            except: pass
+                        main_json[key][k] = [f"proxyshop\\plugins\\{Path(folder).stem}\\templates.py", v]
+            except Exception as e: print(e)
 
     return main_json
 
@@ -124,9 +127,9 @@ def get_my_templates(sel):
                     temps[lay] = templates[lay][sel[k]]
 
     # Add default template for any unselected
-    for l in templates:
-        if l not in temps:
-            temps[l] = templates[l]["Normal"]
+    for layout in templates:
+        if layout not in temps:
+            temps[layout] = templates[layout]["Normal"]
     return temps
 
 
@@ -139,15 +142,20 @@ def retrieve_card_info (filename):
     """
     Retrieve card name and (if specified) artist from the input file.
     """
-    # Extract just the cardname
+    # Extract just the card name
     sep = [' {', ' [', ' (']
     fn_split = re.split('|'.join(map(re.escape, sep)), filename[:-4])
     name = fn_split[0]
 
-    # Look for creator, artist, set
-    creator = re.findall(r'\{+(.*?)\}', filename)
-    artist = re.findall(r'\(+(.*?)\)', filename)
-    set_code = re.findall(r'\[+(.*?)\]', filename)
+    # Precompile pattern
+    re_art = re.compile(r'\(+(.*?)\)')
+    re_set = re.compile(r'\[(.*)\]')
+    re_cre = re.compile(r'{(.*)}')
+
+    # Match pattern
+    artist = re_art.findall(filename)
+    set_code = re_set.findall(filename)
+    creator = re_cre.findall(filename)
 
     # Check for these values
     if creator: creator = creator[0]
@@ -277,17 +285,17 @@ def version_check(temp, plugin = None):
     else: return None
 
 
-def get_current_version(id, path):
+def get_current_version(file_id, path):
     """
     Checks the current on-file version of this template.
     If the file is present, but no version tracked, fill in default.
-    @param id: Google Drive file ID
+    @param file_id: Google Drive file ID
     @param path: Path to the template PSD
     @return: The current version, or None if not on-file
     """
     # Is it logged in the tracker?
-    if id in con.versions:
-        version = con.versions[id]
+    if file_id in con.versions:
+        version = con.versions[file_id]
     else: version = None
 
     # Is the file available?
@@ -295,11 +303,11 @@ def get_current_version(id, path):
         if version: return version
         else:
             version = "v1.0.0"
-            con.versions[id] = version
+            con.versions[file_id] = version
     else:
         if version:
             version = None
-            del con.versions[id]
+            del con.versions[file_id]
         else: return None
 
     # Update the tracker
@@ -314,7 +322,7 @@ def update_template(temp, callback):
     @param callback: Callback method to update progress bar.
     """
     # Download using authorization?
-    version = gdrive_download(temp['id'], temp['path'], callback)
+    gdrive_download(temp['id'], temp['path'], callback)
 
     # Change the version to match the new version
     con.versions[temp['id']] = temp['version_new']
@@ -350,14 +358,9 @@ def gdrive_download(file_id, path, callback):
     file = drive.CreateFile({'id': file_id})
     file.FetchMetadata()
 
-    # Return None if no description info
-    if 'description' not in file.metadata:
-        file.metadata['description'] = "v1.0.0"
-
     # Download the file
     chunk = int(file.metadata['fileSize']) / 20
     file.GetContentFile(path, callback=callback, chunksize=chunk)
-    return file.metadata['description']
 
 
 def authenticate_user():

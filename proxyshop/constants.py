@@ -2,14 +2,9 @@
 GLOBAL CONSTANTS
 Keep all global variables here.
 """
-import json
 import os
-from pathlib import Path
+import json
 cwd = os.getcwd()
-
-# Ensure mandatory folders are created
-Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
 
 # PATHS
 json_custom_path = os.path.join(cwd, "tmp\\custom.json")

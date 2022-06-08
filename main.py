@@ -5,6 +5,7 @@ import os
 import sys
 import threading
 import time
+from pathlib import Path
 from time import perf_counter
 from glob import glob
 from kivy.app import App
@@ -455,6 +456,11 @@ if __name__ == '__main__':
 	# Kivy packaging
 	if hasattr(sys, '_MEIPASS'):
 		resource_add_path(os.path.join(sys._MEIPASS))
+
+	# Ensure mandatory folders are created
+	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
 	__version__ = "v1.1.3"

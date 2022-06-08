@@ -1,7 +1,6 @@
 """
 FUNCTIONS THAT INTERACT WITH SCRYFALL
 """
-import http.client
 import os.path
 import time
 import json
