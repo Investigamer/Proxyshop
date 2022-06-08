@@ -57,7 +57,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Run the app: `py main.py`
 
 # FAQ
-* *I want to change the set symbol to something else.* Head over to https://andrewgioia.github.io/Keyrune/cheatsheet.html - you can use any of these symbols for the set symbol for your cards. Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
+* *I want to change the set symbol to something else.* Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards. Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
 * *I get an error when trying to execute the script with the python command.* Python may not be added to your PATH environment variable. Here's how you can add it: [Link](https://datatofish.com/add-python-to-windows-path/)
 * *Where is a good place to get high quality MTG art?* Your best source is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/ESRGAN. On our discord we provide a lot of resources for learning how to upscale art easily and effectively. Also for mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
 
@@ -67,7 +67,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Planeswalkers also require manual intervention to position text layers and the ragged textbox divider, but are automated up until that point.
 
 # Google Drive Privacy Policy
-Proxyshop does not collect any information from uers, period.
+Proxyshop does not collect any information from users, period.
 Google Drive integration is purely for the purpose of keeping installed plugins up-to-date,
 our contributors almost always share their PSD files utilizing Google Drive, making it the easiest
 and safest way to share the files and metadata required to check for routine updates.
