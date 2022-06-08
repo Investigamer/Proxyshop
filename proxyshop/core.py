@@ -376,7 +376,7 @@ def authenticate_user():
                 fp.write("")
 
         # Authenticate, fetch file and metadata
-        auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"), http_timeout=5)
+        auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"))
         auth.LocalWebserverAuth()
         return GoogleDrive(auth)
 
@@ -391,8 +391,17 @@ def check_for_authentication():
     if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")): return False
     with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'r') as fp:
         lines = fp.read()
-        if len(lines) > 0: return True
-        else: return False
+    if len(lines) == 0: return False
+    else:
+        try:
+            auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"))
+            auth.LocalWebserverAuth()
+            return True
+        except Exception as e:
+            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w') as fp:
+                fp.write("")
+            print(e)
+            return False
 
 """
 SYSTEM FUNCTIONS
