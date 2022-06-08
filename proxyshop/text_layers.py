@@ -250,7 +250,7 @@ class FormattedTextArea (FormattedTextField):
 
             # Get contents southern bound, move flavor text to bottom, get its northern bound
             text_contents_bottom = layer_text_contents.bounds[3]
-            layer_flavor_text.translate(0, self.layer.bounds[3] - layer_flavor_text.bounds[3])
+            layer_flavor_text.translate(0, psd.get_text_layer_bounds(self.layer)[3] - layer_flavor_text.bounds[3])
             flavor_text_top = layer_flavor_text.bounds[1]
 
             # Take our final midpoint measurement and remove duplicates

@@ -606,7 +606,7 @@ def scale_text_to_fit_reference(layer, reference_layer):
     step_size = 0.25
 
     # step down font and lead sizes by the step size, and update those sizes in the layer
-    while ref_height < psd.get_layer_dimensions(layer)['height']:
+    while ref_height < psd.get_text_layer_dimensions(layer)['height']:
         font_size -= step_size
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -617,7 +617,7 @@ def vertically_align_text(layer, reference_layer):
     Centers a given text layer vertically with respect to the bounding box of a reference layer.
     """
     ref_height = psd.get_layer_dimensions(reference_layer)['height']
-    lay_height = psd.get_layer_dimensions(layer)['height']
+    lay_height = psd.get_text_layer_dimensions(layer)['height']
     bound_delta = reference_layer.bounds[1] - layer.bounds[1]
     height_delta = ref_height - lay_height
     layer.translate(0, bound_delta + height_delta / 2)

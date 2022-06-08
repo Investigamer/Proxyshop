@@ -167,22 +167,26 @@ def get_text_layer_dimensions(layer):
     Return an object with the specified text layer's width and height, which is achieved by rasterising
     the layer and computing its width and height from its bounds.
     """
-    layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-    layer_copy.rasterize(ps.RasterizeType.TextContents)
-    dimensions = get_layer_dimensions(layer_copy)
-    layer_copy.remove()
-    return dimensions
+    if int(app.get_program_id()) < 140:
+        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        dimensions = get_layer_dimensions(layer_copy)
+        layer_copy.remove()
+        return dimensions
+    else: return get_layer_dimensions(layer)
 
 
 def get_text_layer_bounds(layer):
     """
     Return an object with the specified text layer's bounding box.
     """
-    layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-    layer_copy.rasterize(ps.RasterizeType.TextContents)
-    layer_bounds = layer.bounds
-    layer_copy.remove()
-    return layer_bounds
+    if int(app.get_program_id()) < 140:
+        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        layer_bounds = layer.bounds
+        layer_copy.remove()
+        return layer_bounds
+    else: return layer.bounds
 
 
 def lock_layer(layer, protection = "protectAll"):
