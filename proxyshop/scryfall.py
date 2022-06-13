@@ -25,7 +25,7 @@ def card_info(card_name, card_set=None):
         if isinstance(card, dict):
             console.update(f"Card data found: [b]{card['name']} [{card['set'].upper()}][/b]")
             return card
-        else: console.update(f"Reverting to English: [b]{card_name} [lang: {cfg.lang}][/b]", card)
+        else: console.update(f"Reverting to English: [b]{card_name} [lang: {str(cfg.lang)}][/b]", card)
 
         # Try again in English
         cfg.lang = "en"
@@ -75,11 +75,7 @@ def get_card_search(name, lang="en", set_code=None):
     for i in range(3):
         try:
             card = requests.get(url, headers=http_header).json()
-            card = add_meld_info(card['data'][0])
-            card['name'] = card['printed_name']
-            card['oracle_text'] = card['printed_text']
-            card['type_line'] = card['printed_type_line']
-            return card
+            return add_meld_info(card['data'][0])
         except Exception as e: err = e
         time.sleep(float(i / 3))
     return err
@@ -93,7 +89,7 @@ def set_info(set_code):
     # Has this set been logged?
     filepath = os.path.join(os.getcwd(), f"proxyshop/datas/{set_code.upper()}.json")
     if os.path.exists(filepath):
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
 
     err = None
@@ -101,10 +97,13 @@ def set_info(set_code):
     # Try up to 5 times
     for i in range(5):
         try:
-            source = requests.get(url, headers=http_header).json()
+            source = requests.get(url, headers=http_header).text
+            j = json.loads(source)
+            j = j['data']
+            j.pop('cards')
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(source, f)
-            return source
+                json.dump(j, f, sort_keys = True, ensure_ascii = False)
+            return j
         except Exception as e:
             # Remote disconnected
             err = e
