@@ -27,7 +27,7 @@ from proxyshop.settings import cfg
 from proxyshop import core, gui, layouts
 
 # App configuration
-Config.set('graphics', 'resizable', '0')
+Config.set('graphics', 'resizable', '1')
 Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '800')
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
@@ -168,7 +168,6 @@ class ProxyshopApp(App):
 					self.close_document()
 					self.enable_buttons()
 					return None
-				self.load_defaults()
 			self.close_document()
 
 		# Return to normal
@@ -196,6 +195,7 @@ class ProxyshopApp(App):
 				layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'])
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
+				scryfall['lang'] = "en"
 				try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
 				except KeyError or TypeError as e:
 					console.update(f"Layout not supported!\n", e)
