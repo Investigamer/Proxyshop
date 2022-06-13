@@ -117,7 +117,9 @@ class BaseTemplate:
         """
         Loads the specified art file into the specified layer.
         """
-        psd.paste_file(self.art_layer, self.layout.file)
+        if hasattr(self, 'art_action'):
+            psd.paste_file(self.art_layer, self.layout.file, self.art_action)
+        else: psd.paste_file(self.art_layer, self.layout.file)
 
     def template_file_name(self):
         """
