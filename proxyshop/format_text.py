@@ -312,6 +312,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     idleadingType = sID("leadingType")
     idspaceAfter = sID("spaceAfter")
     idendIndent = sID("endIndent")
+    idTxtS = sID("textStyle")
     idsetd = cID("setd")
     idTxLr = cID("TxLr")
     idT = cID("T   ")
@@ -343,7 +344,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putObject(idClr, idRGBC, desc27)
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
-    idTxtS = cID("TxtS")
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
@@ -444,6 +444,27 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
         primary_action_descriptor.putList(idkerningRange, list14)
 
+        # Adjust flavor text color
+        if con.flavor_text_color:
+            list15 = ps.ActionList()
+            desc144 = ps.ActionDescriptor()
+            desc145 = ps.ActionDescriptor()
+            desc146 = ps.ActionDescriptor()
+            desc144.PutInteger(sID("from"), flavor_index)
+            desc144.PutInteger(sID("to"), len(input_string))
+            desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+            desc145.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
+            desc145.putUnitDouble(idSz, idPnt, layer_font_size)
+            desc145.putBoolean(idautoLeading, False)
+            desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
+            desc146.PutDouble(idRd, con.flavor_text_color['r'])
+            desc146.PutDouble(idGrn, con.flavor_text_color['g'])
+            desc146.PutDouble(idBl, con.flavor_text_color['b'])
+            desc145.PutObject(sID("color"), sID("RGBColor"), desc146)
+            desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
+            list15.PutObject(sID("textStyleRange"), desc144)
+            primary_action_descriptor.putList(sID("textStyleRange"), list15)
+
     if quote_index >= 0:
         # Adjust line break spacing if there's a line break in the flavor text
         list14 = ps.ActionList()
@@ -483,16 +504,15 @@ def generate_italics(card_text):
     """
      * Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
     """
-    reminder_text = True
     italic_text = []
     end_index = 0
-    while reminder_text:
+    while True:
         start_index = card_text.find("(", end_index)
         if start_index >= 0:
             end_index = card_text.find(")", start_index + 1)
             end_index += 1
             italic_text.extend([card_text[start_index:end_index]])
-        else: reminder_text = False
+        else: break
 
     # Attach all ability words to the italics array
     for ability_word in con.ability_words:
@@ -565,8 +585,7 @@ def scale_text_right_overlap(layer, reference):
         if reference.textItem.contents in ("", " "):
             contents = reference.textItem.contents
             reference.textItem.contents = "."
-    elif reference.bounds == [0, 0, 0, 0]:
-        return
+    elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
     step_size = 0.25
