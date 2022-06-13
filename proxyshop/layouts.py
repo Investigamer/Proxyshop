@@ -64,12 +64,23 @@ class BaseLayout:
         self.scryfall = scryfall
         self.card_name_raw = card_name
 
+        # Alternate language?
+        if scryfall['lang'] != "en":
+            self.name_key = 'printed_name'
+            self.oracle_key = 'printed_text'
+            self.type_key = 'printed_type_line'
+        else:
+            self.name_key = 'name'
+            self.oracle_key = 'oracle_text'
+            self.type_key = 'type_line'
+
         # Extract scryfall info that is shared by all card types
         self.rarity = self.scryfall['rarity']
         self.rarity_letter = self.rarity[0:1].upper()
         self.artist = self.scryfall['artist']
         self.color_identity = self.scryfall['color_identity']
-        self.lang = self.scryfall['lang']
+        if 'lang' in self.scryfall: self.lang = self.scryfall['lang']
+        else: self.lang = cfg.lang.upper()
 
         # Prepare set code
         self.set = self.scryfall['set'].upper()
@@ -83,21 +94,25 @@ class BaseLayout:
             self.collector_number = f"00{self.collector_number}"
 
         # Was card count already provided?
-        if 'card_count' not in scryfall:
+        if 'printed_size' not in self.scryfall:
             # Get set info to find card count
             self.mtgset = scry.set_info(self.scryfall['set'])
-            try: self.card_count = self.mtgset['data']['baseSetSize']
-            except KeyError or TypeError:
-                try: self.card_count = self.mtgset['data']['totalSetSize']
-                except KeyError or TypeError: self.card_count = ""
+            try: self.card_count = self.mtgset['baseSetSize']
+            except (KeyError, TypeError):
+                try: self.card_count = self.mtgset['totalSetSize']
+                except (KeyError, TypeError):
+                    if 'card_count' in self.scryfall:
+                        self.card_count = self.scryfall['card_count']
+                    else: self.card_count = ""
+
+            # Ensure minimum 3 digit number length
             if len(str(self.card_count)) == 2:
                 self.card_count = "0" + str(self.card_count)
             elif len(str(self.card_count)) == 1:
                 self.card_count = "00" + str(self.card_count)
             elif len(str(self.card_count)) == 0:
                 self.card_count = None
-        else: self.card_count = scryfall['card_count']
-        del self.mtgset
+        else: self.card_count = scryfall['printed_size']
 
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
@@ -116,8 +131,8 @@ class BaseLayout:
         """
         ret = frame_logic.select_frame_layers(
             self.mana_cost,
-            self.type_line,
-            self.oracle_text,
+            self.type_line_raw,
+            self.oracle_text_raw,
             self.color_identity,
             self.color_indicator
         )
@@ -146,12 +161,10 @@ class BaseLayout:
             self.card_class = con.mdfc_back_class
         elif "Planeswalker" in self.type_line and self.card_class == con.normal_class:
             self.card_class = con.planeswalker_class
+        elif "Mutate" in self.keywords: self.card_class = con.mutate_class
+        elif "Miracle" in self.frame_effects: self.card_class = con.miracle_class
         # elif "Snow" in self.type_line:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
         #    self.card_class = con.snow_class
-        elif "Mutate" in self.keywords:
-            self.card_class = con.mutate_class
-        elif "Miracle" in self.frame_effects:
-            self.card_class = con.miracle_class
 
 
 class NormalLayout (BaseLayout):
@@ -163,10 +176,12 @@ class NormalLayout (BaseLayout):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
-        self.name = self.scryfall['name']
+        self.name = self.scryfall[self.name_key]
         self.mana_cost = self.scryfall['mana_cost']
-        self.type_line = self.scryfall['type_line']
-        self.oracle_text = self.scryfall['oracle_text']
+        self.type_line = self.scryfall[self.type_key]
+        self.type_line_raw = self.scryfall['type_line']
+        self.oracle_text = self.scryfall[self.oracle_key]
+        self.oracle_text_raw = self.scryfall['oracle_text']
 
         # Optional vars
         try: self.flavor_text = self.scryfall['flavor_text']
@@ -202,10 +217,12 @@ class TransformLayout (BaseLayout):
         # Mandatory vars
         self.face = determine_card_face(self.scryfall, self.card_name_raw)
         self.other_face = -1 * (self.face - 1)
-        self.name = self.scryfall['card_faces'][self.face]['name']
+        self.name = self.scryfall['card_faces'][self.face][self.name_key]
         self.mana_cost = self.scryfall['card_faces'][self.face]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][self.face]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][self.face]['oracle_text']
+        self.type_line = self.scryfall['card_faces'][self.face][self.type_key]
+        self.type_line_raw = self.scryfall['card_faces'][self.face]['type_line']
+        self.oracle_text = self.scryfall['card_faces'][self.face][self.oracle_key]
+        self.oracle_text_raw = self.scryfall['card_faces'][self.face]['oracle_text']
         self.scryfall_scan = self.scryfall['card_faces'][self.face]['image_uris']['large']
 
         # Optional vars
@@ -290,10 +307,12 @@ class ModalDoubleFacedLayout (BaseLayout):
         # Mandatory vars
         self.face = determine_card_face(self.scryfall, self.card_name_raw)
         self.other_face = -1 * (self.face - 1)
-        self.name = self.scryfall['card_faces'][self.face]['name']
+        self.name = self.scryfall['card_faces'][self.face][self.name_key]
         self.mana_cost = self.scryfall['card_faces'][self.face]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][self.face]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][self.face]['oracle_text']
+        self.type_line = self.scryfall['card_faces'][self.face][self.type_key]
+        self.type_line_raw = self.scryfall['card_faces'][self.face]['type_line']
+        self.oracle_text = self.scryfall['card_faces'][self.face][self.oracle_key]
+        self.oracle_text_raw = self.scryfall['card_faces'][self.face]['oracle_text']
         self.transform_icon = "modal_dfc"
 
         # Optional vars
@@ -366,10 +385,12 @@ class AdventureLayout (BaseLayout):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
-        self.name = self.scryfall['card_faces'][0]['name']
+        self.name = self.scryfall['card_faces'][0][self.name_key]
         self.mana_cost = self.scryfall['card_faces'][0]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][0]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][0]['oracle_text']
+        self.type_line = self.scryfall['card_faces'][0][self.type_key]
+        self.type_line_raw = self.scryfall['card_faces'][0]['type_line']
+        self.oracle_text = self.scryfall['card_faces'][0][self.oracle_key]
+        self.oracle_text_raw = self.scryfall['card_faces'][0]['oracle_text']
         self.adventure = {
             'name': self.scryfall['card_faces'][1]['name'],
             'mana_cost': self.scryfall['card_faces'][1]['mana_cost'],
@@ -444,11 +465,13 @@ class PlanarLayout (BaseLayout):
 
         # Mandatory vars
         self.scryfall_scan = self.scryfall['image_uris']['large']
-        self.oracle_text = self.scryfall['oracle_text']
-        self.type_line = self.scryfall['type_line']
+        self.oracle_text = self.scryfall[self.oracle_key]
+        self.oracle_text_raw = self.scryfall['oracle_text']
+        self.type_line = self.scryfall[self.type_key]
+        self.type_line_raw = self.scryfall['type_line']
         self.rarity = self.scryfall['rarity']
         self.artist = self.scryfall['artist']
-        self.name = self.scryfall['name']
+        self.name = self.scryfall[self.name_key]
         self.mana_cost = ""
 
     def get_default_class(self):
