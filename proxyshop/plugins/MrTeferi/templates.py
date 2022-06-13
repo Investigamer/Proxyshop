@@ -3,6 +3,7 @@ MRTEFERI TEMPLATES
 """
 # from proxyshop import format_text
 # import proxyshop.text_layers as txt_layers
+from proxyshop.plugins.MrTeferi.actions.sketch import sketchify
 import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
@@ -23,6 +24,11 @@ class SketchTemplate (temp.NormalTemplate):
     """
     def template_file_name(self): return "MrTeferi/sketch"
     def template_suffix(self): return "Sketch"
+
+    def __init__(self, layout):
+        self.art_action = sketchify
+        # self.art_action_args = [True]
+        super().__init__(layout)
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
