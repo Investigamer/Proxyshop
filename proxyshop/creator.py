@@ -89,7 +89,7 @@ class CreatorNormalLayout(CreatorLayout):
             "type_line": self.ids.type_line.text,
             "toughness": self.ids.toughness.text,
             "rarity": self.ids.rarity.text.lower(),
-            "card_count": self.ids.card_count.text,
+            "printed_size": self.ids.card_count.text,
             "keywords": self.ids.keywords.text.split(","),
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
@@ -119,7 +119,7 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "mana_cost": self.ids.mana_cost.text,
             "type_line": self.ids.type_line.text,
             "rarity": self.ids.rarity.text.lower(),
-            "card_count": self.ids.card_count.text,
+            "printed_size": self.ids.card_count.text,
             "oracle_text": rules_text,
             "flavor_text": "",
             "keywords": self.ids.keywords.text.split(","),
@@ -163,7 +163,7 @@ class CreatorSagaLayout(CreatorLayout):
             "mana_cost": self.ids.mana_cost.text,
             "type_line": self.ids.type_line.text,
             "rarity": self.ids.rarity.text.lower(),
-            "card_count": self.ids.card_count.text,
+            "printed_size": self.ids.card_count.text,
             "keywords": self.ids.keywords.text.split(","),
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
