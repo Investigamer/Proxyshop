@@ -506,11 +506,12 @@ class Constants:
         self.font_subtext = font_subtext
         self.font_collector = font_collector
 
-        # Font spacing
+        # Font formatting
         self.modal_indent = modal_indent
         self.line_break_lead = line_break_lead
         self.flavor_text_lead = flavor_text_lead
         self.flavor_text_lead_divider = flavor_text_lead_divider
+        self.flavor_text_color = None
 
         # Card rarities
         self.rarity_common = rarity_common
