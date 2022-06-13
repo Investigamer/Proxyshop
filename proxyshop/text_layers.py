@@ -82,11 +82,10 @@ class ExpansionSymbolField (TextField):
 
         # Size to fit reference?
         if cfg.auto_symbol_size:
-            if self.centered: psd.frame_expansion_symbol(self.layer, self.reference, True)
-            else: psd.frame_expansion_symbol(self.layer, self.reference)
-        app.activeDocument.activeLayer = self.layer
+            psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered)
 
         # Rarity above common?
+        app.activeDocument.activeLayer = self.layer
         if self.rarity == con.rarity_common: psd.apply_stroke(cfg.symbol_stroke, psd.rgb_white())
         else:
             mask_layer = psd.getLayer(self.rarity, self.layer.parent)
@@ -224,12 +223,6 @@ class FormattedTextArea (FormattedTextField):
         Inserts and correctly positions flavor bar divider.
         """
         if len(self.flavor_text) > 0:
-            # Create a contents-only layer to reference
-            contents_test = self.layer.duplicate()
-            app.activeDocument.activeLayer = contents_test
-            ft.format_text(self.contents, self.italic_text, self.flavor_index, self.centered)
-            contents_replace = contents_test.textItem.contents
-            contents_test.remove()
 
             # Create a flavor-text-only layer to reference
             flavor_test = self.layer.duplicate()
@@ -244,8 +237,11 @@ class FormattedTextArea (FormattedTextField):
             psd.replace_text(layer_text_contents, flavor_replace, "")
             layer_text_contents.rasterize(ps.RasterizeType.EntireLayer)
             layer_flavor_text = self.layer.duplicate()
-            psd.replace_text(layer_flavor_text, contents_replace, "")
             layer_flavor_text.rasterize(ps.RasterizeType.EntireLayer)
+            psd.select_layer_pixels(layer_text_contents)
+            app.activeDocument.activeLayer = layer_flavor_text
+            app.activeDocument.selection.clear()
+            app.activeDocument.selection.deselect()
             self.layer.visible = True
 
             # Get contents southern bound, move flavor text to bottom, get its northern bound
