@@ -19,6 +19,11 @@ app.preferences.rulerUnits = ps.Units.Pixels
 app.preferences.typeUnits = ps.Units.Points
 
 
+"""
+UTILITY FUNCTIONS
+"""
+
+
 def getLayer(name: str, group=None):
     """
     Retrieve layer object.
@@ -69,6 +74,11 @@ def getLayerSet(name, group=None):
         return group.layerSets.getByName(name)
     # Look through entire document
     return app.activeDocument.layerSets.getByName(name)
+
+
+"""
+COLOR FUNCTIONS
+"""
 
 
 def rgb_black():
@@ -122,6 +132,11 @@ def get_rgb(r, g, b):
     return color
 
 
+"""
+LAYER PROPERTIES
+"""
+
+
 def layer_bounds_no_effects(layer):
     """
     Returns the bounds of a given layer without its effects applied.
@@ -162,12 +177,36 @@ def get_layer_dimensions(layer):
     }
 
 
-def get_text_layer_dimensions(layer):
+"""
+TEXT LAYER PROPERTIES
+"""
+
+
+def get_text_layer_bounds(layer, text=False):
+    """
+    Return an object with the specified text layer's bounding box.
+    @param layer: Layer to get the bounds of.
+    @param text: Force old way for legacy text layers.
+    @return: Array of the bounds of the given layer.
+    """
+    if int(app.version[0:2]) < 21 or text:
+        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        layer_bounds = layer.bounds
+        layer_copy.remove()
+        return layer_bounds
+    else: return layer.bounds
+
+
+def get_text_layer_dimensions(layer, text=False):
     """
     Return an object with the specified text layer's width and height, which is achieved by rasterising
     the layer and computing its width and height from its bounds.
+    @param layer: Layer to get the dimensions of.
+    @param text: Force old way for legacy text layers.
+    @return: Dict containing height and width of the given layer.
     """
-    if int(app.get_program_id()) < 140:
+    if int(app.version[0:2]) < 21 or text:
         layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
         layer_copy.rasterize(ps.RasterizeType.TextContents)
         dimensions = get_layer_dimensions(layer_copy)
@@ -176,17 +215,59 @@ def get_text_layer_dimensions(layer):
     else: return get_layer_dimensions(layer)
 
 
-def get_text_layer_bounds(layer):
+def get_text_layer_color(layer):
     """
-    Return an object with the specified text layer's bounding box.
+    Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
+    against errors and null values by defaulting to rgb_black() in the event of a problem.
+    @param layer: Layer object that must be TextLayer
     """
-    if int(app.get_program_id()) < 140:
-        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-        layer_copy.rasterize(ps.RasterizeType.TextContents)
-        layer_bounds = layer.bounds
-        layer_copy.remove()
-        return layer_bounds
-    else: return layer.bounds
+    try:
+        if layer.kind == ps.LayerKind.TextLayer:
+            return layer.textItem.color
+        else: return rgb_black()
+    except _ctypes.COMError: return rgb_black()
+
+
+"""
+LAYER ACTIONS
+"""
+
+
+def create_new_layer(layer_name=None):
+    """
+    Creates a new layer below the currently active layer. The layer will be visible.
+    @param layer_name: Optional name for the new layer
+    @return: Newly created layer object
+    """
+    if layer_name is None: layer_name = "Layer"
+
+    # Create new layer at top of layers
+    active_layer = app.activeDocument.activeLayer
+    layer = app.activeDocument.artLayers.add()
+
+    # Name it & set blend mode to normal
+    layer.name = layer_name
+    layer.blendMode = ps.BlendMode.NormalBlend
+    layer.visible = True
+
+    # Move the layer below
+    layer.moveAfter(active_layer)
+    return layer
+
+
+def select_current_layer():
+    """
+    Select pixels of the active layer.
+    """
+    des1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref258 = ps.ActionReference()
+    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    des1.putReference(cID("null"), ref1)
+    idChnl = cID("Chnl")
+    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    des1.putReference(cID("T   "), ref258)
+    app.executeAction(cID("setd"), des1, NO_DIALOG)
 
 
 def lock_layer(layer, protection = "protectAll"):
@@ -220,6 +301,7 @@ def unlock_layer(layer):
 def select_layer_pixels(layer):
     """
     Select the bounding box of a given layer.
+    @param layer: Layer to select the pixels of.
     """
     left = layer.bounds[0]
     top = layer.bounds[1]
@@ -232,13 +314,6 @@ def select_layer_pixels(layer):
         [right, bottom],
         [left, bottom]
     ])
-
-
-def clear_selection():
-    """
-    Clear the current selection.
-    """
-    app.activeDocument.selection.select([])
 
 
 def align(align_type = "AdCH"):
@@ -269,47 +344,25 @@ def align_horizontal():
     align("AdCH")
 
 
-def frame_layer(layer, reference_layer):
+def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=False, align_h=True, align_v=True):
     """
     Scale a layer equally to the bounds of a reference layer, then center the layer vertically and horizontally
     within those bounds.
     """
     # Get layer and reference dimensions
-    layer_dimensions = get_layer_dimensions(layer)
-    reference_dimensions = get_layer_dimensions(reference_layer)
+    layer_dim = get_layer_dimensions(layer)
+    ref_dim = get_layer_dimensions(reference)
 
     # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    scale_factor = 100 * max(reference_dimensions['width'] / layer_dimensions['width'],
-                             reference_dimensions['height'] / layer_dimensions['height'])
-    layer.resize(scale_factor, scale_factor, ps.AnchorPosition.TopLeft)
+    if smallest: scale = 100 * min((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+    else: scale = 100 * max((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+    layer.resize(scale, scale, anchor)
 
     # Align the layer
-    select_layer_pixels(reference_layer)
+    select_layer_pixels(reference)
     app.activeDocument.activeLayer = layer
-    align_horizontal()
-    align_vertical()
-    clear_selection()
-
-
-def frame_expansion_symbol(layer, reference_layer, centered = False):
-    """
-    Scale a layer equally to the bounds of a reference layer, then centre the layer vertically and horizontally
-    within those bounds.
-    """
-    # Get layer and reference dimensions
-    layer_dimensions = get_layer_dimensions(layer)
-    reference_dimensions = get_layer_dimensions(reference_layer)
-
-    # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    scale_factor = 100 * min(reference_dimensions['width'] / layer_dimensions['width'],
-                             reference_dimensions['height'] / layer_dimensions['height'])
-    layer.resize(scale_factor, scale_factor, ps.AnchorPosition.MiddleRight)
-
-    # Frame the layer
-    select_layer_pixels(reference_layer)
-    app.activeDocument.activeLayer = layer
-    if centered: align_horizontal()
-    align_vertical()
+    if align_h: align_horizontal()
+    if align_v: align_vertical()
     clear_selection()
 
 
@@ -324,7 +377,7 @@ def set_active_layer_mask(visible=True):
     desc3078.putReference(cID("null"), ref1567)
     desc3079.putBoolean(cID("UsrM"), visible)
     desc3078.putObject(cID("T   "), cID("Lyr "), desc3079)
-    app.executeAction(cID("setd"), desc3078, ps.DialogModes.DisplayNoDialogs)
+    app.executeAction(cID("setd"), desc3078, NO_DIALOG)
 
 
 def enable_active_layer_mask():
@@ -366,7 +419,123 @@ def apply_stroke(stroke_weight, stroke_color):
     desc610.putObject(cID("Clr "), cID("RGBC"), desc611)
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
-    app.executeAction(cID("setd"), desc608, ps.DialogModes.DisplayNoDialogs)
+    app.executeAction(cID("setd"), desc608, NO_DIALOG)
+
+
+def paste_file(layer, file, action=None, action_args=None):
+    """
+    Pastes the given file into the specified layer.
+    @param layer: Layer object to paste the image into.
+    @param file: Filepath of the image to open.
+    @param action: Optional action function to call on the image before importing it.
+    @param action_args: Optional arguments to pass to the action function
+    """
+    # Select the correct layer, then load the file
+    prev_active_layer = app.activeDocument.activeLayer
+    app.activeDocument.activeLayer = layer
+    app.load(file)
+
+    # Optionally run action on art before importing it
+    if action:
+        if action_args: action(action_args)
+        else: action()
+
+    # Select the entire image, copy it, and close the file
+    app.activeDocument.selection.selectAll()
+    app.activeDocument.selection.copy()
+    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
+
+    # Paste the image into the specific layer, then switch back
+    app.activeDocument.paste()
+    app.activeDocument.activeLayer = prev_active_layer
+
+
+def paste_file_into_new_layer(file):
+    """
+    Wrapper for paste_file which creates a new layer for the file next to the active layer.
+    Returns the new layer.
+    """
+    new_layer = create_new_layer("New Layer")
+    paste_file(new_layer, file)
+    return new_layer
+
+
+"""
+TEXT LAYER ACTIONS
+"""
+
+
+def replace_text(layer, find, replace, targeted = False):
+    """
+    Replace all instances of `replace_this` in the specified layer with `replace_with`.
+    @param layer: Layer object to search through.
+    @param find: Text string to search for.
+    @param replace: Text string to replace matches with.
+    @param targeted: Force targeted replace (experimental).
+    """
+    app.activeDocument.activeLayer = layer
+
+    # Find and replace
+    desc31 = ps.ActionDescriptor()
+    ref3 = ps.ActionReference()
+    desc32 = ps.ActionDescriptor()
+    ref3.putProperty(sID("property"), sID("findReplace"))
+    ref3.putEnumerated(sID("textLayer"), sID("active"), sID("targetEnum"))
+    desc31.putReference(sID("target"), ref3)
+    desc32.putString(sID("find"), f"{find}")
+    desc32.putString(sID("replace"), f"{replace}")
+    # Developmental fix for non-targeted replacement
+    if cfg.targeted_replace or targeted:
+        app.bringToFront()
+        desc32.putBoolean(sID("checkAll"), False)
+    else: desc32.putBoolean(sID("checkAll"), True)
+    desc32.putBoolean(sID("forward"), True)
+    desc32.putBoolean(sID("caseSensitive"), False)
+    desc32.putBoolean(sID("wholeWord"), False)
+    desc32.putBoolean(sID("ignoreAccents"), True)
+    desc31.putObject(sID("using"), sID("findReplace"), desc32)
+    app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+
+
+"""
+DOCUMENT ACTIONS
+"""
+
+
+def clear_selection():
+    """
+    Clear the current selection.
+    """
+    app.activeDocument.selection.select([])
+
+
+def trim_transparent_pixels():
+    """
+    Trim transparent pixels from Photoshop document.
+    """
+    desc258 = ps.ActionDescriptor()
+    desc258.PutEnumerated(sID("trimBasedOn"), sID("trimBasedOn"), sID("transparency"))
+    desc258.PutBoolean(sID("top"), True)
+    desc258.PutBoolean(sID("bottom"), True)
+    desc258.PutBoolean(sID("left"), True)
+    desc258.PutBoolean(sID("right"), True)
+    app.ExecuteAction(sID("trim"), desc258, NO_DIALOG)
+
+
+def run_action(action_set, action):
+    """
+    Runs a Photoshop action.
+    @param action_set: Name of the group the action is in.
+    @param action: Name of the action.
+    """
+    desc310 = ps.ActionDescriptor()
+    ref7 = ps.ActionReference()
+    desc310.PutBoolean(sID("dontRecord"), False)
+    desc310.PutBoolean(sID("forceNotify"), True)
+    ref7.PutName(sID("action"),  action)
+    ref7.PutName(sID("actionSet"),  action_set)
+    desc310.PutReference(sID("target"),  ref7)
+    app.ExecuteAction(sID("play"), desc310, NO_DIALOG)
 
 
 def save_document_png(file_name):
@@ -407,6 +576,27 @@ def close_document():
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
 
+def open_svg(path, max_width=500, dpi=1200):
+    """
+    Opens a rasterized SVG file in Photoshop.
+    @param path: Path to the file
+    @param max_width: Max width, height will be proportional
+    @param dpi: Pixel density of the image
+    """
+    desc227 = ps.ActionDescriptor()
+    desc228 = ps.ActionDescriptor()
+    desc227.PutBoolean(sID("dontRecord"), False)
+    desc227.PutBoolean(sID("forceNotify"), True)
+    desc227.PutPath(sID("target"), path)
+    desc228.PutUnitDouble(sID("width"), sID("pixelsUnit"), max_width)
+    desc228.PutUnitDouble(sID("resolution"), sID("densityUnit"), dpi)
+    desc228.PutEnumerated(sID("mode"), sID("colorSpace"), sID("RGBColor"))
+    desc228.PutBoolean(sID("antiAlias"), True)
+    desc228.PutBoolean(sID("constrainProportions"), True)
+    desc227.PutObject(sID("as"), sID("svgFormat"), desc228)
+    app.ExecuteAction(sID("open"), desc227, NO_DIALOG)
+
+
 def reset_document(filename):
     """
     Reset all changes to the current document
@@ -422,113 +612,9 @@ def reset_document(filename):
     app.executeAction(idslct, desc9, NO_DIALOG)
 
 
-def get_text_layer_color(layer):
-    """
-    Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
-    against errors and null values by defaulting to rgb_black() in the event of a problem.
-    @param layer: Layer object that must be TextLayer
-    """
-    try:
-        if layer.kind == ps.LayerKind.TextLayer:
-            return layer.textItem.color
-        else: return rgb_black()
-    except _ctypes.COMError: return rgb_black()
-
-
-def create_new_layer(layer_name=None):
-    """
-    Creates a new layer below the currently active layer. The layer will be visible.
-    @param layer_name: Optional name for the new layer
-    @return: Newly created layer object
-    """
-    if layer_name is None: layer_name = "Layer"
-
-    # Create new layer at top of layers
-    active_layer = app.activeDocument.activeLayer
-    layer = app.activeDocument.artLayers.add()
-
-    # Name it & set blend mode to normal
-    layer.name = layer_name
-    layer.blendMode = ps.BlendMode.NormalBlend
-    layer.visible = True
-
-    # Move the layer below
-    layer.moveAfter(active_layer)
-
-    return layer
-
-
-def replace_text(layer, find, replace, targeted = False):
-    """
-    Replace all instances of `replace_this` in the specified layer with `replace_with`.
-    @param layer: Layer object to search through.
-    @param find: Text string to search for.
-    @param replace: Text string to replace matches with.
-    @param targeted: Force targeted replace (experimental).
-    """
-    app.activeDocument.activeLayer = layer
-
-    # Find and replace
-    desc31 = ps.ActionDescriptor()
-    ref3 = ps.ActionReference()
-    desc32 = ps.ActionDescriptor()
-    ref3.putProperty(sID("property"), sID("findReplace"))
-    ref3.putEnumerated(sID("textLayer"), sID("active"), sID("targetEnum"))
-    desc31.putReference(sID("target"), ref3)
-    desc32.putString(sID("find"), f"{find}")
-    desc32.putString(sID("replace"), f"{replace}")
-    # Developmental fix for non-targeted replacement
-    if cfg.targeted_replace or targeted:
-        app.bringToFront()
-        desc32.putBoolean(sID("checkAll"), False)
-    else: desc32.putBoolean(sID("checkAll"), True)
-    desc32.putBoolean(sID("forward"), True)
-    desc32.putBoolean(sID("caseSensitive"), False)
-    desc32.putBoolean(sID("wholeWord"), False)
-    desc32.putBoolean(sID("ignoreAccents"), True)
-    desc31.putObject(sID("using"), sID("findReplace"), desc32)
-    app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
-
-
-def paste_file(layer, file):
-    """
-    Pastes the given file into the specified layer.
-    @param layer: Layer object to paste the image into.
-    @param file: Filepath of the image to open.
-    """
-    # Select the correct layer, then load the file
-    prev_active_layer = app.activeDocument.activeLayer
-    app.activeDocument.activeLayer = layer
-    app.load(file)
-
-    # Select the entire image, copy it, and close the file
-    app.activeDocument.selection.selectAll()
-    app.activeDocument.selection.copy()
-    app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
-
-    # Paste the image into the specific layer, then switch back
-    app.activeDocument.paste()
-    app.activeDocument.activeLayer = prev_active_layer
-
-
-def paste_file_into_new_layer(file):
-    """
-    Wrapper for paste_file which creates a new layer for the file next to the active layer.
-    Returns the new layer.
-    """
-    new_layer = create_new_layer("New Layer")
-    paste_file(new_layer, file)
-    return new_layer
-
-
-def insert_scryfall_scan(image_url):
-    """
-    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
-    Returns the new layer.
-    """
-    scryfall_scan = card_scan(image_url)
-    if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
-    return None
+"""
+DESIGN UTILITIES
+"""
 
 
 def content_fill_empty_area():
@@ -579,7 +665,65 @@ def apply_vibrant_saturation(VibValue, SatValue):
     desc232 = ps.ActionDescriptor()
     desc232.putInteger(idvibrance, VibValue)
     desc232.putInteger(cID("Strt"), SatValue)
-    app.executeAction(idvibrance, desc232, ps.DialogModes.DisplayNoDialogs)
+    app.executeAction(idvibrance, desc232, NO_DIALOG)
+
+
+def repair_edges(edge=6):
+    """
+    Select a small area at the edges of an image and content aware fill to repair upscale damage.
+    @param edge: How many pixels to select at the edge.
+    """
+    # Select all
+    desc632724 = ps.ActionDescriptor()
+    ref489 = ps.ActionReference()
+    ref489.PutProperty(sID("channel"), sID("selection"))
+    desc632724.PutReference(sID("target"), ref489)
+    desc632724.PutEnumerated(sID("to"), sID("ordinal"), sID("allEnum"))
+    app.ExecuteAction(sID("set"), desc632724, NO_DIALOG)
+
+    # Contract selection
+    contract = ps.ActionDescriptor()
+    contract.PutUnitDouble(sID("by"), sID("pixelsUnit"), edge)
+    contract.PutBoolean(sID("selectionModifyEffectAtCanvasBounds"), True)
+    app.ExecuteAction(sID("contract"), contract, NO_DIALOG)
+
+    # Inverse the selection
+    app.ExecuteAction(sID("inverse"), None, NO_DIALOG)
+
+    # Content aware fill
+    desc_caf = ps.ActionDescriptor()
+    desc_caf.PutEnumerated(
+        sID("cafSamplingRegion"),
+        sID("cafSamplingRegion"),
+        sID("cafSamplingRegionRectangular")
+    )
+    desc_caf.PutBoolean(sID("cafSampleAllLayers"), False)
+    desc_caf.PutEnumerated(
+        sID("cafColorAdaptationLevel"),
+        sID("cafColorAdaptationLevel"),
+        sID("cafColorAdaptationDefault")
+    )
+    desc_caf.PutEnumerated(
+        sID("cafRotationAmount"),
+        sID("cafRotationAmount"),
+        sID("cafRotationAmountNone")
+    )
+    desc_caf.PutBoolean(sID("cafScale"), False)
+    desc_caf.PutBoolean(sID("cafMirror"), False)
+    desc_caf.PutEnumerated(
+        sID("cafOutput"),
+        sID("cafOutput"),
+        sID("cafOutputToNewLayer")
+    )
+    app.ExecuteAction(sID("cafWorkspace"), desc_caf, NO_DIALOG)
+
+    # Deselect
+    app.activeDocument.selection.deselect()
+
+
+"""
+PROXYSHOP UTILITIES
+"""
 
 
 def fill_expansion_symbol(reference, color=rgb_black()):
@@ -638,16 +782,11 @@ def fill_expansion_symbol(reference, color=rgb_black()):
     layer.applyMaximum(1)
 
 
-def select_current_layer():
+def insert_scryfall_scan(image_url):
     """
-    Select pixels of active layer
+    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
+    Returns the new layer.
     """
-    des1 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    ref258 = ps.ActionReference()
-    ref1.putProperty(cID("Chnl"), cID("fsel"))
-    des1.putReference(cID("null"), ref1)
-    idChnl = cID("Chnl")
-    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
-    des1.putReference(cID("T   "), ref258)
-    app.executeAction(cID("setd"), des1, NO_DIALOG)
+    scryfall_scan = card_scan(image_url)
+    if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
+    return None
