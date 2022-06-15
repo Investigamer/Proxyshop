@@ -437,7 +437,7 @@ def paste_file(layer, file, action=None, action_args=None):
 
     # Optionally run action on art before importing it
     if action:
-        if action_args: action(action_args)
+        if action_args: action(**action_args)
         else: action()
 
     # Select the entire image, copy it, and close the file
