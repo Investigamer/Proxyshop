@@ -293,19 +293,24 @@ class StarterTemplate (BaseTemplate):
                 layer = name_selected,
                 contents = self.layout.name,
                 reference = mana_cost
-            ),
-            txt_layers.ExpansionSymbolField(
-                layer = expansion_symbol,
-                contents = self.layout.symbol,
-                rarity = self.layout.rarity,
-                reference = expansion_reference
-            ),
+            )
+        ])
+        if not hasattr(self, "expansion_disabled"):
+            self.tx_layers.append(
+                txt_layers.ExpansionSymbolField(
+                    layer = expansion_symbol,
+                    contents = self.layout.symbol,
+                    rarity = self.layout.rarity,
+                    reference = expansion_reference
+                )
+            )
+        self.tx_layers.append(
             txt_layers.ScaledTextField(
                 layer = type_line_selected,
                 contents = self.layout.type_line,
                 reference = expansion_symbol
-            ),
-        ])
+            )
+        )
 
     @staticmethod
     def enable_hollow_crown(crown, pinlines):
