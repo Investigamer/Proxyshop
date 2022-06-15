@@ -1,15 +1,23 @@
 """
 MRTEFERI TEMPLATES
 """
-# from proxyshop import format_text
-# import proxyshop.text_layers as txt_layers
-from proxyshop.plugins.MrTeferi.actions.sketch import sketchify
+from proxyshop.plugins.MrTeferi.actions import pencilsketch, sketch
 import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
+import proxyshop.core as core
 import photoshop.api as ps
 app = ps.Application()
+
+
+"""
+LOAD CONFIGURATION
+"""
+
+
+my_config = core.import_json_config("MrTeferi/config.json")
+sketch_cfg = my_config['Sketch']
 
 
 """
@@ -26,13 +34,32 @@ class SketchTemplate (temp.NormalTemplate):
     def template_suffix(self): return "Sketch"
 
     def __init__(self, layout):
-        self.art_action = sketchify
+
+        # Run a sketch action?
+        if sketch_cfg['action'] == 1:
+            self.art_action = sketch.run
+        elif sketch_cfg['action'] == 2:
+            self.art_action = pencilsketch.run
+            self.art_action_args = {
+                'rough_sketch': bool(sketch_cfg['rough-sketch-lines']),
+                'draft_sketch': bool(sketch_cfg['draft-sketch-lines']),
+                'colored': bool(sketch_cfg['colored']),
+            }
+
+        # Special expansion symbol conditions
+        if layout.rarity in (con.rarity_bonus, con.rarity_special):
+            layout.rarity = con.rarity_mythic
+        con.layers['EXPANSION_SYMBOL'] = layout.rarity
+        self.expansion_disabled = True
+
         # self.art_action_args = [True]
         super().__init__(layout)
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
-        if self.layout.rarity != "common": psd.getLayer("common", con.layers['TEXT_AND_ICONS']).visible = False
+        if self.layout.rarity != "common":
+            psd.getLayer("common", con.layers['TEXT_AND_ICONS']).visible = False
+            psd.getLayer(self.layout.rarity, con.layers['TEXT_AND_ICONS']).visible = True
 
 
 class KaldheimTemplate (temp.NormalTemplate):
@@ -258,4 +285,3 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
     def collector_info(self):
         artist = psd.getLayer(con.layers['ARTIST'], con.layers['LEGAL'])
         psd.replace_text(artist, "Artist", self.layout.artist)
-
