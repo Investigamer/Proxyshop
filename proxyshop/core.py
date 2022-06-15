@@ -408,6 +408,11 @@ SYSTEM FUNCTIONS
 """
 
 
+def import_json_config(path):
+    with open(os.path.join(f"{cwd}/proxyshop/plugins", path)) as f:
+        return json.load(f)
+
+
 def exit_app():
     """
     Exit the application
