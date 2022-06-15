@@ -104,15 +104,15 @@ class BaseLayout:
                     if 'card_count' in self.scryfall:
                         self.card_count = self.scryfall['card_count']
                     else: self.card_count = ""
-
-            # Ensure minimum 3 digit number length
-            if len(str(self.card_count)) == 2:
-                self.card_count = "0" + str(self.card_count)
-            elif len(str(self.card_count)) == 1:
-                self.card_count = "00" + str(self.card_count)
-            elif len(str(self.card_count)) == 0:
-                self.card_count = None
         else: self.card_count = scryfall['printed_size']
+
+        # Ensure card_count minimum 3 digit number length
+        if len(str(self.card_count)) == 2:
+            self.card_count = "0" + str(self.card_count)
+        elif len(str(self.card_count)) == 1:
+            self.card_count = "00" + str(self.card_count)
+        elif len(str(self.card_count)) == 0:
+            self.card_count = None
 
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
