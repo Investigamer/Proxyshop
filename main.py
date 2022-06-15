@@ -460,10 +460,11 @@ if __name__ == '__main__':
 	# Ensure mandatory folders are created
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
 	Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(os.path.join(cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.1.3"
+	__version__ = "v1.1.5"
 	Factory.register('HoverBehavior', gui.HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
 	ProxyshopApp().run()

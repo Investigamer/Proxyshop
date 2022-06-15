@@ -2,6 +2,8 @@
 CORE TEMPLATES
 """
 import os
+from pathlib import Path
+
 import proxyshop.text_layers as txt_layers
 from proxyshop import format_text, gui
 from proxyshop.constants import con
@@ -109,8 +111,8 @@ class BaseTemplate:
         Opens the template's PSD file in Photoshop.
         """
         console.update("Loading PSD template file...")
-        file_path = os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}")
-        app.load(file_path)
+        file_path = Path(os.path.join(con.cwd, f"templates\\{self.template_file_name()}{cfg.file_ext}"))
+        app.load(str(file_path))
         return file_path
 
     def load_artwork(self):

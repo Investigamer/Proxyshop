@@ -321,7 +321,8 @@ def update_template(temp, callback):
     @param temp: Dict containing template information.
     @param callback: Callback method to update progress bar.
     """
-    # Download using authorization?
+    # Download using authorization
+    Path(os.path.dirname(temp['path'])).mkdir(mode=511, parents=True, exist_ok=True)
     gdrive_download(temp['id'], temp['path'], callback)
 
     # Change the version to match the new version
