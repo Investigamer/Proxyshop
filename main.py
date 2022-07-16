@@ -1,6 +1,8 @@
 """
 PROXYSHOP - GUI LAUNCHER
 """
+import copy
+import json
 import os
 import sys
 import threading
@@ -8,6 +10,7 @@ import time
 from pathlib import Path
 from time import perf_counter
 from glob import glob
+from typing import Union
 from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
@@ -36,6 +39,7 @@ Config.write()
 # Core vars
 card_types = core.card_types
 templates = core.get_templates()
+console = gui.console_handler
 cwd = os.getcwd()
 
 
@@ -54,10 +58,9 @@ class ProxyshopApp(App):
 		# User data
 		self.assigned_layouts = {}
 		self.result = True
-		self.panels = None
 		self.temps = {}
 
-	def select_template(self, btn):
+	def select_template(self, btn: ToggleButton):
 		"""
 		Call the add_template method of root object
 		"""
@@ -77,7 +80,6 @@ class ProxyshopApp(App):
 		self.disable_buttons()
 		cfg.update()
 		temps = core.get_my_templates(self.temps)
-		console = gui.console_handler
 
 		# Open file in PS
 		app = ps.Application()
@@ -90,17 +92,19 @@ class ProxyshopApp(App):
 		self.load_defaults()
 		card = self.assign_layout(file[0])
 		if isinstance(card, str):
+			# Card failed to assign
 			console.update(f"[color=#a84747]{card}[/color]")
 			self.enable_buttons()
+			return
+		else:
+			# Start a new thread
+			template = core.get_template(temps[card.card_class])
+			thr = threading.Thread(target=self.render, args=(template, card), daemon=True)
+			self.start_thread(thr)
 
-		# Start a new thread
-		template = core.get_template(temps[card.card_class])
-		thr = threading.Thread(target=self.render, args=(template, card), daemon=True)
-		self.start_thread(thr)
-
-		# Return to normal
-		self.close_document()
-		self.enable_buttons()
+			# Return to normal
+			self.close_document()
+			self.enable_buttons()
 
 	def render_all(self):
 		"""
@@ -108,26 +112,26 @@ class ProxyshopApp(App):
 		Using our custom JSON
 		"""
 		# Setup step
-		self.disable_buttons()
 		cfg.update()
+		self.disable_buttons()
+		self.assigned_layouts = {}
 		temps = core.get_my_templates(self.temps)
-		console = gui.console_handler
+		failed, files, cards, lthr, types = [], [], [], [], {}
 
 		# Select all images in art folder
-		failed = []
-		files = []
-		cards = []
-		types = {}
-		lthr = []
-		self.assigned_layouts = {}
 		folder = os.path.join(cwd, "art")
 		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
 		for ext in extensions:
 			files.extend(glob(os.path.join(folder, ext)))
 
+		# Is the list empty?
+		if len(files) == 0:
+			console.update("No art images found!")
+			self.enable_buttons()
+			return
+
 		# Run through each file, assigning layout
 		for i, f in enumerate(files, start=0):
-			# lay = self.assign_layout(f)
 			lthr.append(threading.Thread(target=self.assign_layout, args=(f, i)))
 			lthr[i].start()
 			time.sleep(.05)
@@ -147,7 +151,7 @@ class ProxyshopApp(App):
 			)
 			if not proceed:
 				self.enable_buttons()
-				return None
+				return
 
 		# Create a segment of renders for each card class
 		for c in cards:
@@ -167,25 +171,26 @@ class ProxyshopApp(App):
 				if not self.start_thread(thr):
 					self.close_document()
 					self.enable_buttons()
-					return None
+					return
+			self.load_defaults()
 			self.close_document()
-
-		# Return to normal
-		self.close_document()
+		self.load_defaults()
 		self.enable_buttons()
 
-	def render_custom(self, temp, scryfall):
+	def render_custom(self, temp: list, scryfall):
 		"""
 		Set up custom render job, then execute
 		"""
-		self.disable_buttons()
 		cfg.update()
+		self.disable_buttons()
 		self.load_defaults()
-		console = gui.console_handler
 		try:
 
 			app = ps.Application()
-			file = app.openDialog()[0]
+			file = app.openDialog()
+			if file is None:
+				self.enable_buttons()
+				return
 			console.update(
 				f"Rendering custom card: [b]{scryfall['name']}[/b]"
 			)
@@ -197,42 +202,46 @@ class ProxyshopApp(App):
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				scryfall['lang'] = "en"
 				try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
-				except KeyError or TypeError as e:
+				except (KeyError, TypeError) as e:
 					console.update(f"Layout not supported!\n", e)
-					return None
+					return
 
-			# Get our template and layout class maps
+			# Get our template class
 			try: card_template = core.get_template(temp)
 			except Exception as e:
 				console.update(f"Template not found!\n", e)
-				return None
+				return
 
 			# Select and execute the template
 			try:
 				layout.creator = None
-				layout.file = file
-				card_template(layout).execute()
+				layout.file = file[0]
+				proxy = card_template(layout)
+				self.docref = proxy.docref
+				proxy.execute()
 				self.close_document()
 			except Exception as e:
-				console.update(f"Layout '{scryfall['layout']}' is not supported!\n", e)
+				console.update(f"Template failed to execute! Check your custom inputs.\n", e)
 				self.close_document()
-				return None
+				return
 
 		except Exception as e:
 			console.update(f"General error! Maybe Photoshop was busy?\n", e)
 		self.enable_buttons()
 		console.update("")
 
-	def assign_layout(self, filename, index=None):
+	def assign_layout(
+			self, filename: Union[Path, str], index: int = 0
+	) -> Union[str, layouts.BasicLand, layouts.BaseLayout]:
 		"""
 		Assign layout object to a card.
 		@param filename: String including card name, plus optionally:
-			- artist name
-			- set code
+			- (artist name)
+			- [set code]
 		@param index: The index to save this layout for assigned_layouts
 		@return: Layout object for this card
 		"""
-		console = gui.console_handler
+
 		# Get basic card information
 		card = retrieve_card_info(os.path.basename(str(filename)))
 
@@ -240,7 +249,7 @@ class ProxyshopApp(App):
 		if card['name'] in con.basic_land_names:
 			# If basic, manually call the BasicLand layout OBJ
 			layout = layouts.BasicLand(card['name'], card['artist'], card['set'])
-			console.update(f"Basic land found: [b]{card['name']}[/b]")
+			if not cfg.dev_mode: console.update(f"Basic land found: [b]{card['name']}[/b]")
 		else:
 			# Get the scryfall info
 			scryfall = card_info(card['name'], card['set'])
@@ -269,16 +278,84 @@ class ProxyshopApp(App):
 		self.assigned_layouts[index] = layout
 		return self.assigned_layouts[index]
 
-	def render(self, template, card):
+	def test_all(self, deep=False):
+		self.load_defaults()
+		self.disable_buttons()
+
+		# Load temps and test case cards
+		temps = core.get_templates()
+		with open(os.path.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+			cases = json.load(fp)
+
+		# Loop through each card, test all templates for that type
+		for t, cards in cases.items():
+			if not deep: cards = [cards[0]]
+			console.update(f"\n[color=#59d461]---- {t.upper()} ----[/color]")
+			for name, temp in temps[t].items():
+				failures = []
+				console.update(f"{temp[1]} ... ", end="")
+				for card in cards:
+					layout = self.assign_layout(card[0])
+					if isinstance(layout, str):  # Layout or Scryfall Fail
+						console.update(layout)
+						return
+					else: layout.file = os.path.join(cwd, "proxyshop/img/test.png")
+					template = core.get_template(temp)
+					thr = threading.Thread(target=self.render, args=(template, layout))
+					if not self.start_thread(thr): failures.append(card[0])
+				self.close_document()
+				self.load_defaults()
+				if len(failures) > 0:
+					failed = ", ".join(failures)
+					console.update(f"[color=#a84747]FAILED ({failed})[/color]")
+				else: console.update("[color=#59d461]SUCCESS[/color]")
+		self.enable_buttons()
+
+	def test_target(self, c_type: str, temp: list):
+		self.load_defaults()
+		self.disable_buttons()
+
+		# Load test case cards
+		with open(os.path.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+			cards = json.load(fp)
+
+		# Loop through our cases
+		console.update(f"\n[color=#59d461]---- {temp[1]} ----[/color]")
+		for card in cards[c_type]:
+			layout = self.assign_layout(card[0])
+			if isinstance(layout, str):  # Layout or Scryfall Fail
+				console.update(layout)
+				self.enable_buttons()
+				return
+			else: layout.file = os.path.join(cwd, "proxyshop/img/test.png")
+			console.update(f"{card[0]} ... ", end="")
+			template = core.get_template(temp)
+			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
+			if self.start_thread(thr):
+				console.update("[color=#59d461]SUCCESS[/color]")
+			else:
+				console.update(f"[color=#a84747]FAILED - {card[1]}[/color]")
+			self.load_defaults()
+		self.close_document()
+		self.enable_buttons()
+
+	def render(self, template: type, card: type) -> None:
 		"""
 		Execute a render job.
 		@param template: Template class to use for this card
 		@param card: Card layout object containing scryfall data
 		@return: True/False, if False cancel the render operation
 		"""
-		self.result = template(card).execute()
+		try:
+			proxy = template(card)
+			self.docref = proxy.docref
+			self.result = proxy.execute()
+		except Exception as e:
+			console.error(
+				"Template failed to load! This plugin may be busted.", e
+			)
 
-	def start_thread(self, thr):
+	def start_thread(self, thr: threading.Thread) -> bool:
 		"""
 		Create a counter, start a thread, print time completed.
 		@param thr: Thread object
@@ -286,37 +363,68 @@ class ProxyshopApp(App):
 		"""
 		start_t = perf_counter()
 		thr.start()
-		gui.console_handler.await_cancel(thr)
+		console.await_cancel(thr)
 		thr.join()
 		end_t = perf_counter()
 		if self.result:
-			gui.console_handler.update(f"[i]Time completed: {int(end_t - start_t)} seconds[/i]\n")
+			if not cfg.dev_mode:
+				console.update(f"[i]Time completed: {int(end_t - start_t)} seconds[/i]\n")
 			return True
-		else: return None
+		return False
 
-	@staticmethod
-	def close_document():
-		app = ps.Application()
-		try: app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
-		except Exception as e: return e
+	def close_document(self):
+		"""
+		Close document by name if possible.
+		"""
+		try:
+			self.docref.close(ps.SaveOptions.DoNotSaveChanges)
+			self.docref = None
+		except Exception as e: print(e)
 
 	@staticmethod
 	def load_defaults():
+		"""
+		Reset app config state to default.
+		"""
 		cfg.reload()
 		con.reload()
 
 	def disable_buttons(self):
-		self.root.ids.rend_targ_btn.disabled = True
-		self.root.ids.rend_all_btn.disabled = True
+		"""
+		Disable buttons while render process running.
+		"""
+		if cfg.dev_mode:
+			self.root.ids.test_all.disabled = True
+			self.root.ids.test_all_deep.disabled = True
+			self.root.ids.test_target.disabled = True
+			console.ids.update_btn.disabled = True
+		else:
+			self.root.ids.rend_targ_btn.disabled = True
+			self.root.ids.rend_all_btn.disabled = True
+			console.ids.update_btn.disabled = True
 
 	def enable_buttons(self):
-		self.root.ids.rend_targ_btn.disabled = False
-		self.root.ids.rend_all_btn.disabled = False
+		"""
+		Re-enable buttons after render process completed.
+		"""
+		if cfg.dev_mode:
+			self.root.ids.test_all.disabled = False
+			self.root.ids.test_all_deep.disabled = False
+			self.root.ids.test_target.disabled = False
+			console.ids.update_btn.disabled = False
+		else:
+			self.root.ids.rend_targ_btn.disabled = False
+			self.root.ids.rend_all_btn.disabled = False
+			console.ids.update_btn.disabled = False
 
 	def build(self):
-		self.panels = ProxyshopPanels()
-		self.panels.add_widget(gui.console_handler)
-		return self.panels
+		"""
+		Build the app for display.
+		"""
+		if cfg.dev_mode: layout = gui.TestApp()
+		else: layout = ProxyshopPanels()
+		layout.add_widget(console)
+		return layout
 
 
 """
@@ -354,7 +462,7 @@ class CreatorTab(TabbedPanelItem):
 	Custom card creator tab
 	"""
 	def __init__(self, **kwargs):
-		Builder.load_file(os.path.join(cwd, "proxyshop/creator.kv"))
+		Builder.load_file(os.path.join(cwd, "proxyshop/kivy/creator.kv"))
 		self.text = "Custom Creator"
 		super().__init__(**kwargs)
 		self.add_widget(CreatorPanels())
@@ -400,7 +508,7 @@ class TemplateList(GridLayout):
 	"""
 	Builds a listbox of templates based on a given type
 	"""
-	def __init__(self, c_type, temps, **kwargs):
+	def __init__(self, c_type: str, temps: list, **kwargs):
 		super().__init__(**kwargs)
 
 		# Create a list of buttons
@@ -429,11 +537,11 @@ class TemplateButton(ToggleButton):
 	@param name: Name of template display on the button.
 	@param c_type: Card type of this template.
 	"""
-	def __init__(self, name, c_type, **kwargs):
+	def __init__(self, name: str, c_type: str, **kwargs):
 		super().__init__(**kwargs)
 		self.text = name
 		self.type = c_type
-		self.all = {}
+		self.all: dict = {}
 
 
 class SettingButton(ToggleButton):
@@ -464,7 +572,7 @@ if __name__ == '__main__':
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.1.5"
+	__version__ = "v1.1.6"
 	Factory.register('HoverBehavior', gui.HoverBehavior)
-	Builder.load_file(os.path.join(cwd, "proxyshop/proxyshop.kv"))
+	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()
