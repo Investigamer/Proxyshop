@@ -276,6 +276,7 @@ class ProxyshopApp(App):
 		layout.creator = card['creator']
 		layout.file = filename
 		self.assigned_layouts[index] = layout
+		console.update(f"[color=#59d461]SUCCESS:[/color] {str(layout)}")
 		return self.assigned_layouts[index]
 
 	def test_all(self, deep=False):
