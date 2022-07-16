@@ -13,7 +13,6 @@ from importlib import util, import_module
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from proxyshop.constants import con
-from proxyshop.settings import cfg
 cwd = os.getcwd()
 
 # Card types with more than 1 template
@@ -378,7 +377,7 @@ def authenticate_user():
     try:
         # Create gauth file if it doesn't exist yet
         if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")):
-            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w') as fp:
+            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w', encoding="utf-8") as fp:
                 fp.write("")
 
         # Authenticate, fetch file and metadata
