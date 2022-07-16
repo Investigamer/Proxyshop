@@ -3,7 +3,11 @@ CARD CREATOR TAB
 """
 import os
 import threading
+from typing import Callable
+
+from kivy.app import App
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
 from proxyshop import core
@@ -38,7 +42,7 @@ class CreatorTabItem(TabbedPanelItem):
 
 
 class CreatorLayout(GridLayout):
-    def __init__(self, parent, c_type, **kwargs):
+    def __init__(self, parent: TabbedPanel, c_type: str, **kwargs):
         # Get our templates alphabetical
         self.root = parent
         self.selected_template = "Normal"
@@ -49,7 +53,7 @@ class CreatorLayout(GridLayout):
         del temps_t
         super().__init__(**kwargs)
 
-    def select_template(self, spinner):
+    def select_template(self, spinner: Spinner):
         """
         Choose which template to render with.
         @param spinner: Spinner dropdown list object.
@@ -72,9 +76,16 @@ class CreatorLayout(GridLayout):
         self.root.creator_pw_layout.ids.render_pw.disabled = False
         self.root.creator_saga_layout.ids.render_saga.disabled = False
 
+    def render_custom(self, func: Callable, temp: list, scryfall: dict):
+        self.disable_buttons()
+        th = threading.Thread(target=func, args=(temp, scryfall), daemon=True)
+        th.start()
+        th.join()
+        self.enable_buttons()
+
 
 class CreatorNormalLayout(CreatorLayout):
-    def render(self, root):
+    def render(self, root: App):
         oracle_text = self.ids.oracle_text.text.replace("~", self.ids.name.text)
         flavor_text = self.ids.flavor_text.text.replace("~", self.ids.name.text)
         scryfall = {
@@ -95,15 +106,11 @@ class CreatorNormalLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["normal"][self.ids.template.text]
-        self.disable_buttons()
-        th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
-        th.start()
-        th.join()
-        self.enable_buttons()
+        self.render_custom(root.render_custom, temp, scryfall)
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
-    def render(self, root):
+    def render(self, root: App):
         rules_text = "\n".join([
             self.ids.line_1.text.replace("~", self.ids.name.text),
             self.ids.line_2.text.replace("~", self.ids.name.text),
@@ -120,22 +127,17 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "type_line": self.ids.type_line.text,
             "rarity": self.ids.rarity.text.lower(),
             "printed_size": self.ids.card_count.text,
-            "oracle_text": rules_text,
-            "flavor_text": "",
+            "oracle_text": rules_text, "flavor_text": "",
             "keywords": self.ids.keywords.text.split(","),
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["planeswalker"][self.ids.template.text]
-        self.disable_buttons()
-        th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
-        th.start()
-        th.join()
-        self.enable_buttons()
+        self.render_custom(root.render_custom, temp, scryfall)
 
 
 class CreatorSagaLayout(CreatorLayout):
-    def render(self, root):
+    def render(self, root: App):
         text_arr = []
         num_lines = "I"
         if self.ids.line_1.text != "":
@@ -152,7 +154,6 @@ class CreatorSagaLayout(CreatorLayout):
             text_arr.append(f"{num_lines} — " + self.ids.line_4.text.replace("~", self.ids.name.text))
         text_arr.insert(0, f"Empty words.")
         rules_text = "\n".join(text_arr)
-        print(rules_text)
         scryfall = {
             "layout": "saga",
             "flavor_text": "",
@@ -169,11 +170,7 @@ class CreatorSagaLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         temp = core.get_templates()["saga"][self.ids.template.text]
-        self.disable_buttons()
-        th = threading.Thread(target=root.render_custom, args=(temp, scryfall), daemon=True)
-        th.start()
-        th.join()
-        self.enable_buttons()
+        self.render_custom(root.render_custom, temp, scryfall)
 
 
 """
