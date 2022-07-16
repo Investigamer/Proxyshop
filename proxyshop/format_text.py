@@ -571,7 +571,10 @@ def classic_align_right(primedesc, start, end):
     return primedesc
 
 
-def scale_text_right_overlap(layer, reference):
+def scale_text_right_overlap(
+        layer: ps.LayerKind.TextLayer,
+        reference: ps.LayerKind.TextLayer
+) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
     has a 24 px clearance from a reference layer's left bound.
@@ -588,20 +591,20 @@ def scale_text_right_overlap(layer, reference):
     elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
-    step_size = 0.25
+    step_size = 0.2
     reference_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
-    old_size = layer.textItem.size
+    old_size = float(layer.textItem.size)
 
     # Obtain proper spacing for this document size
-    spacing = int((app.activeDocument.width / 3264) * 64)
+    spacing = int((app.activeDocument.width / 3264) * 24)
 
     # Guard against the reference's left bound being left of the layer's left bound
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
         while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
-            layer.textItem.size = layer.textItem.size - step_size
+            layer.textItem.size -= step_size
             layer_right_bound = layer.bounds[2]
 
     # Shift baseline up to keep text centered vertically

@@ -27,6 +27,7 @@ class BasicLand:
         self.collector_number = None
         self.card_count = None
         self.lang = cfg.lang.upper()
+        self.rarity = "common"
 
         # Optional vars
         if artist: self.artist = artist
@@ -40,6 +41,9 @@ class BasicLand:
             if self.set in con.set_symbols: self.symbol = con.set_symbols[self.set]
             else: self.symbol = cfg.symbol_char
         else: self.symbol = cfg.symbol_char
+
+    def __str__(self):
+        return "{} [{}]".format(self.name, self.set)
 
 
 class BaseLayout:
@@ -79,8 +83,17 @@ class BaseLayout:
         self.rarity_letter = self.rarity[0:1].upper()
         self.artist = self.scryfall['artist']
         self.color_identity = self.scryfall['color_identity']
-        if 'lang' in self.scryfall: self.lang = self.scryfall['lang']
+        if 'lang' in self.scryfall:
+            self.lang = self.scryfall['lang'].upper()
         else: self.lang = cfg.lang.upper()
+
+        # Correct for duplicate artist names
+        if "&" in self.artist:
+            count = []
+            for w in self.artist.split(" "):
+                if w in count: count.remove(w)
+                count.append(w)
+            self.artist = " ".join(count)
 
         # Prepare set code
         self.set = self.scryfall['set'].upper()
@@ -166,12 +179,14 @@ class BaseLayout:
         # elif "Snow" in self.type_line:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
         #    self.card_class = con.snow_class
 
+    def __str__(self):
+        return "{} [{}]".format(self.name, self.set)
+
 
 class NormalLayout (BaseLayout):
     """
     Use this as Superclass for most regular layouts
     """
-    # pylint: disable=R0902
     def __init__(self, scryfall, card_name):
         super().__init__(scryfall, card_name)
 
@@ -314,6 +329,13 @@ class ModalDoubleFacedLayout (BaseLayout):
         self.oracle_text = self.scryfall['card_faces'][self.face][self.oracle_key]
         self.oracle_text_raw = self.scryfall['card_faces'][self.face]['oracle_text']
         self.transform_icon = "modal_dfc"
+        if self.lang != "EN":
+            num_breaks = self.oracle_text.count("\n")
+            num_breaks_raw = self.oracle_text_raw.count("\n")
+            if num_breaks > num_breaks_raw:
+                self.oracle_text = self.oracle_text.split("\n", num_breaks_raw+1)
+                self.oracle_text.pop()
+                self.oracle_text = "\n".join(self.oracle_text)
 
         # Optional vars
         try: self.flavor_text = self.scryfall['card_faces'][self.face]['flavor_text']
@@ -345,7 +367,7 @@ class ModalDoubleFacedLayout (BaseLayout):
             self.color_indicator_other)['twins']
 
         # Opposite card info
-        other_face_type_line_split = self.scryfall['card_faces'][self.other_face]['type_line'].split(" ")
+        other_face_type_line_split = self.scryfall['card_faces'][self.other_face][self.type_key].split(" ")
         self.other_face_left = other_face_type_line_split[len(other_face_type_line_split)-1]
         self.other_face_right = self.scryfall['card_faces'][self.other_face]['mana_cost']
 
@@ -411,6 +433,9 @@ class AdventureLayout (BaseLayout):
         # Scryfall image
         self.scryfall_scan = self.scryfall['image_uris']['large']
 
+        # Assign frame elements
+        super().frame_logic()
+
     def get_default_class(self):
         return con.adventure_class
 
@@ -436,6 +461,9 @@ class LevelerLayout (NormalLayout):
         self.bottom_power_toughness = leveler_match[6]
         self.levels_z_plus_text = leveler_match[7]
 
+        # Assign frame elements
+        super().frame_logic()
+
     def get_default_class(self):
         return con.leveler_class
 
@@ -451,6 +479,9 @@ class SagaLayout (NormalLayout):
         self.saga_lines = self.oracle_text.split("\n")[1::]
         for i, line in enumerate(self.saga_lines):
             self.saga_lines[i] = line.split(" \u2014 ")[1]
+
+        # Assign frame elements
+        super().frame_logic()
 
     def get_default_class(self):
         return con.saga_class
@@ -473,6 +504,9 @@ class PlanarLayout (BaseLayout):
         self.artist = self.scryfall['artist']
         self.name = self.scryfall[self.name_key]
         self.mana_cost = ""
+
+        # Assign frame elements
+        super().frame_logic()
 
     def get_default_class(self):
         return con.planar_class

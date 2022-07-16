@@ -8,10 +8,12 @@ import json
 import pydrive2.auth
 from glob import glob
 from pathlib import Path
+from typing import Optional, Callable
 from importlib import util, import_module
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from proxyshop.constants import con
+from proxyshop.settings import cfg
 cwd = os.getcwd()
 
 # Card types with more than 1 template
@@ -39,7 +41,7 @@ TEMPLATE FUNCTIONS
 """
 
 
-def get_template(template, layout=None):
+def get_template(template: list, layout: Optional[str] = None):
     """
     Get template based on input and layout
     """
@@ -55,7 +57,7 @@ def get_template(template, layout=None):
             else: selected_template = templates[layout]["Normal"]
         else: return None
     else: selected_template = template
-    
+
     # Built-in template?
     if selected_template[0] is None:
         return getattr(import_module("proxyshop.templates"), selected_template[1])
@@ -113,18 +115,20 @@ def get_templates():
     return main_json
 
 
-def get_my_templates(sel):
+def get_my_templates(selected: dict):
     """
     Retrieve templates based on user selection
+    @param selected: Selected templates to return data for.
+    @return: A dict of templates matching each layout type.
     """
     temps = {}
     templates = get_templates()
     # Create new dict of selected templates
     for key in card_types:
-        for k in sel:
+        for k in selected:
             if k == key:
                 for lay in card_types[key]:
-                    temps[lay] = templates[lay][sel[k]]
+                    temps[lay] = templates[lay][selected[k]]
 
     # Add default template for any unselected
     for layout in templates:
@@ -138,13 +142,14 @@ CARD FUNCTIONS
 """
 
 
-def retrieve_card_info (filename):
+def retrieve_card_info(filename):
     """
     Retrieve card name and (if specified) artist from the input file.
     """
     # Extract just the card name
     sep = [' {', ' [', ' (']
-    fn_split = re.split('|'.join(map(re.escape, sep)), filename[:-4])
+    fn = filename.replace(".png", "").replace(".jpg", "").replace(".jpeg", "").replace(".tif", "")
+    fn_split = re.split('|'.join(map(re.escape, sep)), fn)
     name = fn_split[0]
 
     # Precompile pattern
@@ -243,11 +248,11 @@ def check_for_updates():
     return updates
 
 
-def version_check(temp, plugin = None):
+def version_check(temp: dict, plugin: Optional[str] = None):
     """
     Check if a given file is up-to-date based on the live file metadata.
-    @param temp: Template info from the manifest
-    @param plugin: Plugin name string
+    @param temp: Template json data from the manifest
+    @param plugin: Plugin name, optional
     @return: True if it needs an update, False if it doesn't
     """
     # Get our current version
@@ -285,7 +290,7 @@ def version_check(temp, plugin = None):
     else: return None
 
 
-def get_current_version(file_id, path):
+def get_current_version(file_id: str, path: str):
     """
     Checks the current on-file version of this template.
     If the file is present, but no version tracked, fill in default.
@@ -315,7 +320,7 @@ def get_current_version(file_id, path):
     return version
 
 
-def update_template(temp, callback):
+def update_template(temp: dict, callback: Callable):
     """
     Update a given template to the latest version.
     @param temp: Dict containing template information.
@@ -330,7 +335,7 @@ def update_template(temp, callback):
     con.update_version_tracker()
 
 
-def gdrive_metadata(file_id):
+def gdrive_metadata(file_id: str):
     """
     Get the metadata of a given template file.
     @param file_id: ID of the Google Drive file
@@ -343,7 +348,7 @@ def gdrive_metadata(file_id):
     return file.metadata
 
 
-def gdrive_download(file_id, path, callback):
+def gdrive_download(file_id: str, path: Path, callback: Callable):
     """
     Authenticate the user, download the file, return the new version.
     @param file_id: Google Drive ID of the file
@@ -370,8 +375,8 @@ def authenticate_user():
     a new one by getting permission from the user.
     @return: GoogleDrive object to use for downloads.
     """
-    # Create gauth file if doesn't exist yet
     try:
+        # Create gauth file if it doesn't exist yet
         if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")):
             with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w') as fp:
                 fp.write("")
@@ -390,8 +395,7 @@ def check_for_authentication():
     Check if the user has been authenticated.
     """
     if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")): return False
-    with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'r') as fp:
-        lines = fp.read()
+    with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'r') as fp: lines = fp.read()
     if len(lines) == 0: return False
     else:
         try:
@@ -404,18 +408,13 @@ def check_for_authentication():
             print(e)
             return False
 
+
 """
 SYSTEM FUNCTIONS
 """
 
 
-def import_json_config(path):
+def import_json_config(path: str):
     with open(os.path.join(f"{cwd}/proxyshop/plugins", path)) as f:
         return json.load(f)
 
-
-def exit_app():
-    """
-    Exit the application
-    """
-    sys.exit()

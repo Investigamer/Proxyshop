@@ -30,7 +30,6 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
     * Figure out which layers to use for pinlines, background, twins
     * Also define the color identity
     """
-    # pylint: disable=R0911, R0912, R0914, R0915, R1702, R1716, R1705
     colors = [
         con.layers['WHITE'],
         con.layers['BLUE'],
@@ -71,8 +70,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
 
         # Array of rules text lines on the card
         rules_lines = oracle_text.split("\n")
-        colors_tapped = ""
-        basic_identity = ""
+        colors_tapped, basic_identity = "", ""
 
         # Iterate over rules text lines
         for line in rules_lines:
@@ -152,6 +150,16 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                             'is_colorless': False,
                         }
 
+            # Check if the line makes all lands X type, ex: Urborg
+            if "Each land is a " in line:
+                for k, v in basic_colors.items():
+                    if k in line:
+                        return {
+                            'background': con.layers['LAND'],
+                            'pinlines': v, 'twins': v,
+                            'is_colorless': False,
+                        }
+
             # Count how many colors of mana the card can explicitly tap to add
             if line.find("{T}") < line.find(":") and "add " in line.lower():
                 # This line taps to add mana of some color
@@ -190,8 +198,8 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
 
     # Card with no mana cost
     if mana_cost == "" or (mana_cost == "{0}" and con.layers['ARTIFACT'] not in type_line):
-        # If `colour_indicator` is defined for this card, use that as the colour identity
-        # Otherwise, use `colour_identity` as the colour identity
+        # If `color_indicator` is defined for this card, use that as the colour identity
+        # Otherwise, use `color_identity` as the color identity
         if color_identity_array is None: color_identity = ""
         elif color_indicator: color_identity = "".join(color_indicator)
         else: color_identity = "".join(color_identity_array)
@@ -212,7 +220,9 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
     # Identify if the card is a full-art colorless card, e.g. colorless
     # Assume all non-land cards with the word "Devoid" in their rules text use the BFZ colorless frame
     devoid = bool("Devoid" in oracle_text and len(color_identity) > 0)
-    if (len(color_identity) <= 0 and type_line.find(con.layers['ARTIFACT']) < 0) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
+    if (
+        len(color_identity) <= 0 and type_line.find(con.layers['ARTIFACT']) < 0
+    ) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
         # colorless-style card identified
         background = con.layers['COLORLESS']
         pinlines = con.layers['COLORLESS']
@@ -222,7 +232,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
         if devoid:
             # Select the name box and devoid-style background based on the color identity
             if len(color_identity) > 1:
-                # Use gold namebox and devoid-style background
+                # Use gold name box and devoid-style background
                 twins = con.layers['GOLD']
                 background = con.layers['GOLD']
             else:

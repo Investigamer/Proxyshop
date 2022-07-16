@@ -25,11 +25,7 @@ class Config:
 	__metaclass__ = Singleton
 
 	def __init__(self, conf=os.path.join(cwd, "config.ini")):
-		self.file = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
-		self.file.optionxform = str
-		with open(conf, encoding="utf-8") as file:
-			self.file.read_file(file)
-		self.load()
+		self.reload(conf)
 
 	def load(self):
 		"""
@@ -41,7 +37,6 @@ class Config:
 
 		# FILE section
 		self.save_jpeg = self.file.getboolean('FILES', 'Render.JPEG')
-		self.file_ext = self.file['FILES']['Photoshop.Ext']
 		self.save_artist_name = self.file.getboolean('FILES', 'Save.Artist.Name')
 
 		# TEXT section
@@ -60,6 +55,7 @@ class Config:
 		# EXPERIMENTAL section
 		self.targeted_replace = self.file.getboolean('EXPERIMENTAL', 'Targeted.Replace')
 		self.flavor_divider = self.file.getboolean('EXPERIMENTAL', 'Flavor.Divider')
+		self.dev_mode = self.file.getboolean('EXPERIMENTAL', 'Dev.Mode')
 
 	def update(self):
 		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(self.auto_symbol))
@@ -81,7 +77,7 @@ class Config:
 		"""
 		Reload the config file and define new values
 		"""
-		del self.file
+		if hasattr(self, 'file'): del self.file
 		self.file = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
 		self.file.optionxform = str
 		with open(conf, encoding="utf-8") as file:

@@ -5,13 +5,14 @@ import os.path
 import time
 import json
 import requests
+from typing import Optional
 from urllib import request, parse, error
 from proxyshop.settings import cfg
 from proxyshop.constants import scryfall_scan_path, http_header
 from proxyshop.gui import console_handler as console
 
 
-def card_info(card_name, card_set=None):
+def card_info(card_name: str, card_set: Optional[str] = None):
     """
     Search Scryfall for a card
     `card_name`: Name of card
@@ -22,32 +23,15 @@ def card_info(card_name, card_set=None):
 
         # Query the card in given language, have to use /card/search/
         card = get_card_search(card_name, cfg.lang, card_set)
-        if isinstance(card, dict):
-            console.update(f"Card data found: [b]{card['name']} [{card['set'].upper()}][/b]")
-            return card
+        if isinstance(card, dict): return card
         else: console.update(f"Reverting to English: [b]{card_name} [lang: {str(cfg.lang)}][/b]", card)
 
-        # Try again in English
-        cfg.lang = "en"
-        return card_info(card_name, card_set)
-
-    else:
-
-        # Query the card using /card/named/
-        card = get_card_named(card_name, card_set)
-        if isinstance(card, dict):
-            # Search was successful
-            console.update(f"Card data found: [b]{card['name']} [{card['set'].upper()}][/b]")
-            return card
-        else:
-            # Search was unsuccessful
-            if not card_set: card_set = ""
-            else: card_set = f" [{card_set}]"
-            console.update(f"Scryfall FAILED: [b]{card_name}{card_set}[/b]", card)
-            return card
+    # Query the card using /card/named/
+    card = get_card_named(card_name, card_set)
+    return card
 
 
-def get_card_named(name, set_code=None):
+def get_card_named(name: str, set_code: Optional[str] = None):
     # Set code given?
     if set_code: code = f"&set={set_code}"
     else: code = ""
@@ -64,7 +48,7 @@ def get_card_named(name, set_code=None):
     return err
 
 
-def get_card_search(name, lang="en", set_code=None):
+def get_card_search(name: str, lang: str = "en", set_code: Optional[str] = None):
     # Set code given?
     if set_code: code = f"+set:{set_code}"
     else: code = ""
@@ -81,19 +65,22 @@ def get_card_search(name, lang="en", set_code=None):
     return err
 
 
-def set_info(set_code):
+def set_info(set_code: str):
     """
     Search scryfall for a set
     `set_code`: The set to look for, ex: MH2
     """
     # Has this set been logged?
-    filepath = os.path.join(os.getcwd(), f"proxyshop/datas/{set_code.upper()}.json")
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
-
+    filepath = os.path.join(os.getcwd(), f"proxyshop/datas/SET-{set_code.upper()}.json")
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                return loaded
+    except Exception as e: console.log_exception(e)
     err = None
     url = f"http://mtgjson.com/api/v5/{set_code.upper()}.json"
+
     # Try up to 5 times
     for i in range(5):
         try:
@@ -112,22 +99,24 @@ def set_info(set_code):
     return None
 
 
-def card_scan(img_url):
+def card_scan(img_url: str):
     """
     Downloads scryfall art from URL
     """
     try:
         request.urlretrieve(img_url, scryfall_scan_path)
-        console.update(f"Downloaded Scryfall scan!")
-    except error.HTTPError as e:
+        if not cfg.dev_mode:
+            console.update(f"Downloaded Scryfall scan!")
+    except Exception as e:
         # HTTP request failed
-        console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
+        if not cfg.dev_mode:
+            console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
         return None
     with open(scryfall_scan_path, encoding="utf-8") as file:
         return file.name
 
 
-def add_meld_info(card_json):
+def add_meld_info(card_json: dict):
     """
     If the current card is a meld card, it's important to retrieve information about its faces here, since it'll be
     difficult to make another query while building the card's layout obj. For each part in all_parts, query Scryfall
