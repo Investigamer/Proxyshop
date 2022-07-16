@@ -31,31 +31,33 @@ def getLayer(name: str, group=None):
     @param group: Group name/object, or ordered list of group names/objects
     @return: Layer object requested
     """
-    layer_set = None
-    if group is None:
-        # No LayerSet given
-        for layer in app.activeDocument.layers:
-            if layer.name == name: return layer
-    elif isinstance(group, str):
-        # LayerSet name given
-        layer_set = app.activeDocument.layerSets.getByName(group)
-    elif isinstance(group, (tuple, list)):
-        # List of layerSet names/objects given
-        for g in group:
-            # First in list or not?
-            if not layer_set:
-                if isinstance(g, str): layer_set = app.activeDocument.layerSets.getByName(g)
-                else: layer_set = g
-            else:
-                if isinstance(g, str): layer_set = getLayerSet(g, layer_set)
-                else: layer_set = g
-    else: layer_set = group
-    # Else, assume layerSet object given
+    try:
+        layer_set = None
+        if group is None:
+            # No LayerSet given
+            for layer in app.activeDocument.layers:
+                if layer.name == name: return layer
+        elif isinstance(group, str):
+            # LayerSet name given
+            layer_set = app.activeDocument.layerSets.getByName(group)
+        elif isinstance(group, (tuple, list)):
+            # List of layerSet names/objects given
+            for g in group:
+                # First in list or not?
+                if not layer_set:
+                    if isinstance(g, str): layer_set = app.activeDocument.layerSets.getByName(g)
+                    else: layer_set = g
+                else:
+                    if isinstance(g, str): layer_set = getLayerSet(g, layer_set)
+                    else: layer_set = g
+        else: layer_set = group
+        # Else, assume layerSet object given
 
-    # Find our layer
-    for layer in layer_set.layers:
-        if layer.name == name:
-            return layer
+        # Find our layer
+        for layer in layer_set.layers:
+            if layer.name == name:
+                return layer
+    except: return
 
 
 def getLayerSet(name, group=None):
@@ -255,39 +257,21 @@ def create_new_layer(layer_name=None):
     return layer
 
 
-def select_current_layer():
-    """
-    Select pixels of the active layer.
-    """
-    des1 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    ref258 = ps.ActionReference()
-    ref1.putProperty(cID("Chnl"), cID("fsel"))
-    des1.putReference(cID("null"), ref1)
-    idChnl = cID("Chnl")
-    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
-    des1.putReference(cID("T   "), ref258)
-    app.executeAction(cID("setd"), des1, NO_DIALOG)
-
-
 def lock_layer(layer, protection = "protectAll"):
     """
     Locks the given layer.
     @param layer: A layer object
     @param protection: protectAll to lock, protectNone to unlock
     """
-    current = app.activeDocument.activeLayer
-    app.activeDocument.activeLayer = layer
     desc819 = ps.ActionDescriptor()
     ref378 = ps.ActionReference()
-    ref378.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
+    ref378.putIdentifier(cID("Lyr "), layer.id)
     desc819.putReference(cID("null"), ref378)
     desc820 = ps.ActionDescriptor()
     desc820.putBoolean(sID(protection), True)
     idlayerLocking = sID("layerLocking")
     desc819.putObject(idlayerLocking, idlayerLocking, desc820)
     app.executeAction(sID("applyLocking"), desc819, NO_DIALOG)
-    app.activeDocument.activeLayer = current
 
 
 def unlock_layer(layer):
@@ -298,7 +282,7 @@ def unlock_layer(layer):
     lock_layer(layer, "protectNone")
 
 
-def select_layer_pixels(layer):
+def select_layer_bounds(layer):
     """
     Select the bounding box of a given layer.
     @param layer: Layer to select the pixels of.
@@ -314,6 +298,37 @@ def select_layer_pixels(layer):
         [right, bottom],
         [left, bottom]
     ])
+
+
+def select_current_layer():
+    """
+    Select pixels of the active layer.
+    """
+    des1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref258 = ps.ActionReference()
+    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    des1.putReference(cID("null"), ref1)
+    idChnl = cID("Chnl")
+    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    des1.putReference(cID("T   "), ref258)
+    app.executeAction(cID("setd"), des1, NO_DIALOG)
+
+
+def select_layer_pixels(layer):
+    """
+    Selects the pixels of a given layer.
+    @param layer: Layer object
+    """
+    des1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref2 = ps.ActionReference()
+    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    des1.putReference(cID("null"), ref1)
+    ref2.putEnumerated(cID("Chnl"), cID("Chnl"), cID("Trsp"))
+    ref2.putIdentifier(cID("Lyr "), layer.id)
+    des1.putReference(cID("T   "), ref2)
+    app.executeAction(cID("setd"), des1, NO_DIALOG)
 
 
 def align(align_type = "AdCH"):
@@ -359,7 +374,7 @@ def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=Fal
     layer.resize(scale, scale, anchor)
 
     # Align the layer
-    select_layer_pixels(reference)
+    select_layer_bounds(reference)
     app.activeDocument.activeLayer = layer
     if align_h: align_horizontal()
     if align_v: align_vertical()
@@ -394,7 +409,63 @@ def disable_active_layer_mask():
     set_active_layer_mask(False)
 
 
-def apply_stroke(stroke_weight, stroke_color):
+def set_layer_mask(layer, visible=True):
+    """
+    Set the visibility of the active layer's layer mask.
+    """
+    desc1 = ps.ActionDescriptor()
+    desc2 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref1.putIdentifier(cID("Lyr "), layer.id)
+    desc1.putReference(cID("null"), ref1)
+    desc2.putBoolean(cID("UsrM"), visible)
+    desc1.putObject(cID("T   "), cID("Lyr "), desc2)
+    app.executeAction(cID("setd"), desc1, NO_DIALOG)
+
+
+def enable_mask(layer):
+    """
+    Enables a given layer's mask.
+    @param layer: A layer object
+    """
+    set_layer_mask(layer, True)
+
+
+def disable_mask(layer):
+    """
+    Disables a given layer's mask.
+    @param layer: A layer object
+    """
+    set_layer_mask(layer, False)
+
+
+def merge_layers(layer_1, layer_2):
+    """
+    Merge two layers together.
+    @param layer_1: First layer object.
+    @param layer_2: Second layer object.
+    @return: Returns the merged layer.
+    """
+    desc1 = ps.ActionDescriptor()
+    desc2 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref2 = ps.ActionReference()
+    ref1.putIdentifier(sID("layer"), layer_1.id)
+    desc1.PutReference(sID("target"), ref1)
+    ref2.putIdentifier(sID("layer"), layer_2.id)
+    desc2.PutReference(sID("target"), ref2)
+    desc2.PutEnumerated(
+        sID("selectionModifier"),
+        sID("selectionModifierType"),
+        sID("addToSelection")
+    )
+    app.ExecuteAction(sID("select"), desc1, NO_DIALOG)
+    app.ExecuteAction(sID("select"), desc2, NO_DIALOG)
+    app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
+    return app.activeDocument.activeLayer
+
+
+def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     """
     Applies an outer stroke to the active layer with the specified weight and color.
     """
@@ -404,7 +475,7 @@ def apply_stroke(stroke_weight, stroke_color):
     desc611 = ps.ActionDescriptor()
     ref149 = ps.ActionReference()
     ref149.putProperty(cID("Prpr"), cID("Lefx"))
-    ref149.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
+    ref149.putIdentifier(cID("Lyr "), layer.id)
     desc608.putReference(cID("null"), ref149)
     desc609.putUnitDouble(cID("Scl "), cID("#Prc"), 200)
     desc610.putBoolean(cID("enab"), True)
@@ -420,6 +491,34 @@ def apply_stroke(stroke_weight, stroke_color):
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
+
+
+def clear_layer_style(layer):
+    """
+    Removes all layer style effects.
+    @param layer: Layer object
+    """
+    current = app.activeDocument.activeLayer
+    app.activeDocument.activeLayer = layer
+    desc1600 = ps.ActionDescriptor()
+    ref126 = ps.ActionReference()
+    ref126.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    desc1600.PutReference(sID("target"), ref126)
+    app.ExecuteAction(sID("disableLayerStyle"), desc1600, NO_DIALOG)
+    app.activeDocument.activeLayer = current
+
+
+def rasterize_layer_style(layer):
+    """
+    Rasterizes a layer including its style.
+    @param layer: Layer object
+    """
+    desc1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref1.putIdentifier(sID("layer"), layer.id)
+    desc1.PutReference(sID("target"),  ref1)
+    desc1.PutEnumerated(sID("what"), sID("rasterizeItem"), sID("layerStyle"))
+    app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
 def paste_file(layer, file, action=None, action_args=None):
@@ -465,14 +564,15 @@ TEXT LAYER ACTIONS
 """
 
 
-def replace_text(layer, find, replace, targeted = False):
+def replace_text(layer, find, replace):
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
     @param layer: Layer object to search through.
     @param find: Text string to search for.
     @param replace: Text string to replace matches with.
-    @param targeted: Force targeted replace (experimental).
     """
+    # Set the active layer
+    current = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
 
     # Find and replace
@@ -480,21 +580,23 @@ def replace_text(layer, find, replace, targeted = False):
     ref3 = ps.ActionReference()
     desc32 = ps.ActionDescriptor()
     ref3.putProperty(sID("property"), sID("findReplace"))
-    ref3.putEnumerated(sID("textLayer"), sID("active"), sID("targetEnum"))
-    desc31.putReference(sID("target"), ref3)
+    ref3.putEnumerated(cID('TxLr'), cID('Ordn'), cID('Trgt'))
+    desc31.putReference(sID("null"), ref3)
     desc32.putString(sID("find"), f"{find}")
     desc32.putString(sID("replace"), f"{replace}")
-    # Developmental fix for non-targeted replacement
-    if cfg.targeted_replace or targeted:
-        app.bringToFront()
+    if int(app.version[0:2]) > 22 or cfg.targeted_replace:
+        if cfg.targeted_replace: app.bringToFront()
         desc32.putBoolean(sID("checkAll"), False)
     else: desc32.putBoolean(sID("checkAll"), True)
     desc32.putBoolean(sID("forward"), True)
-    desc32.putBoolean(sID("caseSensitive"), False)
+    desc32.putBoolean(sID("caseSensitive"), True)
     desc32.putBoolean(sID("wholeWord"), False)
     desc32.putBoolean(sID("ignoreAccents"), True)
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
     app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+
+    # Reset current selected
+    app.activeDocument.activeLayer = current
 
 
 """
@@ -617,12 +719,16 @@ DESIGN UTILITIES
 """
 
 
-def content_fill_empty_area():
+def content_fill_empty_area(layer=None):
     """
     Helper function intended to streamline the workflow of making extended art cards.
     This script rasterizes the active layer and fills all empty pixels in the canvas
     on the layer using content-aware fill.
     """
+    # Change active layer
+    current = app.activeDocument.activeLayer
+    if layer: app.activeDocument.activeLayer = layer
+
     # Select pixels of active layer
     desc307 = ps.ActionDescriptor()
     ref257 = ps.ActionReference()
@@ -631,6 +737,7 @@ def content_fill_empty_area():
     ref258 = ps.ActionReference()
     idChnl = cID("Chnl")
     ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    if layer: ref258.putIdentifier(sID("layer"), layer.id)
     desc307.putReference(cID("T   "), ref258)
     app.executeAction(cID("setd"), desc307, NO_DIALOG)
 
@@ -653,6 +760,8 @@ def content_fill_empty_area():
     app.executeAction(cID("Fl  "), desc12, NO_DIALOG)
     selection.deselect()
 
+    # Reset active
+    app.activeDocument.activeLayer = current
 
 def apply_vibrant_saturation(VibValue, SatValue):
     """
@@ -747,7 +856,9 @@ def fill_expansion_symbol(reference, color=rgb_black()):
 
     # Invert selection
     app.activeDocument.selection.invert()
+    app.activeDocument.selection.contract(1)
 
+    """ # Not necessary?
     # Magic Wand cross select
     click2 = ps.ActionDescriptor()
     ref2 = ps.ActionReference()
@@ -758,6 +869,8 @@ def fill_expansion_symbol(reference, color=rgb_black()):
     click2.putBoolean(cID("AntA"), True)
     click2.putBoolean(cID("Cntg"), False)
     app.executeAction(cID("IntW"), click2)
+    app.activeDocument.selection.expand(4)
+    """
 
     # Make a new layer
     layer = app.activeDocument.artLayers.add()
@@ -779,7 +892,9 @@ def fill_expansion_symbol(reference, color=rgb_black()):
     clear_selection()
 
     # Maximum filter to keep the antialiasing normal
-    layer.applyMaximum(1)
+    # layer.applyMaximum(1) # Do we need this?
+
+    return layer
 
 
 def insert_scryfall_scan(image_url):

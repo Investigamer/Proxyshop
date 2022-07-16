@@ -21,7 +21,13 @@
     "WTH": "",
     "TMP": "",
     "STH": "",
-    "EXO": "",
+    "EXO": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "P02": "",
     "UGL": "",
     "USG": "",
@@ -175,17 +181,45 @@
     "DDT": "",
     "IMA": "",
     "E02": "",
-    "V17": "",
+    "V17": [
+        {
+            "char": "",
+            "fill": "rarity",
+            "stroke": false
+        }
+    ],
     "UST": "",
     "RIX": "",
-    "A25": "",
+    "A25": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "DDU": "",
     "DOM": "",
-    "CM2": "",
+    "CM2": [
+        {
+            "char": "",
+            "fill": "white",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
     "BBD": "",
     "SS1": "",
     "GS1": "",
-    "M19": "",
+    "M19": [
+        {
+            "char": "",
+            "fill": "black",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
     "C18": "",
     "GRN": "",
     "GNT": "",
@@ -195,50 +229,207 @@
     "WAR": "",
     "MH1": "",
     "SS2": "",
-    "M20": "",
-    "C19": "",
+    "M20": [
+        {
+            "char": "",
+            "fill": "black",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
+    "C19": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "ELD": "",
     "GN2": "",
-    "THB": "",
-    "UND": "",
-    "IKO": "",
-    "C20": "",
-    "SS3": "",
-    "M21": "",
-    "JMP": "",
+    "THB": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "UND": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "IKO": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "C20": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
+    "SS3": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "M21": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "JMP": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "2XM": "",
     "AKR": "",
     "ZNR": "",
     "ZNE": "",
-    "ZNC": "",
+    "ZNC": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
     "KLR": "",
     "CMR": "",
     "CMC": "",
-    "CC1": "",
+    "CC1": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "KHM": "",
     "KHC": "",
-    "TSR": "",
+    "TSR": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "STX": "",
     "STA": "",
-    "C21": "",
+    "C21": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
     "MH2": "",
-    "AFR": "",
-    "AFC": "",
+    "AFR": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "AFC": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "SLD": "",
     "J21": "",
-    "MID": "",
-    "MIC": "",
+    "MID": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false
+        },
+        {
+            "char": "",
+            "rarity": false,
+            "stroke": ["black", 4],
+            "common-stroke": ["black", 6],
+            "common-color": "white"
+        }
+    ],
+    "MIC": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "DCI": "",
     "VOW": "",
-    "VOC": "",
+    "VOC": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "NEO": "",
     "NEC": "",
-    "UNF": "",
+    "UNF": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "Y22": "",
-    "CC2": "",
+    "CC2": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "HED": "",
     "SNC": "",
-    "NCC": "",
-    "CLB": "",
+    "NCC": [
+        {
+            "char": "",
+            "rarity": false,
+            "color": "white",
+            "stroke": false,
+            "common-color": "white",
+            "common-stroke": ["black", 6]
+        },
+        {
+            "char": "",
+            "reference": true
+        }
+    ],
+    "CLB": [
+        {
+            "char": "",
+            "rarity": false,
+            "color": "white",
+            "stroke": false,
+            "common-color": "white",
+            "common-stroke": ["black", 3]
+        },
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white",
+            "reference": true
+        }
+    ],
     "2X2": ""
 }

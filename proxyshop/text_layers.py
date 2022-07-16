@@ -1,11 +1,12 @@
 """
 TEXT LAYER MODULE
 """
+import photoshop.api as ps
 import proxyshop.helpers as psd
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import format_text as ft
-from proxyshop.helpers import ps, app
+app = ps.Application()
 
 
 """
@@ -43,15 +44,21 @@ class ScaledTextField (TextField):
     def __init__(self, layer, contents = "", color = None, reference = None):
         super().__init__(layer, contents, color)
         self.reference = reference
+        self.reference_parent = self.reference.parent
+        self.reference_name = self.reference.name
 
     def execute(self):
+        try: self.reference.name
+        except Exception:
+            self.reference = psd.getLayer(self.reference_name, self.reference_parent)
+
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         ft.scale_text_right_overlap(self.layer, self.reference)
 
 
-class ExpansionSymbolField (TextField):
+class ExpansionSymbolField:
     """
     A TextField which represents a card's expansion symbol.
     @param layer: Expansion symbol layer
@@ -66,42 +73,136 @@ class ExpansionSymbolField (TextField):
         contents = "",
         color = None,
         rarity = "common",
-        reference = None, centered = False
+        reference = None,
+        centered = False
     ):
-        super().__init__(layer, contents, color)
+
+        # Attributes
+        if color: self.text_color = color
+        else: self.text_color = psd.get_text_layer_color(layer)
+        self.layer = layer
         self.centered = centered
         self.rarity = rarity
         self.reference = reference
+        self.unpack_contents(contents)
+        self.colors = {
+            "black": psd.rgb_black(),
+            "white": psd.rgb_white(),
+            "rarity": psd.rgb_black(),
+        }
+
+        # Setup
+        self.layer.visible = True
+        self.layer.textItem.color = self.text_color
 
         # Special mythic rarities
         if rarity in (con.rarity_bonus, con.rarity_special):
             self.rarity = con.rarity_mythic
 
+    def unpack_contents(self, contents):
+        """
+        Figure out if this is a basic symbol or multilayered.
+        @param contents: Either a string or dict of config options.
+        """
+        if isinstance(contents, str):
+            self.layer.textItem.contents = contents
+            self.layers = None
+        else:
+            # Correct for missing values and find reference
+            self.layer.textItem.contents = contents[0]['char']
+            for i, lyr in enumerate(contents):
+                if 'rarity' not in lyr: contents[i]['rarity'] = True
+                if 'fill' not in lyr: contents[i]['fill'] = False
+                if 'color' not in lyr: contents[i]['color'] = False
+                if 'stroke' not in lyr: contents[i]['stroke'] = ["black", 6]
+                if 'common-fill' not in lyr: contents[i]['common-fill'] = False
+                if 'common-color' not in lyr: contents[i]['common-color'] = False
+                if 'common-stroke' not in lyr: contents[i]['common-stroke'] = ["white", 6]
+                if 'reference' in lyr:
+                    if lyr['reference']: self.layer.textItem.contents = lyr['char']
+            self.layers = contents
+
     def execute(self):
-        super().execute()
 
         # Size to fit reference?
         if cfg.auto_symbol_size:
             psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered)
 
-        # Rarity above common?
-        app.activeDocument.activeLayer = self.layer
-        if self.rarity == con.rarity_common: psd.apply_stroke(cfg.symbol_stroke, psd.rgb_white())
-        else:
-            mask_layer = psd.getLayer(self.rarity, self.layer.parent)
-            mask_layer.visible = True
-            psd.apply_stroke(cfg.symbol_stroke, psd.rgb_black())
-            psd.select_layer_pixels(self.layer)
-            app.activeDocument.activeLayer = mask_layer
-            psd.align_horizontal()
-            psd.align_vertical()
-            psd.clear_selection()
+        # Ungroup if grouped
+        if not self.layer.grouped:
+            self.layer.grouped = False
+            self.layer.grouped = False
+        self.original = self.layer
 
-        # Fill in the expansion symbol?
-        if cfg.fill_symbol:
-            app.activeDocument.activeLayer = self.layer
-            if self.rarity == con.rarity_common: psd.fill_expansion_symbol(self.reference, psd.rgb_white())
-            else: psd.fill_expansion_symbol(self.reference)
+        # One layer or multiple?
+        if not self.layers:
+            if self.rarity != con.rarity_common:
+                # Not common rarity
+                psd.apply_stroke(self.layer, cfg.symbol_stroke)
+                self.apply_rarity()
+                if cfg.fill_symbol: self.apply_fill()
+            else:
+                # Common rarity
+                psd.apply_stroke(self.layer, cfg.symbol_stroke, psd.rgb_white())
+                psd.rasterize_layer_style(self.layer)
+                if cfg.fill_symbol: self.apply_fill(psd.rgb_white())
+        else:
+
+            # Loop through each layer
+            for i, lay in enumerate(self.layers):
+                # Establish new current layer
+                self.layer = self.original.duplicate(self.layer, ps.ElementPlacement.PlaceAfter)
+                self.layer.textItem.contents = lay['char']
+
+                # Common
+                if self.rarity != con.rarity_common:
+                    # Apply common traits
+                    if lay['color']: self.layer.textItem.color = self.colors[lay['color']]
+                    if lay['stroke']: psd.apply_stroke(self.layer, lay['stroke'][1], self.colors[lay['stroke'][0]])
+                    else: psd.clear_layer_style(self.layer)
+                    if lay['fill'] == 'rarity':
+                        psd.rasterize_layer_style(self.layer)
+                        rarity = self.apply_fill(self.colors[lay['fill']])
+                        rarity = self.apply_rarity(rarity)
+                        psd.merge_layers(self.layer, rarity)
+                    else:
+                        if lay['rarity']: self.layer = self.apply_rarity()
+                        psd.rasterize_layer_style(self.layer)
+                        if lay['fill']: self.apply_fill(self.colors[lay['fill']])
+                else:
+                    # Apply non-common traits
+                    if lay['common-color']: self.layer.textItem.color = self.colors[lay['common-color']]
+                    if lay['common-stroke']:
+                        psd.apply_stroke(self.layer, lay['common-stroke'][1], self.colors[lay['common-stroke'][0]])
+                    else: psd.clear_layer_style(self.layer)
+                    psd.rasterize_layer_style(self.layer)
+                    if lay['common-fill']: self.apply_fill(self.colors[lay['common-fill']])
+            self.original.remove()
+
+    def apply_rarity(self, layer=None):
+        # Default layer
+        if not layer: layer = self.layer
+
+        # Apply rarity gradient to this layer
+        try: mask_layer = psd.getLayer(self.rarity, layer.parent)
+        except: mask_layer = psd.getLayer(self.rarity)
+        mask_layer = mask_layer.duplicate(layer, ps.ElementPlacement.PlaceBefore)
+        mask_layer.grouped = True
+        mask_layer.visible = True
+        psd.select_layer_bounds(layer)
+        app.activeDocument.activeLayer = mask_layer
+        psd.align_horizontal()
+        psd.align_vertical()
+        psd.clear_selection()
+        layer = psd.merge_layers(mask_layer, layer)
+        layer.name = "Expansion Symbol"
+        return layer
+
+    def apply_fill(self, color=psd.rgb_black()):
+
+        # Make active and fill background
+        app.activeDocument.activeLayer = self.layer
+        return psd.fill_expansion_symbol(self.reference, color)
 
 
 class BasicFormattedTextField (TextField):
@@ -153,13 +254,13 @@ class FormattedTextField (TextField):
 
         # Flavor text included?
         if len(self.flavor_text) > 1:
-            # remove things between asterisks from flavor text if necessary
+            # Don't italicize any text between asterisk
             flavor_text_split = self.flavor_text.split("*")
             if len(flavor_text_split) > 1:
-                # asterisks present in flavor text
-                for i in flavor_text_split:
-                    # add the parts of the flavor text not between asterisks to italic_text
-                    if i != "": italic_text.append(i)
+                # Text between asterisk is present
+                italic_text.extend(
+                    [v for i, v in enumerate(flavor_text_split) if not i % 2]
+                )
 
                 # reassemble flavor text without asterisks
                 self.flavor_text = "".join(flavor_text_split)
@@ -213,14 +314,14 @@ class FormattedTextArea (FormattedTextField):
         self.reference = reference
 
         # Prepare for text being too long
-        if fix_length and len(contents) > 300:
-            steps = int((len(contents)-200)/100)
+        if fix_length and len(self.contents+self.flavor_text) > 300:
+            steps = int((len(self.contents+self.flavor_text)-200)/100)
             layer.textItem.size = layer.textItem.size - steps
             layer.textItem.leading = layer.textItem.leading - steps
 
     def insert_divider(self):
         """
-        Inserts and correctly positions flavor bar divider.
+        Inserts and correctly positions flavor text divider.
         """
         if len(self.flavor_text) > 0:
 
@@ -238,8 +339,9 @@ class FormattedTextArea (FormattedTextField):
             layer_text_contents.rasterize(ps.RasterizeType.EntireLayer)
             layer_flavor_text = self.layer.duplicate()
             layer_flavor_text.rasterize(ps.RasterizeType.EntireLayer)
-            psd.select_layer_pixels(layer_text_contents)
+            psd.select_layer_bounds(layer_text_contents)
             app.activeDocument.activeLayer = layer_flavor_text
+            app.activeDocument.selection.expand(1)
             app.activeDocument.selection.clear()
             app.activeDocument.selection.deselect()
             self.layer.visible = True
@@ -277,7 +379,7 @@ class FormattedTextArea (FormattedTextField):
 
             # Ensure the layer is centered horizontally if needed
             if self.centered:
-                psd.select_layer_pixels(self.reference)
+                psd.select_layer_bounds(self.reference)
                 app.activeDocument.activeLayer = self.layer
                 psd.align_horizontal()
                 psd.clear_selection()
