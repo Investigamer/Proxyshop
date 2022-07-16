@@ -1,0 +1,244 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import ScrollView kivy.uix.scrollview.ScrollView
+#:import Window kivy.core.window.Window
+#:import Thread threading.Thread
+#:import ak asynckivy
+#:import cfg proxyshop.settings.cfg
+
+<Console>:
+    orientation: "horizontal"
+    padding: 10
+    canvas:
+        Color:
+            rgba: get_color_from_hex("#666666")
+        Rectangle:
+            size: root.size
+            pos: root.pos
+    BoxLayout:
+        padding: 10,10,10,10
+        size_hint: 4, 1
+        canvas:
+            Color:
+                rgba: get_color_from_hex("#151515")
+            Rectangle:
+                size: self.width-10,self.height
+                pos: self.pos
+        ScrollView:
+            id: viewport
+            always_overscroll: False
+            do_scroll_x: False
+            size_hint: 1, 1
+            GridLayout:
+                cols: 1
+                padding: 0
+                spacing: 0
+                size_hint: (1,None)
+                height: self.minimum_height
+                ConsoleOutput:
+                    padding: (0,0)
+                    size_hint: 1,None
+                    id: console_output
+                    markup: True
+                    font_size: 18
+                    text_size: self.width, None
+                    size: self.texture_size
+                    text_autoupdate: True
+                    halign: "left"
+                    valign: "top"
+    ConsoleControls:
+        id: console_controls
+        orientation: "vertical"
+        spacing: 4
+        padding: 10
+        canvas:
+            Color:
+                rgba: get_color_from_hex("#252525")
+            Rectangle:
+                size: self.width,self.height
+                pos: self.pos
+        HoverButton:
+            size_hint_y: None
+            height: 40
+            options: ["Go for it!", "Hurry up!", "Do it!", "Let's go!", "Next!"]
+            hover_color: "#4a5f8a"
+            id: continue_btn
+            on_press: console_controls.choose()
+            disabled: True
+            text: "Continue"
+            font_size: 20
+            background_normal: ""
+            background_disabled_normal: ""
+            background_color: get_color_from_hex("#283c5e")
+        HoverButton:
+            size_hint_y: None
+            height: 40
+            options: ["STOP!", "End it now!", "No more!", "QUIT!", "Quiddit!", "Enough!"]
+            hover_color: "#8a4a50"
+            id: cancel_btn
+            on_press: console_controls.choose(False)
+            disabled: True
+            text: "Cancel"
+            font_size: 20
+            background_normal: ""
+            background_disabled_normal: ""
+            background_color: get_color_from_hex("#63272d")
+        Label:
+            text: ""
+        HoverButton:
+            size_hint_y: None
+            height: 40
+            options: ["UPDATE"]
+            hover_color: "#4a5f8a"
+            id: update_btn
+            on_press: ak.start(console_controls.check_for_updates())
+            disabled: False
+            text: "Update"
+            font_size: 20
+            background_normal: ""
+            background_disabled_normal: ""
+            background_color: get_color_from_hex("#283c5e")
+
+<UpdatePopup>:
+    title: "Proxyshop Updater"
+    BoxLayout:
+        orientation: "vertical"
+        BoxLayout:
+            canvas:
+                Color:
+                    rgba: get_color_from_hex("#181818")
+                Rectangle:
+                    size: self.width,self.height
+                    pos: self.pos
+            orientation: "horizontal"
+            size_hint: (1,None)
+            height: 40
+            padding: 5
+            spacing: 10
+            Label:
+                id: loading_text
+                text: " [i]Checking for updates...[/i]"
+                halign: "left"
+                valign: "center"
+                text_size: self.size
+                font_size: 18
+                size_hint: (.85, 1)
+                markup: True
+            HoverButton:
+                options: ["CLOSE"]
+                text: "Close"
+                size_hint: (.15,1)
+                font_size: 20
+                on_release: root.dismiss()
+        ScrollView:
+            id: viewport
+            always_overscroll: False
+            do_scroll_x: False
+            size_hint: (1, 1)
+            GridLayout:
+                id: container
+                cols: 1
+                size_hint: (1,None)
+                height: self.minimum_height
+                padding: [0,20,0,0]
+                Image:
+                    id: loading
+                    source: "proxyshop/img/loading.gif"
+                    allow_stretch: True
+                    size_hint: 1, None
+                    height: 180
+                    width: 180
+                    keep_ratio: True
+                    anim_delay: .06
+
+<UpdateEntry>:
+    id: entry
+    size_hint: (1,None)
+    height: 40
+    padding: 5
+    spacing: 10
+    canvas:
+        Color:
+            rgba: get_color_from_hex(self.bg_color)
+        Rectangle:
+            size: self.width,self.height
+            pos: self.pos
+    Label:
+        id: title
+        text: self.parent.name
+        font_size: 20
+        text_size: self.size
+        halign: "left"
+        valign: "center"
+        size_hint: (.75, 1)
+        markup: True
+    Label:
+        id: status
+        text: self.parent.status
+        font_size: 18
+        text_size: self.size
+        halign: "right"
+        valign: "center"
+        size_hint: (.10, 1)
+        markup: True
+    BoxLayout:
+        id: download
+        size_hint: (.15, 1)
+        HoverButton:
+            options: ["Download"]
+            text: "Download"
+            font_size: 20
+            on_release: ak.start(entry.download_update(self.parent))
+
+<Authenticator>:
+    title: "You need to Authenticate with Google Drive"
+    size_hint: (.50,.25)
+    auto_dismiss: True
+    BoxLayout:
+        Label:
+            id: response
+            text_autoupdate: True
+            markup: True
+            font_size: 24
+            text: "[b]Authenticating...[/b]"
+
+<TestApp>:
+    id: test_app
+    orientation: "vertical"
+    BoxLayout:
+        size_hint: 1, .08
+        orientation: "horizontal"
+        spacing: 12
+        padding: 12
+        HoverButton:
+            id: test_all
+            font_size: 20
+            text: "Test All"
+            font_name: "Roboto"
+            on_release: Thread(target=app.test_all, daemon=True).start()
+        HoverButton:
+            id: test_target
+            font_size: 20
+            text: "Deep Test Target"
+            font_name: "Roboto"
+            on_release: test_app.select_template()
+        HoverButton:
+            id: test_all_deep
+            font_size: 20
+            text: "Deep Test All"
+            font_name: "Roboto"
+            on_release: Thread(target=app.test_all, args=(True,), daemon=True).start()
+
+<TemplateSelector>:
+    title: "Select a template to test!"
+    ScrollView:
+        id: viewport
+        always_overscroll: False
+        do_scroll_x: False
+        size_hint: (1, 1)
+        scroll_wheel_distance: 60
+        BoxLayout:
+            id: content
+            title: "Select test template"
+            orientation: "vertical"
+            size_hint: (1, None)
+            height: self.minimum_height

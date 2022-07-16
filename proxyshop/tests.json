@@ -1,0 +1,74 @@
+{
+    "normal": [
+        ["Mothrider Patrol", "Creature"],
+        ["Pernicious Deed", "Noncreature Dual"],
+        ["Barkshell Blessing", "Noncreature Hybrid"],
+        ["Thassa, Deep-Dwelling", "Legendary Nyx"],
+        ["Takenuma, Abandoned Mire", "Legendary B Land"],
+        ["Drossforge Bridge", "Dual Land"],
+        ["Arcane Lighthouse", "Colorless Land"],
+        ["Ancient Ziggurat", "Gold Land"]
+    ],
+    "transform_front": [
+        ["Docent of Perfection", "Creature"]
+    ],
+    "transform_back": [
+        ["Lord of Lineage", "Creature"]
+    ],
+    "mdfc_front": [
+        ["Plargg, Dean of Chaos", "Legendary Creature"]
+    ],
+    "mdfc_back": [
+        ["Journey to the Oracle", "Noncreature"]
+    ],
+    "ixalan": [
+        ["Azcanta, the Sunken Ruin", "Legendary Land"]
+    ],
+    "mutate": [
+        ["Gemrazer", "Creature"]
+    ],
+    "adventure": [
+        ["Bonecrusher Giant", "Instant - Creature"],
+        ["Monster Manual", "Sorcery - Artifact"]
+    ],
+    "leveler": [
+        ["Guul Draz Assassin", "Creature - 2"]
+    ],
+    "saga": [
+        ["Time of Ice", "Mono"],
+        ["Battle of Frost and Fire", "Dual - 3"]
+    ],
+    "miracle": [
+        ["Terminus", "Noncreature Mono"],
+        ["Absorb", "Noncreature Dual"],
+        ["Snapcaster Mage", "Creature"]
+    ],
+    "planeswalker": [
+        ["Liliana of the Veil", "Mono"],
+        ["Kasmina, Enigma Sage", "Dual"],
+        ["Karn Liberated", "Colorless"]
+    ],
+    "pw_tf_front": [
+        ["Arlinn Kord", "Dual"]
+    ],
+    "pw_tf_back": [
+        ["Nicol Bolas, the Arisen", "Multi"]
+    ],
+    "pw_mdfc_front": [
+        ["Rowan, Scholar of Sparks", "Mono"]
+    ],
+    "pw_mdfc_back": [
+        ["Will, Scholar of Frost", "Mono"]
+    ],
+    "snow": [
+        ["Graven Lore", "Noncreature"],
+        ["Priest of the Haunted Edge", "Creature"]
+    ],
+    "basic": [
+        ["Mountain", "Mountain"],
+        ["Snow-Covered Island", "Snow Island"]
+    ],
+    "planar": [
+        ["Pools of Becoming", "Planar"]
+    ]
+}
