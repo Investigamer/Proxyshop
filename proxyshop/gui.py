@@ -7,7 +7,10 @@ import ctypes
 import os
 import random
 import sys
+import threading
 import time
+from traceback import print_tb
+from typing import Union
 import asynckivy as ak
 from datetime import datetime as dt
 from kivy.app import App
@@ -25,7 +28,8 @@ from proxyshop.core import (
     check_for_updates,
     update_template,
     authenticate_user,
-    check_for_authentication
+    check_for_authentication,
+    get_templates
 )
 from proxyshop.settings import cfg
 cwd = os.getcwd()
@@ -40,16 +44,28 @@ class Console (BoxLayout):
     """
     Main console class
     """
+    Builder.load_file(os.path.join(cwd, "proxyshop/kivy/console.kv"))
+    lines = 1
+
     def __init__(self, **kwargs):
-        Builder.load_file(os.path.join(cwd, "proxyshop/console.kv"))
-        super().__init__(**kwargs)
+        super(Console, self).__init__(**kwargs)
+        if not cfg.dev_mode: self.size_hint = (1, .58)
 
     def update(self, msg="", e=None, end="\n"):
         """
         Add text to console
         """
         output = self.ids.console_output
-        output.text += msg+end
+
+        # Enforce maximum number of lines
+        if self.lines == 300:
+            text = output.text.split("\n", 1)[1]
+        else:
+            text = output.text
+            self.lines += 1
+
+        # Add message to the output label
+        output.text = f"{text}{msg}{end}"
         self.ids.viewport.scroll_y = 0
         if e: self.log_exception(e)
 
@@ -72,14 +88,20 @@ class Console (BoxLayout):
         # End waiting to cancel
         self.end_await()
 
-        # Notify user
-        if not cfg.skip_failed:
-            if color: self.update(f"[color=#a84747]{msg}[/color]\nContinue to next card?")
-            else: self.update(f"{msg}\n{continue_msg}")
-        else: self.update(f"[color=#a84747]{msg}[/color]\nContinuing to next card!")
-
         # Log exception if given
         if e: self.log_exception(e)
+
+        # Are we in dev mode?
+        if cfg.dev_mode:
+            return False
+
+        # Color message?
+        if color: msg = f"[color=#a84747]{msg}[/color]"
+        if cfg.skip_failed:
+            continue_msg = "Skipping this card!!"
+
+        # Notify user
+        self.update(f"[color=#a84747]{msg}[/color]\n{continue_msg}")
 
         # Enable buttons
         self.ids.continue_btn.disabled = False
@@ -133,22 +155,37 @@ class Console (BoxLayout):
         self.ids.cancel_btn.disabled = True
 
     @staticmethod
-    def log_exception(e):
+    def log_exception(e: Union[Exception, str], log_file: str = "tmp/error.txt"):
         """
         Log python exception.
         """
-        cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
+        # Is this an Exception object?
         if hasattr(e, '__traceback__'):
-            e = f"[{cur_time}] Line: {e.__traceback__.tb_lineno}\n" \
-                f"{e.__traceback__.tb_frame.f_code.co_filename}: {e}\n"
-        with open(os.path.join(cwd, "tmp/error.txt"), "a", encoding="utf-8") as log:
+
+            # Evaluate error for developer output
+            tb = sys.exc_info()[2]
+            print_tb(tb)
+
+            # Create readable info locating the error
+            while True:
+                line = tb.tb_lineno
+                location = tb.tb_frame.f_code.co_filename
+                if tb.tb_next: tb = tb.tb_next
+                else: break
+
+            # Formatting for end user troubleshoot log
+            cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
+            e = f"[{cur_time}] Line: {line}\n{location}: {e}\n"
+
+        # Log the file
+        with open(os.path.join(cwd, log_file), "a", encoding="utf-8") as log:
             log.write(e)
 
     @staticmethod
-    def kill_thread(thr):
+    def kill_thread(thr: threading.Thread):
         """
         Kill current render thread.
-        @param thr: threading.Thread object
+        @param thr: Thread object to kill
         """
         thread_id = thr.ident
         res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
@@ -161,18 +198,18 @@ class ConsoleOutput (Label):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        if cfg.dev_mode: self.text = "Test mode enabled!\n"
+        else: self.text = "All systems go! Let's make a proxy.\n"
 
 
 class ConsoleControls (BoxLayout):
     """
     Console control buttons
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.running = True
-        self.waiting = False
-        self.success = True
-        self.choice = False
+    running = True
+    waiting = False
+    success = True
+    choice = False
 
     def wait(self):
         """
@@ -226,6 +263,15 @@ class ConsoleControls (BoxLayout):
                 if success: continue
                 else: break
 
+
+"""
+SETTINGS PANEL
+"""
+
+
+# TODO: Move settings into a popup panel
+
+
 """
 Updater
 """
@@ -235,12 +281,10 @@ class UpdatePopup(Popup):
     """
     Popup modal for updating templates.
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.loading = True
-        self.updates = {}
-        self.categories = {}
-        self.entries = {}
+    loading = True
+    updates = {}
+    categories = {}
+    entries = {}
 
     def check_for_updates(self):
         """
@@ -279,7 +323,7 @@ class UpdatePopup(Popup):
 
 
 class UpdateEntry(BoxLayout):
-    def __init__(self, parent, temp, bg_color, **kwargs):
+    def __init__(self, parent: Popup, temp: dict, bg_color: str, **kwargs):
         if temp['plugin']: plugin = f" [size=18]({temp['plugin']})[/size]"
         else: plugin = ""
         self.bg_color = bg_color
@@ -289,7 +333,7 @@ class UpdateEntry(BoxLayout):
         self.root = parent
         super().__init__(**kwargs)
 
-    async def download_update(self, download):
+    async def download_update(self, download: BoxLayout) -> None:
         self.progress = ProgressBar()
         download.clear_widgets()
         download.add_widget(self.progress)
@@ -297,7 +341,7 @@ class UpdateEntry(BoxLayout):
         await ak.sleep(.5)
         self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
 
-    def update_progress(self, tran, total):
+    def update_progress(self, tran: str, total: str) -> None:
         if self.progress.value != 100:
             self.progress.value += 5
 
@@ -308,8 +352,6 @@ Authenticator
 
 
 class Authenticator(Popup):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     def authenticate(self):
         if authenticate_user():
@@ -325,7 +367,7 @@ UTILITY FUNCTIONS
 """
 
 
-def get_font(name, default="Roboto"):
+def get_font(name: str, default: str = "Roboto"):
     """
     Instantiate font if exists, otherwise return False
     """
@@ -361,12 +403,8 @@ class HoverBehavior(object):
         `on_leave`
             Fired when the mouse exit the widget
     """
-
     hovered = BooleanProperty(False)
     border_point = ObjectProperty(None)
-    '''Contains the last relevant point received by the Hoverable. This can
-    be used in `on_enter` or `on_leave` in order to know where was dispatched the event.
-    '''
 
     def __init__(self, **kwargs):
         self.register_event_type('on_enter')
@@ -385,17 +423,14 @@ class HoverBehavior(object):
             return
         self.border_point = pos
         self.hovered = inside
-        if inside:
-            self.dispatch('on_enter')
-        else:
-            self.dispatch('on_leave')
+        if inside: self.dispatch('on_enter')
+        else: self.dispatch('on_leave')
 
 
 class HoverButton(Button, HoverBehavior):
     """
     Animated button to run new render operation
     """
-    font_name = get_font("Beleren Small Caps.ttf")
     options = [
             "Do it!", "Let's GO!", "Ready?",
             "PROXY", "Hurry up!", "GAME ON",
@@ -404,6 +439,11 @@ class HoverButton(Button, HoverBehavior):
     hover_color = "#a4c5eb"
     org_text = None
     org_color = None
+
+    def __init__(self, **kwargs):
+        # Set the default font
+        self.font_name = get_font("Beleren Small Caps.ttf")
+        super().__init__(**kwargs)
 
     def on_enter(self):
         """
@@ -424,6 +464,63 @@ class HoverButton(Button, HoverBehavior):
             Window.set_system_cursor('arrow')
             self.text = self.org_text
             self.background_color = self.org_color
+
+
+"""
+DEV MODE
+"""
+
+
+class TestApp(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.selector = None
+
+    def select_template(self):
+        self.selector = TemplateSelector(self)
+        self.selector.open()
+
+    def test_target(self, temp):
+        self.selector.dismiss()
+        threading.Thread(
+            target=App.get_running_app().test_target,
+            args=(temp[0], temp[1]), daemon=True
+        ).start()
+
+
+class TemplateSelector(Popup):
+    def __init__(self, test_app, **kwargs):
+        self.test_app = test_app
+        self.size_hint = (.8, .8)
+        super().__init__(**kwargs)
+
+        # Add template buttons
+        for k, v in get_templates().items():
+            self.ids.content.add_widget(Label(
+                text=k.replace("_", " ").title(),
+                size_hint=(1, None),
+                font_size=25,
+                height=45
+            ))
+            for key, val in v.items():
+                self.ids.content.add_widget(SelectorButton(
+                    self.test_app,
+                    [k, val],
+                    text=key
+                ))
+
+
+class SelectorButton(HoverButton):
+    def __init__(self, root, temp, **kwargs):
+        super().__init__(**kwargs)
+        self.test_app = root
+        self.temp = temp
+        self.size_hint = (1, None)
+        self.font_size = 20
+        self.height = 35
+
+    def on_release(self, **kwargs):
+        self.test_app.test_target(self.temp)
 
 
 console_handler = Console()
