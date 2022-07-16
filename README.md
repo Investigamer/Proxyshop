@@ -71,3 +71,10 @@ Proxyshop does not collect any information from users, period.
 Google Drive integration is purely for the purpose of keeping installed plugins up-to-date,
 our contributors almost always share their PSD files utilizing Google Drive, making it the easiest
 and safest way to share the files and metadata required to check for routine updates.
+
+# Credits
+* Credit to Wizards of the Coast and all the talented artists who make Magic the Gathering Possible
+* Credit to Chilli Axe for his original amazing project [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation), and for producing most of the base PSD templates that have been modified to work with Proxyshop. None of this would have been possible without him!
+* Credit to SilvanMTG who has also done an incredible amount of Template work. (Silvan Extended Normal and MDFC)
+* Credit to Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api)
+* Credit to Nelynes, Trix are for Scoot, FeuerAmeise, michayggdrasil, Warpdandy, MaleMPC, Vittorio Masia and others who have provided assets to the community that made various other templates possible.
