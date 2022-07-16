@@ -1,7 +1,7 @@
 """
 MRTEFERI TEMPLATES
 """
-from proxyshop.plugins.MrTeferi.actions import pencilsketch, sketch
+from actions import pencilsketch, sketch
 import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
@@ -30,8 +30,8 @@ class SketchTemplate (temp.NormalTemplate):
     Sketch showcase from MH2
     Original PSD by Nelynes
     """
-    def template_file_name(self): return "MrTeferi/sketch"
-    def template_suffix(self): return "Sketch"
+    template_file_name = "MrTeferi/sketch"
+    template_suffix = "Sketch"
 
     def __init__(self, layout):
 
@@ -46,29 +46,20 @@ class SketchTemplate (temp.NormalTemplate):
                 'colored': bool(sketch_cfg['colored']),
             }
 
-        # Special expansion symbol conditions
-        if layout.rarity in (con.rarity_bonus, con.rarity_special):
-            layout.rarity = con.rarity_mythic
-        con.layers['EXPANSION_SYMBOL'] = layout.rarity
-        self.expansion_disabled = True
-
         # self.art_action_args = [True]
         super().__init__(layout)
 
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-        if self.layout.rarity != "common":
-            psd.getLayer("common", con.layers['TEXT_AND_ICONS']).visible = False
-            psd.getLayer(self.layout.rarity, con.layers['TEXT_AND_ICONS']).visible = True
+    def enable_hollow_crown(self, crown, pinlines, shadows=None):
+        return
 
 
 class KaldheimTemplate (temp.NormalTemplate):
     """
-     * Kaldheim viking legendary showcase.
-     * Original Template by FeuerAmeise
+    Kaldheim viking legendary showcase.
+    Original Template by FeuerAmeise
     """
-    def template_file_name(self): return "MrTeferi/kaldheim"
-    def template_suffix(self): return "Kaldheim"
+    template_file_name = "MrTeferi/kaldheim"
+    template_suffix = "Kaldheim"
 
     def __init__(self, layout):
         cfg.remove_reminder = True
@@ -100,8 +91,8 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     Works for Normal and Transform cards
     Transform is kinda experimental.
     """
-    def template_file_name(self): return "MrTeferi/crimson-fang"
-    def template_suffix(self): return "Fang"
+    template_file_name = "MrTeferi/crimson-fang"
+    template_suffix = "Fang"
 
     def enable_frame_layers(self):
         # Twins if transform card
@@ -142,8 +133,8 @@ class PhyrexianTemplate (temp.NormalTemplate):
     """
     From the Phyrexian secret lair promo
     """
-    def template_file_name(self): return "MrTeferi/phyrexian"
-    def template_suffix(self): return "Phyrexian"
+    template_file_name = "MrTeferi/phyrexian"
+    template_suffix = "Phyrexian"
 
     def enable_frame_layers(self):
 
@@ -161,8 +152,8 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     Midnight Hunt / Vow Double Feature Showcase
     Original assets from Warpdandy's Proximity Template
     """
-    def template_file_name(self): return "MrTeferi/double-feature"
-    def template_suffix(self): return "Double Feature"
+    template_file_name = "MrTeferi/double-feature"
+    template_suffix = "Double Feature"
 
     def enable_frame_layers(self):
         # Transform stuff
@@ -194,12 +185,33 @@ class MaleMPCTemplate (temp.NormalTemplate):
     """
     MaleMPC's extended black box template.
     """
-    def template_file_name(self): return "MrTeferi/male-mpc"
-    def template_suffix(self): return "Extended Black"
+    template_file_name = "MrTeferi/male-mpc"
+    template_suffix = "Extended Black"
 
     def __init__(self, layout):
         cfg.remove_reminder = True
         super().__init__(layout)
+
+    def enable_frame_layers(self):
+        # Type of pinlines
+        if self.is_land:
+            lower = "Lower Land Pinlines"
+            upper = con.layers['LAND_PINLINES_TEXTBOX']
+        else:
+            lower = "Lower Pinlines"
+            upper = con.layers['PINLINES_TEXTBOX']
+
+        # Lower pinlines
+        psd.getLayer(self.layout.pinlines, lower).visible = True
+
+        # Hide pinlines and shadow if legendary
+        if self.is_legendary:
+            psd.enable_mask(psd.getLayer(con.layers['SHADOWS']))
+            psd.enable_mask(psd.getLayerSet(upper))
+        super().enable_frame_layers()
+
+        # Content aware fill
+        psd.content_fill_empty_area(self.art_layer)
 
 
 """
@@ -212,7 +224,7 @@ class PromoClassicTemplate (temp.NormalClassicTemplate):
     Identical to NormalClassic
     Promo star added
     """
-    def template_suffix(self): return "Classic Promo"
+    template_suffix = "Classic Promo"
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
@@ -226,22 +238,20 @@ class ColorshiftedTemplate (temp.NormalTemplate):
     Planar Chaos era colorshifted template
     Rendered from CC and MSE assets
     """
-    def template_file_name(self): return "MrTeferi/colorshifted"
-    def template_suffix(self): return "Shifted"
+    template_file_name = "MrTeferi/colorshifted"
+    template_suffix = "Shifted"
 
     def __init__(self, layout):
-
-        # Classic footer
         cfg.real_collector = False
         super().__init__(layout)
 
-        # White brush and artist for black border
-        if layout.pinlines[0:1] == "B" and len(layout.pinlines) < 3:
-            psd.getLayer("Artist", "Legal").textItem.color = psd.rgb_white()
-            psd.getLayer("Brush B", "Legal").visible = False
-            psd.getLayer("Brush W", "Legal").visible = True
-
     def enable_frame_layers(self):
+
+        # White brush and artist for black border
+        if self.layout.pinlines[0:1] == "B" and len(self.layout.pinlines) < 3:
+            psd.getLayer("Artist", self.legal_layer).textItem.color = psd.rgb_white()
+            psd.getLayer("Brush B", self.legal_layer).visible = False
+            psd.getLayer("Brush W", self.legal_layer).visible = True
 
         # PT Box, no title boxes for this one
         if self.is_creature:
@@ -277,11 +287,19 @@ BASIC LAND TEMPLATES
 class BasicLandDarkMode (temp.BasicLandTemplate):
     """
     Basic land Dark Mode
-    Credit to Vittorio Masia
+    Credit to Vittorio Masia (Sid)
     """
-    def template_file_name(self): return "MrTeferi/basic-dark-mode"
-    def template_suffix(self): return f"Dark - {self.layout.artist}"
+    template_file_name = "MrTeferi/basic-dark-mode"
+    template_suffix = f"Dark"
+
+    def __init__(self, layout):
+        cfg.save_artist_name = True
+        super().__init__(layout)
 
     def collector_info(self):
         artist = psd.getLayer(con.layers['ARTIST'], con.layers['LEGAL'])
         psd.replace_text(artist, "Artist", self.layout.artist)
+
+    def enable_frame_layers(self):
+        psd.content_fill_empty_area(self.art_layer)
+        super().enable_frame_layers()
