@@ -163,7 +163,7 @@ class Console (BoxLayout):
         if hasattr(e, '__traceback__'):
 
             # Evaluate error for developer output
-            tb = sys.exc_info()[2]
+            tb = e.__traceback__
             print_tb(tb)
 
             # Create readable info locating the error
