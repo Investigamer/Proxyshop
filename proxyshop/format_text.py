@@ -184,10 +184,10 @@ def determine_symbol_colors(symbol, symbol_length):
     hybrid_regex = r"\{([2,W,U,B,R,G])\/([W,U,B,R,G])\}"
     hybrid_match = re.match(hybrid_regex, symbol)
     if hybrid_match:
-        color_map = sym.color_map
         if hybrid_match[1] == "2":
             # Use the darker color for black's symbols for 2/B hybrid symbols
             color_map = sym.hybrid_color_map
+        else: color_map = sym.color_map
         return [
             color_map[hybrid_match[2]],
             color_map[hybrid_match[1]],

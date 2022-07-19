@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 from kivy_deps import sdl2, glew
-
 block_cipher = None
 
 
@@ -9,15 +8,15 @@ a = Analysis(['..\\Proxyshop\main.py'],
              binaries=[],
              datas=[],
              hiddenimports=[
-                'opsdroid-get-image-size',
                 'proxyshop.templates',
                 'proxyshop.gui',
                 'kivy',
                 'svglib.svglib',
                 'reportlab.graphics',
-                'requests'
+                'requests',
+                'googleapiclient.discovery'
              ],
-             hookspath=[],
+             hookspath=["proxyshop/hooks"],
              hooksconfig={},
              runtime_hooks=[],
              excludes=[],
@@ -30,9 +29,6 @@ pyz = PYZ(a.pure, a.zipped_data,
 
 a.datas += [
     ('fonts/Beleren Small Caps.ttf', 'fonts/Beleren Small Caps.ttf', 'DATA'),
-    ('proxyshop/kivy/proxyshop.kv', 'proxyshop/kivy/proxyshop.kv', 'DATA'),
-    ('proxyshop/kivy/console.kv', 'proxyshop/kivy/console.kv', 'DATA'),
-    ('proxyshop/kivy/creator.kv', 'proxyshop/kivy/creator.kv', 'DATA'),
     ('proxyshop/gdrive.yaml', 'proxyshop/gdrive.yaml', 'DATA'),
     ('proxyshop.png', 'proxyshop.png', 'DATA')
 ]
