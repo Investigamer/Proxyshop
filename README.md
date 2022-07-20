@@ -25,6 +25,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # Setup and Usage Guide (GUI)
 * Extract release into a folder of your choice.
+* Install the fonts included in the fonts folder.
 * OPTION 1: Download the templates linked above and drop them inside the templates folder. Make sure to keep named plugin folders like "MrTeferi" intact in the templates folder.
 * OPTION 2: Launch `Proxyshop.exe`. Click "Update", a window in your browser will open asking you to authenticate with Proxyshop using your google account. Once you've authenticated, Proxyshop will load templates available to download, download them as you please.
 * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which will allow you to render your own custom cards.
