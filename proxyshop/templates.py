@@ -513,8 +513,7 @@ class NormalClassicTemplate (StarterTemplate):
                 flavor = self.layout.flavor_text,
                 centered = is_centered,
                 reference = reference_layer,
-                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                fix_length = False
+                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
             )
         )
 

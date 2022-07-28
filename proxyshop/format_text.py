@@ -505,6 +505,8 @@ def generate_italics(card_text):
      * Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
     """
     italic_text = []
+
+    # Find and add reminder text
     end_index = 0
     while True:
         start_index = card_text.find("(", end_index)
@@ -514,9 +516,19 @@ def generate_italics(card_text):
             italic_text.extend([card_text[start_index:end_index]])
         else: break
 
-    # Attach all ability words to the italics array
-    for ability_word in con.ability_words:
-        italic_text.extend([ability_word + " \u2014"])  # Include em dash
+    # Find and add ability words
+    reg = re.compile(r"[•|\w|\-|\s|]*? — ")
+    for match in reg.findall(card_text):
+        # Cover boast cards and choose cards that aren't weird AFR cases
+        if (
+            any(s in match for s in ("• ", "Boast"))
+            and card_text[0:12] != "Choose one —"
+        ): continue
+
+        # Fix bullet points and carriage return
+        if "• " in match: match = match.replace("• ", "")
+        if "\r" in match: match = match.replace("\r", "")
+        italic_text.extend([match])
 
     return italic_text
 
@@ -571,10 +583,7 @@ def classic_align_right(primedesc, start, end):
     return primedesc
 
 
-def scale_text_right_overlap(
-        layer: ps.LayerKind.TextLayer,
-        reference: ps.LayerKind.TextLayer
-) -> None:
+def scale_text_right_overlap(layer, reference) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
     has a 24 px clearance from a reference layer's left bound.
@@ -591,21 +600,26 @@ def scale_text_right_overlap(
     elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
-    step_size = 0.2
     reference_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
     old_size = float(layer.textItem.size)
+    step, half_step = 0.4, 0.2
 
     # Obtain proper spacing for this document size
-    spacing = int((app.activeDocument.width / 3264) * 24)
+    spacing = int((app.activeDocument.width / 3264) * 36)
 
     # Guard against the reference's left bound being left of the layer's left bound
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
         while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
-            layer.textItem.size -= step_size
+            layer.textItem.size -= step
             layer_right_bound = layer.bounds[2]
+
+        layer.textItem.size += half_step
+        layer_right_bound = layer.bounds[2]
+        if layer_right_bound > (reference_left_bound - spacing):
+            layer.textItem.size -= half_step
 
     # Shift baseline up to keep text centered vertically
     if old_size > layer.textItem.size:
@@ -615,21 +629,63 @@ def scale_text_right_overlap(
     if contents: reference.textItem.contents = contents
 
 
-def scale_text_to_fit_reference(layer, reference_layer):
+def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     """
     Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
     The resulting text layer will have equal font and lead sizes.
+    @param layer: Text layer to scale.
+    @param ref: Reference layer the text should fit inside.
+    @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    if reference_layer is None: return
-    spacing = int((app.activeDocument.width / 3264) * 64)
-    ref_height = psd.get_layer_dimensions(reference_layer)['height'] - spacing
+    if not ref: return
+    if not spacing:  # If no spacing provided, use default
+        spacing = int((app.activeDocument.width / 3264) * 64)
+    ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
     font_size = layer.textItem.size
-    step_size = 0.25
+    step, half_step = 0.4, 0.2
 
-    # step down font and lead sizes by the step size, and update those sizes in the layer
+    # Step down font and lead sizes by the step size, and update those sizes in the layer
+    if ref_height > psd.get_text_layer_dimensions(layer)['height']: return
     while ref_height < psd.get_text_layer_dimensions(layer)['height']:
-        font_size -= step_size
+        font_size -= step
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+
+    # Take a half step back up, check if still in bounds and adjust back if needed
+    font_size += half_step
+    layer.textItem.size = font_size
+    layer.textItem.leading = font_size
+    if ref_height < psd.get_text_layer_dimensions(layer)['height']:
+        font_size -= half_step
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+
+
+def scale_text_to_fit_height(layer, height: int):
+    """
+    Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
+    The resulting text layer will have equal font and lead sizes.
+    @param layer: Text layer to scale.
+    @param height: Reference height to fit.
+    """
+    # Establish base variables, ensure a level of spacing at the margins
+    font_size = layer.textItem.size
+    step, half_step = 0.4, 0.2
+
+    # Step down font and lead sizes by the step size, and update those sizes in the layer
+    if height > psd.get_text_layer_dimensions(layer)['height']: return
+    while height < psd.get_text_layer_dimensions(layer)['height']:
+        font_size -= step
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+
+    # Take a half step back up, check if still in bounds and adjust back if needed
+    font_size += half_step
+    layer.textItem.size = font_size
+    layer.textItem.leading = font_size
+    if height < psd.get_text_layer_dimensions(layer)['height']:
+        font_size -= half_step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
 

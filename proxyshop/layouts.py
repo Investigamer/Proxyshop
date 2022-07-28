@@ -50,7 +50,7 @@ class BaseLayout:
     """
     Superclass, extend to this class at bare minimum for info all cards should have.
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         """
         Constructor for base layout that unpacks scryfall data shared by all card types, includes method that
         calls select_frame_layers to determine frame colors for the card.
@@ -97,7 +97,6 @@ class BaseLayout:
 
         # Prepare set code
         self.set = self.scryfall['set'].upper()
-        if len(self.set) > 3: self.set = self.set[1:]
 
         # Prepare rarity letter + collector number
         self.collector_number = self.scryfall['collector_number']
@@ -105,11 +104,15 @@ class BaseLayout:
             self.collector_number = f"0{self.collector_number}"
         elif len(self.collector_number) == 1:
             self.collector_number = f"00{self.collector_number}"
+        self.collector_number = self.collector_number.replace("p", "")
 
         # Was card count already provided?
         if 'printed_size' not in self.scryfall:
             # Get set info to find card count
-            self.mtgset = scry.set_info(self.scryfall['set'])
+            if len(self.set) > 3 and self.set[0] == "P":
+                self.mtgset = scry.set_info(self.scryfall['set'][1:])
+            else:
+                self.mtgset = scry.set_info(self.scryfall['set'])
             try: self.card_count = self.mtgset['baseSetSize']
             except (KeyError, TypeError):
                 try: self.card_count = self.mtgset['totalSetSize']
@@ -130,6 +133,8 @@ class BaseLayout:
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
             self.symbol = con.set_symbols[self.set]
+        elif cfg.auto_symbol and self.set[1:] in con.set_symbols:
+            self.symbol = con.set_symbols[self.set[1:]]
         else: self.symbol = cfg.symbol_char
 
         # Optional vars
@@ -187,7 +192,7 @@ class NormalLayout (BaseLayout):
     """
     Use this as Superclass for most regular layouts
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
@@ -226,7 +231,7 @@ class TransformLayout (BaseLayout):
     """
     Used for transform cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
@@ -280,7 +285,7 @@ class MeldLayout (NormalLayout):
     """
     Used for Meld cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Determine if this card is a meld part or a meld result
@@ -316,7 +321,7 @@ class ModalDoubleFacedLayout (BaseLayout):
     """
     Used for Modal Double Faced cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
@@ -403,7 +408,7 @@ class AdventureLayout (BaseLayout):
     """
     Used for Adventure cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars
@@ -444,7 +449,7 @@ class LevelerLayout (NormalLayout):
     """
     Used for Leveler cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Unpack oracle text into: level text, levels x-y text, levels z+ text, middle level,
@@ -472,7 +477,7 @@ class SagaLayout (NormalLayout):
     """
     Used for Saga cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Unpack oracle text into saga lines
@@ -491,7 +496,7 @@ class PlanarLayout (BaseLayout):
     """
     Used for Planar cards
     """
-    def __init__(self, scryfall, card_name):
+    def __init__(self, scryfall: dict, card_name: str):
         super().__init__(scryfall, card_name)
 
         # Mandatory vars

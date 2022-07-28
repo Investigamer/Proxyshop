@@ -20,6 +20,13 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
         cfg.remove_reminder = True
         super().__init__(layout)
 
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+
+        # Remove colorless background
+        if self.layout.background == "Colorless":
+            psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = False
+
     def load_artwork(self):
         super().load_artwork()
 

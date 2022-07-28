@@ -34,6 +34,10 @@ card_types = {
     "Planar": ["planar"]
 }
 
+# REGEX Patterns
+re_art = re.compile(r'\(+(.*?)\)')
+re_set = re.compile(r'\[(.*)\]')
+re_cre = re.compile(r'{(.*)}')
 
 """
 TEMPLATE FUNCTIONS
@@ -151,11 +155,6 @@ def retrieve_card_info(filename):
     fn_split = re.split('|'.join(map(re.escape, sep)), fn)
     name = fn_split[0]
 
-    # Precompile pattern
-    re_art = re.compile(r'\(+(.*?)\)')
-    re_set = re.compile(r'\[(.*)\]')
-    re_cre = re.compile(r'{(.*)}')
-
     # Match pattern
     artist = re_art.findall(filename)
     set_code = re_set.findall(filename)
@@ -166,7 +165,11 @@ def retrieve_card_info(filename):
     else: creator = None
     if artist: artist = artist[0]
     else: artist = None
-    if set_code: set_code = set_code[0]
+    if set_code:
+        set_code = set_code[0]
+        if set_code.upper() not in con.set_symbols:
+            if set_code.upper()[1:] in con.set_symbols:
+                set_code = set_code[1:]
     else: set_code = None
 
     return {

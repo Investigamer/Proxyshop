@@ -1,6 +1,8 @@
 """
 TEXT LAYER MODULE
 """
+import math
+
 import photoshop.api as ps
 import proxyshop.helpers as psd
 from proxyshop.constants import con
@@ -259,7 +261,7 @@ class FormattedTextField (TextField):
             if len(flavor_text_split) > 1:
                 # Text between asterisk is present
                 italic_text.extend(
-                    [v for i, v in enumerate(flavor_text_split) if not i % 2]
+                    [v for i, v in enumerate(flavor_text_split) if not i % 2 and not v == ""]
                 )
 
                 # reassemble flavor text without asterisks
@@ -303,8 +305,7 @@ class FormattedTextArea (FormattedTextField):
         flavor = "",
         reference = None,
         divider = None,
-        centered = False,
-        fix_length = True
+        centered = False
     ):
         super().__init__(layer, contents, color, flavor, centered)
         if divider and cfg.flavor_divider and len(self.flavor_text) > 0 and len(self.contents) > 0:
@@ -314,10 +315,8 @@ class FormattedTextArea (FormattedTextField):
         self.reference = reference
 
         # Prepare for text being too long
-        if fix_length and len(self.contents+self.flavor_text) > 300:
-            steps = int((len(self.contents+self.flavor_text)-200)/100)
-            layer.textItem.size = layer.textItem.size - steps
-            layer.textItem.leading = layer.textItem.leading - steps
+        if len(self.contents+self.flavor_text) > 280: self.fix_length = True
+        else: self.fix_length = False
 
     def insert_divider(self):
         """
@@ -369,6 +368,12 @@ class FormattedTextArea (FormattedTextField):
             psd.clear_selection()
 
     def execute(self):
+
+        # Fix length procedure before super called
+        if self.fix_length:
+            self.layer.textItem.contents = self.contents + "\r" + self.flavor_text
+            ft.scale_text_to_fit_height(self.layer, int(psd.get_layer_dimensions(self.reference)['height']*1.01))
+
         super().execute()
         if self.contents != "" or self.flavor_text != "":
             # Resize the text until it fits into the reference layer
@@ -405,10 +410,9 @@ class CreatureFormattedTextArea (FormattedTextArea):
         divider = None,
         pt_reference = None,
         pt_top_reference = None,
-        centered = False,
-        fix_length = True
+        centered = False
     ):
-        super().__init__(layer, contents, color, flavor, reference, divider, centered, fix_length)
+        super().__init__(layer, contents, color, flavor, reference, divider, centered)
         self.pt_reference = pt_reference
         self.pt_top_reference = pt_top_reference
 

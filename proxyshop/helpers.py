@@ -20,6 +20,24 @@ app.preferences.typeUnits = ps.Units.Points
 
 
 """
+SYSTEM FUNCTIONS
+"""
+
+
+def check_fonts(fonts: list):
+    """
+    Check if given fonts exist in users Photoshop Application.
+    @return: Array of missing fonts or None
+    """
+    missing = []
+    for f in fonts:
+        try: assert isinstance(app.fonts.getByName(f).name, str)
+        except AssertionError: missing.append(f)
+    if len(missing) == 0: return
+    else: return missing
+
+
+"""
 UTILITY FUNCTIONS
 """
 
@@ -331,12 +349,21 @@ def select_layer_pixels(layer):
     app.executeAction(cID("setd"), des1, NO_DIALOG)
 
 
-def align(align_type = "AdCH"):
+def align(align_type = "AdCH", layer = None, ref = None):
     """
     Align the currently active layer to current selection, vertically or horizontally.
     Used with align_vertical() or align_horizontal().
     `align_type`: "AdCV" vertical, "AdCH" horizontal
     """
+    # Optionally create a selection based on given reference
+    if ref: select_layer_pixels(ref)
+
+    # Optionally make a given layer the active layer
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Align the current layer to selection
     desc = ps.ActionDescriptor()
     ref = ps.ActionReference()
     ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
@@ -344,19 +371,22 @@ def align(align_type = "AdCH"):
     desc.putEnumerated(cID("Usng"), cID("ADSt"), cID(align_type))
     app.executeAction(cID("Algn"), desc, NO_DIALOG)
 
+    # Return to previous current if needded
+    if layer: app.activeDocument.activeLayer = current
 
-def align_vertical():
+
+def align_vertical(layer = None, ref = None):
     """
     Align the currently active layer vertically with respect to the current selection.
     """
-    align("AdCV")
+    align("AdCV", layer, ref)
 
 
-def align_horizontal():
+def align_horizontal(layer = None, ref = None):
     """
     Align the currently active layer horizontally with respect to the current selection.
     """
-    align("AdCH")
+    align("AdCH", layer, ref)
 
 
 def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=False, align_h=True, align_v=True):
