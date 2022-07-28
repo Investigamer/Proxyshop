@@ -25,6 +25,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # Setup and Usage Guide (GUI)
 * Extract release into a folder of your choice.
+* Install the fonts included in the fonts folder.
 * OPTION 1: Download the templates linked above and drop them inside the templates folder. Make sure to keep named plugin folders like "MrTeferi" intact in the templates folder.
 * OPTION 2: Launch `Proxyshop.exe`. Click "Update", a window in your browser will open asking you to authenticate with Proxyshop using your google account. Once you've authenticated, Proxyshop will load templates available to download, download them as you please.
 * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which will allow you to render your own custom cards.
@@ -58,8 +59,8 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # FAQ
 * *I want to change the set symbol to something else.* Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards. Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
-* *I get an error when trying to execute the script with the python command.* Python may not be added to your PATH environment variable. Here's how you can add it: [Link](https://datatofish.com/add-python-to-windows-path/)
 * *Where is a good place to get high quality MTG art?* Your best source is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/ESRGAN. On our discord we provide a lot of resources for learning how to upscale art easily and effectively. Also for mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
+* *The app stops when trying to enter text and Photoshop becomes unresponsive.* There is a known bug where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
 
 # Scope
 * Modern style cards, normal and extended; transform and mdfc, front and back; basic lands, normal, Theros, and Unstable styles; planeswalkers, normal and extended; mutate, adventure, miracle, and snow cards; and various flavours of fancy frames - stargazing, universes beyond, masterpiece, ZNE expedition, and womensday.
