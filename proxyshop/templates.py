@@ -136,6 +136,7 @@ class BaseTemplate:
                 self.layout.file = os.path.join(os.getcwd(), "proxyshop/img/test-fa.png")
 
         # Paste the file into the art
+        app.activeDocument.activeLayer = self.art_layer
         if hasattr(self, 'art_action'):
             if hasattr(self, 'art_action_args'):
                 psd.paste_file(self.art_layer, self.layout.file, self.art_action, self.art_action_args)

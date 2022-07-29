@@ -609,6 +609,9 @@ def scale_text_right_overlap(layer, reference) -> None:
     # Obtain proper spacing for this document size
     spacing = int((app.activeDocument.width / 3264) * 36)
 
+    # Return automatically if already small enough
+    if layer_right_bound < (reference_left_bound - spacing): return
+
     # Guard against the reference's left bound being left of the layer's left bound
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
