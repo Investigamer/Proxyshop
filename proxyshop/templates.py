@@ -11,6 +11,7 @@ import proxyshop.helpers as psd
 from photoshop import api as ps
 app = ps.Application()
 console = gui.console_handler
+import csv
 
 
 # MUST EXTEND THIS AT BARE MINIMUM
@@ -227,6 +228,36 @@ class BaseTemplate:
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
 
+        # ========================== FelixVita ArtPosMemory =========
+        csv_folder = "predefined-art-positions"
+        csv_name = os.path.splitext(self.template_file_name)[0] + ".csv"
+        csv_expected_path = os.path.join(os.path.dirname(self.layout.file), csv_folder, csv_name)
+        csv_exists = os.path.exists(csv_expected_path)
+        if csv_exists:
+            posData = []
+            with open(csv_expected_path, mode='r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    posData.append(row)
+            artPos = None
+            for rowNum,row in enumerate(posData):
+                    if row['filename'] == os.path.basename(self.layout.file):
+                        artPos = tuple([float(_) for _ in [row['x'],row['y'], row['w'], row['h']]])
+                        artPosIdx = rowNum
+                        break
+            if artPos:
+                console.update("Aligning art using predefined values from csv...")
+                x,y,w,h = artPos
+                layer = self.art_layer
+                anchor = ps.AnchorPosition.TopLeft
+                layer_dim = psd.get_layer_dimensions(layer)
+                ref_dim = dict(zip(('width', 'height'), (w, h)))
+                if layer_dim != ref_dim:
+                    scale = 100 * max((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+                    layer.resize(scale, scale, anchor)
+                # Align the layer
+                layer.translate(x-layer.bounds[0], y-layer.bounds[1])
+        # ===========================================================
         # Enable the layers we need
         try:
             if not cfg.dev_mode: console.update("Enabling frame layers...")
@@ -253,6 +284,25 @@ class BaseTemplate:
         if cfg.exit_early and not cfg.dev_mode:
             console.wait("Manual editing enabled!\n"
                          "When you're ready to save, click continue...")
+            # ========================== FelixVita ArtPosMemory =========
+            if csv_exists:
+                console.update("Saving art layer position to csv...")
+                # Update posData values based on current art position (after Proxyshop's "manual edit step")
+                new_x, new_y = self.art_layer.bounds[:2]
+                new_w,new_h = tuple([psd.get_layer_dimensions(self.art_layer).get(key) for key in ['width', 'height']])
+                updatedArtPos = {'filename': os.path.basename(self.layout.file), 'x': new_x, 'y': new_y, 'w': new_w, 'h': new_h}
+                if artPos:
+                    posData[artPosIdx] = updatedArtPos
+                else:
+                    posData.append(updatedArtPos)
+                # Update the csv file
+                with open(csv_expected_path, 'w', newline='') as csvfile:
+                    fieldnames = ['filename', 'x', 'y', 'w', 'h']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for row in posData:
+                        writer.writerow(row)
+            # ===========================================================
             console.update("Saving document...\n")
 
         # Save the document
