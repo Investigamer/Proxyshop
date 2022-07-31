@@ -170,6 +170,7 @@ class BaseTemplate:
         if layer:
             if rotate: layer.rotate(90)
             psd.frame_layer(layer, reference_layer)
+        return layer
 
     def enable_frame_layers(self):
         """
@@ -1161,6 +1162,7 @@ class PlaneswalkerTemplate (StarterTemplate):
     def enable_frame_layers(self):
 
         # Important layers for later positioning
+        self.ability_layers = []
         self.text_layers = []
         self.shields = []
         self.colons = []
@@ -1170,24 +1172,26 @@ class PlaneswalkerTemplate (StarterTemplate):
         ability_array = []
 
         # Fix abilities that include a newline
+        total = 0
         for i, ab in enumerate(raw_abilities):
-            if ab[0] in ("-", "+", "0"):
+            if ab[0] in ("-", "+", "0") or i == 0:
                 ability_array.append(ab)
-                continue
-            elif i == 0:
-                ability_array.append(ab)
+                total += 1
                 continue
             elif ability_array[i-1][0] not in ("-", "+", "0"):
+                # Combine consecutive static lines together, except cases like Gideon Blackblade
                 if len(raw_abilities) == 4 and ability_array[i-1].count(" ") > 2 and ab.count(" ") > 2:
-                    ability_array.append(ab)
-                else: ability_array[i-1] += f"\n{ab}"
+                    total += 1
+                ability_array[i-1] += f"\n{ab}"
             else:
                 ability_array.append(ab)
+                total += 1
                 continue
+        if total >= 4: pw_group = "pw-4"
+        else: pw_group = "pw-3"
 
-        # Layer group for everything but legal and art reference is based on number of abilities
-        if len(ability_array) > 3: self.group = psd.getLayerSet("pw-4")
-        else: self.group = psd.getLayerSet("pw-3")
+        # Layer group for most elements based on number of abilities
+        self.group = psd.getLayerSet(pw_group)
         self.group.visible = True
 
         # Basic text layers
@@ -1200,53 +1204,34 @@ class PlaneswalkerTemplate (StarterTemplate):
         self.adj_ref = psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], text_and_icons)
 
         # Planeswalker ability layers
-        group_names = [
-            con.layers['FIRST_ABILITY'],
-            con.layers['SECOND_ABILITY'],
-            con.layers['THIRD_ABILITY'],
-            con.layers['FOURTH_ABILITY']
-        ]
-        loyalty_group = psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'], self.group)
+        self.loyalty_group = psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
 
         # Iterate through abilities to add text layers
         for i, ability in enumerate(ability_array):
 
-            # Ability group, default ability layer (nonstatic)
-            ability_group = psd.getLayerSet(group_names[i], loyalty_group)
-            ability_layer = psd.getLayer(con.layers['ABILITY_TEXT'], ability_group)
+            # Get the colon index, determine if this is static or activated ability
             colon_index = ability.find(": ")
-
-            # determine if this is a static or activated ability by the presence of ":" in the start of the ability
             if 5 > colon_index > 0:
 
                 # Determine which loyalty group to enable, and set the loyalty symbol's text
-                loyalty_graphic = psd.getLayerSet(ability[0], ability_group)
-                loyalty_graphic.visible = True
+                loyalty_graphic = psd.getLayerSet(ability[0], self.loyalty_group)
+                psd.getLayer(con.layers['COST'], loyalty_graphic).textItem.contents = ability[0:int(colon_index)]
+                ability_layer = psd.getLayer(con.layers['ABILITY_TEXT'], self.loyalty_group).duplicate()
+                shield = loyalty_graphic.duplicate()
+                shield.visible = True
 
                 # Add text layer, shields, and colons to list
+                self.ability_layers.append(ability_layer)
                 self.text_layers.append(ability_layer)
-                self.shields.append(loyalty_graphic)
-                self.colons.append(psd.getLayer(con.layers['COLON'], ability_group))
-
-                # Add loyalty cost
-                self.tx_layers.append(
-                    txt_layers.TextField(
-                        layer=psd.getLayer(con.layers['COST'], loyalty_graphic),
-                        contents=ability[0:int(colon_index)]
-                    )
-                )
+                self.shields.append(shield)
+                self.colons.append(psd.getLayer(con.layers['COLON'], self.loyalty_group).duplicate())
                 ability = ability[int(colon_index) + 2:]
 
             else:
 
                 # Hide default ability, switch to static
-                ability_layer.visible = False
-                ability_layer = psd.getLayer(con.layers['STATIC_TEXT'], ability_group)
-                ability_layer.visible = True
-                psd.getLayer("Colon", ability_group).visible = False
+                ability_layer = psd.getLayer(con.layers['STATIC_TEXT'], self.loyalty_group).duplicate()
                 self.text_layers.append(ability_layer)
-                self.colons.append(None)
-                self.shields.append(None)
 
                 # Is this a double line ability?
                 if "\n" in ability:
@@ -1262,21 +1247,22 @@ class PlaneswalkerTemplate (StarterTemplate):
             )
 
         # Starting loyalty
-        self.tx_layers.append(
-            txt_layers.TextField(
-                layer=psd.getLayer(con.layers['TEXT'], [loyalty_group, con.layers['STARTING_LOYALTY']]),
-                contents=self.layout.loyalty
-            )
-        )
+        psd.getLayer(
+            con.layers['TEXT'], [self.loyalty_group, con.layers['STARTING_LOYALTY']]
+        ).textItem.contents = self.layout.loyalty
 
         # Paste scryfall scan
         app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'], self.group)
-        self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']))
+        scryfall = self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']))
+        app.activeDocument.activeLayer = self.art_layer
+        scryfall.visible = False
 
         # Twins, pinlines, background
         psd.getLayer(self.layout.twins, psd.getLayerSet(con.layers['TWINS'], self.group)).visible = True
         psd.getLayer(self.layout.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group)).visible = True
         self.enable_background()
+
+    def post_execute(self):
 
     def enable_background(self):
         """
@@ -1292,6 +1278,14 @@ class PlaneswalkerTemplate (StarterTemplate):
         spacing = 80
         step = .2000000000000
 
+        # Special case: 2 Ability Planeswalker
+        adjustment = 0
+        if len(self.text_layers) == 2:
+            for lyr in self.text_layers:
+                lyr.textItem.size += 1.4
+                lyr.textItem.leading += 1.4
+                adjustment = 80
+
         # Heights
         layer_heights = []
         for layer in self.text_layers:
@@ -1299,7 +1293,7 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Reference heights
         div = len(self.text_layers) - 1
-        ref_height = psd.get_layer_dimensions(self.ref)['height']
+        ref_height = psd.get_layer_dimensions(self.ref)['height'] - adjustment
         total_height = ref_height - (spacing * div)
 
         # Compare height of all 3 elements vs total reference height
@@ -1323,10 +1317,11 @@ class PlaneswalkerTemplate (StarterTemplate):
             layer.translate(0, top_gap)
 
         # Check the top reference of loyalty badge
+        if adjustment > 0: self.text_layers[1].translate(0, -abs(adjustment))
         ft.vertically_nudge_pw_text(self.text_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
 
         # Align colons and shields to respective text layers
-        for i, ref_layer in enumerate(self.text_layers):
+        for i, ref_layer in enumerate(self.ability_layers):
             # Skip if this is a passive ability
             if self.shields[i] and self.colons[i]:
                 c_pos = self.colons[i].bounds[1]
@@ -1351,12 +1346,16 @@ class PlaneswalkerTemplate (StarterTemplate):
         line1_bottom = psd.getLayer("Line 1 Bottom", lines)
         line1_top_ref = psd.getLayer("Line 1 Top Reference", lines)
         line1_bottom_ref = psd.getLayer("Line 1 Bottom Reference", lines)
+        line1_top.visible = True
+        line1_bottom.visible = True
 
         # Additional for 4 Abilities
-        if self.group.name == "pw-4":
+        if len(self.text_layers) == 4:
             line2_top = psd.getLayer("Line 2 Top", lines)
             line2_bottom = psd.getLayer("Line 2 Bottom", lines)
             line2_ref = psd.getLayer("Line 2 Reference", lines)
+            line2_top.visible = True
+            line2_bottom.visible = True
         else: line2_top, line2_bottom, line2_ref = None, None, None
 
         # Get midpoint and position
@@ -1367,9 +1366,15 @@ class PlaneswalkerTemplate (StarterTemplate):
             line.translate(0, (targ_pos - ref_pos))
 
         # Position needed ragged lines
-        position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
-        position_ragged_line([self.text_layers[1], self.text_layers[2]], line1_bottom, line1_bottom_ref)
+        if len(self.text_layers) > 2:
+            # 3+ Ability Planeswalker
+            position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
+            position_ragged_line([self.text_layers[1], self.text_layers[2]], line1_bottom, line1_bottom_ref)
+        else:
+            # 2 Ability Planeswalker
+            position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
         if line2_top and line2_ref:
+            # 4 Ability Planeswalker
             position_ragged_line([self.text_layers[2], self.text_layers[3]], line2_top, line2_ref)
 
         # Select an area
@@ -1391,8 +1396,15 @@ class PlaneswalkerTemplate (StarterTemplate):
             psd.clear_selection()
 
         # Fill between the ragged lines
-        fill_between_ragged_lines(line1_top, line1_bottom)
+        if len(self.text_layers) > 2:
+            # 3+ Ability Planeswalker
+            fill_between_ragged_lines(line1_top, line1_bottom)
+        else:
+            # 2 Ability Planeswalker
+            line1_bottom.translate(0, 1000)
+            fill_between_ragged_lines(line1_top, line1_bottom)
         if line2_top and line2_bottom:
+            # 4 Ability Planeswalker
             fill_between_ragged_lines(line2_top, line2_bottom)
 
 

@@ -741,7 +741,7 @@ def vertically_nudge_pw_text(text_layers, space, layer_gap, ref_height, adj_refe
 
     # Does the layer overlap with the loyalty box?
     if bottom.bounds[2] >= adj_reference.bounds[0]:
-        layer_copy = bottom.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy = bottom.duplicate()
         layer_copy.rasterize(ps.RasterizeType.TextContents)
         app.activeDocument.activeLayer = layer_copy
         psd.select_layer_pixels(adj_reference)
