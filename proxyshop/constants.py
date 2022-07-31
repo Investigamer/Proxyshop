@@ -133,6 +133,9 @@ layers = {
     "LOYALTY_GRAPHICS": "Loyalty Graphics",
     "STATIC_TEXT": "Static Text",
     "ABILITY_TEXT": "Ability Text",
+    "PW_ADJUSTMENT_REFERENCE": "PW Adjustment Reference",
+    "PW_TOP_REFERENCE": "PW Top Reference",
+    "COLON": "Colon",
     "TEXT": "Text",
     "COST": "Cost",
 

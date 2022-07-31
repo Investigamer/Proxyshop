@@ -3,14 +3,14 @@ CORE TEMPLATES
 """
 import os
 from get_image_size import get_image_size
+from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
-from proxyshop import format_text, gui
+import proxyshop.format_text as ft
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
 from photoshop import api as ps
 app = ps.Application()
-console = gui.console_handler
 
 
 # MUST EXTEND THIS AT BARE MINIMUM
@@ -50,7 +50,7 @@ class BaseTemplate:
         if hasattr(self.layout, 'flavor_text') and cfg.remove_flavor:
             self.layout.flavor_text = ""
         if hasattr(self.layout, 'oracle_text') and cfg.remove_reminder:
-            self.layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
+            self.layout.oracle_text = ft.strip_reminder_text(layout.oracle_text)
 
     def collector_info(self):
         """
@@ -678,7 +678,7 @@ class ExpeditionTemplate (NormalTemplate):
     def __init__(self, layout):
         # strip out reminder text
         if not cfg.remove_reminder:
-            layout.oracle_text = format_text.strip_reminder_text(layout.oracle_text)
+            layout.oracle_text = ft.strip_reminder_text(layout.oracle_text)
         super().__init__(layout)
 
     def rules_text_and_pt_layers(self, text_and_icons):
@@ -752,7 +752,7 @@ class MiracleTemplate (NormalTemplate):
                 reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
                 divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
                 centered = False
-            ),
+            )
         )
 
 
@@ -1160,14 +1160,44 @@ class PlaneswalkerTemplate (StarterTemplate):
 
     def enable_frame_layers(self):
 
+        # Important layers for later positioning
+        self.text_layers = []
+        self.shields = []
+        self.colons = []
+
+        # Split abilities by newline
+        raw_abilities = self.layout.oracle_text.split("\n")
+        ability_array = []
+
+        # Fix abilities that include a newline
+        for i, ab in enumerate(raw_abilities):
+            if ab[0] in ("-", "+", "0"):
+                ability_array.append(ab)
+                continue
+            elif i == 0:
+                ability_array.append(ab)
+                continue
+            elif ability_array[i-1][0] not in ("-", "+", "0"):
+                if len(raw_abilities) == 4 and ability_array[i-1].count(" ") > 2 and ab.count(" ") > 2:
+                    ability_array.append(ab)
+                else: ability_array[i-1] += f"\n{ab}"
+            else:
+                ability_array.append(ab)
+                continue
+
         # Layer group for everything but legal and art reference is based on number of abilities
-        ability_array = self.layout.oracle_text.split("\n")
         if len(ability_array) > 3: self.group = psd.getLayerSet("pw-4")
         else: self.group = psd.getLayerSet("pw-3")
         self.group.visible = True
 
         # Basic text layers
-        self.basic_text_layers(psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group))
+        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group)
+        self.basic_text_layers(text_and_icons)
+
+        # Reference layers
+        self.ref = psd.getLayer(con.layers["TEXTBOX_REFERENCE"], text_and_icons)
+        self.top_ref = psd.getLayer(con.layers["PW_TOP_REFERENCE"], text_and_icons)
+        self.adj_ref = psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], text_and_icons)
 
         # Planeswalker ability layers
         group_names = [
@@ -1180,7 +1210,6 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Iterate through abilities to add text layers
         for i, ability in enumerate(ability_array):
-            if i == 4: break
 
             # Ability group, default ability layer (nonstatic)
             ability_group = psd.getLayerSet(group_names[i], loyalty_group)
@@ -1188,11 +1217,16 @@ class PlaneswalkerTemplate (StarterTemplate):
             colon_index = ability.find(": ")
 
             # determine if this is a static or activated ability by the presence of ":" in the start of the ability
-            if colon_index > 0 < 5:
+            if 5 > colon_index > 0:
 
                 # Determine which loyalty group to enable, and set the loyalty symbol's text
                 loyalty_graphic = psd.getLayerSet(ability[0], ability_group)
                 loyalty_graphic.visible = True
+
+                # Add text layer, shields, and colons to list
+                self.text_layers.append(ability_layer)
+                self.shields.append(loyalty_graphic)
+                self.colons.append(psd.getLayer(con.layers['COLON'], ability_group))
 
                 # Add loyalty cost
                 self.tx_layers.append(
@@ -1210,6 +1244,14 @@ class PlaneswalkerTemplate (StarterTemplate):
                 ability_layer = psd.getLayer(con.layers['STATIC_TEXT'], ability_group)
                 ability_layer.visible = True
                 psd.getLayer("Colon", ability_group).visible = False
+                self.text_layers.append(ability_layer)
+                self.colons.append(None)
+                self.shields.append(None)
+
+                # Is this a double line ability?
+                if "\n" in ability:
+                    app.activeDocument.activeLayer = ability_layer
+                    ft.space_after_paragraph(2)
 
             # Add ability text
             self.tx_layers.append(
@@ -1241,6 +1283,117 @@ class PlaneswalkerTemplate (StarterTemplate):
         Enable card background
         """
         psd.getLayer(self.layout.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group)).visible = True
+
+    def post_text_layers(self):
+        """
+        Auto-position the ability text, colons, and shields.
+        """
+        # Core vars
+        spacing = 80
+        step = .2000000000000
+
+        # Heights
+        layer_heights = []
+        for layer in self.text_layers:
+            layer_heights.append(psd.get_text_layer_dimensions(layer)["height"])
+
+        # Reference heights
+        div = len(self.text_layers) - 1
+        ref_height = psd.get_layer_dimensions(self.ref)['height']
+        total_height = ref_height - (spacing * div)
+
+        # Compare height of all 3 elements vs total reference height
+        while sum(layer_heights) > total_height:
+            for i, layer in enumerate(self.text_layers):
+                layer.textItem.size -= step
+                layer.textItem.leading -= step
+                layer_heights[i] = psd.get_text_layer_dimensions(layer)["height"]
+
+        # Get the exact gap between each layer left over
+        gap = (ref_height - sum(layer_heights)) / div
+
+        # Position the bottom layers relative to the top
+        for i in range(div):
+            delta = gap - (self.text_layers[i + 1].bounds[1] - self.text_layers[i].bounds[3])
+            self.text_layers[i + 1].translate(0, delta)
+
+        # Align the layers
+        top_gap = self.ref.bounds[1] - self.text_layers[0].bounds[1]
+        for layer in self.text_layers:
+            layer.translate(0, top_gap)
+
+        # Check the top reference of loyalty badge
+        ft.vertically_nudge_pw_text(self.text_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
+
+        # Align colons and shields to respective text layers
+        for i, ref_layer in enumerate(self.text_layers):
+            # Skip if this is a passive ability
+            if self.shields[i] and self.colons[i]:
+                c_pos = self.colons[i].bounds[1]
+                app.activeDocument.selection.select([
+                    [0, ref_layer.bounds[1]],
+                    [ref_layer.bounds[0], ref_layer.bounds[1]],
+                    [ref_layer.bounds[0], ref_layer.bounds[3]],
+                    [0, ref_layer.bounds[3]]
+                ])
+                psd.align_vertical(self.colons[i])
+                psd.clear_selection()
+                c_dif = self.colons[i].bounds[1] - c_pos
+                self.shields[i].translate(0, c_dif)
+
+        """
+        POSITION RAGGED ABILITY DIVIDERS
+        """
+
+        # Ragged line layers
+        lines = psd.getLayer("Ragged Lines", [self.group, "Textbox", "Ability Dividers"])
+        line1_top = psd.getLayer("Line 1 Top", lines)
+        line1_bottom = psd.getLayer("Line 1 Bottom", lines)
+        line1_top_ref = psd.getLayer("Line 1 Top Reference", lines)
+        line1_bottom_ref = psd.getLayer("Line 1 Bottom Reference", lines)
+
+        # Additional for 4 Abilities
+        if self.group.name == "pw-4":
+            line2_top = psd.getLayer("Line 2 Top", lines)
+            line2_bottom = psd.getLayer("Line 2 Bottom", lines)
+            line2_ref = psd.getLayer("Line 2 Reference", lines)
+        else: line2_top, line2_bottom, line2_ref = None, None, None
+
+        # Get midpoint and position
+        def position_ragged_line(layers: list, line, line_ref):
+            dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
+            ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
+            targ_pos = dif + layers[0].bounds[3]
+            line.translate(0, (targ_pos - ref_pos))
+
+        # Position needed ragged lines
+        position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
+        position_ragged_line([self.text_layers[1], self.text_layers[2]], line1_bottom, line1_bottom_ref)
+        if line2_top and line2_ref:
+            position_ragged_line([self.text_layers[2], self.text_layers[3]], line2_top, line2_ref)
+
+        # Select an area
+        def fill_between_ragged_lines(line1, line2):
+            fill_layer = app.activeDocument.artLayers.add()
+            fill_layer.move(line1, ps.ElementPlacement.PlaceAfter)
+            app.activeDocument.activeLayer = fill_layer
+            app.activeDocument.selection.select([
+                [line1.bounds[0], line1.bounds[3]],
+                [line1.bounds[2], line1.bounds[3]],
+                [line1.bounds[2], line2.bounds[1]],
+                [line1.bounds[0], line2.bounds[1]]
+            ])
+            fill_color = psd.rgb_black()
+            app.activeDocument.selection.expand(1)
+            app.activeDocument.selection.fill(
+                fill_color, ps.ColorBlendMode.NormalBlendColor, 100, False
+            )
+            psd.clear_selection()
+
+        # Fill between the ragged lines
+        fill_between_ragged_lines(line1_top, line1_bottom)
+        if line2_top and line2_bottom:
+            fill_between_ragged_lines(line2_top, line2_bottom)
 
 
 class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):

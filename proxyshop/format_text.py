@@ -1,6 +1,7 @@
 """
 Utility functions to format text
 """
+import math
 import re
 import photoshop.api as ps
 import proxyshop.helpers as psd
@@ -726,6 +727,86 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
         psd.clear_selection()
         layer_copy.remove()
         return delta
+
+
+def vertically_nudge_pw_text(text_layers, space, layer_gap, ref_height, adj_reference, top_reference):
+    """
+    Shift or resize planeswalker text to prevent overlap with the loyalty shield.
+    """
+    # Layer to check for overlap
+    lyrs = text_layers.copy()
+    bottom = lyrs[-1]
+    movable = len(lyrs)-1
+    leftover = (layer_gap - space) * movable
+
+    # Does the layer overlap with the loyalty box?
+    if bottom.bounds[2] >= adj_reference.bounds[0]:
+        layer_copy = bottom.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
+        layer_copy.rasterize(ps.RasterizeType.TextContents)
+        app.activeDocument.activeLayer = layer_copy
+        psd.select_layer_pixels(adj_reference)
+        app.activeDocument.selection.invert()
+        app.activeDocument.selection.clear()
+        app.activeDocument.selection.deselect()
+
+        # Determine how much the rules text overlaps loyalty box
+        dif = top_reference.bounds[3] - layer_copy.bounds[3]
+        layer_copy.delete()
+        if dif > 0: return
+
+        # Calculate the total distance needing to be covered
+        total_move = 0
+        lyrs.pop(0)
+        for n, lyr in enumerate(lyrs):
+            total_move += math.fabs(dif) * ((len(lyrs) - n)/len(lyrs))
+
+        if total_move < leftover:
+            # Text layers can just be shifted upward
+            lyrs.reverse()
+            for n, lyr in enumerate(lyrs):
+                move_y = dif * ((len(lyrs) - n)/len(lyrs))
+                lyr.translate(0, move_y)
+        elif dif < 0:
+            # Layer gap would be too small, need to resize text then shift upward
+            total_h = 0
+            for lyr in text_layers:
+                lyr.textItem.size -= .2000000000000
+                lyr.textItem.leading -= .2000000000000
+                total_h += psd.get_text_layer_dimensions(lyr)["height"]
+
+            # Get the exact spacing left over
+            new_gap = (ref_height - total_h) / movable
+
+            # Position the bottom layers relative to the top
+            for n in range(movable):
+                delta = new_gap - (text_layers[n + 1].bounds[1] - text_layers[n].bounds[3])
+                text_layers[n + 1].translate(0, delta)
+
+            # Check for another iteration
+            vertically_nudge_pw_text(text_layers, space, new_gap, ref_height, adj_reference, top_reference)
+
+
+"""
+PARAGRAPH FORMATTING
+"""
+
+
+def space_after_paragraph(space):
+    """
+    Set the space after paragraph value.
+    @param space: Space after paragraph
+    @return:
+    """
+    desc1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    deesc2 = ps.ActionDescriptor()
+    ref1.PutProperty(sID("property"), sID("paragraphStyle"))
+    ref1.PutEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
+    desc1.PutReference(sID("target"),  ref1)
+    deesc2.PutInteger(sID("textOverrideFeatureName"),  808464438)
+    deesc2.PutUnitDouble(sID("spaceAfter"), sID("pointsUnit"),  space)
+    desc1.PutObject(sID("to"), sID("paragraphStyle"),  deesc2)
+    app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
 
 
 sym = SymbolMapper()
