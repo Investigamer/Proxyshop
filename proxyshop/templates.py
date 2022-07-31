@@ -281,7 +281,7 @@ class BaseTemplate:
         file_name = self.get_file_name()
 
         # ========= FelixVita ArtPosMemory ========
-        # Before manual edit step, set art layer to be active layer so it's quicker
+        # Before manual edit step, set art layer to be the active layer
         # Why? Because if you have "Show Transform Controls" enabled, this will now make it super quick to detect if an image does not fully fill the frame.
         app.activeDocument.activeLayer = self.art_layer
         # =========================================
