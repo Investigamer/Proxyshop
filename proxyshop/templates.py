@@ -1262,8 +1262,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         psd.getLayer(self.layout.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group)).visible = True
         self.enable_background()
 
-    def post_execute(self):
-
     def enable_background(self):
         """
         Enable card background
