@@ -359,9 +359,7 @@ def align(align_type = "AdCH", layer = None, ref = None):
     if ref: select_layer_pixels(ref)
 
     # Optionally make a given layer the active layer
-    if layer:
-        current = app.activeDocument.activeLayer
-        app.activeDocument.activeLayer = layer
+    if layer: app.activeDocument.activeLayer = layer
 
     # Align the current layer to selection
     desc = ps.ActionDescriptor()
@@ -370,9 +368,6 @@ def align(align_type = "AdCH", layer = None, ref = None):
     desc.putReference(cID("null"), ref)
     desc.putEnumerated(cID("Usng"), cID("ADSt"), cID(align_type))
     app.executeAction(cID("Algn"), desc, NO_DIALOG)
-
-    # Return to previous current if needded
-    if layer: app.activeDocument.activeLayer = current
 
 
 def align_vertical(layer = None, ref = None):
@@ -792,6 +787,7 @@ def content_fill_empty_area(layer=None):
 
     # Reset active
     app.activeDocument.activeLayer = current
+
 
 def apply_vibrant_saturation(VibValue, SatValue):
     """

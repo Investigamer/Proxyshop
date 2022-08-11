@@ -52,7 +52,7 @@ class ProxyshopApp(App):
 
 		# App settings
 		self.title = f"Proxyshop {__version__}"
-		self.icon = 'proxyshop.png'
+		self.icon = 'proxyshop/img/proxyshop.png'
 		self.cont_padding = 10
 
 		# User data

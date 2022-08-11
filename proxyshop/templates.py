@@ -1274,15 +1274,16 @@ class PlaneswalkerTemplate (StarterTemplate):
         """
         # Core vars
         spacing = 80
+        adjustment = 0
         step = .2000000000000
 
         # Special case: 2 Ability Planeswalker
-        adjustment = 0
         if len(self.text_layers) == 2:
             for lyr in self.text_layers:
                 lyr.textItem.size += 1.4
                 lyr.textItem.leading += 1.4
                 adjustment = 80
+                spacing = 240
 
         # Heights
         layer_heights = []
@@ -1291,7 +1292,7 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Reference heights
         div = len(self.text_layers) - 1
-        ref_height = psd.get_layer_dimensions(self.ref)['height'] - adjustment
+        ref_height = psd.get_layer_dimensions(self.ref)['height']
         total_height = ref_height - (spacing * div)
 
         # Compare height of all 3 elements vs total reference height
@@ -1315,8 +1316,10 @@ class PlaneswalkerTemplate (StarterTemplate):
             layer.translate(0, top_gap)
 
         # Check the top reference of loyalty badge
-        if adjustment > 0: self.text_layers[1].translate(0, -abs(adjustment))
         ft.vertically_nudge_pw_text(self.text_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
+        if adjustment > 0:
+            self.text_layers[0].translate(0, abs(adjustment))
+            self.text_layers[1].translate(0, -abs(adjustment))
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -1334,8 +1337,12 @@ class PlaneswalkerTemplate (StarterTemplate):
                 c_dif = self.colons[i].bounds[1] - c_pos
                 self.shields[i].translate(0, c_dif)
 
+        # Add the ability layer mask
+        self.pw_ability_mask()
+
+    def pw_ability_mask(self):
         """
-        POSITION RAGGED ABILITY DIVIDERS
+        Position the ragged edge ability mask.
         """
 
         # Ragged line layers
@@ -1381,10 +1388,10 @@ class PlaneswalkerTemplate (StarterTemplate):
             fill_layer.move(line1, ps.ElementPlacement.PlaceAfter)
             app.activeDocument.activeLayer = fill_layer
             app.activeDocument.selection.select([
-                [line1.bounds[0], line1.bounds[3]],
-                [line1.bounds[2], line1.bounds[3]],
-                [line1.bounds[2], line2.bounds[1]],
-                [line1.bounds[0], line2.bounds[1]]
+                [line1.bounds[0]-200, line1.bounds[3]],
+                [line1.bounds[2]+200, line1.bounds[3]],
+                [line1.bounds[2]+200, line2.bounds[1]],
+                [line1.bounds[0]-200, line2.bounds[1]]
             ])
             fill_color = psd.rgb_black()
             app.activeDocument.selection.expand(1)
