@@ -10,8 +10,12 @@ from glob import glob
 from pathlib import Path
 from typing import Optional, Callable
 from importlib import util, import_module
+
+import requests
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+
+from proxyshop import gdown
 from proxyshop.constants import con
 cwd = os.getcwd()
 
@@ -269,16 +273,16 @@ def version_check(temp: dict, plugin: Optional[str] = None):
 
     # Build our return
     file = {
-        'id': data['id'],
+        'id': temp['id'],
         'name': temp['name'],
         'type': temp['type'],
-        'filename': data['title'],
+        'filename': data['name'],
         'path': full_path,
         'manifest': temp['manifest'],
         'plugin': temp['plugin'],
         'version_old': current,
         'version_new': data['description'],
-        'size': data['fileSize']
+        'size': data['size']
     }
 
     # Yes update if file has never been downloaded
@@ -329,12 +333,13 @@ def update_template(temp: dict, callback: Callable):
     @param callback: Callback method to update progress bar.
     """
     # Download using authorization
-    Path(os.path.dirname(temp['path'])).mkdir(mode=511, parents=True, exist_ok=True)
-    gdrive_download(temp['id'], temp['path'], callback)
+    result = gdown.download(temp['id'], temp['path'], callback)
 
     # Change the version to match the new version
-    con.versions[temp['id']] = temp['version_new']
-    con.update_version_tracker()
+    if result:
+        con.versions[temp['id']] = temp['version_new']
+        con.update_version_tracker()
+    return result
 
 
 def gdrive_metadata(file_id: str):
@@ -343,72 +348,10 @@ def gdrive_metadata(file_id: str):
     @param file_id: ID of the Google Drive file
     @return: Dict of metadata
     """
-    # Try to authenticate the user
-    drive = authenticate_user()
-    file = drive.CreateFile({'id': file_id})
-    file.FetchMetadata(fetch_all=True)
-    return file.metadata
-
-
-def gdrive_download(file_id: str, path: Path, callback: Callable):
-    """
-    Authenticate the user, download the file, return the new version.
-    @param file_id: Google Drive ID of the file
-    @param path: Path to save the file
-    @param callback: Callback method for updating progress
-    @return: String containing new version
-    """
-    # Try to authenticate the user
-    drive = authenticate_user()
-    if not drive: return None
-
-    # Set up the file info
-    file = drive.CreateFile({'id': file_id})
-    file.FetchMetadata()
-
-    # Download the file
-    chunk = int(file.metadata['fileSize']) / 20
-    file.GetContentFile(path, callback=callback, chunksize=chunk)
-
-
-def authenticate_user():
-    """
-    Create a GoogleDrive object using on-file gauth token or create
-    a new one by getting permission from the user.
-    @return: GoogleDrive object to use for downloads.
-    """
-    try:
-        # Create gauth file if it doesn't exist yet
-        if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")):
-            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w', encoding="utf-8") as fp:
-                fp.write("")
-
-        # Authenticate, fetch file and metadata
-        auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"))
-        auth.LocalWebserverAuth()
-        return GoogleDrive(auth)
-
-    except pydrive2.auth.AuthenticationRejected: return None
-    except pydrive2.auth.AuthenticationError: return None
-
-
-def check_for_authentication():
-    """
-    Check if the user has been authenticated.
-    """
-    if not os.path.exists(os.path.join(os.getcwd(), "proxyshop/gauth.json")): return False
-    with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'r') as fp: lines = fp.read()
-    if len(lines) == 0: return False
-    else:
-        try:
-            auth = GoogleAuth(os.path.join(os.getcwd(), "proxyshop/gdrive.yaml"))
-            auth.LocalWebserverAuth()
-            return True
-        except Exception as e:
-            with open(os.path.join(os.getcwd(), "proxyshop/gauth.json"), 'w') as fp:
-                fp.write("")
-            print(e)
-            return False
+    source = "https://www.googleapis.com/drive/" \
+             f"v3/files/{file_id}?alt=json&fields=description,name,size&" \
+             "key=AIzaSyD2WloDIEefGe2LY48K5wMQTQcyChxZqiw"
+    return requests.get(source, headers=con.http_header).json()
 
 
 """

@@ -21,7 +21,6 @@ files = [
     {'src': os.path.join(CWD, 'LICENSE'), 'dst': os.path.join(DIST, 'LICENSE')},
     {'src': os.path.join(CWD, 'README.md'), 'dst': os.path.join(DIST, 'README.md')},
     # --- PROXYSHOP DIRECTORY
-    {'src': os.path.join(PS, 'gdrive.yaml'), 'dst': os.path.join(DIST_PS, 'gdrive.yaml')},
     {'src': os.path.join(PS, 'tests.json'), 'dst': os.path.join(DIST_PS, 'tests.json')},
     {'src': os.path.join(PS, 'manifest.json'), 'dst': os.path.join(DIST_PS, 'manifest.json')},
     {'src': os.path.join(PS, 'symbols.json'), 'dst': os.path.join(DIST_PS, 'symbols.json')},
