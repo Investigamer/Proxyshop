@@ -316,6 +316,15 @@ http_header = {
     ' WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.107 Safari/537.36'
 }
 
+# API Keys
+with open(os.path.join(cwd, "proxyshop/env.json"), "r", encoding="utf-8") as api_keys:
+    keys = json.load(api_keys)
+    g_api = keys['g_api']
+    a_api = keys['a_api']
+# Manual definitions
+# g_api = ""
+# a_api = ""
+
 
 # For object permanence
 class Singleton(type):
@@ -420,6 +429,10 @@ class Constants:
 
         # Version tracker
         self.versions = versions
+
+        # API keys
+        self.google_api = g_api
+        self.amazon_api = a_api
 
     def reload(self):
         self.load_values()

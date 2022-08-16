@@ -5,16 +5,11 @@ import os
 import re
 import sys
 import json
-import pydrive2.auth
+import requests
 from glob import glob
 from pathlib import Path
 from typing import Optional, Callable
 from importlib import util, import_module
-
-import requests
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
-
 from proxyshop import gdown
 from proxyshop.constants import con
 cwd = os.getcwd()
@@ -200,7 +195,13 @@ def check_for_updates():
 
     # Base app manifest
     with open("proxyshop/manifest.json", encoding="utf-8") as f:
-        for cat, temps in json.load(f).items():
+        # Get config info
+        data = json.load(f)
+        s3_bucket = data['__CONFIG__']['S3']
+        data.pop("__CONFIG__")
+
+        # Build update dict
+        for cat, temps in data.items():
             for name, temp in temps.items():
 
                 # Is the ID valid?
@@ -211,6 +212,7 @@ def check_for_updates():
                 temp['name'] = name
                 temp['plugin'] = None
                 temp['manifest'] = os.path.join(cwd, 'proxyshop/manifest.json')
+                temp['s3'] = s3_bucket
 
                 # Does this template need an update?
                 file = version_check(temp)
@@ -232,7 +234,16 @@ def check_for_updates():
     # Check the manifest of each plugin
     for plug in plugins:
         with open(plug['path'], encoding="utf-8") as f:
-            for cat, temps in json.load(f).items():
+            # Check for S3 compatibility
+            data = json.load(f)
+            if "__CONFIG__" in data:
+                if "S3" in data['__CONFIG__']:
+                    s3_bucket = data['__CONFIG__']['S3']
+                else: s3_bucket = None
+                data.pop("__CONFIG__")
+
+            # Append to the updates dict
+            for cat, temps in data.items():
                 for name, temp in temps.items():
 
                     # Is the ID valid?
@@ -243,6 +254,7 @@ def check_for_updates():
                     temp['name'] = name
                     temp['plugin'] = plug['name']
                     temp['manifest'] = plug['path']
+                    temp['s3'] = s3_bucket
 
                     # Does this template need an update?
                     file = version_check(temp, plug['name'])
@@ -282,7 +294,8 @@ def version_check(temp: dict, plugin: Optional[str] = None):
         'plugin': temp['plugin'],
         'version_old': current,
         'version_new': data['description'],
-        'size': data['size']
+        'size': data['size'],
+        's3': temp['s3']
     }
 
     # Yes update if file has never been downloaded
@@ -326,14 +339,19 @@ def get_current_version(file_id: str, path: str):
     return version
 
 
-def update_template(temp: dict, callback: Callable):
+def update_template(temp: dict, callback: Callable, s3_callback: Callable):
     """
     Update a given template to the latest version.
     @param temp: Dict containing template information.
     @param callback: Callback method to update progress bar.
+    @param s3_callback: Callback method to update progress bar for S3 downloading.
     """
     # Download using authorization
     result = gdown.download(temp['id'], temp['path'], callback)
+    if not result:
+        if temp['s3']:
+            # Try grabbing from Amazon S3 instead
+            result = gdown.download_s3(temp, s3_callback)
 
     # Change the version to match the new version
     if result:
@@ -349,8 +367,7 @@ def gdrive_metadata(file_id: str):
     @return: Dict of metadata
     """
     source = "https://www.googleapis.com/drive/" \
-             f"v3/files/{file_id}?alt=json&fields=description,name,size&" \
-             "key=AIzaSyD2WloDIEefGe2LY48K5wMQTQcyChxZqiw"
+             f"v3/files/{file_id}?alt=json&fields=description,name,size&key={con.google_api}"
     return requests.get(source, headers=con.http_header).json()
 
 

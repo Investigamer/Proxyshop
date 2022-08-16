@@ -320,10 +320,12 @@ class UpdateEntry(BoxLayout):
         super().__init__(**kwargs)
 
     async def download_update(self, download: BoxLayout) -> None:
-        self.progress = ProgressBar()
+        self.progress = UpdateProgress(self.data['size'])
         download.clear_widgets()
         download.add_widget(self.progress)
-        result = await ak.run_in_thread(lambda: update_template(self.data, self.update_progress), daemon=True)
+        result = await ak.run_in_thread(
+            lambda: update_template(self.data, self.progress.update_progress, self.progress.s3_update_progress
+        ), daemon=True)
         await ak.sleep(.5)
         if result:
             self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
@@ -334,6 +336,20 @@ class UpdateEntry(BoxLayout):
     def update_progress(self, tran: int, total: int) -> None:
         progress = int((tran/total)*100)
         self.progress.value = progress
+
+
+class UpdateProgress(ProgressBar):
+    def __init__(self, size, **kwargs):
+        super().__init__(**kwargs)
+        self.download_size = int(size)
+        self.current = 0
+
+    def update_progress(self, tran: int, total: int) -> None:
+        self.value = int((tran / total) * 100)
+
+    def s3_update_progress(self, tran: int) -> None:
+        self.current += tran
+        self.value = int((self.current / self.download_size) * 100)
 
 
 """

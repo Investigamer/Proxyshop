@@ -1,4 +1,7 @@
 {
+    "__CONFIG__": {
+        "S3": "proxyshop-gh-app"
+    },
     "Normal": {
         "Normal": {
             "file": "normal.psd",

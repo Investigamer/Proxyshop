@@ -160,3 +160,4 @@ tester.py
 /proxyshop/datas/
 /proxyshop/version_tracker.json
 /release
+/proxyshop/env.json

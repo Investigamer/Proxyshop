@@ -4,6 +4,7 @@ Source: https://github.com/wkentaro/gdown
 License: https://github.com/wkentaro/gdown/blob/main/LICENSE
 """
 from __future__ import print_function
+import json
 from pathlib import Path
 import os
 import os.path as osp
@@ -12,10 +13,17 @@ import shutil
 import sys
 import tempfile
 import textwrap
+from typing import Callable
+
+import boto3
 import requests
+from boto3.s3.transfer import TransferConfig
+from s3transfer.constants import ALLOWED_DOWNLOAD_ARGS
+
+from proxyshop.constants import con
 
 CHUNK_SIZE = 1024 * 1024  # 512KB
-home = osp.expanduser("~")
+cwd = os.getcwd()
 
 
 def get_url_from_gdrive_confirmation(contents):
@@ -53,7 +61,8 @@ def get_url_from_gdrive_confirmation(contents):
 def download(
     file_id: str,
     path: str,
-    callback: any
+    callback: any,
+    use_cookies: bool = True
 ):
     """
     Download file from Gdrive ID.
@@ -66,6 +75,8 @@ def download(
         Output path.
     callback: any
         Function to call on each chunk downloaded.
+    use_cookies: bool
+        Use cookies with request.
 
     Returns
     -------
@@ -80,12 +91,32 @@ def download(
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"  # NOQA
     }
 
+    # Cookies
+    cache_dir = osp.join(cwd, "tmp")
+    if not osp.exists(cache_dir):
+        os.makedirs(cache_dir)
+    cookies_file = osp.join(cache_dir, "cookies.json")
+    if osp.exists(cookies_file) and use_cookies:
+        with open(cookies_file) as f:
+            cookies = json.load(f)
+        for k, v in cookies:
+            sess.cookies[k] = v
+
     # Get file resource
     while True:
         res = sess.get(url, headers=headers, stream=True, verify=True)
 
+        # Save cookies
+        with open(cookies_file, "w") as f:
+            cookies = [
+                (k, v)
+                for k, v in sess.cookies.items()
+                if not k.startswith("download_warning_")
+            ]
+            json.dump(cookies, f, indent=2)
+
+        # Is this the right file?
         if "Content-Disposition" in res.headers:
-            # This is the file
             break
 
         # Need to redirect with confirmation
@@ -139,7 +170,6 @@ def download(
 
     # Try to download
     try:
-
         for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
             f.write(chunk)
             current += int(CHUNK_SIZE)
@@ -153,5 +183,32 @@ def download(
         return False
     finally:
         sess.close()
-
     return True
+
+
+def download_s3(temp: dict, callback: Callable) -> bool:
+    """
+    Download template from Amazon S3 bucket.
+    @param temp: Dict containing template data.
+    @param callback: Callback function to update progress.
+    @return: True if success, False if failed.
+    """
+    # Establish this object's key
+    if temp['plugin']:
+        key = f"{temp['plugin']}/{temp['filename']}"
+    else: key = temp['filename']
+
+    # Establish S3 client
+    client_s3 = boto3.client(
+        "s3",
+        aws_access_key_id=con.amazon_api['access'],
+        aws_secret_access_key=con.amazon_api['secret']
+    )
+
+    # Attempt the download
+    try:
+        client_s3.download_file(temp['s3'], key, temp['path'], Callback=callback)
+        return True
+    except Exception as e:
+        print(e)
+        return False
