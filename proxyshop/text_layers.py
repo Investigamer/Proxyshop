@@ -120,6 +120,7 @@ class ExpansionSymbolField:
                 if 'common-fill' not in lyr: contents[i]['common-fill'] = False
                 if 'common-color' not in lyr: contents[i]['common-color'] = False
                 if 'common-stroke' not in lyr: contents[i]['common-stroke'] = ["white", 6]
+                if 'size-modifier' not in lyr: contents[i]['size-modifier'] = 1
                 if 'reference' in lyr:
                     if lyr['reference']: self.layer.textItem.contents = lyr['char']
             self.layers = contents
@@ -128,7 +129,8 @@ class ExpansionSymbolField:
 
         # Size to fit reference?
         if cfg.auto_symbol_size:
-            psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered)
+            size_modifier = 100 * self.layers[0]['size-modifier']
+            psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered, percent=size_modifier)
 
         # Ungroup if grouped
         if not self.layer.grouped:

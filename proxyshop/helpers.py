@@ -384,7 +384,7 @@ def align_horizontal(layer = None, ref = None):
     align("AdCH", layer, ref)
 
 
-def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=False, align_h=True, align_v=True):
+def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=False, align_h=True, align_v=True, percent=100):
     """
     Scale a layer equally to the bounds of a reference layer, then center the layer vertically and horizontally
     within those bounds.
@@ -394,8 +394,8 @@ def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=Fal
     ref_dim = get_layer_dimensions(reference)
 
     # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    if smallest: scale = 100 * min((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
-    else: scale = 100 * max((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+    if smallest: scale = percent * min((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+    else: scale = percent * max((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
     layer.resize(scale, scale, anchor)
 
     # Align the layer
