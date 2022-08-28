@@ -129,8 +129,8 @@ class ExpansionSymbolField:
 
         # Size to fit reference?
         if cfg.auto_symbol_size:
-            size_modifier = 100 * self.layers[0]['size-modifier']
-            psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered, percent=size_modifier)
+            size_modifier = self.layers[0]['size-modifier'] if self.layers else 1
+            psd.frame_layer(self.layer, self.reference, ps.AnchorPosition.MiddleRight, True, self.centered, percent=100*size_modifier)
 
         # Ungroup if grouped
         if not self.layer.grouped:
