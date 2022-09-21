@@ -133,6 +133,7 @@ class ExpansionSymbolField:
         # Ungroup if grouped
         if not self.layer.grouped:
             self.layer.grouped = False
+            self.layer.grouped = False  # Needed twice for some reason
         self.original = self.layer
 
         # One layer or multiple?
