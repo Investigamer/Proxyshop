@@ -2,7 +2,7 @@
 CORE TEMPLATES
 """
 import os
-from get_image_size import get_image_size
+from PIL import Image
 from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
 import proxyshop.format_text as ft
@@ -122,7 +122,7 @@ class BaseTemplate:
             self.art_reference = psd.getLayer(self.art_reference)
         if "Full Art" and "Fullart" not in str(self.art_reference.name):
             # Auto detect full art image
-            width, height = get_image_size(self.layout.file)
+            width, height = Image.open(self.layout.file).size
             if height > (width * 1.2):
                 try:
                     # See if this template has a full art reference
