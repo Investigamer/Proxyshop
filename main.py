@@ -120,7 +120,7 @@ class ProxyshopApp(App):
 
 		# Select all images in art folder
 		folder = os.path.join(cwd, "art")
-		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
+		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg", "*.webp", "*.jpf"]
 		for ext in extensions:
 			files.extend(glob(os.path.join(folder, ext)))
 
