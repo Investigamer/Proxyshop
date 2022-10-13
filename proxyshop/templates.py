@@ -2,6 +2,8 @@
 CORE TEMPLATES
 """
 import os
+import re
+
 from get_image_size import get_image_size
 from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
@@ -157,8 +159,9 @@ class BaseTemplate:
         if cfg.save_artist_name:
             if suffix: suffix = f"{suffix} {self.layout.artist}"
             else: suffix = self.layout.artist
-        if suffix: return f"{self.layout.name} ({suffix})"
-        else: return self.layout.name
+        if suffix: name = f"{self.layout.name} ({suffix})"
+        else: name = self.layout.name
+        return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "-", name)
 
     def paste_scryfall_scan(self, reference_layer, rotate=False):
         """
