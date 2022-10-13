@@ -69,7 +69,11 @@ class BaseLayout:
         self.card_name_raw = card_name
 
         # Alternate language?
-        if scryfall['lang'] != "en":
+        if 'card_faces' in scryfall:
+            alt_lang = 'printed_name' in scryfall['card_faces'][0]
+        else:
+            alt_lang = 'printed_name' in scryfall
+        if alt_lang:
             self.name_key = 'printed_name'
             self.oracle_key = 'printed_text'
             self.type_key = 'printed_type_line'
@@ -124,9 +128,9 @@ class BaseLayout:
 
         # Ensure card_count minimum 3 digit number length
         if len(str(self.card_count)) == 2:
-            self.card_count = "0" + str(self.card_count)
+            self.card_count = f"0{self.card_count}"
         elif len(str(self.card_count)) == 1:
-            self.card_count = "00" + str(self.card_count)
+            self.card_count = f"00{self.card_count}"
         elif len(str(self.card_count)) == 0:
             self.card_count = None
 
