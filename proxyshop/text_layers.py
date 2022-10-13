@@ -133,7 +133,7 @@ class ExpansionSymbolField:
         # Ungroup if grouped
         if not self.layer.grouped:
             self.layer.grouped = False
-            self.layer.grouped = False
+            self.layer.grouped = False  # Needed twice for some reason
         self.original = self.layer
 
         # One layer or multiple?
@@ -158,7 +158,7 @@ class ExpansionSymbolField:
 
                 # Common
                 if self.rarity != con.rarity_common:
-                    # Apply common traits
+                    # Apply non-common traits
                     if lay['color']: self.layer.textItem.color = self.colors[lay['color']]
                     if lay['stroke']: psd.apply_stroke(self.layer, lay['stroke'][1], self.colors[lay['stroke'][0]])
                     else: psd.clear_layer_style(self.layer)
@@ -172,7 +172,7 @@ class ExpansionSymbolField:
                         psd.rasterize_layer_style(self.layer)
                         if lay['fill']: self.apply_fill(self.colors[lay['fill']])
                 else:
-                    # Apply non-common traits
+                    # Apply common traits
                     if lay['common-color']: self.layer.textItem.color = self.colors[lay['common-color']]
                     if lay['common-stroke']:
                         psd.apply_stroke(self.layer, lay['common-stroke'][1], self.colors[lay['common-stroke'][0]])
