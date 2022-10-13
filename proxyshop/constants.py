@@ -182,12 +182,6 @@ Faces = {
     "BACK": 1,
 }
 
-# font_name_mplantin = "MPlantin"
-# font_name_mplantin_italic = "MPlantin-Italic"
-# font_name_ndpmtg = "NDPMTG"
-# font_name_beleren_smallcaps = "Beleren Small Caps Bold"
-# font_name_relay_medium = "Relay-Medium"
-
 # Font names
 font_rules_text = "MPlantin"
 font_rules_text_italic = "MPlantin-Italic"
@@ -378,7 +372,7 @@ class Constants:
         # Cards
         self.symbols = symbols
         self.basic_land_names = basic_land_names
-        self.set_symbols = set_symbols
+        self.set_symbols = set_symbols.copy()
         self.Faces = Faces
 
         # Font names
