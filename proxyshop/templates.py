@@ -324,17 +324,21 @@ class StarterTemplate (BaseTemplate):
         expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
 
         # Add text layers
-        self.tx_layers.extend([
+        self.tx_layers.append(
             txt_layers.BasicFormattedTextField(
                 layer = mana_cost,
                 contents = self.layout.mana_cost
-            ),
-            txt_layers.ScaledTextField(
+            )
+        )
+
+        self.tx_layers.append(
+            self.card_name_layer(
                 layer = name_selected,
                 contents = self.layout.name,
                 reference = mana_cost
             )
-        ])
+        )
+
         if not hasattr(self, "expansion_disabled"):
             self.tx_layers.append(
                 txt_layers.ExpansionSymbolField(
@@ -344,12 +348,27 @@ class StarterTemplate (BaseTemplate):
                     reference = expansion_reference
                 )
             )
+
         self.tx_layers.append(
-            txt_layers.ScaledTextField(
+            self.type_line_layer(
                 layer = type_line_selected,
                 contents = self.layout.type_line,
                 reference = expansion_symbol
             )
+        )
+
+    def card_name_layer(self, layer, contents, reference):
+        return txt_layers.ScaledTextField(
+            layer = layer,
+            contents = contents,
+            reference = reference
+        )
+
+    def type_line_layer(self, layer, contents, reference):
+        return txt_layers.ScaledTextField(
+            layer = layer,
+            contents = contents,
+            reference = reference
         )
 
     @staticmethod
