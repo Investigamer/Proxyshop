@@ -24,8 +24,8 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
         super().enable_frame_layers()
 
         # Remove colorless background
-        if self.layout.background == "Colorless":
-            psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = False
+        if self.background == "Colorless":
+            psd.getLayer(self.background, con.layers['BACKGROUND']).visible = False
 
     def load_artwork(self):
         super().load_artwork()

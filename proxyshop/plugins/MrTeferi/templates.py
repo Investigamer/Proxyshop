@@ -81,7 +81,7 @@ class KaldheimTemplate (temp.NormalTemplate):
 
         # Check if vehicle
         if self.layout.type_line.find("Vehicle") >= 0: psd.getLayer("Vehicle", pinlines).visible = True
-        else: psd.getLayer(self.layout.pinlines, pinlines).visible = True
+        else: psd.getLayer(self.pinlines, pinlines).visible = True
 
 
 class CrimsonFangTemplate (temp.NormalTemplate):
@@ -96,34 +96,40 @@ class CrimsonFangTemplate (temp.NormalTemplate):
 
     def enable_frame_layers(self):
         # Twins if transform card
-        tf_twins = self.layout.twins+"-mdfc"
+        tf_twins = self.twins+"-mdfc"
 
         # Transform stuff + twins
         if self.name_shifted:
             psd.getLayer("Button", con.layers['TEXT_AND_ICONS']).visible = True
-            if self.layout.face == 0: psd.getLayer(con.layers['TF_FRONT'], con.layers['TEXT_AND_ICONS']).visible = True
-            else: psd.getLayer(con.layers['TF_BACK'], con.layers['TEXT_AND_ICONS']).visible = True
             psd.getLayer(tf_twins, con.layers['TWINS']).visible = True
-        else: psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
+            if self.is_front:
+                psd.getLayer(con.layers['TF_FRONT'], con.layers['TEXT_AND_ICONS']).visible = True
+            else:
+                psd.getLayer(con.layers['TF_BACK'], con.layers['TEXT_AND_ICONS']).visible = True
+        else:
+            psd.getLayer(self.twins, con.layers['TWINS']).visible = True
 
         # PT Box
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        if self.is_creature:
+            psd.getLayer(self.twins, con.layers['PT_BOX']).visible = True
 
         # Pinlines
-        if self.name_shifted and self.layout.face == 1:
+        if self.name_shifted and not self.is_front:
             pinlines = psd.getLayerSet("MDFC "+con.layers['PINLINES_TEXTBOX'])
-            if not self.layout.is_colorless:
-                psd.getLayer(self.layout.pinlines, con.layers['COLOR_INDICATOR']).visible = True
-        elif self.is_land: pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
-        else: pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
+            if not self.is_colorless:
+                psd.getLayer(self.pinlines, con.layers['COLOR_INDICATOR']).visible = True
+        elif self.is_land:
+            pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
+        else:
+            pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
+        psd.getLayer(self.pinlines, pinlines).visible = True
 
         # background
-        psd.getLayer(self.layout.pinlines, con.layers['BACKGROUND']).visible = True
+        psd.getLayer(self.pinlines, con.layers['BACKGROUND']).visible = True
 
         if self.is_legendary:
             # legendary crown
-            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
+            psd.getLayer(self.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
             border = psd.getLayerSet(con.layers['BORDER'])
             psd.getLayer(con.layers['NORMAL_BORDER'], border).visible = False
             psd.getLayer(con.layers['LEGENDARY_BORDER'], border).visible = True
@@ -139,12 +145,16 @@ class PhyrexianTemplate (temp.NormalTemplate):
     def enable_frame_layers(self):
 
         # PT Box, no title boxes for this one
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
-        else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
+        if self.is_creature:
+            psd.getLayer(self.twins, con.layers['PT_BOX']).visible = True
+        else:
+            psd.getLayerSet(con.layers['PT_BOX']).visible = False
 
         # Pinlines, land or nonland?
-        if self.is_land: psd.getLayer(self.layout.pinlines, con.layers['LAND_PINLINES_TEXTBOX']).visible = True
-        else: psd.getLayer(self.layout.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
+        if self.is_land:
+            psd.getLayer(self.pinlines, con.layers['LAND_PINLINES_TEXTBOX']).visible = True
+        else:
+            psd.getLayer(self.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
 
 
 class DoubleFeatureTemplate (temp.NormalTemplate):
@@ -165,18 +175,19 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
             else: psd.getLayer(con.layers['TF_BACK'], text_and_icons).visible = True
         """
         # PT Box
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        if self.is_creature:
+            psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
 
         # TF Card?
-        if self.name_shifted and self.layout.face == 1:
-            psd.getLayer(self.layout.pinlines, con.layers['COLOR_INDICATOR']).visible = True
+        if self.name_shifted and not self.is_front:
+            psd.getLayer(self.pinlines, con.layers['COLOR_INDICATOR']).visible = True
 
         # Background
-        psd.getLayer(self.layout.pinlines, con.layers['BACKGROUND']).visible = True
+        psd.getLayer(self.pinlines, con.layers['BACKGROUND']).visible = True
 
         # Legendary crown
         if self.is_legendary:
-            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
+            psd.getLayer(self.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
             psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
             psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
 
@@ -202,7 +213,7 @@ class MaleMPCTemplate (temp.NormalTemplate):
             upper = con.layers['PINLINES_TEXTBOX']
 
         # Lower pinlines
-        psd.getLayer(self.layout.pinlines, lower).visible = True
+        psd.getLayer(self.pinlines, lower).visible = True
 
         # Hide pinlines and shadow if legendary
         if self.is_legendary:
@@ -248,7 +259,7 @@ class ColorshiftedTemplate (temp.NormalTemplate):
     def enable_frame_layers(self):
 
         # White brush and artist for black border
-        if self.layout.pinlines[0:1] == "B" and len(self.layout.pinlines) < 3:
+        if self.layout.pinlines[0:1] == "B" and len(self.pinlines) < 3:
             psd.getLayer("Artist", self.legal_layer).textItem.color = psd.rgb_white()
             psd.getLayer("Brush B", self.legal_layer).visible = False
             psd.getLayer("Brush W", self.legal_layer).visible = True
@@ -258,20 +269,20 @@ class ColorshiftedTemplate (temp.NormalTemplate):
             # Check if vehicle
             if self.layout.type_line.find("Vehicle") >= 0:
                 psd.getLayer("Vehicle", con.layers['PT_BOX']).visible = True
-            else: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+            else: psd.getLayer(self.twins, con.layers['PT_BOX']).visible = True
         else: psd.getLayerSet(con.layers['PT_BOX']).visible = False
 
         # Pinlines
-        psd.getLayer(self.layout.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
+        psd.getLayer(self.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
 
         # Legendary crown
         if self.is_legendary:
-            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
+            psd.getLayer(self.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
             psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
             psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
 
         # Alternate titleboxes
-        if "Artifact" in self.layout.type_line and self.layout.pinlines != "Artifact":
+        if "Artifact" in self.layout.type_line and self.pinlines != "Artifact":
             if self.is_legendary: psd.getLayer("Legendary Artifact", "Twins").visible = True
             else: psd.getLayer("Normal Artifact", "Twins").visible = True
         elif "Land" in self.layout.type_line:
