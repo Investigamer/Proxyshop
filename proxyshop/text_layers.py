@@ -28,6 +28,8 @@ class TextField:
         if color: self.text_color = color
         else: self.text_color = psd.get_text_layer_color(layer)
         self.layer = layer
+        if self.layer.kind == ps.LayerKind.TextLayer and cfg.force_english_formatting:
+            self.layer.textItem.language = ps.Language.EnglishUSA
 
     def execute(self):
         """
