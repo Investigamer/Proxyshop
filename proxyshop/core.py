@@ -149,15 +149,16 @@ def retrieve_card_info(filename):
     Retrieve card name and (if specified) artist from the input file.
     """
     # Extract just the card name
+    fname = os.path.basename(str(filename))
     sep = [' {', ' [', ' (']
-    fn = filename.replace(".png", "").replace(".jpg", "").replace(".jpeg", "").replace(".tif", "")
+    fn = fname.replace(".png", "").replace(".jpg", "").replace(".jpeg", "").replace(".tif", "")
     fn_split = re.split('|'.join(map(re.escape, sep)), fn)
     name = fn_split[0]
 
     # Match pattern
-    artist = re_art.findall(filename)
-    set_code = re_set.findall(filename)
-    creator = re_cre.findall(filename)
+    artist = re_art.findall(fname)
+    set_code = re_set.findall(fname)
+    creator = re_cre.findall(fname)
 
     # Check for these values
     if creator: creator = creator[0]
@@ -175,7 +176,8 @@ def retrieve_card_info(filename):
         'name': name,
         'artist': artist,
         'set': set_code,
-        'creator': creator
+        'creator': creator,
+        'filename': filename
     }
 
 
