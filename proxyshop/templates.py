@@ -1297,57 +1297,137 @@ class PlaneswalkerTemplate (StarterTemplate):
     template_file_name = "pw.psd"
 
     def __init__(self, layout):
+
+        # Settable Properties
+        self._pw_group = "pw-3"
+        self._ability_layers = []
+        self._shields = []
+        self._colons = []
+
         cfg.exit_early = True
         super().__init__(layout)
 
         # Which art frame?
-        if self.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
-        else: self.art_reference = psd.getLayer(con.layers['PLANESWALKER_ART_FRAME'])
+        self.art_reference = psd.getLayer(
+            con.layers['FULL_ART_FRAME']
+        ) if self.is_colorless else psd.getLayer(
+            con.layers['PLANESWALKER_ART_FRAME']
+        )
 
-    def enable_frame_layers(self):
+    """
+    PROPERTIES
+    """
 
-        # Important layers for later positioning
-        self.ability_layers = []
-        self.shields = []
-        self.colons = []
+    @property
+    def pw_group(self) -> str:
+        return self._pw_group
 
-        # Split abilities by newline
-        raw_abilities = self.layout.oracle_text.split("\n")
-        ability_array = []
+    @pw_group.setter
+    def pw_group(self, value):
+        self._pw_group = value
 
+    @cached_property
+    def abilities(self) -> list:
         # Fix abilities that include a newline
         total = 0
+        ability_array = []
+        raw_abilities = self.layout.oracle_text.split("\n")
         for i, ab in enumerate(raw_abilities):
-            if ab[0] in ("-", "+", "0") or i == 0:
-                ability_array.append(ab)
-                total += 1
-                continue
-            elif ability_array[i-1][0] not in ("-", "+", "0"):
+            # Is this a static ability followed by another static ability?
+            if (ab[0] not in ("-", "+", "0") and i != 0) and (ability_array[i - 1][0] not in ("-", "+", "0")):
                 # Combine consecutive static lines together, except cases like Gideon Blackblade
-                if len(raw_abilities) == 4 and ability_array[i-1].count(" ") > 2 and ab.count(" ") > 2:
+                if len(raw_abilities) == 4 and ability_array[i - 1].count(" ") > 2 and ab.count(" ") > 2:
                     total += 1
-                ability_array[i-1] += f"\n{ab}"
+                ability_array[i - 1] += f"\n{ab}"
             else:
                 ability_array.append(ab)
                 total += 1
-                continue
-        if total >= 4: pw_group = "pw-4"
-        else: pw_group = "pw-3"
+        if total >= 4:
+            self.pw_group = "pw-4"
+        return ability_array
 
-        # Layer group for most elements based on number of abilities
-        self.group = psd.getLayerSet(pw_group)
-        self.group.visible = True
+    """
+    TEXT LAYERS
+    """
 
-        # Reference layers
-        self.ref = psd.getLayer(con.layers["TEXTBOX_REFERENCE"], text_and_icons)
-        self.top_ref = psd.getLayer(con.layers["PW_TOP_REFERENCE"], text_and_icons)
-        self.adj_ref = psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], text_and_icons)
+    @cached_property
+    def text_layers(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group)
 
-        # Planeswalker ability layers
-        self.loyalty_group = psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
+    @cached_property
+    def ref(self):
+        return psd.getLayer(con.layers["TEXTBOX_REFERENCE"], self.text_layers)
+
+    @cached_property
+    def top_ref(self):
+        return psd.getLayer(con.layers["PW_TOP_REFERENCE"], self.text_layers)
+
+    @cached_property
+    def adj_ref(self):
+        return psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], self.text_layers)
+
+    """
+    LAYERS
+    """
+
+    @cached_property
+    def group(self) -> LayerSet:
+        group = psd.getLayerSet(self.pw_group)
+        group.visible = True
+        return group
+
+    @cached_property
+    def loyalty_group(self):
+        return psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
+
+    @property
+    def ability_layers(self) -> list[ArtLayer]:
+        return self._ability_layers
+
+    @ability_layers.setter
+    def ability_layers(self, value):
+        self._ability_layers = value
+
+    @property
+    def colons(self) -> list:
+        return self._colons
+
+    @colons.setter
+    def colons(self, value):
+        self._colons = value
+
+    @property
+    def shields(self) -> list:
+        return self._shields
+
+    @shields.setter
+    def shields(self, value):
+        self._shields = value
+
+    @cached_property
+    def twins_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.twins, psd.getLayerSet(con.layers['TWINS'], self.group))
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group))
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group))
+
+    @cached_property
+    def crown_layer(self) -> Optional[ArtLayer]:
+        return
+
+    @cached_property
+    def color_indicator_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.pinlines, [self.group, con.layers['COLOR_INDICATOR']])
+
+    def basic_text_layers(self):
 
         # Iterate through abilities to add text layers
-        for i, ability in enumerate(ability_array):
+        for i, ability in enumerate(self.abilities):
 
             # Get the colon index, determine if this is static or activated ability
             colon_index = ability.find(": ")
@@ -1357,14 +1437,12 @@ class PlaneswalkerTemplate (StarterTemplate):
                 loyalty_graphic = psd.getLayerSet(ability[0], self.loyalty_group)
                 psd.getLayer(con.layers['COST'], loyalty_graphic).textItem.contents = ability[0:int(colon_index)]
                 ability_layer = psd.getLayer(con.layers['ABILITY_TEXT'], self.loyalty_group).duplicate()
-                shield = loyalty_graphic.duplicate()
-                shield.visible = True
 
                 # Add text layer, shields, and colons to list
                 self.ability_layers.append(ability_layer)
-                self.shields.append(shield)
+                self.shields.append(loyalty_graphic.duplicate())
                 self.colons.append(psd.getLayer(con.layers['COLON'], self.loyalty_group).duplicate())
-                ability = ability[int(colon_index) + 2:]
+                ability = ability[colon_index + 2:]
 
             else:
 
@@ -1390,21 +1468,17 @@ class PlaneswalkerTemplate (StarterTemplate):
             con.layers['TEXT'], [self.loyalty_group, con.layers['STARTING_LOYALTY']]
         ).textItem.contents = self.layout.loyalty
 
+        # Call to super for name, type, etc
+        super().basic_text_layers()
+
+    def enable_frame_layers(self):
         # Paste scryfall scan
         self.active_layer = psd.getLayerSet(con.layers['TEXTBOX'], self.group)
         self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), False, False)
         self.active_layer = self.art_layer
 
-        # Twins, pinlines, background
-        psd.getLayer(self.twins, psd.getLayerSet(con.layers['TWINS'], self.group)).visible = True
-        psd.getLayer(self.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group)).visible = True
-        self.enable_background()
-
-    def enable_background(self):
-        """
-        Enable card background
-        """
-        psd.getLayer(self.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group)).visible = True
+        # Enable twins, pinlines, background
+        super().enable_frame_layers()
 
     def post_text_layers(self):
         """
@@ -1501,96 +1575,121 @@ class PlaneswalkerTemplate (StarterTemplate):
             line2_bottom.visible = True
         else: line2_top, line2_bottom, line2_ref = None, None, None
 
-        # Get midpoint and position
-        def position_ragged_line(layers: list, line, line_ref):
-            dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
-            ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
-            targ_pos = dif + layers[0].bounds[3]
-            line.translate(0, (targ_pos - ref_pos))
-
         # Position needed ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
-            position_ragged_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
+            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_ragged_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
         else:
             # 2 Ability Planeswalker
-            position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
         if line2_top and line2_ref:
             # 4 Ability Planeswalker
-            position_ragged_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
-
-        # Select an area
-        def fill_between_ragged_lines(line1, line2):
-            # Create fill layer, make active
-            self.active_layer = self.docref.artLayers.add()
-            self.active_layer.move(line1, ps.ElementPlacement.PlaceAfter)
-            self.docref.selection.select([
-                [line1.bounds[0]-200, line1.bounds[3]],
-                [line1.bounds[2]+200, line1.bounds[3]],
-                [line1.bounds[2]+200, line2.bounds[1]],
-                [line1.bounds[0]-200, line2.bounds[1]]
-            ])
-            fill_color = psd.rgb_black()
-            self.docref.selection.expand(1)
-            self.docref.selection.fill(
-                fill_color, ps.ColorBlendMode.NormalBlendColor, 100, False
-            )
-            psd.clear_selection()
+            self.position_ragged_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
 
         # Fill between the ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_ragged_lines(line1_top, line1_bottom)
         else:
             # 2 Ability Planeswalker
             line1_bottom.translate(0, 1000)
-            fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_ragged_lines(line1_top, line1_bottom)
         if line2_top and line2_bottom:
             # 4 Ability Planeswalker
-            fill_between_ragged_lines(line2_top, line2_bottom)
+            self.fill_between_ragged_lines(line2_top, line2_bottom)
+
+    @staticmethod
+    def position_ragged_line(layers: list, line, line_ref):
+        """
+        Positions the ragged line correctly.
+        """
+        dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
+        ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
+        targ_pos = dif + layers[0].bounds[3]
+        line.translate(0, (targ_pos - ref_pos))
+
+    def fill_between_ragged_lines(self, line1, line2):
+        """
+        Fille are between ragged lines.
+        """
+        self.active_layer = self.docref.artLayers.add()
+        self.active_layer.move(line1, ps.ElementPlacement.PlaceAfter)
+        self.docref.selection.select([
+            [line1.bounds[0] - 200, line1.bounds[3]],
+            [line1.bounds[2] + 200, line1.bounds[3]],
+            [line1.bounds[2] + 200, line2.bounds[1]],
+            [line1.bounds[0] - 200, line2.bounds[1]]
+        ])
+        fill_color = psd.rgb_black()
+        self.docref.selection.expand(1)
+        self.docref.selection.fill(
+            fill_color, ps.ColorBlendMode.NormalBlendColor, 100, False
+        )
+        psd.clear_selection()
 
 
 class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
     An extended version of PlaneswalkerTemplate. Functionally identical except for the lack of background textures.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-extended"
     template_suffix = "Extended"
-    def enable_background(self): pass
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+        psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
     """
     Template for the back faces of modal double faced Planeswalker cards.
+    Need to enable MDFC layers and add MDFC text.
     """
     template_file_name = "pw-mdfc-back"
     dfc_layer_group = con.layers['MDFC_BACK']
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def mdfc_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(self.dfc_layer_group, self.text_layers)
 
-        # set visibility of top & bottom mdfc elements and set text of left & right text
-        mdfc_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        mdfc_group_top = psd.getLayerSet(con.layers['TOP'], mdfc_group)
-        mdfc_group_bottom = psd.getLayerSet(con.layers['BOTTOM'], mdfc_group)
-        psd.getLayer(self.twins, mdfc_group_top).visible = True
-        psd.getLayer(self.layout.other_face_twins, mdfc_group_bottom).visible = True
-        left = psd.getLayer(con.layers['LEFT'], mdfc_group)
-        right = psd.getLayer(con.layers['RIGHT'], mdfc_group)
+    @cached_property
+    def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['LEFT'], self.mdfc_group)
 
-        # Add MDFC text layers
+    @cached_property
+    def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['RIGHT'], self.mdfc_group)
+
+    def basic_text_layers(self):
+        super().basic_text_layers()
+
+        # Add mdfc text layers
         self.text.extend([
             txt_layers.BasicFormattedTextField(
-                layer = right,
-                contents = self.layout.other_face_right
+                layer=self.text_layer_mdfc_right,
+                contents=self.layout.other_face_right
             ),
             txt_layers.ScaledTextField(
-                layer = left,
-                contents = self.layout.other_face_left,
-                reference = right,
+                layer=self.text_layer_mdfc_left,
+                contents=self.layout.other_face_left,
+                reference=self.text_layer_mdfc_right,
             )
         ])
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+
+        # Add special MDFC layers
+        psd.getLayer(self.twins,
+                     psd.getLayerSet(con.layers['TOP'], self.mdfc_group)).visible = True
+        psd.getLayer(self.layout.other_face_twins,
+                     psd.getLayerSet(con.layers['BOTTOM'], self.mdfc_group)).visible = True
 
 
 class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
@@ -1604,22 +1703,34 @@ class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
 class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
     """
     An extended version of Planeswalker MDFC Back template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-mdfc-back-extended.psd"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
     """
     An extended version of Planeswalker MDFC Front template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-mdfc-front-extended.psd"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
@@ -1630,48 +1741,55 @@ class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
     template_file_name = "pw-tf-back"
     dfc_layer_group = con.layers['TF_BACK']
 
-    def basic_text_layers(self, text_and_icons):
+    @cached_property
+    def transform_icon(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.layout.transform_icon, [self.text_layers, self.dfc_layer_group])
+
+    def basic_text_layers(self):
         # Enable transform stuff
-        transform_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        color_indicator = psd.getLayerSet(con.layers['COLOR_INDICATOR'], self.group)
-        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
-        psd.getLayer(self.pinlines, color_indicator).visible = True
-        super().basic_text_layers(text_and_icons)
+        self.transform_icon.visible = True
+        super().basic_text_layers()
 
 
-class PlaneswalkerTransformFrontTemplate (PlaneswalkerTemplate):
+class PlaneswalkerTransformFrontTemplate (PlaneswalkerTransformBackTemplate):
     """
     Template for the back faces of transform cards.
     """
     template_file_name = "pw-tf-front"
     dfc_layer_group = con.layers['TF_FRONT']
 
-    def basic_text_layers(self, text_and_icons):
-        # Add transform elements
-        transform_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
-        super().basic_text_layers(text_and_icons)
-
 
 class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTemplate):
     """
     An extended version of Planeswalker MDFC Back template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-tf-back-extended"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemplate):
     """
     An extended version of Planeswalker MDFC Front template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-tf-front-extended"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
@@ -1690,36 +1808,15 @@ class PlanarTemplate (StarterTemplate):
         cfg.exit_early = True
         super().__init__(layout)
 
-    def enable_frame_layers(self):
-        # Card name, type line, expansion symbol
-        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
-        name = psd.getLayer(con.layers['NAME'], text_and_icons)
-        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
-        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+    @cached_property
+    def text_layer_static_ability(self) -> ArtLayer:
+        return psd.getLayer(con.layers['STATIC_ABILITY'], self.text_layers)
 
-        # Overwrite self.tx_layers
-        self.text = [
-            txt_layers.TextField(
-                layer = name,
-                contents = self.layout.name
-            ),
-            txt_layers.ScaledTextField(
-                layer = type_line,
-                contents = self.layout.type_line,
-                reference = expansion_symbol,
-            ),
-            txt_layers.ExpansionSymbolField(
-                layer = expansion_symbol,
-                contents = self.layout.symbol,
-                rarity = self.layout.rarity,
-                reference = expansion_reference
-            )
-        ]
+    @cached_property
+    def text_layer_chaos_ability(self) -> ArtLayer:
+        return psd.getLayer(con.layers['CHAOS_ABILITY'], self.text_layers)
 
-        # Abilities
-        static_ability = psd.getLayer(con.layers['STATIC_ABILITY'], text_and_icons)
-        chaos_ability = psd.getLayer(con.layers['CHAOS_ABILITY'], text_and_icons)
+    def rules_text_and_pt_layers(self):
 
         # Phenomenon card?
         if self.layout.type_line == con.layers['PHENOMENON']:
@@ -1727,13 +1824,13 @@ class PlanarTemplate (StarterTemplate):
             # Insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
             self.text.append(
                 txt_layers.BasicFormattedTextField(
-                    layer = static_ability,
+                    layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text
                 )
             )
             psd.enable_mask(psd.getLayerSet(con.layers['TEXTBOX']))
-            psd.getLayer(con.layers['CHAOS_SYMBOL'], text_and_icons).visible = False
-            chaos_ability.visible = False
+            psd.getLayer(con.layers['CHAOS_SYMBOL'], self.text_layers).visible = False
+            self.text_layer_chaos_ability.visible = False
 
         else:
 
@@ -1741,14 +1838,16 @@ class PlanarTemplate (StarterTemplate):
             linebreak_index = self.layout.oracle_text.rindex("\n")
             self.text.extend([
                 txt_layers.BasicFormattedTextField(
-                    layer = static_ability,
+                    layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text[0:linebreak_index]
                 ),
                 txt_layers.BasicFormattedTextField(
-                    layer = chaos_ability,
+                    layer = self.text_layer_chaos_ability,
                     contents = self.layout.oracle_text[linebreak_index+1:]
                 ),
             ])
+
+    def enable_frame_layers(self):
 
         # Paste scryfall scan
         self.active_layer = psd.getLayerSet(con.layers['TEXTBOX'])
@@ -1772,8 +1871,8 @@ class BasicLandTemplate (BaseTemplate):
         cfg.real_collector = False
         super().__init__(layout)
 
-    def enable_frame_layers(self):
-        psd.getLayer(self.layout.name).visible = True
+    def basic_text_layers(self):
+        # Only expansion symbol.
         self.text.append(
             txt_layers.ExpansionSymbolField(
                 layer = psd.getLayer(con.layers['EXPANSION_SYMBOL']),
@@ -1783,17 +1882,20 @@ class BasicLandTemplate (BaseTemplate):
             )
         )
 
+    def enable_frame_layers(self):
+        psd.getLayer(self.layout.name).visible = True
+
 
 class BasicLandUnstableTemplate (BasicLandTemplate):
     """
     Basic land template for the borderless basics from Unstable.
+    Doesn't have expansion symbol.
     """
     template_file_name = "basic-unstable"
     template_suffix = "Unstable"
 
-    def enable_frame_layers(self):
-        # Overwrite to ignore expansion symbol
-        psd.getLayer(self.layout.name).visible = True
+    def basic_text_layers(self):
+        pass
 
 
 class BasicLandTherosTemplate (BasicLandTemplate):
