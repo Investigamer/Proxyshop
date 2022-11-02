@@ -5,6 +5,7 @@ import _ctypes
 import os
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
+from proxyshop.gui import console_handler as console
 import photoshop.api as ps
 
 # QOL Definitions
@@ -151,6 +152,64 @@ def get_rgb(r, g, b):
     color.rgb.blue = b
     return color
 
+
+def get_cmyk(c: float, m: float, y: float, k: float):
+    """
+    Creates a SolidColor object with the given CMYK values.
+    @param c: Float from 0.0 to 100.0 for Cyan component.
+    @param m: Float from 0.0 to 100.0 for Magenta component.
+    @param y: Float from 0.0 to 100.0 for Yellow component.
+    @param k: Float from 0.0 to 100.0 for blacK component.
+    @return: SolidColor object.
+    """
+    color = ps.SolidColor()
+    color.cmyk.cyan = c
+    color.cmyk.magenta = m
+    color.cmyk.yellow = y
+    color.cmyk.black = k
+    return color
+
+def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor):
+    """
+    Applies color to the specified action_descriptor
+    """
+
+    cd = ps.ActionDescriptor()
+
+    if color.model == ps.ColorModel.RGBModel:
+        cd.putDouble(
+            cID("Rd  "),
+            color.rgb.red)  # rgb value.red
+        cd.putDouble(
+            cID("Grn "),
+            color.rgb.green)  # rgb value.green
+        cd.putDouble(
+            cID("Bl  "),
+            color.rgb.blue)  # rgb value.blue
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("RGBC"),
+            cd)
+    elif color.model == ps.ColorModel.CMYKModel:
+
+        cd.putDouble(
+            cID("Cyn "),
+            color.cmyk.cyan)
+        cd.putDouble(
+            cID("Mgnt"),
+            color.cmyk.magenta)
+        cd.putDouble(
+            cID("Ylw "),
+            color.cmyk.yellow)
+        cd.putDouble(
+            cID("Blck"),
+            color.cmyk.black)
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("CMYC"),
+            cd)
+    else:
+        console.update(f"Unknown color model: {color.model}")
 
 """
 LAYER PROPERTIES
@@ -497,7 +556,6 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc608 = ps.ActionDescriptor()
     desc609 = ps.ActionDescriptor()
     desc610 = ps.ActionDescriptor()
-    desc611 = ps.ActionDescriptor()
     ref149 = ps.ActionReference()
     ref149.putProperty(cID("Prpr"), cID("Lefx"))
     ref149.putIdentifier(cID("Lyr "), layer.id)
@@ -509,10 +567,9 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc610.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
     desc610.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
     desc610.putUnitDouble(cID("Sz  "), cID("#Pxl"), int(stroke_weight))
-    desc611.putDouble(cID("Rd  "), stroke_color.rgb.red)
-    desc611.putDouble(cID("Grn "), stroke_color.rgb.green)
-    desc611.putDouble(cID("Bl  "), stroke_color.rgb.blue)
-    desc610.putObject(cID("Clr "), cID("RGBC"), desc611)
+
+    apply_color(desc610, stroke_color)
+
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
