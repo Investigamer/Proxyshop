@@ -221,7 +221,6 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
     for i, color in enumerate(symbol_colors):
         desc1 = ps.ActionDescriptor()
         desc2 = ps.ActionDescriptor()
-        desc3 = ps.ActionDescriptor()
         idTxtS = cID("TxtS")
         primary_action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
@@ -241,19 +240,9 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
             cID("Ldng"),
             cID("#Pnt"),
             layer_font_size)
-        desc3.putDouble(
-            cID("Rd  "),
-            color.rgb.red)  # rgb value.red
-        desc3.putDouble(
-            cID("Grn "),
-            color.rgb.green)  # rgb value.green
-        desc3.putDouble(
-            cID("Bl  "),
-            color.rgb.blue)  # rgb value.blue
-        desc2.putObject(
-            cID("Clr "),
-            cID("RGBC"),
-            desc3)
+
+        psd.apply_color(desc2, color)
+
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
@@ -293,7 +282,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_descriptor = ps.ActionDescriptor()
     primary_action_list = ps.ActionList()
     desc119 = ps.ActionDescriptor()
-    desc27 = ps.ActionDescriptor()
     desc26 = ps.ActionDescriptor()
     desc25 = ps.ActionDescriptor()
     ref101 = ps.ActionReference()
@@ -320,11 +308,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     idFntN = cID("FntN")
     idSz = cID("Sz  ")
     idPnt = cID("#Pnt")
-    idClr = cID("Clr ")
-    idRd = cID("Rd  ")
-    idGrn = cID("Grn ")
-    idBl = cID("Bl  ")
-    idRGBC = cID("RGBC")
     idLdng = cID("Ldng")
     idTxtt = cID("Txtt")
     idFrom = cID("From")
@@ -339,10 +322,9 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
     desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-    desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-    desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-    desc27.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-    desc26.putObject(idClr, idRGBC, desc27)
+
+    psd.apply_color(desc26, layer_text_color)
+
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
@@ -360,13 +342,10 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc126.putUnitDouble(idSz, idPnt, layer_font_size)
         desc126.putBoolean(idautoLeading, False)
         desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
-        # Added
-        descTemp = ps.ActionDescriptor()
         # Default text box
-        descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-        descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-        descTemp.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-        desc126.putObject(idClr, idRGBC, descTemp)
+
+        psd.apply_color(desc126, layer_text_color)
+
         # End
         desc125.putObject(idTxtS, idTxtS, desc126)
         current_layer_ref = desc125
@@ -450,7 +429,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             list15 = ps.ActionList()
             desc144 = ps.ActionDescriptor()
             desc145 = ps.ActionDescriptor()
-            desc146 = ps.ActionDescriptor()
             desc144.PutInteger(sID("from"), flavor_index)
             desc144.PutInteger(sID("to"), len(input_string))
             desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
@@ -458,10 +436,9 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             desc145.putUnitDouble(idSz, idPnt, layer_font_size)
             desc145.putBoolean(idautoLeading, False)
             desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
-            desc146.PutDouble(idRd, con.flavor_text_color['r'])
-            desc146.PutDouble(idGrn, con.flavor_text_color['g'])
-            desc146.PutDouble(idBl, con.flavor_text_color['b'])
-            desc145.PutObject(sID("color"), sID("RGBColor"), desc146)
+
+            psd.apply_color(desc145, con.flavor_text_color)
+
             desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
             list15.PutObject(sID("textStyleRange"), desc144)
             primary_action_descriptor.putList(sID("textStyleRange"), list15)
