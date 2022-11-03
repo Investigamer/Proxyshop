@@ -15,6 +15,14 @@ cID = app.charIDToTypeID
 NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
 
+def solidcolor(color):
+    if 'r' in color.keys():
+        return psd.get_rgb(color['r'], color['g'], color['b'])
+    elif 'c' in color.keys():
+        return psd.get_cmyk(color['c'], color['m'], color['y'], color['k'])
+    else:
+        console.update(r"Don't know how to convert color {color} to a ps.Solidcolor")
+
 class SymbolMapper:
     def __init__(self):
         self.load_values()
@@ -22,60 +30,52 @@ class SymbolMapper:
     def load_values(self):
 
         # Symbol colors outer
-        self.rgb_c = psd.get_rgb(con.rgb_c['r'], con.rgb_c['g'], con.rgb_c['b'])
-        self.rgb_w = psd.get_rgb(con.rgb_w['r'], con.rgb_w['g'], con.rgb_w['b'])
-        self.rgb_u = psd.get_rgb(con.rgb_u['r'], con.rgb_u['g'], con.rgb_u['b'])
-        self.rgb_b = psd.get_rgb(con.rgb_b['r'], con.rgb_b['g'], con.rgb_b['b'])
-        self.rgb_bh = psd.get_rgb(con.rgb_bh['r'], con.rgb_bh['g'], con.rgb_bh['b'])
-        self.rgb_r = psd.get_rgb(con.rgb_r['r'], con.rgb_r['g'], con.rgb_r['b'])
-        self.rgb_g = psd.get_rgb(con.rgb_g['r'], con.rgb_g['g'], con.rgb_g['b'])
+        self.clr_c = solidcolor(con.clr_c)
+        self.clr_w = solidcolor(con.clr_w)
+        self.clr_u = solidcolor(con.clr_u)
+        self.clr_b = solidcolor(con.clr_b)
+        self.clr_bh = solidcolor(con.clr_bh)
+        self.clr_r = solidcolor(con.clr_r)
+        self.clr_g = solidcolor(con.clr_g)
 
         # Symbol colors inner
-        self.rgbi_c = psd.get_rgb(con.rgbi_c['r'], con.rgbi_c['g'], con.rgbi_c['b'])
-        self.rgbi_w = psd.get_rgb(con.rgbi_w['r'], con.rgbi_w['g'], con.rgbi_w['b'])
-        self.rgbi_u = psd.get_rgb(con.rgbi_u['r'], con.rgbi_u['g'], con.rgbi_u['b'])
-        self.rgbi_b = psd.get_rgb(con.rgbi_b['r'], con.rgbi_b['g'], con.rgbi_b['b'])
-        self.rgbi_bh = psd.get_rgb(con.rgbi_bh['r'], con.rgbi_bh['g'], con.rgbi_bh['b'])
-        self.rgbi_r = psd.get_rgb(con.rgbi_r['r'], con.rgbi_r['g'], con.rgbi_r['b'])
-        self.rgbi_g = psd.get_rgb(con.rgbi_g['r'], con.rgbi_g['g'], con.rgbi_g['b'])
+        self.clri_c = solidcolor(con.clri_c)
+        self.clri_w = solidcolor(con.clri_w)
+        self.clri_u = solidcolor(con.clri_u)
+        self.clri_b = solidcolor(con.clri_b)
+        self.clri_bh = solidcolor(con.clri_bh)
+        self.clri_r = solidcolor(con.clri_r)
+        self.clri_g = solidcolor(con.clri_g)
 
         # Primary inner color (black default)
-        self.rgb_primary = psd.get_rgb(
-            con.rgb_primary['r'],
-            con.rgb_primary['g'],
-            con.rgb_primary['b']
-        )
+        self.clr_primary = solidcolor(con.clr_primary)
 
         # Secondary inner color (white default)
-        self.rgb_secondary = psd.get_rgb(
-            con.rgb_secondary['r'],
-            con.rgb_secondary['g'],
-            con.rgb_secondary['b']
-        )
+        self.clr_secondary = solidcolor(con.clr_secondary)
 
         # Symbol map for regular mana symbols
         self.color_map = {
-            "W": self.rgb_w,
-            "U": self.rgb_u,
-            "B": self.rgb_b,
-            "R": self.rgb_r,
-            "G": self.rgb_g,
-            "2": self.rgb_c
+            "W": self.clr_w,
+            "U": self.clr_u,
+            "B": self.clr_b,
+            "R": self.clr_r,
+            "G": self.clr_g,
+            "2": self.clr_c
         }
         self.color_map_inner = {
-            "W": self.rgbi_w,
-            "U": self.rgbi_u,
-            "B": self.rgbi_b,
-            "R": self.rgbi_r,
-            "G": self.rgbi_g,
-            "2": self.rgbi_c,
+            "W": self.clri_w,
+            "U": self.clri_u,
+            "B": self.clri_b,
+            "R": self.clri_r,
+            "G": self.clri_g,
+            "2": self.clri_c,
         }
 
         # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
         self.hybrid_color_map = self.color_map.copy()
-        self.hybrid_color_map['B'] = self.rgb_bh
+        self.hybrid_color_map['B'] = self.clr_bh
         self.hybrid_color_map_inner = self.color_map_inner.copy()
-        self.hybrid_color_map_inner['B'] = self.rgbi_bh
+        self.hybrid_color_map_inner['B'] = self.clri_bh
 
     def reload(self):
         self.load_values()
@@ -153,13 +153,13 @@ def determine_symbol_colors(symbol, symbol_length):
     # SPECIAL SYMBOLS
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
-        return [sym.rgb_primary]
+        return [sym.clr_primary]
     elif symbol == "{S}":
         # Snow symbol
-        return [sym.rgb_c, sym.rgb_primary, sym.rgb_secondary]
+        return [sym.clr_c, sym.clr_primary, sym.clr_secondary]
     elif symbol == "{Q}":
         # Untap symbol
-        return [sym.rgb_primary, sym.rgb_secondary]
+        return [sym.clr_primary, sym.clr_secondary]
 
     # Phyrexian
     phyrexian_regex = r"\{([W,U,B,R,G])\/P\}"
@@ -206,7 +206,7 @@ def determine_symbol_colors(symbol, symbol_length):
         ]
 
     # Weird situation?
-    if symbol_length == 2: return [sym.rgb_c, sym.rgb_primary]
+    if symbol_length == 2: return [sym.clr_c, sym.clr_primary]
 
     # Nothing matching found!
     console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
