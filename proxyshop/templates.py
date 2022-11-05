@@ -53,42 +53,52 @@ class BaseTemplate:
 
     @property
     def is_creature(self) -> bool:
+        # Governs whether to add PT box and use Creature rules text
         return self.layout.is_creature
 
     @property
     def is_legendary(self) -> bool:
+        # Governs whether to add legendary crown
         return self.layout.is_legendary
 
     @property
     def is_land(self) -> bool:
+        # Governs pinlines group
         return self.layout.is_land
 
     @property
     def is_companion(self) -> bool:
+        # Enables hollow crown and companion crown layer
         return self.layout.is_companion
 
     @property
     def is_colorless(self) -> bool:
+        # Changes art frame to full art on NormalTemplate
         return self.layout.is_colorless
 
     @property
     def is_nyx(self) -> bool:
+        # Whether to use Nyx backgrounds and hollow crown
         return self.layout.is_nyx
 
     @property
     def is_front(self) -> bool:
+        # Which side influences mdfc and transform
         return self.layout.card['front']
 
     @property
     def name_shifted(self) -> bool:
+        # Use right shifted name?
         return bool(self.layout.transform_icon)
 
     @property
     def type_line_shifted(self) -> bool:
+        # Use right shifted typeline? Also governs color indicator input
         return bool(self.layout.color_indicator)
 
     @cached_property
     def is_centered(self) -> bool:
+        # Center the rules text
         return bool(
             len(self.layout.flavor_text) <= 1
             and len(self.layout.oracle_text) <= 70
@@ -97,6 +107,7 @@ class BaseTemplate:
 
     @cached_property
     def other_face_is_creature(self) -> bool:
+        # Governs transform cards other side creature P/T
         return self.layout.other_face_power and self.layout.other_face_toughness
 
     """
@@ -209,7 +220,7 @@ class BaseTemplate:
             return rules_text
         # Noncreature card - use the normal rules text layer and disable the p/t layer
         if self.text_layer_pt:
-            psd.getLayer(con.layers['POWER_TOUGHNESS'], self.text_layers).visible = False
+            self.text_layer_pt.visible = False
         return psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], self.text_layers)
 
     @cached_property
@@ -223,14 +234,17 @@ class BaseTemplate:
 
     @cached_property
     def twins(self) -> str:
+        # Name of the Twins layer
         return self.layout.twins
 
     @cached_property
     def pinlines(self) -> str:
+        # Name of the Pinlines layer
         return self.layout.pinlines
 
     @cached_property
     def background(self) -> str:
+        # Name of the Background layer
         return self.layout.background
 
     @cached_property
@@ -331,8 +345,6 @@ class BaseTemplate:
         """
         Opens the template's PSD file in Photoshop.
         """
-        if not cfg.dev_mode: console.update("Loading Photoshop template file...")
-
         # Create our full path and load it, set our document reference
         self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file}")
         app.load(self.file_path)
@@ -500,15 +512,17 @@ class BaseTemplate:
             return self.raise_error("Formatting text failed!", e)
 
         # Post text layer execution
-        self.post_text_layers()
+        try:
+            self.post_text_layers()
+        except Exception as e:
+            return self.raise_error("Post text formatting execution failed!", e)
 
         # Format file name
         file_name = self.get_file_name()
 
         # Manual edit step?
         if cfg.exit_early and not cfg.dev_mode:
-            console.wait("Manual editing enabled!\n"
-                         "When you're ready to save, click continue...")
+            console.wait("Manual editing enabled!\nWhen you're ready to save, click continue...")
             console.update("Saving document...\n")
 
         # Save the document
@@ -522,8 +536,15 @@ class BaseTemplate:
                     f"Error during save process!\nMake sure the file successfully saved.", e
                 )
 
-        # Post execution code, then reset document
-        self.post_execute()
+        # Post execution code
+        try:
+            self.post_execute()
+        except Exception as e:
+            return self.raise_error(
+                "Post execution step failed! Image saved but other issues may have occurred.", e
+            )
+
+        # Reset document, return success
         self.reset()
         return True
 
@@ -772,6 +793,10 @@ class WomensDayTemplate (NormalTemplate):
         super().__init__(layout)
 
     @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
     def is_companion(self) -> bool:
         return False
 
@@ -805,6 +830,10 @@ class StargazingTemplate (NormalTemplate):
 
     @property
     def is_companion(self) -> bool:
+        return False
+
+    @property
+    def is_land(self) -> bool:
         return False
 
 
@@ -1005,6 +1034,11 @@ class IxalanTemplate (NormalTemplate):
 
     @property
     def is_creature(self) -> bool:
+        return False
+
+    @property
+    def name_shifted(self) -> bool:
+        # Since transform icon is present, need to disable name_shifted
         return False
 
     def basic_text_layers(self):
@@ -1351,19 +1385,19 @@ class PlaneswalkerTemplate (StarterTemplate):
     """
 
     @cached_property
-    def text_layers(self) -> Optional[LayerSet]:
+    def text_layers(self) -> LayerSet:
         return psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group)
 
     @cached_property
-    def ref(self):
+    def ref(self) -> ArtLayer:
         return psd.getLayer(con.layers["TEXTBOX_REFERENCE"], self.text_layers)
 
     @cached_property
-    def top_ref(self):
+    def top_ref(self) -> ArtLayer:
         return psd.getLayer(con.layers["PW_TOP_REFERENCE"], self.text_layers)
 
     @cached_property
-    def adj_ref(self):
+    def adj_ref(self) -> ArtLayer:
         return psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], self.text_layers)
 
     """
@@ -1377,7 +1411,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         return group
 
     @cached_property
-    def loyalty_group(self):
+    def loyalty_group(self) -> LayerSet:
         return psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
 
     @property
@@ -1417,10 +1451,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         return psd.getLayer(self.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group))
 
     @cached_property
-    def crown_layer(self) -> Optional[ArtLayer]:
-        return
-
-    @cached_property
     def color_indicator_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, [self.group, con.layers['COLOR_INDICATOR']])
 
@@ -1449,6 +1479,8 @@ class PlaneswalkerTemplate (StarterTemplate):
                 # Hide default ability, switch to static
                 ability_layer = psd.getLayer(con.layers['STATIC_TEXT'], self.loyalty_group).duplicate()
                 self.ability_layers.append(ability_layer)
+                self.shields.append(None)
+                self.colons.append(None)
 
                 # Is this a double line ability?
                 if "\n" in ability:
@@ -1477,8 +1509,15 @@ class PlaneswalkerTemplate (StarterTemplate):
         self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), False, False)
         self.active_layer = self.art_layer
 
-        # Enable twins, pinlines, background
-        super().enable_frame_layers()
+        # Enable twins, pinlines, background, color indicator
+        if self.twins_layer:
+            self.twins_layer.visible = True
+        if self.pinlines_layer:
+            self.pinlines_layer.visible = True
+        if self.background_layer:
+            self.background_layer.visible = True
+        if self.type_line_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
 
     def post_text_layers(self):
         """
@@ -1558,7 +1597,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         """
 
         # Ragged line layers
-        lines = psd.getLayer("Ragged Lines", [self.group, "Textbox", "Ability Dividers"])
+        lines = psd.getLayerSet("Ragged Lines", [self.group, con.layers['TEXTBOX'], "Ability Dividers"])
         line1_top = psd.getLayer("Line 1 Top", lines)
         line1_bottom = psd.getLayer("Line 1 Bottom", lines)
         line1_top_ref = psd.getLayer("Line 1 Top Reference", lines)
@@ -1634,7 +1673,7 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     An extended version of PlaneswalkerTemplate. Functionally identical except for the lack of background textures.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-extended"
+    template_file_name = "pw-extended.psd"
     template_suffix = "Extended"
 
     @cached_property
@@ -1665,6 +1704,11 @@ class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
     @cached_property
     def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
         return psd.getLayer(con.layers['RIGHT'], self.mdfc_group)
+
+    @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['NAME'], self.text_layers)
 
     def basic_text_layers(self):
         super().basic_text_layers()
@@ -1742,13 +1786,23 @@ class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
     dfc_layer_group = con.layers['TF_BACK']
 
     @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['NAME'], self.text_layers)
+
+    @cached_property
+    def text_layer_type(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['TYPE_LINE'], self.text_layers)
+
+    @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.layout.transform_icon, [self.text_layers, self.dfc_layer_group])
 
-    def basic_text_layers(self):
-        # Enable transform stuff
+    def enable_frame_layers(self):
+        # Add the transform icon
+        super().enable_frame_layers()
         self.transform_icon.visible = True
-        super().basic_text_layers()
 
 
 class PlaneswalkerTransformFrontTemplate (PlaneswalkerTransformBackTemplate):
@@ -1815,6 +1869,32 @@ class PlanarTemplate (StarterTemplate):
     @cached_property
     def text_layer_chaos_ability(self) -> ArtLayer:
         return psd.getLayer(con.layers['CHAOS_ABILITY'], self.text_layers)
+
+    def basic_text_layers(self):
+
+        # Add text layers
+        self.text.extend([
+            txt_layers.TextField(
+                layer = self.text_layer_name,
+                contents = self.layout.name
+            )
+        ])
+        if not hasattr(self, "expansion_disabled"):
+            self.text.append(
+                txt_layers.ExpansionSymbolField(
+                    layer = self.text_layer_symbol,
+                    contents = self.layout.symbol,
+                    rarity = self.layout.rarity,
+                    reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers)
+                )
+            )
+        self.text.append(
+            txt_layers.ScaledTextField(
+                layer = self.text_layer_type,
+                contents = self.layout.type_line,
+                reference = self.text_layer_symbol
+            )
+        )
 
     def rules_text_and_pt_layers(self):
 
