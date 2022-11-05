@@ -469,6 +469,7 @@ class ModalDoubleFacedLayout (BaseLayout):
 
     @cached_property
     def oracle_text(self) -> Optional[str]:
+
         # Overwrite this property to modify
         if self.lang != "EN" and 'printed_text' in self.card:
             text = self.card['printed_text']
@@ -478,8 +479,13 @@ class ModalDoubleFacedLayout (BaseLayout):
                 text = text.split("\n", num_breaks_raw + 1)
                 text.pop()
                 text = "\n".join(text)
-            return text
-        return self.card['oracle_text']
+        else:
+            text = self.card['oracle_text']
+
+        # Planeswalker?
+        if 'Planeswalker' in self.type_line:
+            text = text.replace("\u2212", "-")
+        return text
 
     @cached_property
     def color_indicator_other(self) -> Optional[str]:
