@@ -526,7 +526,7 @@ def format_text_wrapper():
 def strip_reminder_text(oracle_text):
     """
     Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
-    If this would empty the string, instead return the original string.
+    If this empties the string, instead return the original string.
     """
     oracle_text_stripped = re.sub(r"\([^()]*\)", "", oracle_text)
 
@@ -564,7 +564,7 @@ def classic_align_right(primedesc, start, end):
 def scale_text_right_overlap(layer, reference) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 24 px clearance from a reference layer's left bound.
+    has a 36 px clearance from a reference layer's left bound.
     @param layer: The text item layer to scale.
     @param reference: Reference layer we need to avoid.
     """
@@ -578,10 +578,14 @@ def scale_text_right_overlap(layer, reference) -> None:
     elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     reference_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
-    old_size = float(layer.textItem.size)
+    old_size = font_size
     step, half_step = 0.4, 0.2
 
     # Obtain proper spacing for this document size
@@ -591,13 +595,16 @@ def scale_text_right_overlap(layer, reference) -> None:
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
         while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
-            layer.textItem.size -= step
+            font_size -= step
+            layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
 
-        layer.textItem.size += half_step
+        font_size += half_step
+        layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
         if layer_right_bound > (reference_left_bound - spacing):
-            layer.textItem.size -= half_step
+            font_size -= half_step
+            layer.textItem.size = font_size
 
     # Shift baseline up to keep text centered vertically
     if old_size > layer.textItem.size:
@@ -616,11 +623,14 @@ def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
+    factor = 1
     if not ref: return
     if not spacing:  # If no spacing provided, use default
         spacing = int((app.activeDocument.width / 3264) * 64)
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
     ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
-    font_size = layer.textItem.size
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
@@ -648,7 +658,10 @@ def scale_text_to_fit_height(layer, height: int):
     @param height: Reference height to fit.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    font_size = layer.textItem.size
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer

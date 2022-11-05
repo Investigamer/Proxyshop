@@ -1,8 +1,14 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
+from typing import Optional
+
 import _ctypes
 import os
+
+from photoshop.api import TextItem
+from photoshop.api._artlayer import ArtLayer
+
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
 from proxyshop.gui import console_handler as console
@@ -305,6 +311,93 @@ def get_text_layer_color(layer):
             return layer.textItem.color
         else: return rgb_black()
     except _ctypes.COMError: return rgb_black()
+
+
+def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") -> float:
+    """
+    Get the scale factor of the document for changing text size.
+    @param layer: The layer to make active and run the check on.
+    @param axis: xx for horizontal, yy for vertical.
+    @return: Float scale factor
+    """
+    # Change the active layer, if needed
+    current = None
+    factor = 1
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Get the scale factor if not 1
+    ref = ps.ActionReference()
+    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt") )
+    desc = app.executeActionGet(ref).getObjectValue(sID('textKey'))
+    if desc.hasKey(sID('transform')):
+        transform = desc.getObjectValue(sID('transform'))
+        factor = transform.getUnitDoubleValue(sID(axis))
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+    return factor
+
+
+def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
+    """
+    Manually assign font size to a layer using action descriptors.
+    @param layer: Layer containing TextItem
+    @param size: New size of layer
+    """
+    # Set the active layer if needed
+    current = None
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Set the new size
+    desc2361 = ps.ActionDescriptor()
+    ref68 = ps.ActionReference()
+    desc2362 = ps.ActionDescriptor()
+    ref68.putProperty(sID("property"), sID("textStyle"))
+    ref68.putEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
+    desc2361.putReference(sID("target"), ref68)
+    desc2362.putInteger(sID("textOverrideFeatureName"), 808465458)
+    desc2362.putInteger(sID("typeStyleOperationType"), 3)
+    desc2362.PutUnitDouble(sID("size"), sID("pointsUnit"), size)
+    desc2361.putObject(sID("to"), sID("textStyle"), desc2362)
+    app.ExecuteAction(sID("set"), desc2361, NO_DIALOG)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+
+
+def update_text_layer_size(
+    layer: ArtLayer,
+    change: float,
+    factor: Optional[float] = None,
+    make_active: bool = False
+) -> None:
+    """
+    Sets the text item size while ensuring proper scaling.
+    @param layer: Layer containing TextItem object.
+    @param change: Difference in size (+/-).
+    @param factor: Scale factor of text item.
+    @param make_active: Make the layer active before running operation.
+    """
+    # Set the active layer if needed
+    current = None
+    if make_active:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+    if not factor:
+        factor = get_text_scale_factor()
+
+    # Increase the size
+    set_text_size(size=(factor*layer.textItem.size)+change)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
 
 
 """
