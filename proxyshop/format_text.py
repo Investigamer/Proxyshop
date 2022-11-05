@@ -221,7 +221,6 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
     for i, color in enumerate(symbol_colors):
         desc1 = ps.ActionDescriptor()
         desc2 = ps.ActionDescriptor()
-        desc3 = ps.ActionDescriptor()
         idTxtS = cID("TxtS")
         primary_action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
@@ -241,19 +240,9 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
             cID("Ldng"),
             cID("#Pnt"),
             layer_font_size)
-        desc3.putDouble(
-            cID("Rd  "),
-            color.rgb.red)  # rgb value.red
-        desc3.putDouble(
-            cID("Grn "),
-            color.rgb.green)  # rgb value.green
-        desc3.putDouble(
-            cID("Bl  "),
-            color.rgb.blue)  # rgb value.blue
-        desc2.putObject(
-            cID("Clr "),
-            cID("RGBC"),
-            desc3)
+
+        psd.apply_color(desc2, color)
+
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
@@ -293,7 +282,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_descriptor = ps.ActionDescriptor()
     primary_action_list = ps.ActionList()
     desc119 = ps.ActionDescriptor()
-    desc27 = ps.ActionDescriptor()
     desc26 = ps.ActionDescriptor()
     desc25 = ps.ActionDescriptor()
     ref101 = ps.ActionReference()
@@ -320,11 +308,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     idFntN = cID("FntN")
     idSz = cID("Sz  ")
     idPnt = cID("#Pnt")
-    idClr = cID("Clr ")
-    idRd = cID("Rd  ")
-    idGrn = cID("Grn ")
-    idBl = cID("Bl  ")
-    idRGBC = cID("RGBC")
     idLdng = cID("Ldng")
     idTxtt = cID("Txtt")
     idFrom = cID("From")
@@ -339,10 +322,9 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
     desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-    desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-    desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-    desc27.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-    desc26.putObject(idClr, idRGBC, desc27)
+
+    psd.apply_color(desc26, layer_text_color)
+
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
@@ -360,13 +342,10 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc126.putUnitDouble(idSz, idPnt, layer_font_size)
         desc126.putBoolean(idautoLeading, False)
         desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
-        # Added
-        descTemp = ps.ActionDescriptor()
         # Default text box
-        descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-        descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-        descTemp.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-        desc126.putObject(idClr, idRGBC, descTemp)
+
+        psd.apply_color(desc126, layer_text_color)
+
         # End
         desc125.putObject(idTxtS, idTxtS, desc126)
         current_layer_ref = desc125
@@ -450,7 +429,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             list15 = ps.ActionList()
             desc144 = ps.ActionDescriptor()
             desc145 = ps.ActionDescriptor()
-            desc146 = ps.ActionDescriptor()
             desc144.PutInteger(sID("from"), flavor_index)
             desc144.PutInteger(sID("to"), len(input_string))
             desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
@@ -458,10 +436,9 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             desc145.putUnitDouble(idSz, idPnt, layer_font_size)
             desc145.putBoolean(idautoLeading, False)
             desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
-            desc146.PutDouble(idRd, con.flavor_text_color['r'])
-            desc146.PutDouble(idGrn, con.flavor_text_color['g'])
-            desc146.PutDouble(idBl, con.flavor_text_color['b'])
-            desc145.PutObject(sID("color"), sID("RGBColor"), desc146)
+
+            psd.apply_color(desc145, con.flavor_text_color)
+
             desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
             list15.PutObject(sID("textStyleRange"), desc144)
             primary_action_descriptor.putList(sID("textStyleRange"), list15)
@@ -549,7 +526,7 @@ def format_text_wrapper():
 def strip_reminder_text(oracle_text):
     """
     Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
-    If this would empty the string, instead return the original string.
+    If this empties the string, instead return the original string.
     """
     oracle_text_stripped = re.sub(r"\([^()]*\)", "", oracle_text)
 
@@ -587,7 +564,7 @@ def classic_align_right(primedesc, start, end):
 def scale_text_right_overlap(layer, reference) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 24 px clearance from a reference layer's left bound.
+    has a 36 px clearance from a reference layer's left bound.
     @param layer: The text item layer to scale.
     @param reference: Reference layer we need to avoid.
     """
@@ -601,10 +578,14 @@ def scale_text_right_overlap(layer, reference) -> None:
     elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     reference_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
-    old_size = float(layer.textItem.size)
+    old_size = font_size
     step, half_step = 0.4, 0.2
 
     # Obtain proper spacing for this document size
@@ -614,13 +595,16 @@ def scale_text_right_overlap(layer, reference) -> None:
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
         while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
-            layer.textItem.size -= step
+            font_size -= step
+            layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
 
-        layer.textItem.size += half_step
+        font_size += half_step
+        layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
         if layer_right_bound > (reference_left_bound - spacing):
-            layer.textItem.size -= half_step
+            font_size -= half_step
+            layer.textItem.size = font_size
 
     # Shift baseline up to keep text centered vertically
     if old_size > layer.textItem.size:
@@ -639,11 +623,14 @@ def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
+    factor = 1
     if not ref: return
     if not spacing:  # If no spacing provided, use default
         spacing = int((app.activeDocument.width / 3264) * 64)
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
     ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
-    font_size = layer.textItem.size
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
@@ -671,7 +658,10 @@ def scale_text_to_fit_height(layer, height: int):
     @param height: Reference height to fit.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    font_size = layer.textItem.size
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer

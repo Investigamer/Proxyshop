@@ -51,6 +51,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Create a virtual environment: `py -m venv /venv`
 * Activate virtual environment: `venv/scripts/activate`
 * Install requirements.txt: `pip install -r requirements.txt`
+* Duplicate the file `proxyshop/env.json.dist` and rename to `env.json`.
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
 * Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
 * Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.

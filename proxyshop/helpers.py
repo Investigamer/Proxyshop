@@ -1,10 +1,17 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
+from typing import Optional
+
 import _ctypes
 import os
+
+from photoshop.api import TextItem
+from photoshop.api._artlayer import ArtLayer
+
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
+from proxyshop.gui import console_handler as console
 import photoshop.api as ps
 
 # QOL Definitions
@@ -152,6 +159,64 @@ def get_rgb(r, g, b):
     return color
 
 
+def get_cmyk(c: float, m: float, y: float, k: float):
+    """
+    Creates a SolidColor object with the given CMYK values.
+    @param c: Float from 0.0 to 100.0 for Cyan component.
+    @param m: Float from 0.0 to 100.0 for Magenta component.
+    @param y: Float from 0.0 to 100.0 for Yellow component.
+    @param k: Float from 0.0 to 100.0 for blacK component.
+    @return: SolidColor object.
+    """
+    color = ps.SolidColor()
+    color.cmyk.cyan = c
+    color.cmyk.magenta = m
+    color.cmyk.yellow = y
+    color.cmyk.black = k
+    return color
+
+def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor):
+    """
+    Applies color to the specified action_descriptor
+    """
+
+    cd = ps.ActionDescriptor()
+
+    if color.model == ps.ColorModel.RGBModel:
+        cd.putDouble(
+            cID("Rd  "),
+            color.rgb.red)  # rgb value.red
+        cd.putDouble(
+            cID("Grn "),
+            color.rgb.green)  # rgb value.green
+        cd.putDouble(
+            cID("Bl  "),
+            color.rgb.blue)  # rgb value.blue
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("RGBC"),
+            cd)
+    elif color.model == ps.ColorModel.CMYKModel:
+
+        cd.putDouble(
+            cID("Cyn "),
+            color.cmyk.cyan)
+        cd.putDouble(
+            cID("Mgnt"),
+            color.cmyk.magenta)
+        cd.putDouble(
+            cID("Ylw "),
+            color.cmyk.yellow)
+        cd.putDouble(
+            cID("Blck"),
+            color.cmyk.black)
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("CMYC"),
+            cd)
+    else:
+        console.update(f"Unknown color model: {color.model}")
+
 """
 LAYER PROPERTIES
 """
@@ -246,6 +311,93 @@ def get_text_layer_color(layer):
             return layer.textItem.color
         else: return rgb_black()
     except _ctypes.COMError: return rgb_black()
+
+
+def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") -> float:
+    """
+    Get the scale factor of the document for changing text size.
+    @param layer: The layer to make active and run the check on.
+    @param axis: xx for horizontal, yy for vertical.
+    @return: Float scale factor
+    """
+    # Change the active layer, if needed
+    current = None
+    factor = 1
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Get the scale factor if not 1
+    ref = ps.ActionReference()
+    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt") )
+    desc = app.executeActionGet(ref).getObjectValue(sID('textKey'))
+    if desc.hasKey(sID('transform')):
+        transform = desc.getObjectValue(sID('transform'))
+        factor = transform.getUnitDoubleValue(sID(axis))
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+    return factor
+
+
+def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
+    """
+    Manually assign font size to a layer using action descriptors.
+    @param layer: Layer containing TextItem
+    @param size: New size of layer
+    """
+    # Set the active layer if needed
+    current = None
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Set the new size
+    desc2361 = ps.ActionDescriptor()
+    ref68 = ps.ActionReference()
+    desc2362 = ps.ActionDescriptor()
+    ref68.putProperty(sID("property"), sID("textStyle"))
+    ref68.putEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
+    desc2361.putReference(sID("target"), ref68)
+    desc2362.putInteger(sID("textOverrideFeatureName"), 808465458)
+    desc2362.putInteger(sID("typeStyleOperationType"), 3)
+    desc2362.PutUnitDouble(sID("size"), sID("pointsUnit"), size)
+    desc2361.putObject(sID("to"), sID("textStyle"), desc2362)
+    app.ExecuteAction(sID("set"), desc2361, NO_DIALOG)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+
+
+def update_text_layer_size(
+    layer: ArtLayer,
+    change: float,
+    factor: Optional[float] = None,
+    make_active: bool = False
+) -> None:
+    """
+    Sets the text item size while ensuring proper scaling.
+    @param layer: Layer containing TextItem object.
+    @param change: Difference in size (+/-).
+    @param factor: Scale factor of text item.
+    @param make_active: Make the layer active before running operation.
+    """
+    # Set the active layer if needed
+    current = None
+    if make_active:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+    if not factor:
+        factor = get_text_scale_factor()
+
+    # Increase the size
+    set_text_size(size=(factor*layer.textItem.size)+change)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
 
 
 """
@@ -497,7 +649,6 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc608 = ps.ActionDescriptor()
     desc609 = ps.ActionDescriptor()
     desc610 = ps.ActionDescriptor()
-    desc611 = ps.ActionDescriptor()
     ref149 = ps.ActionReference()
     ref149.putProperty(cID("Prpr"), cID("Lefx"))
     ref149.putIdentifier(cID("Lyr "), layer.id)
@@ -509,10 +660,9 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc610.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
     desc610.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
     desc610.putUnitDouble(cID("Sz  "), cID("#Pxl"), int(stroke_weight))
-    desc611.putDouble(cID("Rd  "), stroke_color.rgb.red)
-    desc611.putDouble(cID("Grn "), stroke_color.rgb.green)
-    desc611.putDouble(cID("Bl  "), stroke_color.rgb.blue)
-    desc610.putObject(cID("Clr "), cID("RGBC"), desc611)
+
+    apply_color(desc610, stroke_color)
+
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
