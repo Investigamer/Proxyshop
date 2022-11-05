@@ -52,8 +52,8 @@ class ScaledTextField (TextField):
         self.reference_name = self.reference.name
 
     def execute(self):
-        try: self.reference.name
-        except Exception:
+        # Grab the new reference layer object if it has changed
+        if not hasattr(self.reference, 'name'):
             self.reference = psd.getLayer(self.reference_name, self.reference_parent)
 
         super().execute()
@@ -188,8 +188,9 @@ class ExpansionSymbolField:
         if not layer: layer = self.layer
 
         # Apply rarity gradient to this layer
-        try: mask_layer = psd.getLayer(self.rarity, layer.parent)
-        except: mask_layer = psd.getLayer(self.rarity)
+        mask_layer = psd.getLayer(self.rarity, layer.parent)
+        if not mask_layer:
+            mask_layer = psd.getLayer(self.rarity)
         mask_layer = mask_layer.duplicate(layer, ps.ElementPlacement.PlaceBefore)
         mask_layer.grouped = True
         mask_layer.visible = True
