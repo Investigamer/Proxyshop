@@ -163,7 +163,7 @@ class BaseTemplate:
         else: name = self.layout.name
         return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "-", name)
 
-    def paste_scryfall_scan(self, reference_layer, rotate=False):
+    def paste_scryfall_scan(self, reference_layer, rotate=False, visible=True):
         """
         Downloads the card's scryfall scan, pastes it into the document next to the active layer,
         and frames it to fill the given reference layer. Can optionally rotate the layer by 90 degrees
@@ -171,8 +171,11 @@ class BaseTemplate:
         """
         layer = psd.insert_scryfall_scan(self.layout.scryfall_scan)
         if layer:
-            if rotate: layer.rotate(90)
+            if rotate:
+                layer.rotate(90)
             psd.frame_layer(layer, reference_layer)
+            if not visible:
+                layer.visible = False
         return layer
 
     def enable_frame_layers(self):
@@ -1256,9 +1259,8 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Paste scryfall scan
         app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'], self.group)
-        scryfall = self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']))
+        self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), visible=False)
         app.activeDocument.activeLayer = self.art_layer
-        scryfall.visible = False
 
         # Twins, pinlines, background
         psd.getLayer(self.layout.twins, psd.getLayerSet(con.layers['TWINS'], self.group)).visible = True
