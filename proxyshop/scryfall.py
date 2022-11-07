@@ -138,7 +138,7 @@ def card_scan(img_url: str) -> Optional[str]:
         # HTTP request failed
         if not cfg.dev_mode:
             console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
-        return None
+        return
     with open(scryfall_scan_path, encoding="utf-8") as file:
         return file.name
 

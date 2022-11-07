@@ -1079,5 +1079,6 @@ def insert_scryfall_scan(image_url):
     Returns the new layer.
     """
     scryfall_scan = card_scan(image_url)
-    if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
-    return None
+    if scryfall_scan:
+        return paste_file_into_new_layer(scryfall_scan)
+    return
