@@ -10,6 +10,7 @@ from PIL import Image
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
+from proxyshop.frame_logic import format_expansion_symbol_info
 from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
 import proxyshop.format_text as ft
@@ -30,6 +31,7 @@ class BaseTemplate:
         self.failed = False
         self.layout = layout
         self.tx_layers = []
+        self.exp_sym = None
 
         # Load PSD file
         try: self.load_template()
@@ -207,11 +209,6 @@ class BaseTemplate:
         return psd.getLayer(con.layers['TYPE_LINE'], self.text_layers)
 
     @cached_property
-    def text_layer_symbol(self) -> Optional[ArtLayer]:
-        # CARD EXPANSION SYMBOL
-        return psd.getLayer(con.layers['EXPANSION_SYMBOL'], self.text_layers)
-
-    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         # CARD RULES TEXT
         if self.is_creature:
@@ -231,6 +228,11 @@ class BaseTemplate:
     """
     FRAME LAYERS
     """
+
+    @cached_property
+    def symbol(self) -> str:
+        # Expansion symbol
+        return self.layout.symbol
 
     @cached_property
     def twins(self) -> str:
@@ -286,6 +288,15 @@ class BaseTemplate:
         # Companion inner crown
         return psd.getLayer(self.pinlines, con.layers['COMPANION'])
 
+    @property
+    def expansion_symbol(self) -> Optional[ArtLayer]:
+        # CARD EXPANSION SYMBOL
+        return self.exp_sym
+
+    @expansion_symbol.setter
+    def expansion_symbol(self, value):
+        self.exp_sym = value
+
     """
     METHODS
     """
@@ -340,6 +351,121 @@ class BaseTemplate:
             # Fill set info / artist info
             set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
             psd.replace_text(artist_layer, "Artist", self.layout.artist)
+
+        # Generate the expansion symbol
+        self.create_expansion_symbol()
+
+    def create_expansion_symbol(self, centered=False):
+
+        # Colors to use for given settings
+        colors = {
+            "black": psd.rgb_black(),
+            "white": psd.rgb_white(),
+            "rarity": psd.rgb_black(),
+        }
+
+        # Starting rarity layer
+        rarity = self.layout.rarity
+        if self.layout.rarity in (con.rarity_bonus, con.rarity_special):
+            rarity = con.rarity_mythic
+
+        # Starting symbol, reference, and rarity layers
+        symbol_layer = psd.getLayer(con.layers['EXPANSION_SYMBOL'], self.text_layers)
+        ref_layer = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers)
+        rarity_layer = psd.getLayer(rarity, self.text_layers)
+        current_layer = symbol_layer
+
+        # Put everything in a group
+        group = app.activeDocument.layerSets.add()
+        group.move(current_layer, ps.ElementPlacement.PlaceAfter)
+        symbol_layer.move(group, ps.ElementPlacement.PlaceInside)
+
+        # Set the starting character and format our layer array
+        symbol_layer.textItem.contents, symbols = format_expansion_symbol_info(self.layout.symbol)
+
+        # Size to fit reference?
+        if cfg.auto_symbol_size:
+            psd.frame_layer(symbol_layer, ref_layer, ps.AnchorPosition.MiddleRight, True, centered)
+
+        def apply_rarity(layer):
+            # Apply rarity gradient to this layer
+            mask_layer = rarity_layer.duplicate(layer, ps.ElementPlacement.PlaceBefore)
+            mask_layer.grouped = True
+            mask_layer.visible = True
+            psd.select_layer_bounds(layer)
+            app.activeDocument.activeLayer = mask_layer
+            psd.align_horizontal()
+            psd.align_vertical()
+            psd.clear_selection()
+            layer = psd.merge_layers(mask_layer, layer)
+            return layer
+
+        def apply_fill(layer, color=psd.rgb_black()):
+            # Make active and fill background
+            app.activeDocument.activeLayer = layer
+            return psd.fill_expansion_symbol(ref_layer, color)
+
+        # Create each symbol layer
+        for i, lay in enumerate(symbols):
+            # Establish new current layer
+            current_layer = symbol_layer.duplicate(current_layer, ps.ElementPlacement.PlaceAfter)
+            current_layer.textItem.contents = lay['char']
+
+            # Non-common or Common traits
+            if rarity != con.rarity_common:
+                # Color replace
+                if lay['color']:
+                    current_layer.textItem.color = colors[lay['color']]
+
+                # Stroke
+                if lay['stroke']:
+                    psd.apply_stroke(current_layer, lay['stroke'][1], colors[lay['stroke'][0]])
+                else:
+                    psd.clear_layer_style(current_layer)
+
+                # Apply background fill
+                if lay['fill'] == 'rarity':
+                    # Apply fill before rarity
+                    psd.rasterize_layer_style(current_layer)
+                    fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                    fill_layer = apply_rarity(fill_layer)
+                    current_layer = psd.merge_layers(current_layer, fill_layer)
+                else:
+                    # Apply fill after rarity
+                    if lay['rarity']:
+                        current_layer = apply_rarity(current_layer)
+                    psd.rasterize_layer_style(current_layer)
+                    if lay['fill']:
+                        fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                        current_layer = psd.merge_layers(current_layer, fill_layer)
+
+            else:
+                # Common color
+                if lay['common-color']:
+                    current_layer.textItem.color = colors[lay['common-color']]
+
+                # Common stroke
+                if lay['common-stroke']:
+                    psd.apply_stroke(current_layer, lay['common-stroke'][1], colors[lay['common-stroke'][0]])
+                else:
+                    psd.clear_layer_style(current_layer)
+
+                # Common fill
+                psd.rasterize_layer_style(current_layer)
+                if lay['common-fill']:
+                    fill_layer = apply_fill(current_layer, colors[lay['common-fill']])
+                    current_layer = psd.merge_layers(current_layer, fill_layer)
+
+            # Scale factor
+            if lay['scale-factor'] != 1:
+                current_layer.resize(lay['scale-factor']*100, lay['scale-factor']*100, ps.AnchorPosition.MiddleRight)
+
+        # Merge all
+        symbol_layer.move(group, ps.ElementPlacement.PlaceBefore)
+        symbol_layer.name = "Expansion Symbol Old"
+        symbol_layer.opacity = 0
+        self.expansion_symbol = group.merge()
+        self.expansion_symbol.name = "Expansion Symbol"
 
     def load_template(self):
         """
@@ -490,6 +616,12 @@ class BaseTemplate:
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
 
+        # Add collector info
+        try:
+            self.collector_info()
+        except Exception as e:
+            return self.raise_error("Unable to insert collector info!", e)
+
         # Add text layers
         try:
             self.basic_text_layers()
@@ -505,7 +637,6 @@ class BaseTemplate:
 
         # Input and format each text layer
         try:
-            self.collector_info()
             for this_layer in self.tx_layers:
                 this_layer.execute()
         except Exception as e:
@@ -555,9 +686,6 @@ class StarterTemplate (BaseTemplate):
     you want to extend for the most important functionality.
     """
 
-    def expansion_symbol(self):
-        pass
-
     def basic_text_layers(self):
 
         # Add text layers
@@ -570,24 +698,13 @@ class StarterTemplate (BaseTemplate):
                 layer = self.text_layer_name,
                 contents = self.layout.name,
                 reference = self.text_layer_mana
-            )
-        ])
-        if not hasattr(self, "expansion_disabled"):
-            self.text.append(
-                txt_layers.ExpansionSymbolField(
-                    layer = self.text_layer_symbol,
-                    contents = self.layout.symbol,
-                    rarity = self.layout.rarity,
-                    reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers)
-                )
-            )
-        self.text.append(
+            ),
             txt_layers.ScaledTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.text_layer_symbol
+                reference = self.expansion_symbol
             )
-        )
+        ])
 
 
 # EXTEND THIS FOR MOST NORMAL M15-STYLE TEMPLATES
@@ -1029,6 +1146,7 @@ class IxalanTemplate (NormalTemplate):
     """
     Template for the back faces of transforming cards from Ixalan block.
     Typeline doesn't scale, no mana cost layer, doesn't support creatures, frame only has background.
+    Expansion symbol is centered on this template.
     """
     template_file_name = "ixalan"
 
@@ -1049,13 +1167,6 @@ class IxalanTemplate (NormalTemplate):
                 layer = self.text_layer_name,
                 contents = self.layout.name
             ),
-            txt_layers.ExpansionSymbolField(
-                layer = self.text_layer_symbol,
-                contents = self.layout.symbol,
-                rarity = self.layout.rarity,
-                reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers),
-                centered = True,
-            ),
             txt_layers.TextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line
@@ -1064,6 +1175,9 @@ class IxalanTemplate (NormalTemplate):
 
     def enable_frame_layers(self):
         self.background_layer.visible = True
+
+    def create_expansion_symbol(self, centered=False):
+        super().create_expansion_symbol(True)
 
 
 class MDFCBackTemplate (NormalTemplate):
@@ -1354,31 +1468,12 @@ class PlaneswalkerTemplate (StarterTemplate):
 
     @property
     def pw_group(self) -> str:
-        return self._pw_group
 
-    @pw_group.setter
-    def pw_group(self, value):
-        self._pw_group = value
 
     @cached_property
     def abilities(self) -> list:
         # Fix abilities that include a newline
-        total = 0
-        ability_array = []
-        raw_abilities = self.layout.oracle_text.split("\n")
-        for i, ab in enumerate(raw_abilities):
-            # Is this a static ability followed by another static ability?
-            if (ab[0] not in ("-", "+", "0") and i != 0) and (ability_array[i - 1][0] not in ("-", "+", "0")):
-                # Combine consecutive static lines together, except cases like Gideon Blackblade
-                if len(raw_abilities) == 4 and ability_array[i - 1].count(" ") > 2 and ab.count(" ") > 2:
-                    total += 1
-                ability_array[i - 1] += f"\n{ab}"
-            else:
-                ability_array.append(ab)
-                total += 1
-        if total >= 4:
-            self.pw_group = "pw-4"
-        return ability_array
+        return re.findall(r"(^[^:]*$|^.*:.*$)", self.layout.oracle_text, re.MULTILINE)
 
     """
     TEXT LAYERS
@@ -1406,7 +1501,12 @@ class PlaneswalkerTemplate (StarterTemplate):
 
     @cached_property
     def group(self) -> LayerSet:
-        group = psd.getLayerSet(self.pw_group)
+        if self.layout.name in ("Gideon Blackblade", "Comet, Stellar Pup"):
+            group = psd.getLayerSet("pw-4")
+        elif len(self.abilities) <= 3:
+            group = psd.getLayerSet("pw-3")
+        else:
+            group = psd.getLayerSet("pw-4")
         group.visible = True
         return group
 
@@ -1877,24 +1977,13 @@ class PlanarTemplate (StarterTemplate):
             txt_layers.TextField(
                 layer = self.text_layer_name,
                 contents = self.layout.name
-            )
-        ])
-        if not hasattr(self, "expansion_disabled"):
-            self.text.append(
-                txt_layers.ExpansionSymbolField(
-                    layer = self.text_layer_symbol,
-                    contents = self.layout.symbol,
-                    rarity = self.layout.rarity,
-                    reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers)
-                )
-            )
-        self.text.append(
+            ),
             txt_layers.ScaledTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.text_layer_symbol
+                reference = self.expansion_symbol
             )
-        )
+        ])
 
     def rules_text_and_pt_layers(self):
 
@@ -1951,16 +2040,9 @@ class BasicLandTemplate (BaseTemplate):
         cfg.real_collector = False
         super().__init__(layout)
 
-    def basic_text_layers(self):
-        # Only expansion symbol.
-        self.text.append(
-            txt_layers.ExpansionSymbolField(
-                layer = psd.getLayer(con.layers['EXPANSION_SYMBOL']),
-                contents = self.layout.symbol,
-                rarity = "common",
-                reference = psd.getLayer(con.layers['EXPANSION_REFERENCE']),
-            )
-        )
+    @cached_property
+    def text_layers(self) -> Optional[LayerSet]:
+        return app.activeDocument
 
     def enable_frame_layers(self):
         psd.getLayer(self.layout.name).visible = True

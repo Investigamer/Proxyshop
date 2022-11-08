@@ -1,6 +1,8 @@
 """
 Functions handling logic for card frames
 """
+from typing import Union
+
 from proxyshop.constants import con
 
 
@@ -285,3 +287,39 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
         'twins': twins,
         'is_colorless': False,
     }
+
+
+def format_expansion_symbol_info(symbol: Union[str, list]):
+    """
+    Takes in set code and returns information needed to build the expansion symbol.
+    @param symbol: Symbol chosen by layout object.
+    @return: List of dicts containing information about this symbol.
+    """
+    if isinstance(symbol, str):
+        return symbol, [{
+            'char': symbol,
+            'rarity': True,
+            'fill': False,
+            'color': False,
+            'stroke': ["black", 6],
+            'common-fill': False,
+            'common-color': False,
+            'common-stroke': ["white", 6],
+            'scale-factor': 1
+        }]
+    if isinstance(symbol, list):
+        ref = symbol[0]['char']
+        for i, lyr in enumerate(symbol):
+            if 'rarity' not in lyr: symbol[i]['rarity'] = True
+            if 'fill' not in lyr: symbol[i]['fill'] = False
+            if 'color' not in lyr: symbol[i]['color'] = False
+            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", 6]
+            if 'common-fill' not in lyr: symbol[i]['common-fill'] = False
+            if 'common-color' not in lyr: symbol[i]['common-color'] = False
+            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", 6]
+            if 'scale-factor' not in lyr: symbol[i]['scale-factor'] = 1
+            if 'reference' in lyr and lyr['reference']:
+                if lyr['reference']:
+                    ref = lyr['char']
+        return ref, symbol
+    return
