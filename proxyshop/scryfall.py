@@ -77,7 +77,7 @@ def get_card_search(name: str, lang: Optional[str] = None, set_code: Optional[st
     code = f"+set%3A{set_code}" if set_code else ""
 
     # Query Scryfall, 3 retries
-    url = f'https://api.scryfall.com/cards/search?q=!"{name}"{code}&unique=prints{order}{lang}'
+    url = f'https://api.scryfall.com/cards/search?q=!"{name}"{code}&unique=prints{order}{lang}+limit:1'
     err = None
     for i in range(3):
         try:
