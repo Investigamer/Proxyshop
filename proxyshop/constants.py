@@ -183,7 +183,7 @@ Faces = {
 }
 
 # Font names
-font_rules_text = "Plantin MT Pro"
+font_rules_text = "PlantinMTPro-Regular"
 font_rules_text_italic = "PlantinMTPro-Italic"
 font_mana = "NDPMTG"
 font_subtext = "Beleren Small Caps Bold"
