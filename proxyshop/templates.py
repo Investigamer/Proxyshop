@@ -1466,10 +1466,6 @@ class PlaneswalkerTemplate (StarterTemplate):
     PROPERTIES
     """
 
-    @property
-    def pw_group(self) -> str:
-
-
     @cached_property
     def abilities(self) -> list:
         # Fix abilities that include a newline
