@@ -443,6 +443,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             list15.PutObject(sID("textStyleRange"), desc144)
             primary_action_descriptor.putList(sID("textStyleRange"), list15)
 
+    disable_justify = False
     if quote_index >= 0:
         # Adjust line break spacing if there's a line break in the flavor text
         list14 = ps.ActionList()
@@ -452,21 +453,21 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc142.putUnitDouble(idspaceBefore, idPnt, 0)
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
         list13.putObject(idparagraphStyleRange, desc141)
+
+        # Optional, align quote credit to right
+        if input_string.find('"\r—') >= 0 and con.align_classic_quote:
+            # Get start and ending index of quotation credit
+            index_start = input_string.find('"\r—') + 2
+            index_end = len(input_string) - 1
+
+            # Align this part, disable justification reset
+            list13 = classic_align_right(list13, index_start, index_end)
+            disable_justify = True
+
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
         primary_action_descriptor.putList(idkerningRange, list14)
 
-    # Optional, align last line to right
-    if input_string.find('"\r—') >= 0 and con.align_classic_quote:
 
-        # Get start and ending index of quotation credit
-        index_start = input_string.find('"\r—') + 2
-        index_end = len(input_string) - 1
-
-        # Align this part, disable justification reset
-        primary_action_descriptor = classic_align_right(primary_action_descriptor, index_start, index_end)
-        disable_justify = True
-
-    else: disable_justify = False
 
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
@@ -537,28 +538,26 @@ def strip_reminder_text(oracle_text):
     return oracle_text
 
 
-def classic_align_right(primedesc, start, end):
+def classic_align_right(action_list, start, end):
     """
     Align the quote credit of --Name to the right like on some classic cards.
-    @param primedesc: Existing ActionDescriptor object
+    @param action_list: Action list to add this action to
     @param start: Starting index of the quote string
     @param end: Ending index of the quote string
     @return: Returns the existing ActionDescriptor with changes applied
     """
-    desc145 = ps.ActionDescriptor()
-    list15 = ps.ActionList()
-    desc145.putInteger(cID("From"), start)
-    desc145.putInteger(cID("T   "), end)
-    desc1265 = ps.ActionDescriptor()
+    desc1 = ps.ActionDescriptor()
+    desc1.putInteger(cID("From"), start)
+    desc1.putInteger(cID("T   "), end)
+    desc2 = ps.ActionDescriptor()
     idstyleSheetHasParent = sID("styleSheetHasParent")
-    desc1265.putBoolean(idstyleSheetHasParent, True)
-    desc1265.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
+    desc2.putBoolean(idstyleSheetHasParent, True)
+    desc2.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
     idparagraphStyle = sID("paragraphStyle")
-    desc145.putObject(idparagraphStyle, idparagraphStyle, desc1265)
+    desc1.putObject(idparagraphStyle, idparagraphStyle, desc2)
     idparagraphStyleRange = sID("paragraphStyleRange")
-    list15.putObject(idparagraphStyleRange, desc145)
-    primedesc.putList(idparagraphStyleRange, list15)
-    return primedesc
+    action_list.putObject(idparagraphStyleRange, desc1)
+    return action_list
 
 
 def scale_text_right_overlap(layer, reference) -> None:

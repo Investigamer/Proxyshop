@@ -34,6 +34,7 @@ class Config:
 		# CONF section
 		self.exit_early = self.file.getboolean('CONF', 'Manual.Edit')
 		self.skip_failed = self.file.getboolean('CONF', 'Skip.Failed')
+		self.scry_ascending = self.file.getboolean('CONF', 'Scryfall.Ascending')
 
 		# FILE section
 		self.save_jpeg = self.file.getboolean('FILES', 'Render.JPEG')

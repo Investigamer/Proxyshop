@@ -151,8 +151,7 @@ def retrieve_card_info(filename):
     # Extract just the card name
     fname = os.path.basename(str(filename))
     sep = [' {', ' [', ' (']
-    fn = fname.replace(".png", "").replace(".jpg", "").replace(".jpeg", "").replace(".tif", "")
-    fn_split = re.split('|'.join(map(re.escape, sep)), fn)
+    fn_split = re.split('|'.join(map(re.escape, sep)), os.path.splitext(fname)[0])
     name = fn_split[0]
 
     # Match pattern

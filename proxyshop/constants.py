@@ -183,8 +183,8 @@ Faces = {
 }
 
 # Font names
-font_rules_text = "MPlantin"
-font_rules_text_italic = "MPlantin-Italic"
+font_rules_text = "PlantinMTPro-Regular"
+font_rules_text_italic = "PlantinMTPro-Italic"
 font_mana = "NDPMTG"
 font_subtext = "Beleren Small Caps Bold"
 font_collector = "Relay-Medium"
