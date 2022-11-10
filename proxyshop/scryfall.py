@@ -59,11 +59,11 @@ def get_card_named(name: str, set_code: Optional[str] = None) -> Union[dict, Exc
     return err
 
 
-def get_card_search(name: str, lang: Optional[str] = None, set_code: Optional[str] = None) -> Union[dict, Exception]:
+def get_card_search(name: str, language: Optional[str] = None, set_code: Optional[str] = None) -> Union[dict, Exception]:
     """
     Get card using cards/search scryfall API.
     @param name: Name of the card, ex: Damnation
-    @param lang: Lang code to look for, ex: en
+    @param language: Lang code to look for, ex: en
     @param set_code: Set code to look for, ex: MH2
     @return: Card dict or exception
     """
@@ -71,13 +71,13 @@ def get_card_search(name: str, lang: Optional[str] = None, set_code: Optional[st
     order = "&order=released&dir=asc" if cfg.scry_ascending else ""
 
     # Lang code given?
-    lang = f"&lang={lang}" if lang else ""
+    lang = f" lang:{language}" if language else ""
 
     # Set code given?
     code = f"+set%3A{set_code}" if set_code else ""
 
     # Query Scryfall, 3 retries
-    url = f'https://api.scryfall.com/cards/search?unique=prints{order}{lang}&q=!"{name}"{code} include:extras'
+    url = f'https://api.scryfall.com/cards/search?unique=prints{order}&q=!"{name}"{code} include:extras{lang}'
     err = None
     for i in range(3):
         try:
