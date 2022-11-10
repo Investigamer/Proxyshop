@@ -1,6 +1,10 @@
 """
 SILVAN'S TEMPLATES
 """
+from typing import Optional
+
+from photoshop.api._artlayer import ArtLayer
+
 import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
@@ -20,12 +24,14 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
         cfg.remove_reminder = True
         super().__init__(layout)
 
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Remove colorless background
-        if self.layout.background == "Colorless":
-            psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = False
+    @property
+    def background_layer(self) -> Optional[ArtLayer]:
+        # Background
+        if self.is_nyx:
+            return psd.getLayer(self.background, con.layers['NYX'])
+        if self.background == "Colorless":
+            return
+        return psd.getLayer(self.background, con.layers['BACKGROUND'])
 
     def load_artwork(self):
         super().load_artwork()

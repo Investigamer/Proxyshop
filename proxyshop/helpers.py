@@ -6,8 +6,9 @@ from typing import Optional
 import _ctypes
 import os
 
-from photoshop.api import TextItem
+from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
 
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
@@ -49,7 +50,7 @@ UTILITY FUNCTIONS
 """
 
 
-def getLayer(name: str, group=None):
+def getLayer(name: str, group=None) -> Optional[ArtLayer]:
     """
     Retrieve layer object.
     @param name: Name of the layer
@@ -61,7 +62,8 @@ def getLayer(name: str, group=None):
         if group is None:
             # No LayerSet given
             for layer in app.activeDocument.layers:
-                if layer.name == name: return layer
+                if layer.name == name:
+                    return layer
         elif isinstance(group, str):
             # LayerSet name given
             layer_set = app.activeDocument.layerSets.getByName(group)
@@ -70,37 +72,59 @@ def getLayer(name: str, group=None):
             for g in group:
                 # First in list or not?
                 if not layer_set:
-                    if isinstance(g, str): layer_set = app.activeDocument.layerSets.getByName(g)
-                    else: layer_set = g
+                    if isinstance(g, str):
+                        layer_set = app.activeDocument.layerSets.getByName(g)
+                    else:
+                        layer_set = g
                 else:
-                    if isinstance(g, str): layer_set = getLayerSet(g, layer_set)
-                    else: layer_set = g
-        else: layer_set = group
-        # Else, assume layerSet object given
+                    layer_set = layer_set.layerSets.getByName(g)
+        else:
+            # Else, assume layerSet object given
+            layer_set = group
 
         # Find our layer
         for layer in layer_set.layers:
             if layer.name == name:
                 return layer
-    except: return
+    except (PhotoshopPythonAPIError, AttributeError) as e:
+        print(e)
+        return
+    return
 
 
-def getLayerSet(name, group=None):
+def getLayerSet(name, group=None) -> Optional[LayerSet]:
     """
     Retrieve layer group object.
     @param name: Name of the group
     @param group: Parent group name or object.
     @return: Group object requested.
     """
-    if group:
-        if isinstance(group, str):
-            # Set name given
-            layer_set = app.activeDocument.layerSets.getByName(group)
-            return layer_set.layerSets.getByName(name)
-        # Set object given
-        return group.layerSets.getByName(name)
-    # Look through entire document
-    return app.activeDocument.layerSets.getByName(name)
+    try:
+        if group:
+            layer_set = None
+            if isinstance(group, str):
+                # Set name given
+                layer_set = app.activeDocument.layerSets.getByName(group)
+                return layer_set.layerSets.getByName(name)
+            elif isinstance(group, (tuple, list)):
+                # Tuple or list of groups
+                for g in group:
+                    # First in the list
+                    if not layer_set:
+                        if isinstance(g, str):
+                            layer_set = app.activeDocument.layerSets.getByName(g)
+                        else:
+                            layer_set = g
+                    else:
+                        layer_set = layer_set.layerSets.getByName(g)
+                return layer_set.layerSets.getByName(name)
+            # Set object given
+            return group.layerSets.getByName(name)
+        # Look through entire document
+        return app.activeDocument.layerSets.getByName(name)
+    except (PhotoshopPythonAPIError, AttributeError) as e:
+        print(e)
+        return
 
 
 """

@@ -407,7 +407,7 @@
             "char": "",
             "rarity": false,
             "color": "white",
-            "stroke": false,
+            "stroke": ["black", 6],
             "common-color": "white",
             "common-stroke": ["black", 6]
         },

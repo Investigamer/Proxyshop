@@ -3,8 +3,14 @@ CORE TEMPLATES
 """
 import os
 import re
+from functools import cached_property
+from typing import Optional
 
 from PIL import Image
+from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
+
+from proxyshop.frame_logic import format_expansion_symbol_info
 from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
 import proxyshop.format_text as ft
@@ -15,11 +21,9 @@ from photoshop import api as ps
 app = ps.Application()
 
 
-# MUST EXTEND THIS AT BARE MINIMUM
 class BaseTemplate:
     """
-    Set up variables for things which are common to all templates (artwork and artist credit).
-    Classes extending this base class are expected to populate the following properties at minimum: self.art_reference
+    Set up variables for things which are common to all templates, extend this at bare minimum.
     """
     def __init__(self, layout):
 
@@ -27,12 +31,7 @@ class BaseTemplate:
         self.failed = False
         self.layout = layout
         self.tx_layers = []
-
-        # Establish consistent template file name
-        if callable(self.template_file_name):
-            self.template_file_name = self.template_file_name()
-        if self.template_file_name[-4:] not in (".psd", ".psb"):
-            self.template_file_name = "{}.psd".format(self.template_file_name)
+        self.exp_sym = None
 
         # Load PSD file
         try: self.load_template()
@@ -40,29 +39,279 @@ class BaseTemplate:
             console.log_error(
                 "PSD not found! Make sure to download the photoshop templates!",
                 self.layout.name,
-                self.template_file_name,
+                self.template_file,
                 e
             )
 
-        # Basic layers
-        self.art_layer = psd.getLayer(con.default_layer)
-        self.legal_layer = psd.getLayerSet(con.layers['LEGAL'])
-
-        # Flavor/reminder text
-        if hasattr(self.layout, 'flavor_text') and cfg.remove_flavor:
+        # Remove flavor or reminder text
+        if cfg.remove_flavor:
             self.layout.flavor_text = ""
-        if hasattr(self.layout, 'oracle_text') and cfg.remove_reminder:
+        if cfg.remove_reminder:
             self.layout.oracle_text = ft.strip_reminder_text(layout.oracle_text)
+
+    """
+    BOOL
+    """
+
+    @property
+    def is_creature(self) -> bool:
+        # Governs whether to add PT box and use Creature rules text
+        return self.layout.is_creature
+
+    @property
+    def is_legendary(self) -> bool:
+        # Governs whether to add legendary crown
+        return self.layout.is_legendary
+
+    @property
+    def is_land(self) -> bool:
+        # Governs pinlines group
+        return self.layout.is_land
+
+    @property
+    def is_companion(self) -> bool:
+        # Enables hollow crown and companion crown layer
+        return self.layout.is_companion
+
+    @property
+    def is_colorless(self) -> bool:
+        # Changes art frame to full art on NormalTemplate
+        return self.layout.is_colorless
+
+    @property
+    def is_nyx(self) -> bool:
+        # Whether to use Nyx backgrounds and hollow crown
+        return self.layout.is_nyx
+
+    @property
+    def is_front(self) -> bool:
+        # Which side influences mdfc and transform
+        return self.layout.card['front']
+
+    @property
+    def name_shifted(self) -> bool:
+        # Use right shifted name?
+        return bool(self.layout.transform_icon)
+
+    @property
+    def type_line_shifted(self) -> bool:
+        # Use right shifted typeline? Also governs color indicator input
+        return bool(self.layout.color_indicator)
+
+    @cached_property
+    def is_centered(self) -> bool:
+        # Center the rules text
+        return bool(
+            len(self.layout.flavor_text) <= 1
+            and len(self.layout.oracle_text) <= 70
+            and "\n" not in self.layout.oracle_text
+        )
+
+    @cached_property
+    def other_face_is_creature(self) -> bool:
+        # Governs transform cards other side creature P/T
+        return self.layout.other_face_power and self.layout.other_face_toughness
+
+    """
+    DOCUMENT PROPERTIES
+    """
+
+    @cached_property
+    def template_file(self) -> str:
+        # Get from callable
+        if callable(self.template_file_name):
+            fn = self.template_file_name()
+            if fn[-4:] not in (".psd", ".psb"):
+                return f"{fn}.psd"
+            return fn
+        # Get from attribute
+        fn = self.template_file_name
+        if fn[-4:] not in (".psd", ".psb"):
+            return f"{fn}.psd"
+        return fn
+
+    @cached_property
+    def docref(self):
+        # The current template document
+        return app.activeDocument
+
+    @cached_property
+    def art_layer(self) -> ArtLayer:
+        # The MTG art layer
+        return psd.getLayer(con.default_layer)
+
+    @property
+    def active_layer(self):
+        # Current active layer
+        return self.docref.activeLayer
+
+    @active_layer.setter
+    def active_layer(self, value):
+        # Set the active layer
+        self.docref.activeLayer = value
+
+    """
+    LIST OF FORMATTED TEXT OBJECTS
+    """
+
+    @property
+    def text(self) -> list:
+        # Text layers to execute
+        return self.tx_layers
+
+    @text.setter
+    def text(self, value):
+        # Add text layer to execute
+        self.tx_layers = value
+
+    """
+    TEXT LAYERS
+    """
+
+    @cached_property
+    def legal_layer(self) -> Optional[LayerSet]:
+        # Legal group
+        return psd.getLayerSet(con.layers['LEGAL'])
+
+    @cached_property
+    def creator_layer(self) -> Optional[ArtLayer]:
+        # Creator name layer
+        return psd.getLayer("Creator", self.legal_layer)
+
+    @cached_property
+    def text_layers(self) -> Optional[LayerSet]:
+        # Text and icon group
+        return psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
+
+    @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # CARD NAME
+        if self.name_shifted:
+            psd.getLayer(con.layers['NAME'], self.text_layers).visible = False
+            name = psd.getLayer(con.layers['NAME_SHIFT'], self.text_layers)
+            name.visible = True
+            return name
+        return psd.getLayer(con.layers['NAME'], self.text_layers)
+
+    @cached_property
+    def text_layer_mana(self) -> Optional[ArtLayer]:
+        # CARD MANA COST
+        return psd.getLayer(con.layers['MANA_COST'], self.text_layers)
+
+    @cached_property
+    def text_layer_type(self) -> Optional[ArtLayer]:
+        # CARD TYPELINE
+        if self.type_line_shifted:
+            psd.getLayer(con.layers['TYPE_LINE'], self.text_layers).visible = False
+            typeline = psd.getLayer(con.layers['TYPE_LINE_SHIFT'], self.text_layers)
+            typeline.visible = True
+            return typeline
+        return psd.getLayer(con.layers['TYPE_LINE'], self.text_layers)
+
+    @cached_property
+    def text_layer_rules(self) -> Optional[ArtLayer]:
+        # CARD RULES TEXT
+        if self.is_creature:
+            rules_text = psd.getLayer(con.layers['RULES_TEXT_CREATURE'], self.text_layers)
+            rules_text.visible = True
+            return rules_text
+        # Noncreature card - use the normal rules text layer and disable the p/t layer
+        if self.text_layer_pt:
+            self.text_layer_pt.visible = False
+        return psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], self.text_layers)
+
+    @cached_property
+    def text_layer_pt(self) -> Optional[ArtLayer]:
+        # CARD POWER/TOUGHNESS
+        return psd.getLayer(con.layers['POWER_TOUGHNESS'], self.text_layers)
+
+    """
+    FRAME LAYERS
+    """
+
+    @cached_property
+    def symbol(self) -> str:
+        # Expansion symbol
+        return self.layout.symbol
+
+    @cached_property
+    def twins(self) -> str:
+        # Name of the Twins layer
+        return self.layout.twins
+
+    @cached_property
+    def pinlines(self) -> str:
+        # Name of the Pinlines layer
+        return self.layout.pinlines
+
+    @cached_property
+    def background(self) -> str:
+        # Name of the Background layer
+        return self.layout.background
+
+    @cached_property
+    def twins_layer(self) -> Optional[ArtLayer]:
+        # Twins
+        return psd.getLayer(self.twins, con.layers['TWINS'])
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        # Pinlines
+        if self.is_land:
+            return psd.getLayer(self.pinlines, con.layers['LAND_PINLINES_TEXTBOX'])
+        return psd.getLayer(self.pinlines, con.layers['PINLINES_TEXTBOX'])
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        # Background
+        if self.is_nyx:
+            return psd.getLayer(self.background, con.layers['NYX'])
+        return psd.getLayer(self.background, con.layers['BACKGROUND'])
+
+    @cached_property
+    def color_indicator_layer(self) -> Optional[ArtLayer]:
+        # Color Indicator
+        return psd.getLayer(self.pinlines, con.layers['COLOR_INDICATOR'])
+
+    @cached_property
+    def crown_layer(self) -> Optional[ArtLayer]:
+        # Legendary Crown
+        return psd.getLayer(self.pinlines, con.layers['LEGENDARY_CROWN'])
+
+    @cached_property
+    def pt_layer(self) -> Optional[ArtLayer]:
+        # Power/Toughness box
+        return psd.getLayer(self.twins, con.layers['PT_BOX'])
+
+    @cached_property
+    def companion_layer(self) -> Optional[ArtLayer]:
+        # Companion inner crown
+        return psd.getLayer(self.pinlines, con.layers['COMPANION'])
+
+    @property
+    def expansion_symbol(self) -> Optional[ArtLayer]:
+        # CARD EXPANSION SYMBOL
+        return self.exp_sym
+
+    @expansion_symbol.setter
+    def expansion_symbol(self, value):
+        self.exp_sym = value
+
+    """
+    METHODS
+    """
 
     def collector_info(self):
         """
         Format and add the collector info at the bottom.
         """
+        # Ignore this step if legal layer not present
+        if not self.legal_layer:
+            return
+
         # If creator is specified add the text
-        if self.layout.creator:
-            try: psd.getLayer("Creator", self.legal_layer).textItem.contents = self.layout.creator
-            except Exception as e:
-                console.update("Creator text layer not found, skipping that step.", e)
+        if self.layout.creator and self.creator_layer:
+            self.creator_layer.textItem.contents = self.layout.creator
 
         # Use realistic collector information?
         if all([self.layout.collector_number, self.layout.card_count, self.layout.rarity, cfg.real_collector]):
@@ -80,7 +329,8 @@ class BaseTemplate:
             collector_bottom = psd.getLayer(con.layers['BOTTOM_LINE'], collector_layer)
 
             # Fill in language if needed
-            if self.layout.lang != "en": psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
+            if self.layout.lang != "en":
+                psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
 
             # Apply the collector info
             collector_top.contents = \
@@ -95,22 +345,135 @@ class BaseTemplate:
             artist_layer = psd.getLayer(con.layers['ARTIST'], self.legal_layer)
 
             # Fill in language if needed
-            if self.layout.lang != "en": psd.replace_text(set_layer, "EN", self.layout.lang.upper())
+            if self.layout.lang != "en":
+                psd.replace_text(set_layer, "EN", self.layout.lang.upper())
 
             # Fill set info / artist info
             set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
             psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
+        # Generate the expansion symbol
+        self.create_expansion_symbol()
+
+    def create_expansion_symbol(self, centered=False):
+
+        # Colors to use for given settings
+        colors = {
+            "black": psd.rgb_black(),
+            "white": psd.rgb_white(),
+            "rarity": psd.rgb_black(),
+        }
+
+        # Starting rarity layer
+        rarity = self.layout.rarity
+        if self.layout.rarity in (con.rarity_bonus, con.rarity_special):
+            rarity = con.rarity_mythic
+
+        # Starting symbol, reference, and rarity layers
+        symbol_layer = psd.getLayer(con.layers['EXPANSION_SYMBOL'], self.text_layers)
+        ref_layer = psd.getLayer(con.layers['EXPANSION_REFERENCE'], self.text_layers)
+        rarity_layer = psd.getLayer(rarity, self.text_layers)
+        current_layer = symbol_layer
+
+        # Put everything in a group
+        group = app.activeDocument.layerSets.add()
+        group.move(current_layer, ps.ElementPlacement.PlaceAfter)
+        symbol_layer.move(group, ps.ElementPlacement.PlaceInside)
+
+        # Set the starting character and format our layer array
+        symbol_layer.textItem.contents, symbols = format_expansion_symbol_info(self.layout.symbol)
+
+        # Size to fit reference?
+        if cfg.auto_symbol_size:
+            psd.frame_layer(symbol_layer, ref_layer, ps.AnchorPosition.MiddleRight, True, centered)
+
+        def apply_rarity(layer):
+            # Apply rarity gradient to this layer
+            mask_layer = rarity_layer.duplicate(layer, ps.ElementPlacement.PlaceBefore)
+            mask_layer.grouped = True
+            mask_layer.visible = True
+            psd.select_layer_bounds(layer)
+            app.activeDocument.activeLayer = mask_layer
+            psd.align_horizontal()
+            psd.align_vertical()
+            psd.clear_selection()
+            layer = psd.merge_layers(mask_layer, layer)
+            return layer
+
+        def apply_fill(layer, color=psd.rgb_black()):
+            # Make active and fill background
+            app.activeDocument.activeLayer = layer
+            return psd.fill_expansion_symbol(ref_layer, color)
+
+        # Create each symbol layer
+        for i, lay in enumerate(symbols):
+            # Establish new current layer
+            current_layer = symbol_layer.duplicate(current_layer, ps.ElementPlacement.PlaceAfter)
+            current_layer.textItem.contents = lay['char']
+
+            # Non-common or Common traits
+            if rarity != con.rarity_common:
+                # Color replace
+                if lay['color']:
+                    current_layer.textItem.color = colors[lay['color']]
+
+                # Stroke
+                if lay['stroke']:
+                    psd.apply_stroke(current_layer, lay['stroke'][1], colors[lay['stroke'][0]])
+                else:
+                    psd.clear_layer_style(current_layer)
+
+                # Apply background fill
+                if lay['fill'] == 'rarity':
+                    # Apply fill before rarity
+                    psd.rasterize_layer_style(current_layer)
+                    fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                    fill_layer = apply_rarity(fill_layer)
+                    current_layer = psd.merge_layers(current_layer, fill_layer)
+                else:
+                    # Apply fill after rarity
+                    if lay['rarity']:
+                        current_layer = apply_rarity(current_layer)
+                    psd.rasterize_layer_style(current_layer)
+                    if lay['fill']:
+                        fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                        current_layer = psd.merge_layers(current_layer, fill_layer)
+
+            else:
+                # Common color
+                if lay['common-color']:
+                    current_layer.textItem.color = colors[lay['common-color']]
+
+                # Common stroke
+                if lay['common-stroke']:
+                    psd.apply_stroke(current_layer, lay['common-stroke'][1], colors[lay['common-stroke'][0]])
+                else:
+                    psd.clear_layer_style(current_layer)
+
+                # Common fill
+                psd.rasterize_layer_style(current_layer)
+                if lay['common-fill']:
+                    fill_layer = apply_fill(current_layer, colors[lay['common-fill']])
+                    current_layer = psd.merge_layers(current_layer, fill_layer)
+
+            # Scale factor
+            if lay['scale-factor'] != 1:
+                current_layer.resize(lay['scale-factor']*100, lay['scale-factor']*100, ps.AnchorPosition.MiddleRight)
+
+        # Merge all
+        symbol_layer.move(group, ps.ElementPlacement.PlaceBefore)
+        symbol_layer.name = "Expansion Symbol Old"
+        symbol_layer.opacity = 0
+        self.expansion_symbol = group.merge()
+        self.expansion_symbol.name = "Expansion Symbol"
+
     def load_template(self):
         """
         Opens the template's PSD file in Photoshop.
         """
-        if not cfg.dev_mode: console.update("Loading PSD template file...")
-
         # Create our full path and load it, set our document reference
-        self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file_name}")
+        self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file}")
         app.load(self.file_path)
-        self.docref = app.activeDocument
 
     def load_artwork(self):
         """
@@ -124,7 +487,7 @@ class BaseTemplate:
             self.art_reference = psd.getLayer(self.art_reference)
         if "Full Art" and "Fullart" not in str(self.art_reference.name):
             # Auto detect full art image
-            width, height = Image.open(self.layout.file).size
+            width, height = Image.open(self.layout.filename).size
             if height > (width * 1.2):
                 try:
                     # See if this template has a full art reference
@@ -132,18 +495,19 @@ class BaseTemplate:
                     if fa_frame: self.art_reference = fa_frame
                 except Exception as e: console.log_exception(e)
         if cfg.dev_mode:
+            # Check for Fullart test image
             dims = psd.get_layer_dimensions(self.art_reference)
             if (dims['width'] * 1.2) < dims['height']:
                 # Use fullart test image
-                self.layout.file = os.path.join(os.getcwd(), "proxyshop/img/test-fa.png")
+                self.layout.filename = os.path.join(os.getcwd(), "proxyshop/img/test-fa.png")
 
         # Paste the file into the art
-        app.activeDocument.activeLayer = self.art_layer
+        self.active_layer = self.art_layer
         if hasattr(self, 'art_action'):
             if hasattr(self, 'art_action_args'):
-                psd.paste_file(self.art_layer, self.layout.file, self.art_action, self.art_action_args)
-            else: psd.paste_file(self.art_layer, self.layout.file, self.art_action)
-        else: psd.paste_file(self.art_layer, self.layout.file)
+                psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
+            else: psd.paste_file(self.art_layer, self.layout.filename, self.art_action)
+        else: psd.paste_file(self.art_layer, self.layout.filename)
 
         # Frame the artwork
         psd.frame_layer(self.art_layer, self.art_reference)
@@ -177,6 +541,21 @@ class BaseTemplate:
             if not visible:
                 layer.visible = False
         return layer
+
+    def basic_text_layers(self):
+        """
+        Set up the card's mana cost, name (scaled to not overlap with mana cost), expansion symbol, and type line
+        (scaled to not overlap with the expansion symbol).
+        """
+        pass
+
+    def rules_text_and_pt_layers(self):
+        """
+        Set up the card's rules text and power/toughness according to whether or not the card is a creature.
+        You're encouraged to override this method if a template extending this one doesn't have the option for
+        creating creature cards (e.g. miracles).
+        """
+        pass
 
     def enable_frame_layers(self):
         """
@@ -213,10 +592,14 @@ class BaseTemplate:
         """
         result = console.log_error(
             f"{msg}\nCheck [b]/tmp/error.txt[/b] for details.",
-            self.layout.name, self.template_file_name, e
+            self.layout.name, self.template_file, e
         )
         self.reset()
         return result
+
+    """
+    Execution Sequence
+    """
 
     def execute(self):
         """
@@ -225,41 +608,52 @@ class BaseTemplate:
         specified one. Don't override this method!
         """
         # Ensure maximum urgency
-        app.activeDocument.info.urgency = ps.Urgency.High
+        self.docref.info.urgency = ps.Urgency.High
 
         # Load in artwork and frame it
         try:
-            if not cfg.dev_mode: console.update("Importing artwork image...")
             self.load_artwork()
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
 
+        # Add collector info
+        try:
+            self.collector_info()
+        except Exception as e:
+            return self.raise_error("Unable to insert collector info!", e)
+
+        # Add text layers
+        try:
+            self.basic_text_layers()
+            self.rules_text_and_pt_layers()
+        except Exception as e:
+            return self.raise_error("Selecting text layers failed!", e)
+
         # Enable the layers we need
         try:
-            if not cfg.dev_mode: console.update("Enabling frame layers...")
             self.enable_frame_layers()
         except Exception as e:
             return self.raise_error("Enabling layers failed!", e)
 
         # Input and format each text layer
         try:
-            if not cfg.dev_mode: console.update("Formatting text...")
-            self.collector_info()
             for this_layer in self.tx_layers:
                 this_layer.execute()
         except Exception as e:
             return self.raise_error("Formatting text failed!", e)
 
         # Post text layer execution
-        self.post_text_layers()
+        try:
+            self.post_text_layers()
+        except Exception as e:
+            return self.raise_error("Post text formatting execution failed!", e)
 
         # Format file name
         file_name = self.get_file_name()
 
         # Manual edit step?
         if cfg.exit_early and not cfg.dev_mode:
-            console.wait("Manual editing enabled!\n"
-                         "When you're ready to save, click continue...")
+            console.wait("Manual editing enabled!\nWhen you're ready to save, click continue...")
             console.update("Saving document...\n")
 
         # Save the document
@@ -273,98 +667,44 @@ class BaseTemplate:
                     f"Error during save process!\nMake sure the file successfully saved.", e
                 )
 
-        # Post execution code, then reset document
-        self.post_execute()
+        # Post execution code
+        try:
+            self.post_execute()
+        except Exception as e:
+            return self.raise_error(
+                "Post execution step failed! Image saved but other issues may have occurred.", e
+            )
+
+        # Reset document, return success
         self.reset()
         return True
 
 
-# EXTEND THIS FOR MOST CORE FUNCTIONALITY
 class StarterTemplate (BaseTemplate):
     """
     A BaseTemplate with a few extra features. In most cases this will be your starter template
     you want to extend for the most important functionality.
     """
-    def __init__(self, layout):
-        super().__init__(layout)
-        try: self.is_creature = bool(self.layout.power and self.layout.toughness)
-        except AttributeError: self.is_creature = False
-        try: self.is_legendary = bool(self.layout.type_line.find("Legendary") >= 0)
-        except AttributeError: self.is_legendary = False
-        try: self.is_land = bool(self.layout.type_line.find("Land") >= 0)
-        except AttributeError: self.is_land = False
-        try: self.is_companion = bool("companion" in self.layout.frame_effects)
-        except AttributeError: self.is_companion = False
 
-    def basic_text_layers(self, text_and_icons):
-        """
-        Set up the card's mana cost, name (scaled to not overlap with mana cost), expansion symbol, and type line
-        (scaled to not overlap with the expansion symbol).
-        """
-        # Shift name if necessary (hiding the unused layer)
-        name = psd.getLayer(con.layers['NAME'], text_and_icons)
-        name_selected = name
-        try:
-            if self.name_shifted:
-                name_selected = psd.getLayer(con.layers['NAME_SHIFT'], text_and_icons)
-                name.visible, name_selected.visible = False, True
-        except AttributeError: pass
-
-        # Shift typeline if necessary
-        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
-        type_line_selected = type_line
-        try:
-            # Handle error if type line shift / color indicator doesn't exist
-            if self.type_line_shifted:
-                type_line_selected = psd.getLayer(con.layers['TYPE_LINE_SHIFT'], text_and_icons)
-                psd.getLayer(self.layout.pinlines, con.layers['COLOR_INDICATOR']).visible = True
-                type_line.visible, type_line_selected.visible = False, True
-        except AttributeError: pass
-
-        # Mana, expansion
-        mana_cost = psd.getLayer(con.layers['MANA_COST'], text_and_icons)
-        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+    def basic_text_layers(self):
 
         # Add text layers
-        self.tx_layers.extend([
+        self.text.extend([
             txt_layers.BasicFormattedTextField(
-                layer = mana_cost,
+                layer = self.text_layer_mana,
                 contents = self.layout.mana_cost
             ),
             txt_layers.ScaledTextField(
-                layer = name_selected,
+                layer = self.text_layer_name,
                 contents = self.layout.name,
-                reference = mana_cost
+                reference = self.text_layer_mana
+            ),
+            txt_layers.ScaledTextField(
+                layer = self.text_layer_type,
+                contents = self.layout.type_line,
+                reference = self.expansion_symbol
             )
         ])
-        if not hasattr(self, "expansion_disabled"):
-            self.tx_layers.append(
-                txt_layers.ExpansionSymbolField(
-                    layer = expansion_symbol,
-                    contents = self.layout.symbol,
-                    rarity = self.layout.rarity,
-                    reference = expansion_reference
-                )
-            )
-        self.tx_layers.append(
-            txt_layers.ScaledTextField(
-                layer = type_line_selected,
-                contents = self.layout.type_line,
-                reference = expansion_symbol
-            )
-        )
-
-    @staticmethod
-    def enable_hollow_crown(crown, pinlines, shadows=None):
-        """
-        Enable the hollow legendary crown for this card given layer groups for the crown and pinlines.
-        """
-        if not shadows: shadows = psd.getLayer(con.layers['SHADOWS'])
-        psd.enable_mask(crown)
-        psd.enable_mask(pinlines)
-        psd.enable_mask(shadows)
-        psd.getLayer(con.layers['HOLLOW_CROWN_SHADOW']).visible = True
 
 
 # EXTEND THIS FOR MOST NORMAL M15-STYLE TEMPLATES
@@ -379,115 +719,100 @@ class NormalTemplate (StarterTemplate):
 
         # If colorless, use fullart
         if not hasattr(self, 'art_reference'):
-            if self.layout.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
+            if self.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
             else: self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
 
-        # Name/typeline shifted?
-        try: self.name_shifted = bool(self.layout.transform_icon)
-        except AttributeError: self.name_shifted = False
-        try: self.type_line_shifted = bool(self.layout.color_indicator)
-        except AttributeError: self.type_line_shifted = False
-
-        # Do text layers
-        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
-        self.basic_text_layers(text_and_icons)
-        self.rules_text_and_pt_layers(text_and_icons)
-
-    def rules_text_and_pt_layers(self, text_and_icons):
-        """
-        Set up the card's rules text and power/toughness according to whether or not the card is a creature.
-        You're encouraged to override this method if a template extending this one doesn't have the option for
-        creating creature cards (e.g. miracles).
-        """
-        # Center the rules text if the card has no flavor text, text all in one line, and that line is short
-        if hasattr(self, 'center_rules'): is_centered = self.center_rules
-        else:
-            is_centered = bool(
-                len(self.layout.flavor_text) <= 1
-                and len(self.layout.oracle_text) <= 70
-                and "\n" not in self.layout.oracle_text
-            )
+    def rules_text_and_pt_layers(self):
 
         if self.is_creature:
-            # Creature card - set up creature layer for rules text and insert p/t
-            power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
-            rules_text = psd.getLayer(con.layers['RULES_TEXT_CREATURE'], text_and_icons)
-            rules_text.visible = True
-
-            # Add text layers
-            self.tx_layers.extend([
+            # Creature Rules Text + PT
+            self.text.extend([
                 txt_layers.TextField(
-                    layer = power_toughness,
-                    contents = str(self.layout.power) + "/" + str(self.layout.toughness)
+                    layer = self.text_layer_pt,
+                    contents = f"{self.layout.power}/{self.layout.toughness}"
                 ),
                 txt_layers.CreatureFormattedTextArea(
-                    layer = rules_text,
+                    layer = self.text_layer_rules,
                     contents = self.layout.oracle_text,
                     flavor = self.layout.flavor_text,
-                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                    pt_reference = psd.getLayer(con.layers['PT_REFERENCE'], text_and_icons),
-                    pt_top_reference = psd.getLayer(con.layers['PT_TOP_REFERENCE'], text_and_icons),
-                    centered = is_centered
+                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], self.text_layers),
+                    divider = psd.getLayer(con.layers['DIVIDER'], self.text_layers),
+                    pt_reference = psd.getLayer(con.layers['PT_REFERENCE'], self.text_layers),
+                    pt_top_reference = psd.getLayer(con.layers['PT_TOP_REFERENCE'], self.text_layers),
+                    centered = self.is_centered
                 )
             ])
-        else:
-            # Noncreature card - use the normal rules text layer and disable the p/t layer
-            psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons).visible = False
-            rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
 
-            # Add text layers
-            self.tx_layers.append(
+        else:
+            # Noncreature Rules Text
+            self.text.append(
                 txt_layers.FormattedTextArea(
-                    layer = rules_text,
+                    layer = self.text_layer_rules,
                     contents = self.layout.oracle_text,
                     flavor = self.layout.flavor_text,
-                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                    centered = is_centered
+                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], self.text_layers),
+                    divider = psd.getLayer(con.layers['DIVIDER'], self.text_layers),
+                    centered = self.is_centered
                 )
             )
+
+    def enable_crown(self):
+        """
+        Enable the Legendary crown
+        """
+        self.crown_layer.visible = True
+        psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
+        psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
+
+        # Nyx/Companion: Enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
+        if self.is_nyx or self.is_companion:
+            self.enable_hollow_crown()
+
+            # Enable companion texture
+            if self.is_companion and self.companion_layer:
+                self.companion_layer.visible = True
+
+    def enable_hollow_crown(self, shadows=None):
+        """
+        Enable the hollow legendary crown for this card given layer groups for the crown and pinlines.
+        """
+        if not shadows:
+            shadows = psd.getLayer(con.layers['SHADOWS'])
+        psd.enable_mask(self.crown_layer.parent)
+        psd.enable_mask(self.pinlines_layer.parent)
+        psd.enable_mask(shadows)
+        psd.getLayer(con.layers['HOLLOW_CROWN_SHADOW']).visible = True
 
     def enable_frame_layers(self):
 
-        # Twins and p/t box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        # Twins
+        if self.twins_layer:
+            self.twins_layer.visible = True
+
+        # PT Box
+        if self.is_creature and self.pt_layer:
+            self.pt_layer.visible = True
 
         # Pinlines
-        if self.is_land: pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
-        else: pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
+        if self.pinlines_layer:
+            self.pinlines_layer.visible = True
+
+        # Color Indicator
+        if self.type_line_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
 
         # Background
-        if self.layout.is_nyx:
-            try: psd.getLayer(self.layout.background, con.layers['NYX']).visible = True
-            except Exception as e:
-                # Template doesn't have Nyx layers
-                console.log_exception(e)
-                psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
-        else: psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+        if self.background_layer:
+            self.background_layer.visible = True
 
         # Legendary crown
-        if self.is_legendary:
-            crown = psd.getLayerSet(con.layers['LEGENDARY_CROWN'])
-            psd.getLayer(self.layout.pinlines, crown).visible = True
-            psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
-            psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
-
-            # Nyx/Companion: Enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
-            if self.layout.is_nyx or self.is_companion: self.enable_hollow_crown(crown, pinlines)
-
-        # Enable companion texture
-        if self.is_companion:
-            try:  # Does this template have companion layers?
-                psd.getLayer(self.layout.pinlines, con.layers['COMPANION']).visible = True
-            except Exception as e: console.log_exception(e)
+        if self.is_legendary and self.crown_layer:
+            self.enable_crown()
 
 
 class NormalClassicTemplate (StarterTemplate):
     """
-    A template for 7th Edition frame. Each frame is flattened into its own singular layer.
+    A template for 7th Edition frame. Lacks many of the Normal Template features.
     """
     template_file_name = "normal-classic.psd"
     template_suffix = "Classic"
@@ -496,55 +821,53 @@ class NormalClassicTemplate (StarterTemplate):
         cfg.real_collector = False
         super().__init__(layout)
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def text_layer_rules(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['RULES_TEXT'], self.text_layers)
 
-        # Hybrid mana too big
-        if len(self.layout.background) == 2:
-            psd.getLayer(con.layers['MANA_COST'], text_and_icons).translate(0, -5)
+    def basic_text_layers(self):
+        super().basic_text_layers()
+
+        # Move mana layer down for hybrid mana
+        if len(self.background) == 2:
+            self.text_layer_mana.translate(0, -5)
 
         # Text reference and rules text
-        if self.is_land: reference_layer = psd.getLayer(con.layers['TEXTBOX_REFERENCE_LAND'], text_and_icons)
-        else: reference_layer = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons)
-        rules_text = psd.getLayer(con.layers['RULES_TEXT'], text_and_icons)
-        is_centered = bool(
-            len(self.layout.flavor_text) <= 1
-            and len(self.layout.oracle_text) <= 70
-            and self.layout.oracle_text.find("\n") < 0
-        )
+        if self.is_land:
+            reference_layer = psd.getLayer(con.layers['TEXTBOX_REFERENCE_LAND'], self.text_layers)
+        else:
+            reference_layer = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], self.text_layers)
 
-        # Add to text layers
-        self.tx_layers.append(
+        # Add rules text
+        self.text.append(
             txt_layers.FormattedTextArea(
-                layer = rules_text,
+                layer = self.text_layer_rules,
                 contents = self.layout.oracle_text,
                 flavor = self.layout.flavor_text,
-                centered = is_centered,
+                centered = self.is_centered,
                 reference = reference_layer,
-                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
+                divider = psd.getLayer(con.layers['DIVIDER'], self.text_layers)
             )
         )
 
-        # Add creature text layers
-        power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
+        # Add Power / Toughness
         if self.is_creature:
-            self.tx_layers.append(
+            self.text.append(
                 txt_layers.TextField(
-                    layer = power_toughness,
-                    contents = str(self.layout.power) + "/" + str(self.layout.toughness)
+                    layer = self.text_layer_pt,
+                    contents = f"{self.layout.power}/{self.layout.toughness}"
                 )
             )
-        else: power_toughness.visible = False
+        else:
+            self.text_layer_pt.visible = False
 
     def enable_frame_layers(self):
 
         # Simple one image background, Land or Nonland
-        if self.is_land: psd.getLayer(self.layout.pinlines, con.layers['LAND']).visible = True
-        else: psd.getLayer(self.layout.background, con.layers['NONLAND']).visible = True
-
-        # Basic text layers
-        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
-        self.basic_text_layers(text_and_icons)
+        if self.is_land:
+            psd.getLayer(self.pinlines, con.layers['LAND']).visible = True
+        else:
+            psd.getLayer(self.background, con.layers['NONLAND']).visible = True
 
 
 """
@@ -575,9 +898,8 @@ class NormalFullartTemplate (NormalTemplate):
 
 class WomensDayTemplate (NormalTemplate):
     """
-    The showcase template first used on the Women's Day Secret Lair. The layer structure of this template
-    and NormalTemplate are similar, but this template doesn't have any background layers, and a layer mask
-    on the pinlines group needs to be enabled when the card is legendary.
+    The showcase template first used on the Women's Day Secret Lair. Doesn't have any background layers, needs a
+    layer mask on the pinlines group when card is legendary, and doesn't support companions.
     """
     template_file_name = "womensday.psd"
     template_suffix = "Showcase"
@@ -587,30 +909,29 @@ class WomensDayTemplate (NormalTemplate):
         cfg.remove_reminder = True
         super().__init__(layout)
 
-    def enable_frame_layers(self):
+    @property
+    def is_nyx(self) -> bool:
+        return False
 
-        # Twins and pt box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        if self.is_creature:
-            psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+    @property
+    def is_companion(self) -> bool:
+        return False
 
-        # Pinlines
-        pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        if self.is_land:
-            pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
+    @property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
 
-        # legendary crown
-        if self.is_legendary:
-            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
-            psd.enable_mask(pinlines)
+    @cached_property
+    def crown_layer(self) -> Optional[ArtLayer]:
+        # On first access, enable pinlines mask
+        psd.enable_mask(self.pinlines_layer.parent)
+        return psd.getLayer(self.pinlines, con.layers['LEGENDARY_CROWN'])
 
 
 class StargazingTemplate (NormalTemplate):
     """
     Stargazing template from Theros: Beyond Death showcase cards. The layer structure of this template and
-    NormalTemplate are largely identical, but this template doesn't have normal background textures,
-    only the Nyxtouched ones.
+    NormalTemplate are largely identical, but this template only has Nyx backgrounds and no companion layers.
     """
     template_file_name = "stargazing.psd"
     template_suffix = "Stargazing"
@@ -618,14 +939,24 @@ class StargazingTemplate (NormalTemplate):
     def __init__(self, layout):
         # Strip out reminder text
         cfg.remove_reminder = True
-        layout.is_nyx = True
         super().__init__(layout)
+
+    @property
+    def is_nyx(self) -> bool:
+        return True
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @property
+    def is_land(self) -> bool:
+        return False
 
 
 class InventionTemplate (NormalTemplate):
     """
-    Kaladesh Invention template. This template has stripped-down layers compared to NormalTemplate
-    but is otherwise similar.
+    Kaladesh Invention template. No special layers for lands, colorless, companion, or nyx.
     """
     template_file_name = "masterpiece.psd"
     template_suffix = "Masterpiece"
@@ -633,134 +964,118 @@ class InventionTemplate (NormalTemplate):
     def __init__(self, layout):
         # Mandatory settings
         cfg.remove_reminder = True
-        self.is_colorless = False
-        layout.is_nyx = False
-
-        # Rendering as silver or no?
-        if layout.twins != "Silver":
-            layout.twins = "Bronze"
-            layout.background = "Bronze"
-
         super().__init__(layout)
 
-    def enable_frame_layers(self):
+    @property
+    def twins(self) -> str:
+        return "Bronze"
 
-        # Twins and p/t box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+    @property
+    def background(self) -> str:
+        return "Bronze"
 
-        # Pinlines / background
-        pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
-        psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+    @property
+    def is_nyx(self) -> bool:
+        return False
 
-        # legendary crown
-        if self.is_legendary:
+    @property
+    def is_colorless(self) -> bool:
+        return False
 
-            crown = psd.getLayerSet(con.layers['LEGENDARY_CROWN'])
-            psd.getLayer(self.layout.pinlines, crown).visible = True
-            psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
-            psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
-            super().enable_hollow_crown(crown, pinlines)
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @property
+    def is_land(self) -> bool:
+        return False
 
 
 class InventionSilverTemplate (InventionTemplate):
     """
     Kaladesh Invention template, Silver choice.
     """
-    def __init__(self, layout):
-        layout.twins = "Silver"
-        layout.background = "Silver"
-        super().__init__(layout)
+
+    @property
+    def twins(self) -> str:
+        return "Silver"
+
+    @property
+    def background(self) -> str:
+        return "Silver"
 
 
 class ExpeditionTemplate (NormalTemplate):
     """
-    Zendikar Rising Expedition template. Doesn't have a mana cost layer, support creature cards, masks pinlines for
-    legendary cards like WomensDayTemplate, and has a single static background layer.
+    Zendikar Rising Expedition template. Masks pinlines for legendary cards, has a single static background layer,
+    doesn't support color indicator, companion, or nyx layers.
     """
     template_file_name = "znrexp.psd"
     template_suffix = "Expedition"
 
     def __init__(self, layout):
-        # strip out reminder text
-        if not cfg.remove_reminder:
-            layout.oracle_text = ft.strip_reminder_text(layout.oracle_text)
+        # Strip reminder text
+        cfg.remove_reminder = True
         super().__init__(layout)
 
-    def rules_text_and_pt_layers(self, text_and_icons):
+    @cached_property
+    def text_layer_rules(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], self.text_layers)
 
-        if self.is_creature:
-            # Creature card - set up creature layer for rules text and insert p/t
-            power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
-            self.tx_layers.append(
-                txt_layers.TextField(
-                    layer = power_toughness,
-                    contents = str(self.layout.power) + "/" + str(self.layout.toughness)
-                )
-            )
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
 
-        # Expedition template doesn't need to use creature text positioning
-        rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
-        self.tx_layers.append(
-            txt_layers.FormattedTextArea(
-                layer = rules_text,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                centered = False
-            ),
-        )
+    @cached_property
+    def color_indicator_layer(self) -> Optional[ArtLayer]:
+        return None
 
-    def enable_frame_layers(self):
+    @property
+    def is_land(self) -> bool:
+        return False
 
-        # twins and pt box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
-
-        # pinlines
-        pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
-
-        if self.is_legendary:
-            # legendary crown
-            psd.enable_mask(pinlines)
-            psd.getLayer(self.layout.pinlines, con.layers['LEGENDARY_CROWN']).visible = True
-            psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
-            psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
+    def enable_crown(self):
+        # legendary crown
+        psd.enable_mask(self.pinlines_layer.parent)
+        self.crown_layer.visible = True
+        psd.getLayer(con.layers['NORMAL_BORDER'], con.layers['BORDER']).visible = False
+        psd.getLayer(con.layers['LEGENDARY_BORDER'], con.layers['BORDER']).visible = True
 
 
 class SnowTemplate (NormalTemplate):
     """
     A snow template with textures from Kaldheim's snow cards.
-    Identical to NormalTemplate.
+    Doesn't support Nyx or Companion layers.
     """
-    template_file_name = "snow"
+    template_file_name = "snow.psd"
     template_suffix = "Snow"
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
 
 
 class MiracleTemplate (NormalTemplate):
     """
-    A template for miracle cards. The layer structure of this template and NormalTemplate are
-    close to identical, but this template is stripped down to only include mono-colored layers
-    and no land layers or other special layers, but no miracle cards exist that require these layers.
+    A template for miracle cards. Doesn't support creatures, Nyx, or Companion.
     """
-    template_file_name = "miracle"
+    template_file_name = "miracle.psd"
 
-    def rules_text_and_pt_layers(self, text_and_icons):
-        # overriding this because the miracle template doesn't have power/toughness layers
-        rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
-        self.tx_layers.append(
-            txt_layers.FormattedTextArea(
-                layer = rules_text,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                centered = False
-            )
-        )
+    @property
+    def is_creature(self) -> bool:
+        return False
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
 
 
 """
@@ -772,159 +1087,97 @@ class TransformBackTemplate (NormalTemplate):
     """
     Template for the back faces of transform cards.
     """
-    template_file_name = "tf-back"
+    template_file_name = "tf-back.psd"
     dfc_layer_group = con.layers['TF_BACK']
+
+    @cached_property
+    def transform_icon(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.layout.transform_icon, psd.getLayerSet(
+            self.dfc_layer_group, con.layers['TEXT_AND_ICONS'])
+        )
 
     def enable_frame_layers(self):
         # set transform icon
-        transform_group = psd.getLayerSet(self.dfc_layer_group, con.layers['TEXT_AND_ICONS'])
-        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
+        self.transform_icon.visible = True
         super().enable_frame_layers()
 
-    def basic_text_layers(self, txt):
+    def basic_text_layers(self):
         # For eldrazi card, set the color of the rules text, type line, and power/toughness to black
         if self.layout.transform_icon == con.layers['MOON_ELDRAZI_DFC']:
-            # Name
-            if self.name_shifted: psd.getLayer(con.layers['NAME_SHIFT'], txt).color = psd.rgb_black()
-            else: psd.getLayer(con.layers['NAME'], txt).color = psd.rgb_black()
-
-            # Type line
-            if self.type_line_shifted: psd.getLayer(con.layers['TYPE_LINE_SHIFT'], txt).color = psd.rgb_black()
-            else: psd.getLayer(con.layers['TYPE_LINE'], txt).color = psd.rgb_black()
-
-            # PT
-            psd.getLayer(con.layers['POWER_TOUGHNESS'], txt).color = psd.rgb_black()
-
-        super().basic_text_layers(txt)
+            self.text_layer_name.color = psd.rgb_black()
+            self.text_layer_type.color = psd.rgb_black()
+            self.text_layer_pt.color = psd.rgb_black()
+        super().basic_text_layers()
 
 
 class TransformFrontTemplate (TransformBackTemplate):
     """
     Template for the front faces of transform cards.
     """
-    template_file_name = "tf-front"
+    template_file_name = "tf-front.psd"
     dfc_layer_group = con.layers['TF_FRONT']
 
-    def __init__(self, layout):
-        try: self.other_face_is_creature = bool(layout.other_face_power and layout.other_face_toughness)
-        except AttributeError: self.other_face_is_creature = False
-        super().__init__(layout)
-
-    def rules_text_and_pt_layers(self, text_and_icons):
-
-        # if creature on back face, set flipside power/toughness
+    @cached_property
+    def text_layer_rules(self) -> Optional[ArtLayer]:
+        if self.is_creature:
+            if self.other_face_is_creature:
+                return psd.getLayer(con.layers['RULES_TEXT_CREATURE_FLIP'], self.text_layers)
+            return psd.getLayer(con.layers['RULES_TEXT_CREATURE'], self.text_layers)
+        self.text_layer_pt.visible = False
         if self.other_face_is_creature:
-            flipside_pt = psd.getLayer(con.layers['FLIPSIDE_POWER_TOUGHNESS'], con.layers['TEXT_AND_ICONS'])
-            self.tx_layers.append(
+            return psd.getLayer(con.layers['RULES_TEXT_NONCREATURE_FLIP'], self.text_layers)
+        return psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], self.text_layers)
+
+    def rules_text_and_pt_layers(self):
+
+        # If flipside is creature, set flipside power/toughness
+        if self.other_face_is_creature:
+            self.text.append(
                 txt_layers.TextField(
-                    layer=flipside_pt,
+                    layer=psd.getLayer(con.layers['FLIPSIDE_POWER_TOUGHNESS'], con.layers['TEXT_AND_ICONS']),
                     contents=str(self.layout.other_face_power) + "/" + str(self.layout.other_face_toughness)
                 )
             )
 
-        # Is centered?
-        is_centered = bool(
-            len(self.layout.flavor_text) <= 1
-            and len(self.layout.oracle_text) <= 70
-            and "\n" in self.layout.oracle_text
-        )
-
-        # PT and decide which text layers to use
-        power_toughness = psd.getLayer(con.layers['POWER_TOUGHNESS'], text_and_icons)
-        if self.is_creature:
-
-            # Include cutout for other-face PT?
-            if self.other_face_is_creature:
-                rules_text = psd.getLayer(con.layers['RULES_TEXT_CREATURE_FLIP'], text_and_icons)
-            else: rules_text = psd.getLayer(con.layers['RULES_TEXT_CREATURE'], text_and_icons)
-
-            self.tx_layers.extend([
-                txt_layers.TextField(
-                    layer = power_toughness,
-                    contents = str(self.layout.power) + "/" + str(self.layout.toughness)
-                ),
-                txt_layers.CreatureFormattedTextArea(
-                    layer = rules_text,
-                    contents = self.layout.oracle_text,
-                    flavor = self.layout.flavor_text,
-                    centered = is_centered,
-                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons),
-                    pt_reference = psd.getLayer(con.layers['PT_REFERENCE'], text_and_icons),
-                    pt_top_reference = psd.getLayer(con.layers['PT_TOP_REFERENCE'], text_and_icons)
-                )
-            ])
-
-        else:
-
-            # Include cutout for other-face PT?
-            if self.other_face_is_creature:
-                rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE_FLIP'], text_and_icons)
-            else: rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
-
-            self.tx_layers.append(
-                txt_layers.FormattedTextArea(
-                    layer = rules_text,
-                    contents = self.layout.oracle_text,
-                    flavor = self.layout.flavor_text,
-                    centered = is_centered,
-                    reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                    divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
-                )
-            )
-            power_toughness.visible = False
+        super().rules_text_and_pt_layers()
 
 
 class IxalanTemplate (NormalTemplate):
     """
     Template for the back faces of transforming cards from Ixalan block.
+    Typeline doesn't scale, no mana cost layer, doesn't support creatures, frame only has background.
+    Expansion symbol is centered on this template.
     """
     template_file_name = "ixalan"
 
-    def basic_text_layers(self, text_and_icons):
-        # typeline doesn't scale down with expansion symbol, and no mana cost layer
-        name = psd.getLayer(con.layers['NAME'], text_and_icons)
-        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
+    @property
+    def is_creature(self) -> bool:
+        return False
 
-        # Expansion symbol
-        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+    @property
+    def name_shifted(self) -> bool:
+        # Since transform icon is present, need to disable name_shifted
+        return False
+
+    def basic_text_layers(self):
 
         # Add to text layers
-        self.tx_layers.extend([
+        self.text.extend([
             txt_layers.TextField(
-                layer = name,
+                layer = self.text_layer_name,
                 contents = self.layout.name
             ),
-            txt_layers.ExpansionSymbolField(
-                layer = expansion_symbol,
-                contents = self.layout.symbol,
-                rarity = self.layout.rarity,
-                reference = expansion_reference,
-                centered = True,
-            ),
             txt_layers.TextField(
-                layer = type_line,
+                layer = self.text_layer_type,
                 contents = self.layout.type_line
             )
         ])
 
-    def rules_text_and_pt_layers(self, text_and_icons):
-        # Overriding this because the ixalan template doesn't have power/toughness layers
-        rules_text = psd.getLayer(con.layers['RULES_TEXT_NONCREATURE'], text_and_icons)
-        self.tx_layers.append(
-            txt_layers.FormattedTextArea(
-                layer = rules_text,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                centered = False,
-                reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE'], text_and_icons),
-                divider = psd.getLayer(con.layers['DIVIDER'], text_and_icons)
-            )
-        )
-
     def enable_frame_layers(self):
-        psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+        self.background_layer.visible = True
+
+    def create_expansion_symbol(self, centered=False):
+        super().create_expansion_symbol(True)
 
 
 class MDFCBackTemplate (NormalTemplate):
@@ -934,30 +1187,40 @@ class MDFCBackTemplate (NormalTemplate):
     template_file_name = "mdfc-back"
     dfc_layer_group = con.layers['MDFC_BACK']
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def mdfc_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(self.dfc_layer_group, self.text_layers)
 
-        # set visibility of top & bottom mdfc elements and set text of left & right text
-        mdfc_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        mdfc_group_top = psd.getLayerSet(con.layers['TOP'], mdfc_group)
-        mdfc_group_bottom = psd.getLayerSet(con.layers['BOTTOM'], mdfc_group)
-        psd.getLayer(self.layout.twins, mdfc_group_top).visible = True
-        psd.getLayer(self.layout.other_face_twins, mdfc_group_bottom).visible = True
-        left = psd.getLayer(con.layers['LEFT'], mdfc_group)
-        right = psd.getLayer(con.layers['RIGHT'], mdfc_group)
+    @cached_property
+    def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['LEFT'], self.mdfc_group)
+
+    @cached_property
+    def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['RIGHT'], self.mdfc_group)
+
+    def basic_text_layers(self):
+        super().basic_text_layers()
 
         # Add mdfc text layers
-        self.tx_layers.extend([
+        self.text.extend([
             txt_layers.BasicFormattedTextField(
-                layer = right,
+                layer = self.text_layer_mdfc_right,
                 contents = self.layout.other_face_right
             ),
             txt_layers.ScaledTextField(
-                layer = left,
+                layer = self.text_layer_mdfc_left,
                 contents = self.layout.other_face_left,
-                reference = right,
+                reference = self.text_layer_mdfc_right,
             )
         ])
+
+    def enable_frame_layers(self):
+        psd.getLayer(self.twins,
+                     psd.getLayerSet(con.layers['TOP'], self.mdfc_group)).visible = True
+        psd.getLayer(self.layout.other_face_twins,
+                     psd.getLayerSet(con.layers['BOTTOM'], self.mdfc_group)).visible = True
+        super().enable_frame_layers()
 
 
 class MDFCFrontTemplate (MDFCBackTemplate):
@@ -975,10 +1238,10 @@ Templates similar to NormalTemplate with new features
 
 class MutateTemplate (NormalTemplate):
     """
-     * A template for Ikoria's mutate cards.  The layer structure of this template and NormalTemplate are
-     close to identical, but this template has a couple more text and reference layers for the top half of
-     the textbox. It also doesn't include layers for Nyx backgrounds or Companion crowns, but no mutate
-     cards exist that would require these layers.
+    A template for Ikoria's mutate cards.  The layer structure of this template and NormalTemplate are
+    close to identical, but this template has a couple more text and reference layers for the top half of
+    the textbox. It also doesn't include layers for Nyx backgrounds or Companion crowns, but no mutate
+    cards exist that would require these layers.
     """
     template_file_name = "mutate.psd"
 
@@ -990,18 +1253,21 @@ class MutateTemplate (NormalTemplate):
         layout.oracle_text = "\n".join(split_rules_text[1:len(split_rules_text)])
         super().__init__(layout)
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def text_layer_mutate(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['MUTATE'], self.text_layers)
+
+    def basic_text_layers(self):
+        super().basic_text_layers()
 
         # Add mutate text
-        mutate = psd.getLayer(con.layers['MUTATE'], text_and_icons)
-        self.tx_layers.append(
+        self.text.append(
             txt_layers.FormattedTextArea(
-                layer = mutate,
+                layer = self.text_layer_mutate,
                 contents = self.layout.mutate_text,
                 flavor = self.layout.flavor_text,
                 centered = False,
-                reference = psd.getLayer(con.layers['MUTATE_REFERENCE'], text_and_icons),
+                reference = psd.getLayer(con.layers['MUTATE_REFERENCE'], self.text_layers),
             )
         )
 
@@ -1015,35 +1281,30 @@ class AdventureTemplate (NormalTemplate):
     """
     template_file_name = "adventure"
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
-
-        # Adventure name, mana cost, type line, and rules text fields to self.tx_layers
-        name = psd.getLayer(con.layers['NAME_ADVENTURE'], text_and_icons)
-        mana_cost = psd.getLayer(con.layers['MANA_COST_ADVENTURE'], text_and_icons)
-        rules_text = psd.getLayer(con.layers['RULES_TEXT_ADVENTURE'], text_and_icons)
-        type_line = psd.getLayer(con.layers['TYPE_LINE_ADVENTURE'], text_and_icons)
+    def basic_text_layers(self):
+        super().basic_text_layers()
 
         # Add adventure text layers
-        self.tx_layers.extend([
+        mana_cost = psd.getLayer(con.layers['MANA_COST_ADVENTURE'], self.text_layers)
+        self.text.extend([
             txt_layers.BasicFormattedTextField(
                 layer = mana_cost,
                 contents = self.layout.adventure['mana_cost']
             ),
             txt_layers.ScaledTextField(
-                layer = name,
+                layer = psd.getLayer(con.layers['NAME_ADVENTURE'], self.text_layers),
                 contents = self.layout.adventure['name'],
                 reference = mana_cost,
             ),
             txt_layers.FormattedTextArea(
-                layer = rules_text,
+                layer = psd.getLayer(con.layers['RULES_TEXT_ADVENTURE'], self.text_layers),
                 contents = self.layout.adventure['oracle_text'],
                 flavor = "",
                 centered = False,
-                reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE_ADVENTURE'], text_and_icons),
+                reference = psd.getLayer(con.layers['TEXTBOX_REFERENCE_ADVENTURE'], self.text_layers),
             ),
             txt_layers.TextField(
-                layer = type_line,
+                layer = psd.getLayer(con.layers['TYPE_LINE_ADVENTURE'], self.text_layers),
                 contents = self.layout.adventure['type_line']
             )
         ])
@@ -1052,6 +1313,7 @@ class AdventureTemplate (NormalTemplate):
 class LevelerTemplate (NormalTemplate):
     """
     Leveler template. No layers are scaled or positioned vertically so manual intervention is required.
+    Doesn't support companion, nyx, or lands.
     """
     template_file_name = "leveler"
 
@@ -1059,11 +1321,11 @@ class LevelerTemplate (NormalTemplate):
         cfg.exit_early = True
         super().__init__(layout)
 
-    def rules_text_and_pt_layers(self, text_and_icons):
+    def rules_text_and_pt_layers(self):
 
         # Overwrite to add level abilities
-        leveler_text_group = psd.getLayerSet("Leveler Text", text_and_icons)
-        self.tx_layers.extend([
+        leveler_text_group = psd.getLayerSet("Leveler Text", self.text_layers)
+        self.text.extend([
             txt_layers.BasicFormattedTextField(
                 layer = psd.getLayer("Rules Text - Level Up", leveler_text_group),
                 contents = self.layout.level_up_text
@@ -1098,20 +1360,27 @@ class LevelerTemplate (NormalTemplate):
             )
         ])
 
-    def enable_frame_layers(self):
+    @property
+    def is_land(self) -> bool:
+        return False
 
-        # Twins and PT box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        psd.getLayer(self.layout.twins, con.layers['PT_AND_LEVEL_BOXES']).visible = True
+    @property
+    def is_nyx(self) -> bool:
+        return False
 
-        # Pinlines and background
-        psd.getLayer(self.layout.pinlines, con.layers['PINLINES_TEXTBOX']).visible = True
-        psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @cached_property
+    def pt_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.twins, con.layers['PT_AND_LEVEL_BOXES'])
 
 
 class SagaTemplate (NormalTemplate):
     """
     Saga template. No layers are scaled or positioned vertically so manual intervention is required.
+    Doesn't support legendary crown, creatures, nyx, or companion.
     """
     template_file_name = "saga"
 
@@ -1120,19 +1389,39 @@ class SagaTemplate (NormalTemplate):
         super().__init__(layout)
 
         # Paste scryfall scan
-        app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TWINS'])
+        self.active_layer = psd.getLayerSet(con.layers['TWINS'])
         self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']))
 
-    def rules_text_and_pt_layers(self, text_and_icons):
+    @property
+    def is_legendary(self) -> bool:
+        return False
+
+    @property
+    def is_creature(self) -> bool:
+        return False
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.background, con.layers['TEXTBOX'])
+
+    def rules_text_and_pt_layers(self):
 
         # Iterate through each saga stage and add line to text layers
-        saga_text_group = psd.getLayerSet("Saga", text_and_icons)
+        saga_text_group = psd.getLayerSet("Saga", self.text_layers)
         stages = ["I", "II", "III", "IV"]
 
         for i, line in enumerate(self.layout.saga_lines):
             stage_group = psd.getLayerSet(stages[i], saga_text_group)
             stage_group.visible = True
-            self.tx_layers.append(
+            self.text.append(
                 txt_layers.BasicFormattedTextField(
                     layer = psd.getLayer("Text", stage_group),
                     contents = line
@@ -1140,10 +1429,8 @@ class SagaTemplate (NormalTemplate):
             )
 
     def enable_frame_layers(self):
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = True
-        psd.getLayer(self.layout.pinlines, con.layers['PINLINES_AND_SAGA_STRIPE']).visible = True
-        psd.getLayer(self.layout.background, con.layers['TEXTBOX']).visible = True
-        psd.getLayer(self.layout.background, con.layers['BACKGROUND']).visible = True
+        super().enable_frame_layers()
+        psd.getLayer(self.pinlines, con.layers['PINLINES_AND_SAGA_STRIPE']).visible = True
 
 
 """
@@ -1158,62 +1445,115 @@ class PlaneswalkerTemplate (StarterTemplate):
     template_file_name = "pw.psd"
 
     def __init__(self, layout):
+
+        # Settable Properties
+        self._pw_group = "pw-3"
+        self._ability_layers = []
+        self._shields = []
+        self._colons = []
+
         cfg.exit_early = True
         super().__init__(layout)
 
         # Which art frame?
-        if self.layout.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
-        else: self.art_reference = psd.getLayer(con.layers['PLANESWALKER_ART_FRAME'])
+        self.art_reference = psd.getLayer(
+            con.layers['FULL_ART_FRAME']
+        ) if self.is_colorless else psd.getLayer(
+            con.layers['PLANESWALKER_ART_FRAME']
+        )
 
-    def enable_frame_layers(self):
+    """
+    PROPERTIES
+    """
 
-        # Important layers for later positioning
-        self.ability_layers = []
-        self.text_layers = []
-        self.shields = []
-        self.colons = []
-
-        # Split abilities by newline
-        raw_abilities = self.layout.oracle_text.split("\n")
-        ability_array = []
-
+    @cached_property
+    def abilities(self) -> list:
         # Fix abilities that include a newline
-        total = 0
-        for i, ab in enumerate(raw_abilities):
-            if ab[0] in ("-", "+", "0") or i == 0:
-                ability_array.append(ab)
-                total += 1
-                continue
-            elif ability_array[i-1][0] not in ("-", "+", "0"):
-                # Combine consecutive static lines together, except cases like Gideon Blackblade
-                if len(raw_abilities) == 4 and ability_array[i-1].count(" ") > 2 and ab.count(" ") > 2:
-                    total += 1
-                ability_array[i-1] += f"\n{ab}"
-            else:
-                ability_array.append(ab)
-                total += 1
-                continue
-        if total >= 4: pw_group = "pw-4"
-        else: pw_group = "pw-3"
+        return re.findall(r"(^[^:]*$|^.*:.*$)", self.layout.oracle_text, re.MULTILINE)
 
-        # Layer group for most elements based on number of abilities
-        self.group = psd.getLayerSet(pw_group)
-        self.group.visible = True
+    """
+    TEXT LAYERS
+    """
 
-        # Basic text layers
-        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group)
-        self.basic_text_layers(text_and_icons)
+    @cached_property
+    def text_layers(self) -> LayerSet:
+        return psd.getLayerSet(con.layers['TEXT_AND_ICONS'], self.group)
 
-        # Reference layers
-        self.ref = psd.getLayer(con.layers["TEXTBOX_REFERENCE"], text_and_icons)
-        self.top_ref = psd.getLayer(con.layers["PW_TOP_REFERENCE"], text_and_icons)
-        self.adj_ref = psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], text_and_icons)
+    @cached_property
+    def ref(self) -> ArtLayer:
+        return psd.getLayer(con.layers["TEXTBOX_REFERENCE"], self.text_layers)
 
-        # Planeswalker ability layers
-        self.loyalty_group = psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
+    @cached_property
+    def top_ref(self) -> ArtLayer:
+        return psd.getLayer(con.layers["PW_TOP_REFERENCE"], self.text_layers)
+
+    @cached_property
+    def adj_ref(self) -> ArtLayer:
+        return psd.getLayer(con.layers["PW_ADJUSTMENT_REFERENCE"], self.text_layers)
+
+    """
+    LAYERS
+    """
+
+    @cached_property
+    def group(self) -> LayerSet:
+        if self.layout.name in ("Gideon Blackblade", "Comet, Stellar Pup"):
+            group = psd.getLayerSet("pw-4")
+        elif len(self.abilities) <= 3:
+            group = psd.getLayerSet("pw-3")
+        else:
+            group = psd.getLayerSet("pw-4")
+        group.visible = True
+        return group
+
+    @cached_property
+    def loyalty_group(self) -> LayerSet:
+        return psd.getLayerSet(con.layers['LOYALTY_GRAPHICS'])
+
+    @property
+    def ability_layers(self) -> list[ArtLayer]:
+        return self._ability_layers
+
+    @ability_layers.setter
+    def ability_layers(self, value):
+        self._ability_layers = value
+
+    @property
+    def colons(self) -> list:
+        return self._colons
+
+    @colons.setter
+    def colons(self, value):
+        self._colons = value
+
+    @property
+    def shields(self) -> list:
+        return self._shields
+
+    @shields.setter
+    def shields(self, value):
+        self._shields = value
+
+    @cached_property
+    def twins_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.twins, psd.getLayerSet(con.layers['TWINS'], self.group))
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group))
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group))
+
+    @cached_property
+    def color_indicator_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.pinlines, [self.group, con.layers['COLOR_INDICATOR']])
+
+    def basic_text_layers(self):
 
         # Iterate through abilities to add text layers
-        for i, ability in enumerate(ability_array):
+        for i, ability in enumerate(self.abilities):
 
             # Get the colon index, determine if this is static or activated ability
             colon_index = ability.find(": ")
@@ -1223,29 +1563,28 @@ class PlaneswalkerTemplate (StarterTemplate):
                 loyalty_graphic = psd.getLayerSet(ability[0], self.loyalty_group)
                 psd.getLayer(con.layers['COST'], loyalty_graphic).textItem.contents = ability[0:int(colon_index)]
                 ability_layer = psd.getLayer(con.layers['ABILITY_TEXT'], self.loyalty_group).duplicate()
-                shield = loyalty_graphic.duplicate()
-                shield.visible = True
 
                 # Add text layer, shields, and colons to list
                 self.ability_layers.append(ability_layer)
-                self.text_layers.append(ability_layer)
-                self.shields.append(shield)
+                self.shields.append(loyalty_graphic.duplicate())
                 self.colons.append(psd.getLayer(con.layers['COLON'], self.loyalty_group).duplicate())
-                ability = ability[int(colon_index) + 2:]
+                ability = ability[colon_index + 2:]
 
             else:
 
                 # Hide default ability, switch to static
                 ability_layer = psd.getLayer(con.layers['STATIC_TEXT'], self.loyalty_group).duplicate()
-                self.text_layers.append(ability_layer)
+                self.ability_layers.append(ability_layer)
+                self.shields.append(None)
+                self.colons.append(None)
 
                 # Is this a double line ability?
                 if "\n" in ability:
-                    app.activeDocument.activeLayer = ability_layer
+                    self.active_layer = ability_layer
                     ft.space_after_paragraph(2)
 
             # Add ability text
-            self.tx_layers.append(
+            self.text.append(
                 txt_layers.BasicFormattedTextField(
                     layer=ability_layer,
                     contents=ability
@@ -1257,21 +1596,24 @@ class PlaneswalkerTemplate (StarterTemplate):
             con.layers['TEXT'], [self.loyalty_group, con.layers['STARTING_LOYALTY']]
         ).textItem.contents = self.layout.loyalty
 
+        # Call to super for name, type, etc
+        super().basic_text_layers()
+
+    def enable_frame_layers(self):
         # Paste scryfall scan
-        app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'], self.group)
-        self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), visible=False)
-        app.activeDocument.activeLayer = self.art_layer
+        self.active_layer = psd.getLayerSet(con.layers['TEXTBOX'], self.group)
+        self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), False, False)
+        self.active_layer = self.art_layer
 
-        # Twins, pinlines, background
-        psd.getLayer(self.layout.twins, psd.getLayerSet(con.layers['TWINS'], self.group)).visible = True
-        psd.getLayer(self.layout.pinlines, psd.getLayerSet(con.layers['PINLINES'], self.group)).visible = True
-        self.enable_background()
-
-    def enable_background(self):
-        """
-        Enable card background
-        """
-        psd.getLayer(self.layout.background, psd.getLayerSet(con.layers['BACKGROUND'], self.group)).visible = True
+        # Enable twins, pinlines, background, color indicator
+        if self.twins_layer:
+            self.twins_layer.visible = True
+        if self.pinlines_layer:
+            self.pinlines_layer.visible = True
+        if self.background_layer:
+            self.background_layer.visible = True
+        if self.type_line_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
 
     def post_text_layers(self):
         """
@@ -1283,8 +1625,8 @@ class PlaneswalkerTemplate (StarterTemplate):
         step = .2000000000000
 
         # Special case: 2 Ability Planeswalker
-        if len(self.text_layers) == 2:
-            for lyr in self.text_layers:
+        if len(self.ability_layers) == 2:
+            for lyr in self.ability_layers:
                 lyr.textItem.size += 1.4
                 lyr.textItem.leading += 1.4
                 adjustment = 80
@@ -1292,17 +1634,17 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Heights
         layer_heights = []
-        for layer in self.text_layers:
+        for layer in self.ability_layers:
             layer_heights.append(psd.get_text_layer_dimensions(layer)["height"])
 
         # Reference heights
-        div = len(self.text_layers) - 1
+        div = len(self.ability_layers) - 1
         ref_height = psd.get_layer_dimensions(self.ref)['height']
         total_height = ref_height - (spacing * div)
 
         # Compare height of all 3 elements vs total reference height
         while sum(layer_heights) > total_height:
-            for i, layer in enumerate(self.text_layers):
+            for i, layer in enumerate(self.ability_layers):
                 layer.textItem.size -= step
                 layer.textItem.leading -= step
                 layer_heights[i] = psd.get_text_layer_dimensions(layer)["height"]
@@ -1312,26 +1654,26 @@ class PlaneswalkerTemplate (StarterTemplate):
 
         # Position the bottom layers relative to the top
         for i in range(div):
-            delta = gap - (self.text_layers[i + 1].bounds[1] - self.text_layers[i].bounds[3])
-            self.text_layers[i + 1].translate(0, delta)
+            delta = gap - (self.ability_layers[i + 1].bounds[1] - self.ability_layers[i].bounds[3])
+            self.ability_layers[i + 1].translate(0, delta)
 
         # Align the layers
-        top_gap = self.ref.bounds[1] - self.text_layers[0].bounds[1]
-        for layer in self.text_layers:
+        top_gap = self.ref.bounds[1] - self.ability_layers[0].bounds[1]
+        for layer in self.ability_layers:
             layer.translate(0, top_gap)
 
         # Check the top reference of loyalty badge
-        ft.vertically_nudge_pw_text(self.text_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
+        ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
         if adjustment > 0:
-            self.text_layers[0].translate(0, abs(adjustment))
-            self.text_layers[1].translate(0, -abs(adjustment))
+            self.ability_layers[0].translate(0, abs(adjustment))
+            self.ability_layers[1].translate(0, -abs(adjustment))
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
             # Skip if this is a passive ability
             if self.shields[i] and self.colons[i]:
                 c_pos = self.colons[i].bounds[1]
-                app.activeDocument.selection.select([
+                self.docref.selection.select([
                     [0, ref_layer.bounds[1]],
                     [ref_layer.bounds[0], ref_layer.bounds[1]],
                     [ref_layer.bounds[0], ref_layer.bounds[3]],
@@ -1351,7 +1693,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         """
 
         # Ragged line layers
-        lines = psd.getLayer("Ragged Lines", [self.group, "Textbox", "Ability Dividers"])
+        lines = psd.getLayerSet("Ragged Lines", [self.group, con.layers['TEXTBOX'], "Ability Dividers"])
         line1_top = psd.getLayer("Line 1 Top", lines)
         line1_bottom = psd.getLayer("Line 1 Bottom", lines)
         line1_top_ref = psd.getLayer("Line 1 Top Reference", lines)
@@ -1360,7 +1702,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         line1_bottom.visible = True
 
         # Additional for 4 Abilities
-        if len(self.text_layers) == 4:
+        if len(self.ability_layers) == 4:
             line2_top = psd.getLayer("Line 2 Top", lines)
             line2_bottom = psd.getLayer("Line 2 Bottom", lines)
             line2_ref = psd.getLayer("Line 2 Reference", lines)
@@ -1368,96 +1710,126 @@ class PlaneswalkerTemplate (StarterTemplate):
             line2_bottom.visible = True
         else: line2_top, line2_bottom, line2_ref = None, None, None
 
-        # Get midpoint and position
-        def position_ragged_line(layers: list, line, line_ref):
-            dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
-            ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
-            targ_pos = dif + layers[0].bounds[3]
-            line.translate(0, (targ_pos - ref_pos))
-
         # Position needed ragged lines
-        if len(self.text_layers) > 2:
+        if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
-            position_ragged_line([self.text_layers[1], self.text_layers[2]], line1_bottom, line1_bottom_ref)
+            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_ragged_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
         else:
             # 2 Ability Planeswalker
-            position_ragged_line([self.text_layers[0], self.text_layers[1]], line1_top, line1_top_ref)
+            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
         if line2_top and line2_ref:
             # 4 Ability Planeswalker
-            position_ragged_line([self.text_layers[2], self.text_layers[3]], line2_top, line2_ref)
-
-        # Select an area
-        def fill_between_ragged_lines(line1, line2):
-            fill_layer = app.activeDocument.artLayers.add()
-            fill_layer.move(line1, ps.ElementPlacement.PlaceAfter)
-            app.activeDocument.activeLayer = fill_layer
-            app.activeDocument.selection.select([
-                [line1.bounds[0]-200, line1.bounds[3]],
-                [line1.bounds[2]+200, line1.bounds[3]],
-                [line1.bounds[2]+200, line2.bounds[1]],
-                [line1.bounds[0]-200, line2.bounds[1]]
-            ])
-            fill_color = psd.rgb_black()
-            app.activeDocument.selection.expand(1)
-            app.activeDocument.selection.fill(
-                fill_color, ps.ColorBlendMode.NormalBlendColor, 100, False
-            )
-            psd.clear_selection()
+            self.position_ragged_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
 
         # Fill between the ragged lines
-        if len(self.text_layers) > 2:
+        if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_ragged_lines(line1_top, line1_bottom)
         else:
             # 2 Ability Planeswalker
             line1_bottom.translate(0, 1000)
-            fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_ragged_lines(line1_top, line1_bottom)
         if line2_top and line2_bottom:
             # 4 Ability Planeswalker
-            fill_between_ragged_lines(line2_top, line2_bottom)
+            self.fill_between_ragged_lines(line2_top, line2_bottom)
+
+    @staticmethod
+    def position_ragged_line(layers: list, line, line_ref):
+        """
+        Positions the ragged line correctly.
+        """
+        dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
+        ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
+        targ_pos = dif + layers[0].bounds[3]
+        line.translate(0, (targ_pos - ref_pos))
+
+    def fill_between_ragged_lines(self, line1, line2):
+        """
+        Fille are between ragged lines.
+        """
+        self.active_layer = self.docref.artLayers.add()
+        self.active_layer.move(line1, ps.ElementPlacement.PlaceAfter)
+        self.docref.selection.select([
+            [line1.bounds[0] - 200, line1.bounds[3]],
+            [line1.bounds[2] + 200, line1.bounds[3]],
+            [line1.bounds[2] + 200, line2.bounds[1]],
+            [line1.bounds[0] - 200, line2.bounds[1]]
+        ])
+        fill_color = psd.rgb_black()
+        self.docref.selection.expand(1)
+        self.docref.selection.fill(
+            fill_color, ps.ColorBlendMode.NormalBlendColor, 100, False
+        )
+        psd.clear_selection()
 
 
 class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
     An extended version of PlaneswalkerTemplate. Functionally identical except for the lack of background textures.
+    No background, fill empty area for art layer.
     """
-    template_file_name = "pw-extended"
+    template_file_name = "pw-extended.psd"
     template_suffix = "Extended"
-    def enable_background(self): pass
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+        psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
     """
     Template for the back faces of modal double faced Planeswalker cards.
+    Need to enable MDFC layers and add MDFC text.
     """
     template_file_name = "pw-mdfc-back"
     dfc_layer_group = con.layers['MDFC_BACK']
 
-    def basic_text_layers(self, text_and_icons):
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def mdfc_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(self.dfc_layer_group, self.text_layers)
 
-        # set visibility of top & bottom mdfc elements and set text of left & right text
-        mdfc_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        mdfc_group_top = psd.getLayerSet(con.layers['TOP'], mdfc_group)
-        mdfc_group_bottom = psd.getLayerSet(con.layers['BOTTOM'], mdfc_group)
-        psd.getLayer(self.layout.twins, mdfc_group_top).visible = True
-        psd.getLayer(self.layout.other_face_twins, mdfc_group_bottom).visible = True
-        left = psd.getLayer(con.layers['LEFT'], mdfc_group)
-        right = psd.getLayer(con.layers['RIGHT'], mdfc_group)
+    @cached_property
+    def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['LEFT'], self.mdfc_group)
 
-        # Add MDFC text layers
-        self.tx_layers.extend([
+    @cached_property
+    def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
+        return psd.getLayer(con.layers['RIGHT'], self.mdfc_group)
+
+    @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['NAME'], self.text_layers)
+
+    def basic_text_layers(self):
+        super().basic_text_layers()
+
+        # Add mdfc text layers
+        self.text.extend([
             txt_layers.BasicFormattedTextField(
-                layer = right,
-                contents = self.layout.other_face_right
+                layer=self.text_layer_mdfc_right,
+                contents=self.layout.other_face_right
             ),
             txt_layers.ScaledTextField(
-                layer = left,
-                contents = self.layout.other_face_left,
-                reference = right,
+                layer=self.text_layer_mdfc_left,
+                contents=self.layout.other_face_left,
+                reference=self.text_layer_mdfc_right,
             )
         ])
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+
+        # Add special MDFC layers
+        psd.getLayer(self.twins,
+                     psd.getLayerSet(con.layers['TOP'], self.mdfc_group)).visible = True
+        psd.getLayer(self.layout.other_face_twins,
+                     psd.getLayerSet(con.layers['BOTTOM'], self.mdfc_group)).visible = True
 
 
 class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
@@ -1471,22 +1843,34 @@ class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
 class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
     """
     An extended version of Planeswalker MDFC Back template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-mdfc-back-extended.psd"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
     """
     An extended version of Planeswalker MDFC Front template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-mdfc-front-extended.psd"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
@@ -1497,48 +1881,65 @@ class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
     template_file_name = "pw-tf-back"
     dfc_layer_group = con.layers['TF_BACK']
 
-    def basic_text_layers(self, text_and_icons):
-        # Enable transform stuff
-        transform_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        color_indicator = psd.getLayerSet(con.layers['COLOR_INDICATOR'], self.group)
-        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
-        psd.getLayer(self.layout.pinlines, color_indicator).visible = True
-        super().basic_text_layers(text_and_icons)
+    @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['NAME'], self.text_layers)
+
+    @cached_property
+    def text_layer_type(self) -> Optional[ArtLayer]:
+        # Name is always shifted
+        return psd.getLayer(con.layers['TYPE_LINE'], self.text_layers)
+
+    @cached_property
+    def transform_icon(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.layout.transform_icon, [self.text_layers, self.dfc_layer_group])
+
+    def enable_frame_layers(self):
+        # Add the transform icon
+        super().enable_frame_layers()
+        self.transform_icon.visible = True
 
 
-class PlaneswalkerTransformFrontTemplate (PlaneswalkerTemplate):
+class PlaneswalkerTransformFrontTemplate (PlaneswalkerTransformBackTemplate):
     """
     Template for the back faces of transform cards.
     """
     template_file_name = "pw-tf-front"
     dfc_layer_group = con.layers['TF_FRONT']
 
-    def basic_text_layers(self, text_and_icons):
-        # Add transform elements
-        transform_group = psd.getLayerSet(self.dfc_layer_group, text_and_icons)
-        psd.getLayer(self.layout.transform_icon, transform_group).visible = True
-        super().basic_text_layers(text_and_icons)
-
 
 class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTemplate):
     """
     An extended version of Planeswalker MDFC Back template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-tf-back-extended"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
 class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemplate):
     """
     An extended version of Planeswalker MDFC Front template.
+    No background, fill empty area for art layer.
     """
     template_file_name = "pw-tf-front-extended"
     template_suffix = "Extended"
 
-    def enable_background(self):
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return None
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
         psd.content_fill_empty_area(self.art_layer)
 
 
@@ -1557,68 +1958,64 @@ class PlanarTemplate (StarterTemplate):
         cfg.exit_early = True
         super().__init__(layout)
 
-    def enable_frame_layers(self):
-        # Card name, type line, expansion symbol
-        text_and_icons = psd.getLayerSet(con.layers['TEXT_AND_ICONS'])
-        name = psd.getLayer(con.layers['NAME'], text_and_icons)
-        type_line = psd.getLayer(con.layers['TYPE_LINE'], text_and_icons)
-        expansion_symbol = psd.getLayer(con.layers['EXPANSION_SYMBOL'], text_and_icons)
-        expansion_reference = psd.getLayer(con.layers['EXPANSION_REFERENCE'], text_and_icons)
+    @cached_property
+    def text_layer_static_ability(self) -> ArtLayer:
+        return psd.getLayer(con.layers['STATIC_ABILITY'], self.text_layers)
 
-        # Overwrite self.tx_layers
-        self.tx_layers = [
+    @cached_property
+    def text_layer_chaos_ability(self) -> ArtLayer:
+        return psd.getLayer(con.layers['CHAOS_ABILITY'], self.text_layers)
+
+    def basic_text_layers(self):
+
+        # Add text layers
+        self.text.extend([
             txt_layers.TextField(
-                layer = name,
+                layer = self.text_layer_name,
                 contents = self.layout.name
             ),
             txt_layers.ScaledTextField(
-                layer = type_line,
+                layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = expansion_symbol,
-            ),
-            txt_layers.ExpansionSymbolField(
-                layer = expansion_symbol,
-                contents = self.layout.symbol,
-                rarity = self.layout.rarity,
-                reference = expansion_reference
+                reference = self.expansion_symbol
             )
-        ]
+        ])
 
-        # Abilities
-        static_ability = psd.getLayer(con.layers['STATIC_ABILITY'], text_and_icons)
-        chaos_ability = psd.getLayer(con.layers['CHAOS_ABILITY'], text_and_icons)
+    def rules_text_and_pt_layers(self):
 
         # Phenomenon card?
         if self.layout.type_line == con.layers['PHENOMENON']:
 
             # Insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
-            self.tx_layers.append(
+            self.text.append(
                 txt_layers.BasicFormattedTextField(
-                    layer = static_ability,
+                    layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text
                 )
             )
             psd.enable_mask(psd.getLayerSet(con.layers['TEXTBOX']))
-            psd.getLayer(con.layers['CHAOS_SYMBOL'], text_and_icons).visible = False
-            chaos_ability.visible = False
+            psd.getLayer(con.layers['CHAOS_SYMBOL'], self.text_layers).visible = False
+            self.text_layer_chaos_ability.visible = False
 
         else:
 
             # Split oracle text on last line break, insert everything before into static, the rest into chaos
             linebreak_index = self.layout.oracle_text.rindex("\n")
-            self.tx_layers.extend([
+            self.text.extend([
                 txt_layers.BasicFormattedTextField(
-                    layer = static_ability,
+                    layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text[0:linebreak_index]
                 ),
                 txt_layers.BasicFormattedTextField(
-                    layer = chaos_ability,
+                    layer = self.text_layer_chaos_ability,
                     contents = self.layout.oracle_text[linebreak_index+1:]
                 ),
             ])
 
+    def enable_frame_layers(self):
+
         # Paste scryfall scan
-        app.activeDocument.activeLayer = psd.getLayerSet(con.layers['TEXTBOX'])
+        self.active_layer = psd.getLayerSet(con.layers['TEXTBOX'])
         self.paste_scryfall_scan(psd.getLayer(con.layers['SCRYFALL_SCAN_FRAME']), True)
 
 
@@ -1639,28 +2036,24 @@ class BasicLandTemplate (BaseTemplate):
         cfg.real_collector = False
         super().__init__(layout)
 
+    @cached_property
+    def text_layers(self) -> Optional[LayerSet]:
+        return app.activeDocument
+
     def enable_frame_layers(self):
         psd.getLayer(self.layout.name).visible = True
-        self.tx_layers.append(
-            txt_layers.ExpansionSymbolField(
-                layer = psd.getLayer(con.layers['EXPANSION_SYMBOL']),
-                contents = self.layout.symbol,
-                rarity = "common",
-                reference = psd.getLayer(con.layers['EXPANSION_REFERENCE']),
-            )
-        )
 
 
 class BasicLandUnstableTemplate (BasicLandTemplate):
     """
     Basic land template for the borderless basics from Unstable.
+    Doesn't have expansion symbol.
     """
     template_file_name = "basic-unstable"
     template_suffix = "Unstable"
 
-    def enable_frame_layers(self):
-        # Overwrite to ignore expansion symbol
-        psd.getLayer(self.layout.name).visible = True
+    def basic_text_layers(self):
+        pass
 
 
 class BasicLandTherosTemplate (BasicLandTemplate):
