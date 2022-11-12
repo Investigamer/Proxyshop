@@ -689,22 +689,42 @@ class StarterTemplate (BaseTemplate):
     def basic_text_layers(self):
 
         # Add text layers
-        self.text.extend([
+        self.text.append(
             txt_layers.BasicFormattedTextField(
                 layer = self.text_layer_mana,
                 contents = self.layout.mana_cost
-            ),
-            txt_layers.ScaledTextField(
+            )
+        )
+
+        self.text.append(
+            self.card_name_layer(
                 layer = self.text_layer_name,
                 contents = self.layout.name,
                 reference = self.text_layer_mana
-            ),
-            txt_layers.ScaledTextField(
+            )
+        )
+
+        self.text.append(
+            self.type_line_layer(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
                 reference = self.expansion_symbol
             )
-        ])
+        )
+
+    def card_name_layer(self, layer, contents, reference):
+        return txt_layers.ScaledTextField(
+            layer = layer,
+            contents = contents,
+            reference = reference
+        )
+
+    def type_line_layer(self, layer, contents, reference):
+        return txt_layers.ScaledTextField(
+            layer = layer,
+            contents = contents,
+            reference = reference
+        )
 
 
 # EXTEND THIS FOR MOST NORMAL M15-STYLE TEMPLATES
