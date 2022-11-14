@@ -487,12 +487,14 @@ class BaseTemplate:
             self.art_reference = psd.getLayer(self.art_reference)
         if "Full Art" and "Fullart" not in str(self.art_reference.name):
             # Auto detect full art image
-            width, height = Image.open(self.layout.filename).size
+            with Image.open(self.layout.filename) as image:
+                width, height = image.size
             if height > (width * 1.2):
                 try:
                     # See if this template has a full art reference
                     fa_frame = psd.getLayer(con.layers['FULL_ART_FRAME'])
-                    if fa_frame: self.art_reference = fa_frame
+                    if fa_frame:
+                        self.art_reference = fa_frame
                 except Exception as e: console.log_exception(e)
         if cfg.dev_mode:
             # Check for Fullart test image
@@ -825,8 +827,7 @@ class NormalClassicTemplate (StarterTemplate):
     def text_layer_rules(self) -> Optional[ArtLayer]:
         return psd.getLayer(con.layers['RULES_TEXT'], self.text_layers)
 
-    def basic_text_layers(self):
-        super().basic_text_layers()
+    def rules_text_and_pt_layers(self):
 
         # Move mana layer down for hybrid mana
         if len(self.background) == 2:
