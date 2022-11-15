@@ -150,6 +150,29 @@ class BaseTemplate:
         # Set the active layer
         self.docref.activeLayer = value
 
+    @cached_property
+    def art_reference_layer(self):
+        # Select a main reference layer
+        if isinstance(self.art_reference, ArtLayer):
+            # Art reference provided as a layer
+            layer = self.art_reference
+        elif isinstance(self.art_reference, str):
+            # Art reference was given as a layer name
+            layer = psd.getLayer(self.art_reference)
+        else:
+            layer = psd.getLayer(con.layers['ART_FRAME'])
+
+        # Check if we can change to fullart reference
+        if "Full Art" and "Fullart" not in str(self.art_reference.name):
+            # Auto detect full art image
+            with Image.open(self.layout.filename) as image:
+                width, height = image.size
+            if height > (width * 1.2):
+                fa_frame = psd.getLayer(con.layers['FULL_ART_FRAME'])
+                if fa_frame:
+                    return fa_frame
+        return layer
+
     """
     LIST OF FORMATTED TEXT OBJECTS
     """
@@ -479,26 +502,11 @@ class BaseTemplate:
         """
         Loads the specified art file into the specified layer.
         """
-        if not hasattr(self, 'art_reference'):
-            # Art reference not provided
-            self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
-        elif isinstance(self.art_reference, str):
-            # Art reference was given as a layer name
-            self.art_reference = psd.getLayer(self.art_reference)
-        if "Full Art" and "Fullart" not in str(self.art_reference.name):
-            # Auto detect full art image
-            with Image.open(self.layout.filename) as image:
-                width, height = image.size
-            if height > (width * 1.2):
-                try:
-                    # See if this template has a full art reference
-                    fa_frame = psd.getLayer(con.layers['FULL_ART_FRAME'])
-                    if fa_frame:
-                        self.art_reference = fa_frame
-                except Exception as e: console.log_exception(e)
+
+        # Choose image for dev_mode
         if cfg.dev_mode:
             # Check for Fullart test image
-            dims = psd.get_layer_dimensions(self.art_reference)
+            dims = psd.get_layer_dimensions(self.art_reference_layer)
             if (dims['width'] * 1.2) < dims['height']:
                 # Use fullart test image
                 self.layout.filename = os.path.join(os.getcwd(), "proxyshop/img/test-fa.png")
@@ -512,7 +520,7 @@ class BaseTemplate:
         else: psd.paste_file(self.art_layer, self.layout.filename)
 
         # Frame the artwork
-        psd.frame_layer(self.art_layer, self.art_reference)
+        psd.frame_layer(self.art_layer, self.art_reference_layer)
 
     def get_file_name(self):
         """
@@ -600,6 +608,16 @@ class BaseTemplate:
         return result
 
     """
+    HOOKS
+    """
+
+    def hook_creature(self):
+        """
+        Run this if creature.
+        """
+        pass
+
+    """
     Execution Sequence
     """
 
@@ -643,6 +661,13 @@ class BaseTemplate:
                 this_layer.execute()
         except Exception as e:
             return self.raise_error("Formatting text failed!", e)
+
+        # Specific hooks
+        try:
+            if self.is_creature:
+                self.hook_creature()
+        except Exception as e:
+            return self.raise_error("Encountered an error during triggered hooks step!", e)
 
         # Post text layer execution
         try:
@@ -719,10 +744,28 @@ class NormalTemplate (StarterTemplate):
     def __init__(self, layout):
         super().__init__(layout)
 
+    @property
+    def art_reference(self) -> str:
         # If colorless, use fullart
-        if not hasattr(self, 'art_reference'):
-            if self.is_colorless: self.art_reference = psd.getLayer(con.layers['FULL_ART_FRAME'])
-            else: self.art_reference = psd.getLayer(con.layers['ART_FRAME'])
+        if self.is_colorless:
+            return con.layers['FULL_ART_FRAME']
+        return con.layers['ART_FRAME']
+
+    """
+    HOOKS
+    """
+
+    def hook_creature(self):
+        check = ["+", "*"]
+        if all(sub in self.layout.power for sub in check) and all(sub in self.layout.toughness for sub in check):
+            # Resize the PT text for cards like Gaea's Avenger
+            factor = psd.get_text_scale_factor(self.text_layer_pt)
+            self.text_layer_pt.textItem.size = (factor * self.text_layer_pt.textItem.size) * .7
+            self.text_layer_pt.textItem.baselineShift = 1
+
+    """
+    METHODS
+    """
 
     def rules_text_and_pt_layers(self):
 
@@ -758,6 +801,32 @@ class NormalTemplate (StarterTemplate):
                 )
             )
 
+    def enable_frame_layers(self):
+
+        # Twins
+        if self.twins_layer:
+            self.twins_layer.visible = True
+
+        # PT Box
+        if self.is_creature and self.pt_layer:
+            self.pt_layer.visible = True
+
+        # Pinlines
+        if self.pinlines_layer:
+            self.pinlines_layer.visible = True
+
+        # Color Indicator
+        if self.type_line_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
+
+        # Background
+        if self.background_layer:
+            self.background_layer.visible = True
+
+        # Legendary crown
+        if self.is_legendary and self.crown_layer:
+            self.enable_crown()
+
     def enable_crown(self):
         """
         Enable the Legendary crown
@@ -784,32 +853,6 @@ class NormalTemplate (StarterTemplate):
         psd.enable_mask(self.pinlines_layer.parent)
         psd.enable_mask(shadows)
         psd.getLayer(con.layers['HOLLOW_CROWN_SHADOW']).visible = True
-
-    def enable_frame_layers(self):
-
-        # Twins
-        if self.twins_layer:
-            self.twins_layer.visible = True
-
-        # PT Box
-        if self.is_creature and self.pt_layer:
-            self.pt_layer.visible = True
-
-        # Pinlines
-        if self.pinlines_layer:
-            self.pinlines_layer.visible = True
-
-        # Color Indicator
-        if self.type_line_shifted and self.color_indicator_layer:
-            self.color_indicator_layer.visible = True
-
-        # Background
-        if self.background_layer:
-            self.background_layer.visible = True
-
-        # Legendary crown
-        if self.is_legendary and self.crown_layer:
-            self.enable_crown()
 
 
 class NormalClassicTemplate (StarterTemplate):
@@ -906,9 +949,12 @@ class WomensDayTemplate (NormalTemplate):
     template_suffix = "Showcase"
 
     def __init__(self, layout):
-        self.art_reference = con.layers['FULL_ART_FRAME']
         cfg.remove_reminder = True
         super().__init__(layout)
+
+    @cached_property
+    def art_reference_layer(self) -> ArtLayer:
+        return psd.getLayer(con.layers['FULL_ART_FRAME'])
 
     @property
     def is_nyx(self) -> bool:
@@ -1448,20 +1494,12 @@ class PlaneswalkerTemplate (StarterTemplate):
     def __init__(self, layout):
 
         # Settable Properties
-        self._pw_group = "pw-3"
         self._ability_layers = []
         self._shields = []
         self._colons = []
 
         cfg.exit_early = True
         super().__init__(layout)
-
-        # Which art frame?
-        self.art_reference = psd.getLayer(
-            con.layers['FULL_ART_FRAME']
-        ) if self.is_colorless else psd.getLayer(
-            con.layers['PLANESWALKER_ART_FRAME']
-        )
 
     """
     PROPERTIES
@@ -1471,6 +1509,15 @@ class PlaneswalkerTemplate (StarterTemplate):
     def abilities(self) -> list:
         # Fix abilities that include a newline
         return re.findall(r"(^[^:]*$|^.*:.*$)", self.layout.oracle_text, re.MULTILINE)
+
+    @property
+    def art_reference(self):
+        # Name of art reference layer
+        return psd.getLayer(
+            con.layers['FULL_ART_FRAME']
+        ) if self.is_colorless else psd.getLayer(
+            con.layers['PLANESWALKER_ART_FRAME']
+        )
 
     """
     TEXT LAYERS
@@ -2030,12 +2077,15 @@ class BasicLandTemplate (BaseTemplate):
     Basic land template - no text and icons (aside from legal), just a layer for each of the eleven basic lands.
     """
     template_file_name = "basic"
-    art_reference = con.layers['BASIC_ART_FRAME']
 
     def __init__(self, layout):
         cfg.save_artist_name = True
         cfg.real_collector = False
         super().__init__(layout)
+
+    @property
+    def art_reference(self) -> str:
+        return con.layers['BASIC_ART_FRAME']
 
     @cached_property
     def text_layers(self) -> Optional[LayerSet]:
