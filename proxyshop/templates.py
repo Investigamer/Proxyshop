@@ -163,7 +163,7 @@ class BaseTemplate:
             layer = psd.getLayer(con.layers['ART_FRAME'])
 
         # Check if we can change to fullart reference
-        if "Full Art" and "Fullart" not in str(self.art_reference.name):
+        if "Full Art" and "Fullart" not in str(layer.name):
             # Auto detect full art image
             with Image.open(self.layout.filename) as image:
                 width, height = image.size
@@ -685,9 +685,14 @@ class BaseTemplate:
 
         # Save the document
         try:
-            if cfg.save_jpeg: psd.save_document_jpeg(file_name)
-            else: psd.save_document_png(file_name)
-            if not cfg.dev_mode: console.update(f"[b]{file_name}[/b] rendered successfully!")
+            if cfg.output_filetype == "png":
+                psd.save_document_png(file_name)
+            if cfg.output_filetype == "psd":
+                psd.save_document_psd(file_name)
+            else:
+                psd.save_document_jpeg(file_name)
+            if not cfg.dev_mode:
+                console.update(f"[b]{file_name}[/b] rendered successfully!")
         except Exception as e:
             if not cfg.dev_mode:
                 console.update(
@@ -709,8 +714,8 @@ class BaseTemplate:
 
 class StarterTemplate (BaseTemplate):
     """
-    A BaseTemplate with a few extra features. In most cases this will be your starter template
-    you want to extend for the most important functionality.
+    A BaseTemplate with basic text layers added. In most cases this is the class you'll extend to
+    when doing more complicated templates which require replacing most of the NormalTemplate functionality.
     """
 
     def basic_text_layers(self):
@@ -734,10 +739,10 @@ class StarterTemplate (BaseTemplate):
         ])
 
 
-# EXTEND THIS FOR MOST NORMAL M15-STYLE TEMPLATES
 class NormalTemplate (StarterTemplate):
     """
     Normal M15-style template.
+    Extend this for most normal card templates that have typical MTG card layer setups.
     """
     template_file_name = "normal.psd"
 

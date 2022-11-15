@@ -858,16 +858,23 @@ def save_document_jpeg(file_name):
     """
     Save the current document to /out/ as a JPEG.
     """
-    desc34 = ps.ActionDescriptor()
-    desc35 = ps.ActionDescriptor()
-    desc35.putInteger(cID("EQlt"), 12)
-    desc35.putInteger(cID("Scns"), 3)
-    desc35.putEnumerated(cID("MttC"), cID("MttC"), cID("None"))
-    desc34.putObject(cID("As  "), cID("JPEG"), desc35)
-    desc34.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.jpg"))
-    desc34.putBoolean(cID("Cpy "), True)
-    desc34.putEnumerated(sID("saveStage"), sID("saveStageType"), sID("saveSucceeded"))
-    app.executeAction(cID("save"), desc34, ps.SaveOptions.DoNotSaveChanges)
+    jpeg_options = ps.JPEGSaveOptions(quality=12)
+    jpeg_options.scans = 3
+    app.activeDocument.saveAs(
+        file_path=os.path.join(cwd, f"out/{file_name}.jpg"),
+        options=jpeg_options, asCopy=True
+    )
+
+
+def save_document_psd(file_name):
+    """
+    Save the current document to /out/ as PSD.
+    """
+    app.activeDocument.saveAs(
+        file_path=os.path.join(cwd, f"out/{file_name}.psd"),
+        options=ps.PhotoshopSaveOptions(),
+        asCopy=True
+    )
 
 
 def close_document():
