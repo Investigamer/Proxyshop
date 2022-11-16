@@ -27,8 +27,7 @@ class BaseTemplate:
     """
     def __init__(self, layout):
 
-        # Setup inherited info and text layers
-        self.failed = False
+        # Setup manual properties
         self.layout = layout
         self.tx_layers = []
         self.exp_sym = None
@@ -153,14 +152,15 @@ class BaseTemplate:
     @cached_property
     def art_reference_layer(self):
         # Select a main reference layer
-        if isinstance(self.art_reference, ArtLayer):
-            # Art reference provided as a layer
-            layer = self.art_reference
+        if not hasattr(self, 'art_reference'):
+            # Art reference not given
+            layer = psd.getLayer(con.layers['ART_FRAME'])
         elif isinstance(self.art_reference, str):
             # Art reference was given as a layer name
             layer = psd.getLayer(self.art_reference)
         else:
-            layer = psd.getLayer(con.layers['ART_FRAME'])
+            # Art reference was given as a layer
+            layer = self.art_reference
 
         # Check if we can change to fullart reference
         if "Full Art" and "Fullart" not in str(layer.name):
@@ -379,7 +379,10 @@ class BaseTemplate:
         self.create_expansion_symbol()
 
     def create_expansion_symbol(self, centered=False):
-
+        """
+        Builds the expansion symbol
+        @param centered: Center the symbol within its reference.
+        """
         # Colors to use for given settings
         colors = {
             "black": psd.rgb_black(),
@@ -718,6 +721,22 @@ class StarterTemplate (BaseTemplate):
     when doing more complicated templates which require replacing most of the NormalTemplate functionality.
     """
 
+    """
+    HOOKS
+    """
+
+    def hook_creature(self):
+        check = ["+", "*"]
+        if all(sub in self.layout.power for sub in check) and all(sub in self.layout.toughness for sub in check):
+            # Resize the PT text for cards like Gaea's Avenger
+            factor = psd.get_text_scale_factor(self.text_layer_pt)
+            self.text_layer_pt.textItem.size = (factor * self.text_layer_pt.textItem.size) * .7
+            self.text_layer_pt.textItem.baselineShift = 1
+
+    """
+    METHODS
+    """
+
     def basic_text_layers(self):
 
         # Add text layers
@@ -755,18 +774,6 @@ class NormalTemplate (StarterTemplate):
         if self.is_colorless:
             return con.layers['FULL_ART_FRAME']
         return con.layers['ART_FRAME']
-
-    """
-    HOOKS
-    """
-
-    def hook_creature(self):
-        check = ["+", "*"]
-        if all(sub in self.layout.power for sub in check) and all(sub in self.layout.toughness for sub in check):
-            # Resize the PT text for cards like Gaea's Avenger
-            factor = psd.get_text_scale_factor(self.text_layer_pt)
-            self.text_layer_pt.textItem.size = (factor * self.text_layer_pt.textItem.size) * .7
-            self.text_layer_pt.textItem.baselineShift = 1
 
     """
     METHODS
