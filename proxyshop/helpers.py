@@ -640,30 +640,75 @@ def disable_mask(layer):
     set_layer_mask(layer, False)
 
 
-def merge_layers(layer_1, layer_2):
+def select_no_layers():
     """
-    Merge two layers together.
-    @param layer_1: First layer object.
-    @param layer_2: Second layer object.
-    @return: Returns the merged layer.
+    Deselect all layers.
     """
-    desc1 = ps.ActionDescriptor()
-    desc2 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    ref2 = ps.ActionReference()
-    ref1.putIdentifier(sID("layer"), layer_1.id)
-    desc1.PutReference(sID("target"), ref1)
-    ref2.putIdentifier(sID("layer"), layer_2.id)
-    desc2.PutReference(sID("target"), ref2)
-    desc2.PutEnumerated(
+    idselectNoLayers = sID("selectNoLayers")
+    descSelectNoLayers = ps.ActionDescriptor()
+    idnull = cID("null")
+    ref = ps.ActionReference()
+    idLyr = cID("Lyr ")
+    idOrdn = cID("Ordn")
+    idTrgt = cID("Trgt")
+    ref.putEnumerated(idLyr, idOrdn, idTrgt)
+    descSelectNoLayers.putReference(idnull, ref)
+    app.executeAction(idselectNoLayers, descSelectNoLayers, NO_DIALOG)
+
+
+def select_layer(layer):
+    """
+    Select a layer
+    """
+    desc = ps.ActionDescriptor()
+    ref = ps.ActionReference()
+    ref.putIdentifier(sID("layer"), layer.id)
+    desc.putReference(sID("target"), ref)
+    desc.putEnumerated(
         sID("selectionModifier"),
         sID("selectionModifierType"),
         sID("addToSelection")
     )
-    app.ExecuteAction(sID("select"), desc1, NO_DIALOG)
-    app.ExecuteAction(sID("select"), desc2, NO_DIALOG)
+    app.ExecuteAction(sID("select"), desc, NO_DIALOG)
+
+
+def merge_layers(layers):
+    """
+    Merge a set of layers together.
+    @param layers: Layer objects to be merged.
+    @return: Returns the merged layer.
+    """
+
+    select_no_layers()
+
+    for layer in layers:
+        select_layer(layer)
+
     app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
     return app.activeDocument.activeLayer
+
+
+def leaf_layers():
+    """
+    Utility function to iterate over leaf layers in a document
+    """
+    to_visit = [node for node in app.activeDocument.layers]
+    layers = []
+
+    while to_visit:
+
+        node = to_visit.pop()
+
+        try:
+            sublayers = node.layers
+        except NameError:
+            # It's a leaf node, no sublayers
+            layers.append(node)
+        else:
+            # Continue exploration of sublayers
+            to_visit.extend([node for node in sublayers])
+
+    return layers
 
 
 def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):

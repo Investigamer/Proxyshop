@@ -423,7 +423,7 @@ class BaseTemplate:
             psd.align_horizontal()
             psd.align_vertical()
             psd.clear_selection()
-            layer = psd.merge_layers(mask_layer, layer)
+            layer = psd.merge_layers([mask_layer, layer])
             return layer
 
         def apply_fill(layer, color=psd.rgb_black()):
@@ -455,7 +455,7 @@ class BaseTemplate:
                     psd.rasterize_layer_style(current_layer)
                     fill_layer = apply_fill(current_layer, colors[lay['fill']])
                     fill_layer = apply_rarity(fill_layer)
-                    current_layer = psd.merge_layers(current_layer, fill_layer)
+                    current_layer = psd.merge_layers([current_layer, fill_layer])
                 else:
                     # Apply fill after rarity
                     if lay['rarity']:
@@ -463,7 +463,7 @@ class BaseTemplate:
                     psd.rasterize_layer_style(current_layer)
                     if lay['fill']:
                         fill_layer = apply_fill(current_layer, colors[lay['fill']])
-                        current_layer = psd.merge_layers(current_layer, fill_layer)
+                        current_layer = psd.merge_layers([current_layer, fill_layer])
 
             else:
                 # Common color
@@ -480,7 +480,7 @@ class BaseTemplate:
                 psd.rasterize_layer_style(current_layer)
                 if lay['common-fill']:
                     fill_layer = apply_fill(current_layer, colors[lay['common-fill']])
-                    current_layer = psd.merge_layers(current_layer, fill_layer)
+                    current_layer = psd.merge_layers([current_layer, fill_layer])
 
             # Scale factor
             if lay['scale-factor'] != 1:
@@ -699,7 +699,7 @@ class BaseTemplate:
         except Exception as e:
             if not cfg.dev_mode:
                 console.update(
-                    f"Error during save process!\nMake sure the file successfully saved.", e
+                    f"Error during save process!\nMake sure the file was successfully saved.", e
                 )
 
         # Post execution code
