@@ -381,3 +381,24 @@ def import_json_config(path: str):
     with open(os.path.join(f"{cwd}/proxyshop/plugins", path)) as f:
         return json.load(f)
 
+
+"""
+HEADLESS CONSOLE
+"""
+
+
+class Console:
+    """
+    Replaces the GUI console when running headless.
+    """
+
+    @staticmethod
+    def message(msg):
+        print(msg)
+
+    @staticmethod
+    def wait(msg):
+        print(msg)
+        input("Would you like to continue?")
+
+console = Console()

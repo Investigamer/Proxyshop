@@ -6,7 +6,10 @@ import re
 import photoshop.api as ps
 import proxyshop.helpers as psd
 from proxyshop.constants import con
-from proxyshop.gui import console_handler as console
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 
 # QOL Definitions
 app = ps.Application()
@@ -15,14 +18,6 @@ cID = app.charIDToTypeID
 NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
 
-def solidcolor(color):
-    if 'r' in color.keys():
-        return psd.get_rgb(color['r'], color['g'], color['b'])
-    elif 'c' in color.keys():
-        return psd.get_cmyk(color['c'], color['m'], color['y'], color['k'])
-    else:
-        console.update(r"Don't know how to convert color {color} to a ps.Solidcolor")
-
 class SymbolMapper:
     def __init__(self):
         self.load_values()
@@ -30,28 +25,28 @@ class SymbolMapper:
     def load_values(self):
 
         # Symbol colors outer
-        self.clr_c = solidcolor(con.clr_c)
-        self.clr_w = solidcolor(con.clr_w)
-        self.clr_u = solidcolor(con.clr_u)
-        self.clr_b = solidcolor(con.clr_b)
-        self.clr_bh = solidcolor(con.clr_bh)
-        self.clr_r = solidcolor(con.clr_r)
-        self.clr_g = solidcolor(con.clr_g)
+        self.clr_c = psd.solidcolor(con.clr_c)
+        self.clr_w = psd.solidcolor(con.clr_w)
+        self.clr_u = psd.solidcolor(con.clr_u)
+        self.clr_b = psd.solidcolor(con.clr_b)
+        self.clr_bh = psd.solidcolor(con.clr_bh)
+        self.clr_r = psd.solidcolor(con.clr_r)
+        self.clr_g = psd.solidcolor(con.clr_g)
 
         # Symbol colors inner
-        self.clri_c = solidcolor(con.clri_c)
-        self.clri_w = solidcolor(con.clri_w)
-        self.clri_u = solidcolor(con.clri_u)
-        self.clri_b = solidcolor(con.clri_b)
-        self.clri_bh = solidcolor(con.clri_bh)
-        self.clri_r = solidcolor(con.clri_r)
-        self.clri_g = solidcolor(con.clri_g)
+        self.clri_c = psd.solidcolor(con.clri_c)
+        self.clri_w = psd.solidcolor(con.clri_w)
+        self.clri_u = psd.solidcolor(con.clri_u)
+        self.clri_b = psd.solidcolor(con.clri_b)
+        self.clri_bh = psd.solidcolor(con.clri_bh)
+        self.clri_r = psd.solidcolor(con.clri_r)
+        self.clri_g = psd.solidcolor(con.clri_g)
 
         # Primary inner color (black default)
-        self.clr_primary = solidcolor(con.clr_primary)
+        self.clr_primary = psd.solidcolor(con.clr_primary)
 
         # Secondary inner color (white default)
-        self.clr_secondary = solidcolor(con.clr_secondary)
+        self.clr_secondary = psd.solidcolor(con.clr_secondary)
 
         # Symbol map for regular mana symbols
         self.color_map = {
@@ -123,10 +118,10 @@ def locate_italics(input_string, italics_strings):
     for italics in italics_strings:
 
         # replace symbols with their character representations in the italic string
-        if italics.find("}") >= 0:
+        if "}" in italics:
             for key, symbol in con.symbols.items():
-                try: italics = italics.replace(key, symbol)
-                except Exception as e: console.log_exception(e)
+                if key in italics:
+                    italics = italics.replace(key, symbol)
 
         # Locate Italicized text
         end_index = 0
@@ -134,7 +129,6 @@ def locate_italics(input_string, italics_strings):
             start_index = input_string.find(italics, end_index)
             end_index = start_index + len(italics)
             if start_index < 0: break
-
             italics_indices.append({
                 'start_index': start_index,
                 'end_index': end_index,
@@ -315,6 +309,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         idTxLr,
         cID("Ordn"),
         cID("Trgt"))
+
+    # Spin up the text insertion action
     desc119.putReference(cID("null"), ref101)
     primary_action_descriptor.putString(cID("Txt "), input_string)
     desc25.putInteger(idFrom, 0)
@@ -322,33 +318,47 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
     desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-
     psd.apply_color(desc26, layer_text_color)
-
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
-    for italics_index in italics_indices:
-        # Italics text
+    # Bold the contents if necessary
+    if con.bold_rules_text and flavor_index != 0:
+        bold_action1 = ps.ActionDescriptor()
+        bold_action2 = ps.ActionDescriptor()
+        contents_index = len(input_string) - 1 if flavor_index < 0 else flavor_index - 1
         primary_action_list.putObject(idTxtt, current_layer_ref)
-        desc125 = ps.ActionDescriptor()
-        desc125.putInteger(idFrom, italics_index['start_index'])  # italics start index
-        desc125.putInteger(idT, italics_index['end_index'])  # italics end index
-        desc126 = ps.ActionDescriptor()
-        desc126.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
-        desc126.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-        desc126.putUnitDouble(idSz, idPnt, layer_font_size)
-        desc126.putBoolean(idautoLeading, False)
-        desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
+        bold_action1.putInteger(idFrom, 0)  # italics start index
+        bold_action1.putInteger(idT, contents_index)  # italics end index
+        bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
+        bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
+        bold_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+        bold_action2.putBoolean(idautoLeading, False)
+        bold_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+        bold_action1.putObject(idTxtS, idTxtS, bold_action2)
+        current_layer_ref = bold_action1
+
+    # Italicize text from our italics indices
+    for italics_index in italics_indices:
+        italics_action1 = ps.ActionDescriptor()
+        italics_action2 = ps.ActionDescriptor()
+        primary_action_list.putObject(idTxtt, current_layer_ref)
+        italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
+        italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
+        italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+        italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
+        italics_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+        italics_action2.putBoolean(idautoLeading, False)
+        italics_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
         # Default text box
 
-        psd.apply_color(desc126, layer_text_color)
+        psd.apply_color(italics_action2, layer_text_color)
 
         # End
-        desc125.putObject(idTxtS, idTxtS, desc126)
-        current_layer_ref = desc125
+        italics_action1.putObject(idTxtS, idTxtS, italics_action2)
+        current_layer_ref = italics_action1
 
     # Format each symbol correctly
     for symbol_index in symbol_indices:
@@ -363,7 +373,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_list.putObject(idTxtt, current_layer_ref)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
 
-    # paragraph formatting
+    # Paragraph formatting
     desc141.putInteger(idFrom, 0)
     desc141.putInteger(idT, len(input_string))  # input string length
     desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
@@ -467,8 +477,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
         primary_action_descriptor.putList(idkerningRange, list14)
 
-
-
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
     app.executeAction(idsetd, desc119, NO_DIALOG)
@@ -481,7 +489,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
 
 def generate_italics(card_text):
     """
-     * Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
+    Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
     """
     italic_text = []
 
@@ -493,34 +501,27 @@ def generate_italics(card_text):
             end_index = card_text.find(")", start_index + 1)
             end_index += 1
             italic_text.extend([card_text[start_index:end_index]])
-        else: break
+        else:
+            break
 
     # Find and add ability words
-    reg = re.compile(r"[•|\w|\-|\s|]*? — ")
-    for match in reg.findall(card_text):
-        # Cover boast cards and choose cards that aren't weird AFR cases
-        if (
-            any(s in match for s in ("• ", "Boast"))
-            and card_text[0:12] != "Choose one —"
-        ): continue
-
-        # Fix bullet points and carriage return
-        if "• " in match: match = match.replace("• ", "")
-        if "\r" in match: match = match.replace("\r", "")
-        italic_text.extend([match])
+    for match in re.findall(r"(?:\A|\r+|• +)([A-Za-z0-9 ]+) — ", card_text):
+        # Cover boast cards and cards like Mirrodin Besieged
+        if (f"• {match}" in card_text and card_text[0:12] != "Choose one —") or "Boast" in match:
+            continue
+        italic_text.append(match)
 
     return italic_text
 
 
 def format_text_wrapper():
     """
-     Wrapper for format_text which runs the function with the active layer's current text contents
-     and auto-generated italics array. Flavor text index and centered text not supported.
-     Super useful to add as a script action in Photoshop for making cards manually!
+    Wrapper for format_text which runs the function with the active layer's current text contents
+    and auto-generated italics array. Flavor text index and centered text not supported.
+    Super useful to add as a script action in Photoshop for making cards manually!
     """
     card_text = app.activeDocument.activeLayer.textItem.contents
     italic_text = generate_italics(card_text)
-    italic_text.color = psd.rgb_grey()
     format_text(card_text, italic_text, -1, False)
 
 

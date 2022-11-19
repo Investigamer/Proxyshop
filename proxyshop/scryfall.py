@@ -1,15 +1,19 @@
 """
 FUNCTIONS THAT INTERACT WITH SCRYFALL
 """
-import os.path
+import os
 import time
 import json
 import requests
 from typing import Optional, Union
 from urllib import request, parse
+
 from proxyshop.settings import cfg
-from proxyshop.constants import scryfall_scan_path, http_header
-from proxyshop.gui import console_handler as console
+from proxyshop.constants import con
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 
 
 def card_info(card_name: str, card_set: Optional[str] = None) -> Union[dict, Exception]:
@@ -39,7 +43,6 @@ def get_card_named(name: str, set_code: Optional[str] = None) -> Union[dict, Exc
     @param set_code: Specific set code
     @return: Card dict or error
     """
-
     # Choose order of search
     order = "&order=released&dir=asc" if cfg.scry_ascending else ""
 
@@ -51,7 +54,7 @@ def get_card_named(name: str, set_code: Optional[str] = None) -> Union[dict, Exc
     err = None
     for i in range(3):
         try:
-            card = requests.get(url, headers=http_header).json()
+            card = requests.get(url, headers=con.http_header).json()
             return add_meld_info(card)
         except Exception as e:
             err = e
@@ -59,7 +62,11 @@ def get_card_named(name: str, set_code: Optional[str] = None) -> Union[dict, Exc
     return err
 
 
-def get_card_search(name: str, language: Optional[str] = None, set_code: Optional[str] = None) -> Union[dict, Exception]:
+def get_card_search(
+        name: str,
+        language: Optional[str] = None,
+        set_code: Optional[str] = None
+) -> Union[dict, Exception]:
     """
     Get card using cards/search scryfall API.
     @param name: Name of the card, ex: Damnation
@@ -81,7 +88,7 @@ def get_card_search(name: str, language: Optional[str] = None, set_code: Optiona
     err = None
     for i in range(3):
         try:
-            card = requests.get(url, headers=http_header).json()
+            card = requests.get(url, headers=con.http_header).json()
             return add_meld_info(card['data'][0])
         except Exception as e:
             err = e
@@ -104,12 +111,12 @@ def set_info(set_code: str) -> Optional[dict]:
                 return loaded
     except Exception as e: console.log_exception(e)
     err = None
-    url = f"http://mtgjson.com/api/v5/{set_code.upper()}.json"
+    url = f"https://mtgjson.com/api/v5/{set_code.upper()}.json"
 
     # Try up to 5 times
     for i in range(5):
         try:
-            source = requests.get(url, headers=http_header).text
+            source = requests.get(url, headers=con.http_header).text
             j = json.loads(source)
             j = j['data']
             j.pop('cards')
@@ -131,7 +138,7 @@ def card_scan(img_url: str) -> Optional[str]:
     @return: Filename of the saved image.
     """
     try:
-        request.urlretrieve(img_url, scryfall_scan_path)
+        request.urlretrieve(img_url, con.scryfall_scan_path)
         if not cfg.dev_mode:
             console.update(f"Downloaded Scryfall scan!")
     except Exception as e:
@@ -139,7 +146,7 @@ def card_scan(img_url: str) -> Optional[str]:
         if not cfg.dev_mode:
             console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
         return
-    with open(scryfall_scan_path, encoding="utf-8") as file:
+    with open(con.scryfall_scan_path, encoding="utf-8") as file:
         return file.name
 
 

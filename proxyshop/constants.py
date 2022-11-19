@@ -184,6 +184,7 @@ Faces = {
 
 # Font names
 font_rules_text = "PlantinMTPro-Regular"
+font_rules_text_bold = "PlantinMTPro-Bold"
 font_rules_text_italic = "PlantinMTPro-Italic"
 font_mana = "NDPMTG"
 font_subtext = "Beleren Small Caps Bold"
@@ -289,8 +290,6 @@ clri_bh = clr_primary
 clri_r = clr_primary
 clri_g = clr_primary
 
-# Creator toggle features
-align_classic_quote = False
 
 # Import symbol library
 with open(os.path.join(cwd, "proxyshop/symbols.json"), "r", encoding="utf-8-sig") as js:
@@ -378,6 +377,7 @@ class Constants:
         # Font names
         self.font_rules_text = font_rules_text
         self.font_rules_text_italic = font_rules_text_italic
+        self.font_rules_text_bold = font_rules_text_bold
         self.font_mana = font_mana
         self.font_subtext = font_subtext
         self.font_collector = font_collector
@@ -405,7 +405,6 @@ class Constants:
         self.clr_bh = clr_bh
         self.clr_r = clr_r
         self.clr_g = clr_g
-
         self.clri_c = clri_c
         self.clri_w = clri_w
         self.clri_u = clri_u
@@ -413,12 +412,8 @@ class Constants:
         self.clri_bh = clri_bh
         self.clri_r = clri_r
         self.clri_g = clri_g
-
         self.clr_primary = clr_primary
         self.clr_secondary = clr_secondary
-
-        # Creator toggle features
-        self.align_classic_quote = align_classic_quote
 
         # HTTP Header for requests
         self.http_header = http_header
@@ -430,7 +425,13 @@ class Constants:
         self.google_api = g_api
         self.amazon_api = a_api
 
+        # Run headless
+        self.headless = False
+
     def reload(self):
+        """
+        Reloads default values
+        """
         self.load_values()
 
     def update_version_tracker(self):

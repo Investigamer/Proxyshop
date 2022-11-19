@@ -22,11 +22,12 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
 from proxyshop.creator import CreatorPanels
+from proxyshop.gui import HoverBehavior, TestApp, console
 from proxyshop.scryfall import card_info
 from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info
 from proxyshop.settings import cfg
-from proxyshop import core, gui, layouts
+from proxyshop import core, layouts
 
 # App configuration
 Config.set('graphics', 'resizable', '1')
@@ -38,7 +39,6 @@ Config.write()
 # Core vars
 card_types = core.card_types
 templates = core.get_templates()
-console = gui.console_handler
 cwd = os.getcwd()
 
 
@@ -420,7 +420,7 @@ class ProxyshopApp(App):
 		"""
 		Build the app for display.
 		"""
-		if cfg.dev_mode: layout = gui.TestApp()
+		if cfg.dev_mode: layout = TestApp()
 		else: layout = ProxyshopPanels()
 		layout.add_widget(console)
 		return layout
@@ -572,6 +572,6 @@ if __name__ == '__main__':
 
 	# Launch the app
 	__version__ = "v1.1.9"
-	Factory.register('HoverBehavior', gui.HoverBehavior)
+	Factory.register('HoverBehavior', HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()
