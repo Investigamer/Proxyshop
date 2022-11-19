@@ -12,8 +12,12 @@ from photoshop.api._layerSet import LayerSet
 
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
-from proxyshop.gui import console_handler as console
+from proxyshop.constants import con
 import photoshop.api as ps
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 
 # QOL Definitions
 cwd = os.getcwd()
@@ -198,6 +202,22 @@ def get_cmyk(c: float, m: float, y: float, k: float):
     color.cmyk.yellow = y
     color.cmyk.black = k
     return color
+
+
+def solidcolor(color) -> Optional[ps.SolidColor]:
+    """
+    Takes in color dict and spits out a SolidColor object appropriate to that configuration.
+    @param color: Dict of RGB or CMYK values
+    @return: SolidColor object or None
+    """
+    if 'r' in color.keys():
+        return get_rgb(color['r'], color['g'], color['b'])
+    elif 'c' in color.keys():
+        return get_cmyk(color['c'], color['m'], color['y'], color['k'])
+    else:
+        console.update(f"Don't know how to convert color {color} to a ps.Solidcolor!")
+        return
+
 
 def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor):
     """
