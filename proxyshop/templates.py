@@ -11,13 +11,16 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 from proxyshop.frame_logic import format_expansion_symbol_info
-from proxyshop.gui import console_handler as console
 import proxyshop.text_layers as txt_layers
 import proxyshop.format_text as ft
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
 from photoshop import api as ps
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 app = ps.Application()
 
 
@@ -741,7 +744,7 @@ class StarterTemplate (BaseTemplate):
 
         # Add text layers
         self.text.extend([
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = self.text_layer_mana,
                 contents = self.layout.mana_cost
             ),
@@ -1263,7 +1266,7 @@ class MDFCBackTemplate (NormalTemplate):
 
         # Add mdfc text layers
         self.text.extend([
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = self.text_layer_mdfc_right,
                 contents = self.layout.other_face_right
             ),
@@ -1346,7 +1349,7 @@ class AdventureTemplate (NormalTemplate):
         # Add adventure text layers
         mana_cost = psd.getLayer(con.layers['MANA_COST_ADVENTURE'], self.text_layers)
         self.text.extend([
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = mana_cost,
                 contents = self.layout.adventure['mana_cost']
             ),
@@ -1385,7 +1388,7 @@ class LevelerTemplate (NormalTemplate):
         # Overwrite to add level abilities
         leveler_text_group = psd.getLayerSet("Leveler Text", self.text_layers)
         self.text.extend([
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = psd.getLayer("Rules Text - Level Up", leveler_text_group),
                 contents = self.layout.level_up_text
             ),
@@ -1401,7 +1404,7 @@ class LevelerTemplate (NormalTemplate):
                 layer = psd.getLayer("Middle Power / Toughness", leveler_text_group),
                 contents = self.layout.middle_power_toughness
             ),
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = psd.getLayer("Rules Text - Levels X-Y", leveler_text_group),
                 contents = self.layout.levels_x_y_text
             ),
@@ -1413,7 +1416,7 @@ class LevelerTemplate (NormalTemplate):
                 layer = psd.getLayer("Bottom Power / Toughness", leveler_text_group),
                 contents = self.layout.bottom_power_toughness
             ),
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer = psd.getLayer("Rules Text - Levels Z+", leveler_text_group),
                 contents = self.layout.levels_z_plus_text
             )
@@ -1481,7 +1484,7 @@ class SagaTemplate (NormalTemplate):
             stage_group = psd.getLayerSet(stages[i], saga_text_group)
             stage_group.visible = True
             self.text.append(
-                txt_layers.BasicFormattedTextField(
+                txt_layers.FormattedTextField(
                     layer = psd.getLayer("Text", stage_group),
                     contents = line
                 )
@@ -1645,7 +1648,7 @@ class PlaneswalkerTemplate (StarterTemplate):
 
             # Add ability text
             self.text.append(
-                txt_layers.BasicFormattedTextField(
+                txt_layers.FormattedTextField(
                     layer=ability_layer,
                     contents=ability
                 )
@@ -1871,7 +1874,7 @@ class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
 
         # Add mdfc text layers
         self.text.extend([
-            txt_layers.BasicFormattedTextField(
+            txt_layers.FormattedTextField(
                 layer=self.text_layer_mdfc_right,
                 contents=self.layout.other_face_right
             ),
@@ -2048,7 +2051,7 @@ class PlanarTemplate (StarterTemplate):
 
             # Insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
             self.text.append(
-                txt_layers.BasicFormattedTextField(
+                txt_layers.FormattedTextField(
                     layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text
                 )
@@ -2062,11 +2065,11 @@ class PlanarTemplate (StarterTemplate):
             # Split oracle text on last line break, insert everything before into static, the rest into chaos
             linebreak_index = self.layout.oracle_text.rindex("\n")
             self.text.extend([
-                txt_layers.BasicFormattedTextField(
+                txt_layers.FormattedTextField(
                     layer = self.text_layer_static_ability,
                     contents = self.layout.oracle_text[0:linebreak_index]
                 ),
-                txt_layers.BasicFormattedTextField(
+                txt_layers.FormattedTextField(
                     layer = self.text_layer_chaos_ability,
                     contents = self.layout.oracle_text[linebreak_index+1:]
                 ),

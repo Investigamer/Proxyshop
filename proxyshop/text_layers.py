@@ -1,14 +1,22 @@
 """
 TEXT LAYER MODULE
 """
-import math
+from functools import cached_property
+from typing import Optional, Union
 
 import photoshop.api as ps
+from photoshop.api._artlayer import ArtLayer
+
 import proxyshop.helpers as psd
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import format_text as ft
+
+# QOL Definitions
 app = ps.Application()
+sID = app.stringIDToTypeID
+cID = app.charIDToTypeID
+NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
 
 """
@@ -22,18 +30,38 @@ class TextField:
     @param layer: TextItem layer to insert contents.
     @param contents: Text contents to be inserted.
     @param color: Font color to use for this TextItem.
+    @param kwargs: Optional keyword parameters.
     """
-    def __init__(self, layer, contents = "", color = None):
-        self.contents = contents.replace("\n", "\r")
-        if color: self.text_color = color
-        else: self.text_color = psd.get_text_layer_color(layer)
+    def __init__(self, layer: ArtLayer, contents: str = "", color: Optional[ps.SolidColor] = None, **kwargs):
+        # Mandatory attributes
+        self.kwargs = kwargs
         self.layer = layer
+        self.contents = contents.replace("\n", "\r")
+        self.text_color = color if color else psd.get_text_layer_color(layer)
+
+        # Change to English formatting if needed
         if self.layer.kind == ps.LayerKind.TextLayer and cfg.force_english_formatting:
             self.layer.textItem.language = ps.Language.EnglishUSA
 
+    """
+    PROPERTIES
+    """
+
+    @cached_property
+    def reference(self) -> Optional[ArtLayer]:
+        if 'reference' in self.kwargs:
+            return self.kwargs['reference']
+        # Bug reporting
+        print(f"I'm not getting a scale reference for TextField: {self.layer.name}")
+        return
+
+    """
+    METHODS
+    """
+
     def execute(self):
         """
-        Enables, fills, and colors the text item.
+        Executes all text actions.
         """
         self.layer.visible = True
         self.layer.textItem.contents = self.contents
@@ -45,104 +73,341 @@ class ScaledTextField (TextField):
     A TextField which automatically scales down its font size (in 0.25 pt increments) until
     its right bound no longer overlaps with a reference layer's left bound.
     """
-    def __init__(self, layer, contents = "", color = None, reference = None):
-        super().__init__(layer, contents, color)
-        self.reference = reference
-        self.reference_parent = self.reference.parent
-        self.reference_name = self.reference.name
-
     def execute(self):
-        # Grab the new reference layer object if it has changed
-        try: self.reference.name
-        except: self.reference = psd.getLayer(self.reference_name, self.reference_parent)
-
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
-        ft.scale_text_right_overlap(self.layer, self.reference)
-
-
-class BasicFormattedTextField (TextField):
-    """
-    A TextField where the contents may have symbols to be formatted using NDPMTG font,
-    and may have italics abilities to be formatted as well. Doesn't support flavor text
-    or centered text. For use with fields like mana costs and planeswalker abilities.
-    PARAMS are identical to TextItem class.
-    """
-    def execute(self):
-        super().execute()
-
-        # Format text
-        app.activeDocument.activeLayer = self.layer
-        italic_text = ft.generate_italics(self.contents)
-        ft.format_text(self.contents, italic_text, -1, False)
+        if self.reference:
+            ft.scale_text_right_overlap(self.layer, self.reference)
 
 
 class FormattedTextField (TextField):
     """
-    A TextField where the contents contain some number of symbols which should be replaced
-    with glyphs from the NDPMTG font. For example, if the text contents for an instance of
-    self class is "{2}{R}", formatting self text with NDPMTG would correctly show the mana
-    cost 2R with text contents "o2or" with characters being appropriately colored. The big
-    boy version which supports centered text and flavor text. For use with card rules text.
+    A utility class for packing in the required infrastructure to format text with action descriptors.
     """
-    def __init__(
-        self,
-        layer,
-        contents = "",
-        color = None,
-        flavor_text = "",
-        centered = False
-    ):
-        super().__init__(layer, contents, color)
-        self.flavor_text = flavor_text.replace("\n", "\r")
-        self.centered = centered
 
-    def get_italics_and_flavor_index(self):
-        """
-        Returns an array of italic text for the instance's text contents and the index at which flavour text begins.
-        Within flavour text, any text between asterisks should not be italicised, and the asterisks should not be
-        included in the rendered flavour text.
-        @return: Dict of flavor index, and italic text array
-        """
+    """
+    PROPERTIES
+    """
 
-        # generate italic text arrays from things in (parentheses), ability words, and the given flavor text
+    @property
+    def divider(self) -> Optional[ArtLayer]:
+        # Default to None unless overwritten
+        return
+
+    @cached_property
+    def input(self) -> str:
+        if hasattr(self, 'flavor_text') and self.flavor_text != "":
+            return self.contents + "\r" + self.flavor_text
+        return self.contents
+
+    @property
+    def flavor_text(self) -> str:
+        if 'flavor' in self.kwargs:
+            if "\n" in self.kwargs['flavor']:
+                return self.kwargs['flavor'].replace("\n", "\r")
+            return self.kwargs['flavor']
+        return ""
+
+    @flavor_text.setter
+    def flavor_text(self, value):
+        self.kwargs['flavor'] = value
+
+    @cached_property
+    def contents_centered(self) -> bool:
+        if 'centered' in self.kwargs and self.kwargs['centered']:
+            return True
+        return False
+
+    @cached_property
+    def flavor_centered(self) -> bool:
+        if 'flavor_centered' in self.kwargs and self.kwargs['flavor_centered']:
+            return True
+        return False
+
+    @cached_property
+    def line_break_lead(self) -> Union[int, float]:
+        if 'line_break_lead' in self.kwargs:
+            return self.kwargs['line_break_lead']
+        if self.contents_centered:
+            return 0
+        return con.line_break_lead
+
+    @cached_property
+    def flavor_text_lead(self) -> Union[int, float]:
+        # Lead with divider
+        if self.divider:
+            if 'flavor_text_lead_divider' in self.kwargs:
+                return self.kwargs['flavor_text_lead_divider']
+            return con.flavor_text_lead_divider
+        # Lead without divider
+        if 'flavor_text_lead' in self.kwargs:
+            return self.kwargs['flavor_text_lead']
+        return con.flavor_text_lead
+
+    @cached_property
+    def flavor_index(self) -> int:
+        return len(self.contents) if len(self.flavor_text) > 0 else -1
+
+    @cached_property
+    def quote_index(self) -> int:
+        return self.input.find("\r", self.flavor_index + 3) if self.flavor_index >= 0 else -1
+
+    @cached_property
+    def italics_strings(self) -> list:
+        # Generate italic text arrays from things in (parentheses), ability words, and the given flavor text
         italic_text = ft.generate_italics(self.contents)
 
-        # Flavor text included?
-        if len(self.flavor_text) > 1:
-            # Don't italicize any text between asterisk
+        # Add flavor text to italics array
+        if self.flavor_text.count("*") >= 2:
+            # Don't italicize text between asterisk
             flavor_text_split = self.flavor_text.split("*")
-            if len(flavor_text_split) > 1:
-                # Text between asterisk is present
-                italic_text.extend(
-                    [v for i, v in enumerate(flavor_text_split) if not i % 2 and not v == ""]
-                )
+            italic_text.extend([v for i, v in enumerate(flavor_text_split) if not i % 2 and not v == ""])
 
-                # reassemble flavor text without asterisks
-                self.flavor_text = "".join(flavor_text_split)
-            else: italic_text.append(self.flavor_text)
-            flavor_index = len(self.contents)
-        else: flavor_index = -1
+            # Reassemble flavor text without asterisks
+            self.flavor_text = "".join(flavor_text_split)
+        elif len(self.flavor_text) > 0:
+            italic_text.append(self.flavor_text)
+        return italic_text
 
-        # Return the values
-        return {
-            'flavor_index': flavor_index,
-            'italic_text': italic_text,
-        }
+    @cached_property
+    def bold_rules_text(self) -> bool:
+        if 'bold_rules_text' in self.kwargs:
+            return self.kwargs['bold_rules_text']
+        return False
+
+    @cached_property
+    def right_align_quote(self) -> bool:
+        if 'right_align_quote' in self.kwargs:
+            return self.kwargs['right_align_quote']
+        return False
+
+    """
+    METHODS
+    """
+
+    def format_text(self):
+        """
+        Inserts the given string into the active layer and formats it according to defined parameters with symbols
+        from the NDPMTG font.
+        """
+        # Record the layer's justification before modifying the layer in case it's reset along the way
+        layer_justification = app.activeDocument.activeLayer.textItem.justification
+
+        # Locate symbols and update the input string
+        ret = ft.locate_symbols(self.input)
+        input_string = ret['input_string']
+        symbol_indices = ret['symbol_indices']
+
+        # Locate italics text indices
+        italics_indices = ft.locate_italics(input_string, self.italics_strings)
+
+        # Prepare action descriptor and reference variables
+        layer_font_size = app.activeDocument.activeLayer.textItem.size
+        layer_text_color = app.activeDocument.activeLayer.textItem.color
+        primary_action_descriptor = ps.ActionDescriptor()
+        primary_action_list = ps.ActionList()
+        desc119 = ps.ActionDescriptor()
+        desc26 = ps.ActionDescriptor()
+        desc25 = ps.ActionDescriptor()
+        ref101 = ps.ActionReference()
+        desc141 = ps.ActionDescriptor()
+        desc142 = ps.ActionDescriptor()
+        desc143 = ps.ActionDescriptor()
+        desc144 = ps.ActionDescriptor()
+        desc145 = ps.ActionDescriptor()
+        list13 = ps.ActionList()
+        list14 = ps.ActionList()
+        list15 = ps.ActionList()
+        idkerningRange = sID("kerningRange")
+        idparagraphStyleRange = sID("paragraphStyleRange")
+        idfontPostScriptName = sID("fontPostScriptName")
+        idfirstLineIndent = sID("firstLineIndent")
+        idparagraphStyle = sID("paragraphStyle")
+        idautoLeading = sID("autoLeading")
+        idstartIndent = sID("startIndent")
+        idspaceBefore = sID("spaceBefore")
+        idleadingType = sID("leadingType")
+        idspaceAfter = sID("spaceAfter")
+        idendIndent = sID("endIndent")
+        idTxtS = sID("textStyle")
+        idsetd = sID("set")
+        idTxLr = sID("textLayer")
+        idT = sID("to")
+        idFntN = sID("fontName")
+        idSz = sID("size")
+        idPnt = sID("pointsUnit")
+        idLdng = sID("leading")
+        idTxtt = sID("textStyleRange")
+        idFrom = sID("from")
+
+        # Spin up the text insertion action
+        ref101.putEnumerated(idTxLr, sID("ordinal"), sID("targetEnum"))
+        desc119.putReference(cID("null"), ref101)
+        primary_action_descriptor.putString(sID("textKey"), input_string)
+        desc25.putInteger(idFrom, 0)
+        desc25.putInteger(idT, len(input_string))
+        desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
+        desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
+        desc26.putUnitDouble(idSz, idPnt, layer_font_size)
+        psd.apply_color(desc26, layer_text_color)
+        desc26.putBoolean(idautoLeading, False)
+        desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
+        desc25.putObject(idTxtS, idTxtS, desc26)
+        current_layer_ref = desc25
+
+        # Bold the contents if necessary
+        if self.bold_rules_text and self.flavor_index != 0:
+            bold_action1 = ps.ActionDescriptor()
+            bold_action2 = ps.ActionDescriptor()
+            contents_index = len(input_string) - 1 if self.flavor_index < 0 else self.flavor_index - 1
+            primary_action_list.putObject(idTxtt, current_layer_ref)
+            bold_action1.putInteger(idFrom, 0)  # italics start index
+            bold_action1.putInteger(idT, contents_index)  # italics end index
+            bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
+            bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
+            bold_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+            bold_action2.putBoolean(idautoLeading, False)
+            bold_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+            bold_action1.putObject(idTxtS, idTxtS, bold_action2)
+            current_layer_ref = bold_action1
+
+        # Italicize text from our italics indices
+        for italics_index in italics_indices:
+            italics_action1 = ps.ActionDescriptor()
+            italics_action2 = ps.ActionDescriptor()
+            primary_action_list.putObject(idTxtt, current_layer_ref)
+            italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
+            italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
+            italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+            italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
+            italics_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+            italics_action2.putBoolean(idautoLeading, False)
+            italics_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+            italics_action1.putObject(idTxtS, idTxtS, italics_action2)
+            current_layer_ref = italics_action1
+
+        # Format each symbol correctly
+        for symbol_index in symbol_indices:
+            current_layer_ref = ft.format_symbol(
+                primary_action_list=primary_action_list,
+                starting_layer_ref=current_layer_ref,
+                symbol_index=symbol_index['index'],
+                symbol_colors=symbol_index['colors'],
+                layer_font_size=layer_font_size,
+            )
+
+        # Insert actions for bold, italics, and symbol formatting
+        primary_action_list.putObject(idTxtt, current_layer_ref)
+        primary_action_descriptor.putList(idTxtt, primary_action_list)
+
+        # Paragraph formatting
+        desc141.putInteger(idFrom, 0)
+        desc141.putInteger(idT, len(input_string))  # input string length
+        desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
+        desc142.putUnitDouble(idstartIndent, idPnt, 0)
+        desc142.putUnitDouble(idendIndent, idPnt, 0)
+        desc142.putUnitDouble(idspaceBefore, idPnt, self.line_break_lead)
+        desc142.putUnitDouble(idspaceAfter, idPnt, 0)
+        desc142.putInteger(sID("dropCapMultiplier"), 1)
+        desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
+        desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+        desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
+        desc143.putBoolean(idautoLeading, False)
+        primary_action_descriptor.putList(idparagraphStyleRange, list13)
+        primary_action_descriptor.putList(idkerningRange, list14)
+
+        # Adjust formatting for modal card with bullet points
+        if "\u2022" in input_string:
+            startIndexBullet = input_string.find("\u2022")
+            endIndexBullet = input_string.rindex("\u2022")
+            desc141.putInteger(idFrom, startIndexBullet)
+            desc141.putInteger(idT, endIndexBullet + 1)
+            desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent)  # negative modal indent
+            desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent)  # modal indent
+            desc142.putUnitDouble(idspaceBefore, idPnt, 1)
+            desc142.putUnitDouble(idspaceAfter, idPnt, 0)
+            desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+            desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
+            desc143.putUnitDouble(idSz, idPnt, 12)
+            desc143.putBoolean(idautoLeading, False)
+            desc142.putObject(sID("defaultStyle"), idTxtS, desc143)
+            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
+            list13.putObject(idparagraphStyleRange, desc141)
+            primary_action_descriptor.putList(idparagraphStyleRange, list13)
+            primary_action_descriptor.putList(idkerningRange, list14)
+
+        # Flavor text actions
+        if self.flavor_index >= 0:
+            # Add linebreak spacing between rules and flavor text
+            desc141.putInteger(idFrom, self.flavor_index + 3)
+            desc141.putInteger(idT, self.flavor_index + 4)
+            desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
+            idimpliedFirstLineIndent = sID("impliedFirstLineIndent")
+            desc142.putUnitDouble(idimpliedFirstLineIndent, idPnt, 0)
+            desc142.putUnitDouble(idstartIndent, idPnt, 0)
+            desc142.putUnitDouble(sID("impliedStartIndent"), idPnt, 0)
+            desc142.putUnitDouble(idspaceBefore, idPnt, self.flavor_text_lead)  # Space between rules and flavor text
+            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
+            list13.putObject(idparagraphStyleRange, desc141)
+            primary_action_descriptor.putList(idparagraphStyleRange, list13)
+            primary_action_descriptor.putList(idkerningRange, list14)
+
+            # Adjust flavor text color
+            if con.flavor_text_color:
+                desc144.PutInteger(sID("from"), self.flavor_index)
+                desc144.PutInteger(sID("to"), len(input_string))
+                desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+                desc145.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
+                desc145.putUnitDouble(idSz, idPnt, layer_font_size)
+                desc145.putBoolean(idautoLeading, False)
+                desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
+                psd.apply_color(desc145, con.flavor_text_color)
+                desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
+                list15.PutObject(sID("textStyleRange"), desc144)
+                primary_action_descriptor.putList(sID("textStyleRange"), list15)
+
+        # Quote actions flavor text
+        disable_justify = False
+        if self.quote_index >= 0:
+            # Adjust line break spacing if there's a line break in the flavor text
+            desc141.putInteger(idFrom, self.quote_index + 3)
+            desc141.putInteger(idT, len(input_string))
+            desc142.putUnitDouble(idspaceBefore, idPnt, 0)
+            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
+            list13.putObject(idparagraphStyleRange, desc141)
+
+            # Optional, align quote credit to right
+            if self.right_align_quote and input_string.find('"\r—') >= 0:
+                # Get start and ending index of quotation credit
+                index_start = input_string.find('"\r—') + 2
+                index_end = len(input_string) - 1
+
+                # Align this part, disable justification reset
+                list13 = ft.classic_align_right(list13, index_start, index_end)
+                disable_justify = True
+
+            # Add quote actions to primary action
+            primary_action_descriptor.putList(idparagraphStyleRange, list13)
+            primary_action_descriptor.putList(idkerningRange, list14)
+
+        # Push changes to text layer
+        desc119.putObject(idT, idTxLr, primary_action_descriptor)
+        app.executeAction(idsetd, desc119, NO_DIALOG)
+
+        # Reset layer's justification if needed and disable hyphenation
+        if not disable_justify:
+            app.activeDocument.activeLayer.textItem.justification = layer_justification
+        app.activeDocument.activeLayer.textItem.hyphenation = False
 
     def execute(self):
         super().execute()
 
-        # Generate italics text array from things in (parentheses), ability words, and the flavor text
-        ret = self.get_italics_and_flavor_index()
-        self.flavor_index = ret['flavor_index']
-        self.italic_text = ret['italic_text']
-
         # Format text
         app.activeDocument.activeLayer = self.layer
-        ft.format_text(self.contents + "\r" + self.flavor_text, self.italic_text, self.flavor_index, self.centered)
-        if self.centered: self.layer.textItem.justification = ps.Justification.Center
+        self.format_text()
+        if self.contents_centered:
+            self.layer.textItem.justification = ps.Justification.Center
 
 
 class FormattedTextArea (FormattedTextField):
@@ -152,26 +417,27 @@ class FormattedTextArea (FormattedTextField):
     within the reference layer's bounds, then rasterize the text layer, and
     center it vertically with respect to the reference layer's selection area.
     """
-    def __init__(
-        self,
-        layer,
-        contents = "",
-        color = None,
-        flavor = "",
-        reference = None,
-        divider = None,
-        centered = False
-    ):
-        super().__init__(layer, contents, color, flavor, centered)
-        if divider and cfg.flavor_divider and len(self.flavor_text) > 0 and len(self.contents) > 0:
-            con.flavor_text_lead = con.flavor_text_lead_divider
-            self.divider = divider
-        else: self.divider = None
-        self.reference = reference
 
-        # Prepare for text being too long
-        if len(self.contents+self.flavor_text) > 280: self.fix_length = True
-        else: self.fix_length = False
+    """
+    PROPERTIES
+    """
+
+    @cached_property
+    def divider(self) -> Optional[ArtLayer]:
+        if 'divider' in self.kwargs and cfg.flavor_divider and len(self.flavor_text) > 0 and len(self.contents) > 0:
+            return self.kwargs['divider']
+        return
+
+    @cached_property
+    def fix_length(self) -> bool:
+        # Check if text needs the long text entry fix
+        if len(self.contents + self.flavor_text) > 280:
+            return True
+        return False
+
+    """
+    METHODS
+    """
 
     def insert_divider(self):
         """
@@ -182,7 +448,7 @@ class FormattedTextArea (FormattedTextField):
             # Create a flavor-text-only layer to reference
             flavor_test = self.layer.duplicate()
             app.activeDocument.activeLayer = flavor_test
-            ft.format_text(self.flavor_text, [], 0, self.centered)
+            ft.format_text(self.flavor_text, [], 0, self.contents_centered)
             flavor_replace = flavor_test.textItem.contents
             flavor_test.remove()
 
@@ -238,14 +504,15 @@ class FormattedTextArea (FormattedTextField):
             ft.vertically_align_text(self.layer, self.reference)
 
             # Ensure the layer is centered horizontally if needed
-            if self.centered:
+            if self.contents_centered:
                 psd.select_layer_bounds(self.reference)
                 app.activeDocument.activeLayer = self.layer
                 psd.align_horizontal()
                 psd.clear_selection()
 
             # Insert flavor divider if needed
-            if self.divider: self.insert_divider()
+            if self.divider:
+                self.insert_divider()
 
 
 class CreatureFormattedTextArea (FormattedTextArea):
@@ -255,26 +522,34 @@ class CreatureFormattedTextArea (FormattedTextArea):
     (which should represent the bounds of the power/toughness box), the layer will be shifted
     vertically to ensure that it doesn't overlap.
     """
-    def __init__(
-        self,
-        layer,
-        contents = "",
-        color = None,
-        flavor = "",
-        reference = None,
-        divider = None,
-        pt_reference = None,
-        pt_top_reference = None,
-        centered = False
-    ):
-        super().__init__(layer, contents, color, flavor, reference, divider, centered)
-        self.pt_reference = pt_reference
-        self.pt_top_reference = pt_top_reference
+
+    """
+    PROPERTIES
+    """
+
+    @cached_property
+    def pt_reference(self) -> Optional[ArtLayer]:
+        if 'pt_reference' in self.kwargs:
+            return self.kwargs['pt_reference']
+        return None
+
+    @cached_property
+    def pt_top_reference(self) -> Optional[ArtLayer]:
+        if 'pt_top_reference' in self.kwargs:
+            return self.kwargs['pt_top_reference']
+        return None
+
+    """
+    METHODS
+    """
 
     def execute(self):
         super().execute()
 
-        # shift vertically if the text overlaps the PT box
-        delta = ft.vertically_nudge_creature_text(self.layer, self.pt_reference, self.pt_top_reference)
-        if delta and self.divider:
-            if delta < 0: self.divider.translate(0, delta)
+        # Shift vertically if the text overlaps the PT box
+        if self.pt_reference and self.pt_top_reference:
+            delta = ft.vertically_nudge_creature_text(self.layer, self.pt_reference, self.pt_top_reference)
+            # Shift the divider as well
+            if delta and self.divider:
+                if delta < 0:
+                    self.divider.translate(0, delta)
