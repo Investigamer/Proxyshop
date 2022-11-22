@@ -566,7 +566,6 @@ class NormalFullartTemplate (NormalTemplate):
     template_file_name = "normal-fullart.psd"
     template_suffix = "Fullart"
 
-
 class WomensDayTemplate (NormalTemplate):
     """
     The showcase template first used on the Women's Day Secret Lair. The layer structure of this template

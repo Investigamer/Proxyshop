@@ -1,0 +1,11 @@
+{
+	"normal": {
+		"Silvan Extended": "SilvanExtendedTemplate"
+	},
+	"mdfc_front": {
+		"Silvan Extended": "SilvanMDFCFrontTemplate"
+	},
+	"mdfc_back": {
+		"Silvan Extended": "SilvanMDFCBackTemplate"
+	}
+}
