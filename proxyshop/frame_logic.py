@@ -24,6 +24,40 @@ def fix_color_pair(pair):
     elif pair[::-1] in color_pairs: return pair[::-1]
     else: return None
 
+def fix_color_triple(triple):
+    """
+    * Utility function to standardize ordering of color triples, ie. "BUR" becomes "UBR"
+    """
+    color_triples = [
+        con.layers["GWU"],
+        con.layers["WUB"],
+        con.layers["UBR"],
+        con.layers["BRG"],
+        con.layers["RGW"],
+        con.layers["URW"],
+        con.layers["BGU"],
+        con.layers["RWB"],
+        con.layers["GUR"]
+    ]
+
+    # Return the triple if it's already in the correct order
+    if triple in color_triples: return triple
+    # Make sure we have exactly 3 colors
+    elif len(triple) == 3:
+        # Start with full list
+        filtered_triples = color_triples
+        # Search letter by letter to narrow down to the correct triple
+        for letter in triple:
+            filtered_triples = list(filter(lambda x: letter in x, filtered_triples))
+
+        # We should be left with exactly 1 match
+        if len(filtered_triples) == 1 and filtered_triples[0] in color_triples:
+            return filtered_triples[0]
+        else:
+            return None
+    # No match
+    else:
+        return None
 
 def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array, color_indicator):
     """
@@ -61,6 +95,15 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
         elif len(basic_identity) == 2:
             # Exactly two basic land types. Fix naming convention, return frame elements
             basic_identity = fix_color_pair(basic_identity)
+            return {
+                'background': con.layers['LAND'],
+                'pinlines': basic_identity,
+                'twins': con.layers['LAND'],
+                'is_colorless': False
+            }
+        elif len(basic_identity) == 3:
+            # Exactly three basic land types (ie. IKO/SNC Triomes, Shard/Wedge tap lands)
+            basic_identity = fix_color_triple(basic_identity)
             return {
                 'background': con.layers['LAND'],
                 'pinlines': basic_identity,
