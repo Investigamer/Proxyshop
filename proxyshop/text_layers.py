@@ -182,6 +182,12 @@ class FormattedTextField (TextField):
             return self.kwargs['right_align_quote']
         return False
 
+    @cached_property
+    def flavor_color(self) -> Optional[ps.SolidColor]:
+        if 'flavor_color' in self.kwargs:
+            return self.kwargs['flavor_color']
+        return
+
     """
     METHODS
     """
@@ -354,7 +360,7 @@ class FormattedTextField (TextField):
             primary_action_descriptor.putList(idkerningRange, list14)
 
             # Adjust flavor text color
-            if con.flavor_text_color:
+            if self.flavor_color:
                 desc144.PutInteger(sID("from"), self.flavor_index)
                 desc144.PutInteger(sID("to"), len(input_string))
                 desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
@@ -362,7 +368,7 @@ class FormattedTextField (TextField):
                 desc145.putUnitDouble(idSz, idPnt, layer_font_size)
                 desc145.putBoolean(idautoLeading, False)
                 desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
-                psd.apply_color(desc145, con.flavor_text_color)
+                psd.apply_color(desc145, self.flavor_color)
                 desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
                 list15.PutObject(sID("textStyleRange"), desc144)
                 primary_action_descriptor.putList(sID("textStyleRange"), list15)
