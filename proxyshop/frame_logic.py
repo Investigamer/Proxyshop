@@ -4,6 +4,7 @@ Functions handling logic for card frames
 from typing import Union
 
 from proxyshop.constants import con
+from proxyshop.settings import cfg
 
 
 def fix_color_pair(pair):
@@ -299,10 +300,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]):
         return symbol, [{
             'char': symbol,
             'rarity': True,
-            'fill': False,
+            'fill': "black" if cfg.fill_symbol else False,
             'color': False,
             'stroke': ["black", 6],
-            'common-fill': False,
+            'common-fill': "white" if cfg.fill_symbol else False,
             'common-color': False,
             'common-stroke': ["white", 6],
             'scale-factor': 1
