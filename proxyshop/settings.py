@@ -56,6 +56,7 @@ class Config:
 		self.targeted_replace = self.file.getboolean('EXPERIMENTAL', 'Targeted.Replace')
 		self.flavor_divider = self.file.getboolean('EXPERIMENTAL', 'Flavor.Divider')
 		self.dev_mode = self.file.getboolean('EXPERIMENTAL', 'Dev.Mode')
+		self.color_identity_max = int(self.file['EXPERIMENTAL']['Color.Identity.Max'])
 
 	def update(self):
 		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(self.auto_symbol))

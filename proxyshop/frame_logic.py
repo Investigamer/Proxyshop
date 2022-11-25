@@ -2,7 +2,7 @@
 Functions handling logic for card frames
 """
 from proxyshop.constants import con
-
+from proxyshop.settings import cfg
 
 def fix_color_pair(pair):
     """
@@ -101,8 +101,10 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                 'twins': con.layers['LAND'],
                 'is_colorless': False
             }
-        elif len(basic_identity) == 3:
+        elif len(basic_identity) == 3 and len(basic_identity) <= cfg.color_identity_max:
             # Exactly three basic land types (ie. IKO/SNC Triomes, Shard/Wedge tap lands)
+            # To use this, you must set Color.Identity.Max = 3 in config.ini 
+            # Default = 2 since most templates only support 2-color frames
             basic_identity = fix_color_triple(basic_identity)
             return {
                 'background': con.layers['LAND'],
@@ -312,7 +314,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
 
     # Select pinlines
     if len(color_identity) <= 0: pinlines = con.layers['ARTIFACT']
-    elif len(color_identity) <= 2: pinlines = color_identity
+    elif len(color_identity) <= cfg.color_identity_max: pinlines = color_identity
     else: pinlines = con.layers['GOLD']
 
     # Select name box
