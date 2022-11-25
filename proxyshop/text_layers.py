@@ -454,7 +454,7 @@ class FormattedTextArea (FormattedTextField):
             # Create a flavor-text-only layer to reference
             flavor_test = self.layer.duplicate()
             app.activeDocument.activeLayer = flavor_test
-            ft.format_text(self.flavor_text, [], 0, self.contents_centered)
+            ft.basic_format_text(self.flavor_text)
             flavor_replace = flavor_test.textItem.contents
             flavor_test.remove()
 

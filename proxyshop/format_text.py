@@ -242,6 +242,112 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
     return current_ref
 
 
+def basic_format_text(input_string):
+    """
+    Inserts the given string into the active layer and formats it without any of the more advanced features like
+    italics strings, centering, etc.
+    @param input_string: The string to insert into the active layer
+    """
+    # Is the active layer a text layer?
+    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
+
+    # Locate symbols and update the input string
+    ret = locate_symbols(input_string)
+    input_string = ret['input_string']
+    symbol_indices = ret['symbol_indices']
+
+    # Prepare action descriptor and reference variables
+    layer_font_size = app.activeDocument.activeLayer.textItem.size
+    layer_text_color = app.activeDocument.activeLayer.textItem.color
+    primary_action_descriptor = ps.ActionDescriptor()
+    primary_action_list = ps.ActionList()
+    desc119 = ps.ActionDescriptor()
+    desc26 = ps.ActionDescriptor()
+    desc25 = ps.ActionDescriptor()
+    ref101 = ps.ActionReference()
+    desc141 = ps.ActionDescriptor()
+    desc142 = ps.ActionDescriptor()
+    desc143 = ps.ActionDescriptor()
+    list13 = ps.ActionList()
+    list14 = ps.ActionList()
+    idkerningRange = sID("kerningRange")
+    idparagraphStyleRange = sID("paragraphStyleRange")
+    idfontPostScriptName = sID("fontPostScriptName")
+    idfirstLineIndent = sID("firstLineIndent")
+    idparagraphStyle = sID("paragraphStyle")
+    idautoLeading = sID("autoLeading")
+    idstartIndent = sID("startIndent")
+    idspaceBefore = sID("spaceBefore")
+    idleadingType = sID("leadingType")
+    idspaceAfter = sID("spaceAfter")
+    idendIndent = sID("endIndent")
+    idTxtS = sID("textStyle")
+    idsetd = cID("setd")
+    idTxLr = cID("TxLr")
+    idT = cID("T   ")
+    idFntN = cID("FntN")
+    idSz = cID("Sz  ")
+    idPnt = cID("#Pnt")
+    idLdng = cID("Ldng")
+    idTxtt = cID("Txtt")
+    idFrom = cID("From")
+    ref101.putEnumerated(
+        idTxLr,
+        cID("Ordn"),
+        cID("Trgt"))
+
+    # Spin up the text insertion action
+    desc119.putReference(cID("null"), ref101)
+    primary_action_descriptor.putString(cID("Txt "), input_string)
+    desc25.putInteger(idFrom, 0)
+    desc25.putInteger(idT, len(input_string))
+    desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
+    desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
+    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
+    psd.apply_color(desc26, layer_text_color)
+    desc26.putBoolean(idautoLeading, False)
+    desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
+    desc25.putObject(idTxtS, idTxtS, desc26)
+    current_layer_ref = desc25
+
+    # Format each symbol correctly
+    for symbol_index in symbol_indices:
+        current_layer_ref = format_symbol(
+            primary_action_list = primary_action_list,
+            starting_layer_ref = current_layer_ref,
+            symbol_index = symbol_index['index'],
+            symbol_colors = symbol_index['colors'],
+            layer_font_size = layer_font_size,
+        )
+
+    primary_action_list.putObject(idTxtt, current_layer_ref)
+    primary_action_descriptor.putList(idTxtt, primary_action_list)
+
+    # Paragraph formatting
+    desc141.putInteger(idFrom, 0)
+    desc141.putInteger(idT, len(input_string))  # input string length
+    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
+    desc142.putUnitDouble(idstartIndent, idPnt, 0)
+    desc142.putUnitDouble(idendIndent, idPnt, 0)
+    desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
+    desc142.putUnitDouble(idspaceAfter, idPnt, 0)
+    desc142.putInteger(sID("dropCapMultiplier"), 1)
+    desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
+    desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+    desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
+    desc143.putBoolean(idautoLeading, False)
+    primary_action_descriptor.putList(idparagraphStyleRange, list13)
+    primary_action_descriptor.putList(idkerningRange, list14)
+    list13 = ps.ActionList()
+
+    # Push changes to document
+    desc119.putObject(idT, idTxLr, primary_action_descriptor)
+    app.executeAction(idsetd, desc119, NO_DIALOG)
+
+    # Reset layer's justification if needed and disable hyphenation
+    app.activeDocument.activeLayer.textItem.hyphenation = False
+
+
 def format_text(input_string, italics_strings, flavor_index, is_centered):
     """
     Inserts the given string into the active layer and formats it according to defined parameters with symbols
