@@ -32,12 +32,11 @@ class TextField:
     @param color: Font color to use for this TextItem.
     @param kwargs: Optional keyword parameters.
     """
-    def __init__(self, layer: ArtLayer, contents: str = "", color: Optional[ps.SolidColor] = None, **kwargs):
+    def __init__(self, layer: ArtLayer, contents: str = "", **kwargs):
         # Mandatory attributes
         self.kwargs = kwargs
         self.layer = layer
         self.contents = contents.replace("\n", "\r")
-        self.text_color = color if color else psd.get_text_layer_color(layer)
 
         # Change to English formatting if needed
         if self.layer.kind == ps.LayerKind.TextLayer and cfg.force_english_formatting:
@@ -55,6 +54,12 @@ class TextField:
         print(f"I'm not getting a scale reference for TextField: {self.layer.name}")
         return
 
+    @cached_property
+    def color(self) -> ps.SolidColor:
+        if 'color' in self.kwargs:
+            return self.kwargs['color']
+        return psd.get_text_layer_color(self.layer)
+
     """
     METHODS
     """
@@ -65,7 +70,7 @@ class TextField:
         """
         self.layer.visible = True
         self.layer.textItem.contents = self.contents
-        self.layer.textItem.color = self.text_color
+        self.layer.textItem.color = self.color
 
 
 class ScaledTextField (TextField):
@@ -188,6 +193,10 @@ class FormattedTextField (TextField):
             return self.kwargs['flavor_color']
         return
 
+    @cached_property
+    def font_size(self) -> float:
+        return self.layer.textItem.size * psd.get_text_scale_factor(self.layer)
+
     """
     METHODS
     """
@@ -209,8 +218,6 @@ class FormattedTextField (TextField):
         italics_indices = ft.locate_italics(input_string, self.italics_strings)
 
         # Prepare action descriptor and reference variables
-        layer_font_size = app.activeDocument.activeLayer.textItem.size
-        layer_text_color = app.activeDocument.activeLayer.textItem.color
         primary_action_descriptor = ps.ActionDescriptor()
         primary_action_list = ps.ActionList()
         desc119 = ps.ActionDescriptor()
@@ -255,10 +262,10 @@ class FormattedTextField (TextField):
         desc25.putInteger(idT, len(input_string))
         desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
         desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
-        desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-        psd.apply_color(desc26, layer_text_color)
+        desc26.putUnitDouble(idSz, idPnt, self.font_size)
+        psd.apply_color(desc26, self.color)
         desc26.putBoolean(idautoLeading, False)
-        desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
+        desc26.putUnitDouble(idLdng, idPnt, self.font_size)
         desc25.putObject(idTxtS, idTxtS, desc26)
         current_layer_ref = desc25
 
@@ -272,9 +279,9 @@ class FormattedTextField (TextField):
             bold_action1.putInteger(idT, contents_index)  # italics end index
             bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
             bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
-            bold_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+            bold_action2.putUnitDouble(idSz, idPnt, self.font_size)
             bold_action2.putBoolean(idautoLeading, False)
-            bold_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+            bold_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             bold_action1.putObject(idTxtS, idTxtS, bold_action2)
             current_layer_ref = bold_action1
 
@@ -287,9 +294,9 @@ class FormattedTextField (TextField):
             italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
             italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
             italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-            italics_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+            italics_action2.putUnitDouble(idSz, idPnt, self.font_size)
             italics_action2.putBoolean(idautoLeading, False)
-            italics_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+            italics_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             italics_action1.putObject(idTxtS, idTxtS, italics_action2)
             current_layer_ref = italics_action1
 
@@ -300,7 +307,7 @@ class FormattedTextField (TextField):
                 starting_layer_ref=current_layer_ref,
                 symbol_index=symbol_index['index'],
                 symbol_colors=symbol_index['colors'],
-                layer_font_size=layer_font_size,
+                layer_font_size=self.font_size,
             )
 
         # Insert actions for bold, italics, and symbol formatting
@@ -365,9 +372,9 @@ class FormattedTextField (TextField):
                 desc144.PutInteger(sID("to"), len(input_string))
                 desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
                 desc145.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-                desc145.putUnitDouble(idSz, idPnt, layer_font_size)
+                desc145.putUnitDouble(idSz, idPnt, self.font_size)
                 desc145.putBoolean(idautoLeading, False)
-                desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
+                desc145.putUnitDouble(idLdng, idPnt, self.font_size)
                 psd.apply_color(desc145, self.flavor_color)
                 desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
                 list15.PutObject(sID("textStyleRange"), desc144)
