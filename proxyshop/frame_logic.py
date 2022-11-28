@@ -34,6 +34,7 @@ def fix_color_triple(triple):
         con.layers["UBR"],
         con.layers["BRG"],
         con.layers["RGW"],
+        con.layers["WBG"],
         con.layers["URW"],
         con.layers["BGU"],
         con.layers["RWB"],
