@@ -49,16 +49,35 @@ class StainedGlassTemplate (temp.NormalTemplate):
                 console.update("Creator text layer not found, skipping that step.", e)
 
         # Layers we need
-        pen_layer = psd.getLayer("Pen", self.legal_layer)
         set_layer = psd.getLayer("Set", self.legal_layer)
+        pen_layer = psd.getLayer("Pen", self.legal_layer)
         artist_layer = psd.getLayer(con.layers['ARTIST'], self.legal_layer)
 
-        # Fill set info / artist info
+        # Fill set info if Auto.Set.Symbol is set
+        if cfg.auto_symbol:
+            set_layer.visible = True
+            psd.replace_text(set_layer, "MTG", self.layout.set)
+
+        # Fill artist info
         pen_layer.visible = True
-        set_layer.visible = True
-        psd.replace_text(set_layer, "MTG", self.layout.set)
         artist_layer.visible = True
         psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
         # Fill in language if needed
         if self.layout.lang != "en": psd.replace_text(set_layer, "EN", self.layout.lang.upper())
+
+    def get_file_name(self):
+        """
+        Format the output filename.
+        """
+        if not hasattr(self, 'template_suffix'): suffix = None
+        elif callable(self.template_suffix): suffix = self.template_suffix()
+        else: suffix = self.template_suffix
+
+        filename = self.layout.name
+        if cfg.save_artist_name and self.layout.artist:
+            filename += f" ({self.layout.artist})"
+        if suffix:
+            filename += f" [{suffix}]"
+
+        return filename
