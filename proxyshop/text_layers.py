@@ -280,6 +280,7 @@ class FormattedTextField (TextField):
             bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
             bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
             bold_action2.putUnitDouble(idSz, idPnt, self.font_size)
+            psd.apply_color(bold_action2, self.color)
             bold_action2.putBoolean(idautoLeading, False)
             bold_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             bold_action1.putObject(idTxtS, idTxtS, bold_action2)
@@ -295,6 +296,7 @@ class FormattedTextField (TextField):
             italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
             italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
             italics_action2.putUnitDouble(idSz, idPnt, self.font_size)
+            psd.apply_color(italics_action2, self.color)
             italics_action2.putBoolean(idautoLeading, False)
             italics_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             italics_action1.putObject(idTxtS, idTxtS, italics_action2)
