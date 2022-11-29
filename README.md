@@ -45,6 +45,7 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
     * No Flavor Text — Remove flavor text from cards.
     * Manual Edit Step — Will pause the rendering process before saving for manual changes.
     * Skip Failed Cards — Automatically skip any cards that fail (instead of asking to continue).
+    * Color Identity Max - Experimental feature that allows supported templates to utilize > 2-color identity frames (default value = 2)
 
 # Setup and Usage Guide (Python Version)
 * Clone to a folder of your choice, referred to as the *working directory*.
