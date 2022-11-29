@@ -513,4 +513,4 @@ class SelectorButton(HoverButton):
         self.test_app.test_target(self.temp)
 
 
-console_handler = Console()
+console = Console()

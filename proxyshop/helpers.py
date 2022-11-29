@@ -1,11 +1,23 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
+from typing import Optional
+
 import _ctypes
 import os
+
+from photoshop.api import PhotoshopPythonAPIError
+from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
+
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
+from proxyshop.constants import con
 import photoshop.api as ps
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 
 # QOL Definitions
 cwd = os.getcwd()
@@ -42,7 +54,7 @@ UTILITY FUNCTIONS
 """
 
 
-def getLayer(name: str, group=None):
+def getLayer(name: str, group=None) -> Optional[ArtLayer]:
     """
     Retrieve layer object.
     @param name: Name of the layer
@@ -54,7 +66,8 @@ def getLayer(name: str, group=None):
         if group is None:
             # No LayerSet given
             for layer in app.activeDocument.layers:
-                if layer.name == name: return layer
+                if layer.name == name:
+                    return layer
         elif isinstance(group, str):
             # LayerSet name given
             layer_set = app.activeDocument.layerSets.getByName(group)
@@ -63,37 +76,59 @@ def getLayer(name: str, group=None):
             for g in group:
                 # First in list or not?
                 if not layer_set:
-                    if isinstance(g, str): layer_set = app.activeDocument.layerSets.getByName(g)
-                    else: layer_set = g
+                    if isinstance(g, str):
+                        layer_set = app.activeDocument.layerSets.getByName(g)
+                    else:
+                        layer_set = g
                 else:
-                    if isinstance(g, str): layer_set = getLayerSet(g, layer_set)
-                    else: layer_set = g
-        else: layer_set = group
-        # Else, assume layerSet object given
+                    layer_set = layer_set.layerSets.getByName(g)
+        else:
+            # Else, assume layerSet object given
+            layer_set = group
 
         # Find our layer
         for layer in layer_set.layers:
             if layer.name == name:
                 return layer
-    except: return
+    except (PhotoshopPythonAPIError, AttributeError) as e:
+        print(e)
+        return
+    return
 
 
-def getLayerSet(name, group=None):
+def getLayerSet(name, group=None) -> Optional[LayerSet]:
     """
     Retrieve layer group object.
     @param name: Name of the group
     @param group: Parent group name or object.
     @return: Group object requested.
     """
-    if group:
-        if isinstance(group, str):
-            # Set name given
-            layer_set = app.activeDocument.layerSets.getByName(group)
-            return layer_set.layerSets.getByName(name)
-        # Set object given
-        return group.layerSets.getByName(name)
-    # Look through entire document
-    return app.activeDocument.layerSets.getByName(name)
+    try:
+        if group:
+            layer_set = None
+            if isinstance(group, str):
+                # Set name given
+                layer_set = app.activeDocument.layerSets.getByName(group)
+                return layer_set.layerSets.getByName(name)
+            elif isinstance(group, (tuple, list)):
+                # Tuple or list of groups
+                for g in group:
+                    # First in the list
+                    if not layer_set:
+                        if isinstance(g, str):
+                            layer_set = app.activeDocument.layerSets.getByName(g)
+                        else:
+                            layer_set = g
+                    else:
+                        layer_set = layer_set.layerSets.getByName(g)
+                return layer_set.layerSets.getByName(name)
+            # Set object given
+            return group.layerSets.getByName(name)
+        # Look through entire document
+        return app.activeDocument.layerSets.getByName(name)
+    except (PhotoshopPythonAPIError, AttributeError) as e:
+        print(e)
+        return
 
 
 """
@@ -151,6 +186,80 @@ def get_rgb(r, g, b):
     color.rgb.blue = b
     return color
 
+
+def get_cmyk(c: float, m: float, y: float, k: float):
+    """
+    Creates a SolidColor object with the given CMYK values.
+    @param c: Float from 0.0 to 100.0 for Cyan component.
+    @param m: Float from 0.0 to 100.0 for Magenta component.
+    @param y: Float from 0.0 to 100.0 for Yellow component.
+    @param k: Float from 0.0 to 100.0 for blacK component.
+    @return: SolidColor object.
+    """
+    color = ps.SolidColor()
+    color.cmyk.cyan = c
+    color.cmyk.magenta = m
+    color.cmyk.yellow = y
+    color.cmyk.black = k
+    return color
+
+
+def solidcolor(color) -> Optional[ps.SolidColor]:
+    """
+    Takes in color dict and spits out a SolidColor object appropriate to that configuration.
+    @param color: Dict of RGB or CMYK values
+    @return: SolidColor object or None
+    """
+    if 'r' in color.keys():
+        return get_rgb(color['r'], color['g'], color['b'])
+    elif 'c' in color.keys():
+        return get_cmyk(color['c'], color['m'], color['y'], color['k'])
+    else:
+        console.update(f"Don't know how to convert color {color} to a ps.Solidcolor!")
+        return
+
+
+def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor):
+    """
+    Applies color to the specified action_descriptor
+    """
+
+    cd = ps.ActionDescriptor()
+
+    if color.model == ps.ColorModel.RGBModel:
+        cd.putDouble(
+            cID("Rd  "),
+            color.rgb.red)  # rgb value.red
+        cd.putDouble(
+            cID("Grn "),
+            color.rgb.green)  # rgb value.green
+        cd.putDouble(
+            cID("Bl  "),
+            color.rgb.blue)  # rgb value.blue
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("RGBC"),
+            cd)
+    elif color.model == ps.ColorModel.CMYKModel:
+
+        cd.putDouble(
+            cID("Cyn "),
+            color.cmyk.cyan)
+        cd.putDouble(
+            cID("Mgnt"),
+            color.cmyk.magenta)
+        cd.putDouble(
+            cID("Ylw "),
+            color.cmyk.yellow)
+        cd.putDouble(
+            cID("Blck"),
+            color.cmyk.black)
+        action_descriptor.putObject(
+            cID("Clr "),
+            cID("CMYC"),
+            cd)
+    else:
+        console.update(f"Unknown color model: {color.model}")
 
 """
 LAYER PROPERTIES
@@ -246,6 +355,93 @@ def get_text_layer_color(layer):
             return layer.textItem.color
         else: return rgb_black()
     except _ctypes.COMError: return rgb_black()
+
+
+def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") -> float:
+    """
+    Get the scale factor of the document for changing text size.
+    @param layer: The layer to make active and run the check on.
+    @param axis: xx for horizontal, yy for vertical.
+    @return: Float scale factor
+    """
+    # Change the active layer, if needed
+    current = None
+    factor = 1
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Get the scale factor if not 1
+    ref = ps.ActionReference()
+    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt") )
+    desc = app.executeActionGet(ref).getObjectValue(sID('textKey'))
+    if desc.hasKey(sID('transform')):
+        transform = desc.getObjectValue(sID('transform'))
+        factor = transform.getUnitDoubleValue(sID(axis))
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+    return factor
+
+
+def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
+    """
+    Manually assign font size to a layer using action descriptors.
+    @param layer: Layer containing TextItem
+    @param size: New size of layer
+    """
+    # Set the active layer if needed
+    current = None
+    if layer:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+
+    # Set the new size
+    desc2361 = ps.ActionDescriptor()
+    ref68 = ps.ActionReference()
+    desc2362 = ps.ActionDescriptor()
+    ref68.putProperty(sID("property"), sID("textStyle"))
+    ref68.putEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
+    desc2361.putReference(sID("target"), ref68)
+    desc2362.putInteger(sID("textOverrideFeatureName"), 808465458)
+    desc2362.putInteger(sID("typeStyleOperationType"), 3)
+    desc2362.PutUnitDouble(sID("size"), sID("pointsUnit"), size)
+    desc2361.putObject(sID("to"), sID("textStyle"), desc2362)
+    app.ExecuteAction(sID("set"), desc2361, NO_DIALOG)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
+
+
+def update_text_layer_size(
+    layer: ArtLayer,
+    change: float,
+    factor: Optional[float] = None,
+    make_active: bool = False
+) -> None:
+    """
+    Sets the text item size while ensuring proper scaling.
+    @param layer: Layer containing TextItem object.
+    @param change: Difference in size (+/-).
+    @param factor: Scale factor of text item.
+    @param make_active: Make the layer active before running operation.
+    """
+    # Set the active layer if needed
+    current = None
+    if make_active:
+        current = app.activeDocument.activeLayer
+        app.activeDocument.activeLayer = layer
+    if not factor:
+        factor = get_text_scale_factor()
+
+    # Increase the size
+    set_text_size(size=(factor*layer.textItem.size)+change)
+
+    # Reset active layer
+    if current:
+        app.activeDocument.activeLayer = current
 
 
 """
@@ -464,30 +660,75 @@ def disable_mask(layer):
     set_layer_mask(layer, False)
 
 
-def merge_layers(layer_1, layer_2):
+def select_no_layers():
     """
-    Merge two layers together.
-    @param layer_1: First layer object.
-    @param layer_2: Second layer object.
-    @return: Returns the merged layer.
+    Deselect all layers.
     """
-    desc1 = ps.ActionDescriptor()
-    desc2 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    ref2 = ps.ActionReference()
-    ref1.putIdentifier(sID("layer"), layer_1.id)
-    desc1.PutReference(sID("target"), ref1)
-    ref2.putIdentifier(sID("layer"), layer_2.id)
-    desc2.PutReference(sID("target"), ref2)
-    desc2.PutEnumerated(
+    idselectNoLayers = sID("selectNoLayers")
+    descSelectNoLayers = ps.ActionDescriptor()
+    idnull = cID("null")
+    ref = ps.ActionReference()
+    idLyr = cID("Lyr ")
+    idOrdn = cID("Ordn")
+    idTrgt = cID("Trgt")
+    ref.putEnumerated(idLyr, idOrdn, idTrgt)
+    descSelectNoLayers.putReference(idnull, ref)
+    app.executeAction(idselectNoLayers, descSelectNoLayers, NO_DIALOG)
+
+
+def select_layer(layer):
+    """
+    Select a layer
+    """
+    desc = ps.ActionDescriptor()
+    ref = ps.ActionReference()
+    ref.putIdentifier(sID("layer"), layer.id)
+    desc.putReference(sID("target"), ref)
+    desc.putEnumerated(
         sID("selectionModifier"),
         sID("selectionModifierType"),
         sID("addToSelection")
     )
-    app.ExecuteAction(sID("select"), desc1, NO_DIALOG)
-    app.ExecuteAction(sID("select"), desc2, NO_DIALOG)
+    app.ExecuteAction(sID("select"), desc, NO_DIALOG)
+
+
+def merge_layers(layers):
+    """
+    Merge a set of layers together.
+    @param layers: Layer objects to be merged.
+    @return: Returns the merged layer.
+    """
+
+    select_no_layers()
+
+    for layer in layers:
+        select_layer(layer)
+
     app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
     return app.activeDocument.activeLayer
+
+
+def leaf_layers():
+    """
+    Utility function to iterate over leaf layers in a document
+    """
+    to_visit = [node for node in app.activeDocument.layers]
+    layers = []
+
+    while to_visit:
+
+        node = to_visit.pop()
+
+        try:
+            sublayers = node.layers
+        except NameError:
+            # It's a leaf node, no sublayers
+            layers.append(node)
+        else:
+            # Continue exploration of sublayers
+            to_visit.extend([node for node in sublayers])
+
+    return layers
 
 
 def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
@@ -497,7 +738,6 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc608 = ps.ActionDescriptor()
     desc609 = ps.ActionDescriptor()
     desc610 = ps.ActionDescriptor()
-    desc611 = ps.ActionDescriptor()
     ref149 = ps.ActionReference()
     ref149.putProperty(cID("Prpr"), cID("Lefx"))
     ref149.putIdentifier(cID("Lyr "), layer.id)
@@ -509,10 +749,9 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc610.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
     desc610.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
     desc610.putUnitDouble(cID("Sz  "), cID("#Pxl"), int(stroke_weight))
-    desc611.putDouble(cID("Rd  "), stroke_color.rgb.red)
-    desc611.putDouble(cID("Grn "), stroke_color.rgb.green)
-    desc611.putDouble(cID("Bl  "), stroke_color.rgb.blue)
-    desc610.putObject(cID("Clr "), cID("RGBC"), desc611)
+
+    apply_color(desc610, stroke_color)
+
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
@@ -684,16 +923,23 @@ def save_document_jpeg(file_name):
     """
     Save the current document to /out/ as a JPEG.
     """
-    desc34 = ps.ActionDescriptor()
-    desc35 = ps.ActionDescriptor()
-    desc35.putInteger(cID("EQlt"), 12)
-    desc35.putInteger(cID("Scns"), 3)
-    desc35.putEnumerated(cID("MttC"), cID("MttC"), cID("None"))
-    desc34.putObject(cID("As  "), cID("JPEG"), desc35)
-    desc34.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.jpg"))
-    desc34.putBoolean(cID("Cpy "), True)
-    desc34.putEnumerated(sID("saveStage"), sID("saveStageType"), sID("saveSucceeded"))
-    app.executeAction(cID("save"), desc34, ps.SaveOptions.DoNotSaveChanges)
+    jpeg_options = ps.JPEGSaveOptions(quality=12)
+    jpeg_options.scans = 3
+    app.activeDocument.saveAs(
+        file_path=os.path.join(cwd, f"out/{file_name}.jpg"),
+        options=jpeg_options, asCopy=True
+    )
+
+
+def save_document_psd(file_name):
+    """
+    Save the current document to /out/ as PSD.
+    """
+    app.activeDocument.saveAs(
+        file_path=os.path.join(cwd, f"out/{file_name}.psd"),
+        options=ps.PhotoshopSaveOptions(),
+        asCopy=True
+    )
 
 
 def close_document():
@@ -929,5 +1175,6 @@ def insert_scryfall_scan(image_url):
     Returns the new layer.
     """
     scryfall_scan = card_scan(image_url)
-    if scryfall_scan: return paste_file_into_new_layer(scryfall_scan)
-    return None
+    if scryfall_scan:
+        return paste_file_into_new_layer(scryfall_scan)
+    return

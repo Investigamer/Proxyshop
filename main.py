@@ -1,7 +1,6 @@
 """
 PROXYSHOP - GUI LAUNCHER
 """
-import copy
 import json
 import os
 import sys
@@ -23,11 +22,12 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
 from proxyshop.creator import CreatorPanels
+from proxyshop.gui import HoverBehavior, TestApp, console
 from proxyshop.scryfall import card_info
 from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info
 from proxyshop.settings import cfg
-from proxyshop import core, gui, layouts
+from proxyshop import core, layouts
 
 # App configuration
 Config.set('graphics', 'resizable', '1')
@@ -39,7 +39,6 @@ Config.write()
 # Core vars
 card_types = core.card_types
 templates = core.get_templates()
-console = gui.console_handler
 cwd = os.getcwd()
 
 
@@ -89,7 +88,6 @@ class ProxyshopApp(App):
 			return None
 
 		# Load default config/constants, assign layout object
-		self.load_defaults()
 		card = self.assign_layout(file[0])
 		if isinstance(card, str):
 			# Card failed to assign
@@ -103,6 +101,7 @@ class ProxyshopApp(App):
 			self.start_thread(thr)
 
 			# Return to normal
+			self.load_defaults()
 			self.close_document()
 			self.enable_buttons()
 
@@ -120,7 +119,7 @@ class ProxyshopApp(App):
 
 		# Select all images in art folder
 		folder = os.path.join(cwd, "art")
-		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg"]
+		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg", "*.webp", "*.jpf"]
 		for ext in extensions:
 			files.extend(glob(os.path.join(folder, ext)))
 
@@ -165,10 +164,10 @@ class ProxyshopApp(App):
 			template = core.get_template(temps[card_type])
 			for card in cards:
 				# Load defaults and start thread
-				self.load_defaults()
 				console.update(f"[color=#59d461]---- {card.name} ----[/color]")
 				thr = threading.Thread(target=self.render, args=(template, card), daemon=True)
 				if not self.start_thread(thr):
+					self.load_defaults()
 					self.close_document()
 					self.enable_buttons()
 					return
@@ -191,13 +190,14 @@ class ProxyshopApp(App):
 			if file is None:
 				self.enable_buttons()
 				return
+			scryfall['filename'] = file[0]
 			console.update(
 				f"Rendering custom card: [b]{scryfall['name']}[/b]"
 			)
 
 			# If basic, manually call the BasicLand layout OBJ
 			if scryfall['name'] in con.basic_land_names:
-				layout = layouts.BasicLand(scryfall['name'], scryfall['artist'], scryfall['set'])
+				layout = layouts.BasicLand(scryfall)
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				scryfall['lang'] = "en"
@@ -214,8 +214,6 @@ class ProxyshopApp(App):
 
 			# Select and execute the template
 			try:
-				layout.creator = None
-				layout.file = file[0]
 				proxy = card_template(layout)
 				self.docref = proxy.docref
 				proxy.execute()
@@ -243,12 +241,12 @@ class ProxyshopApp(App):
 		"""
 
 		# Get basic card information
-		card = retrieve_card_info(os.path.basename(str(filename)))
+		card = retrieve_card_info(filename)
 
 		# Basic or no?
 		if card['name'] in con.basic_land_names:
 			# If basic, manually call the BasicLand layout OBJ
-			layout = layouts.BasicLand(card['name'], card['artist'], card['set'])
+			self.assigned_layouts[index] = layouts.BasicLand(card)
 			if not cfg.dev_mode: console.update(f"Basic land found: [b]{card['name']}[/b]")
 		else:
 			# Get the scryfall info
@@ -264,7 +262,7 @@ class ProxyshopApp(App):
 				return self.assigned_layouts[index]
 
 			# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
-			try: layout = layouts.layout_map[scryfall['layout']](scryfall, card['name'])
+			try: self.assigned_layouts[index] = layouts.layout_map[scryfall['layout']](scryfall, card)
 			except Exception as e:
 				# Layout object couldn't be created
 				console.log_exception(e)
@@ -272,12 +270,10 @@ class ProxyshopApp(App):
 				return self.assigned_layouts[index]
 
 		# Creator name, artist, filename
-		if card['artist']: layout.artist = card['artist']
-		layout.creator = card['creator']
-		layout.file = filename
-		self.assigned_layouts[index] = layout
 		if not cfg.dev_mode:
-			console.update(f"[color=#59d461]SUCCESS:[/color] {str(layout)}")
+			console.update(
+				f"[color=#59d461]SUCCESS:[/color] {str(self.assigned_layouts[index])}"
+			)
 		return self.assigned_layouts[index]
 
 	def test_all(self, deep=False):
@@ -301,7 +297,7 @@ class ProxyshopApp(App):
 					if isinstance(layout, str):  # Layout or Scryfall Fail
 						console.update(layout)
 						return
-					else: layout.file = os.path.join(cwd, "proxyshop/img/test.png")
+					else: layout.filename = os.path.join(cwd, "proxyshop/img/test.png")
 					template = core.get_template(temp)
 					thr = threading.Thread(target=self.render, args=(template, layout))
 					if not self.start_thread(thr): failures.append(card[0])
@@ -329,7 +325,7 @@ class ProxyshopApp(App):
 				console.update(layout)
 				self.enable_buttons()
 				return
-			else: layout.file = os.path.join(cwd, "proxyshop/img/test.png")
+			else: layout.filename = os.path.join(cwd, "proxyshop/img/test.png")
 			console.update(f"{card[0]} ... ", end="")
 			template = core.get_template(temp)
 			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
@@ -352,6 +348,7 @@ class ProxyshopApp(App):
 			proxy = template(card)
 			self.docref = proxy.docref
 			self.result = proxy.execute()
+			del proxy
 		except Exception as e:
 			console.error(
 				"Template failed to load! This plugin may be busted.", e
@@ -423,7 +420,7 @@ class ProxyshopApp(App):
 		"""
 		Build the app for display.
 		"""
-		if cfg.dev_mode: layout = gui.TestApp()
+		if cfg.dev_mode: layout = TestApp()
 		else: layout = ProxyshopPanels()
 		layout.add_widget(console)
 		return layout
@@ -574,7 +571,7 @@ if __name__ == '__main__':
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.1.6"
-	Factory.register('HoverBehavior', gui.HoverBehavior)
+	__version__ = "v1.1.9"
+	Factory.register('HoverBehavior', HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()

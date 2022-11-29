@@ -192,15 +192,10 @@ Faces = {
     "BACK": 1,
 }
 
-# font_name_mplantin = "MPlantin"
-# font_name_mplantin_italic = "MPlantin-Italic"
-# font_name_ndpmtg = "NDPMTG"
-# font_name_beleren_smallcaps = "Beleren Small Caps Bold"
-# font_name_relay_medium = "Relay-Medium"
-
 # Font names
-font_rules_text = "MPlantin"
-font_rules_text_italic = "MPlantin-Italic"
+font_rules_text = "PlantinMTPro-Regular"
+font_rules_text_bold = "PlantinMTPro-Bold"
+font_rules_text_italic = "PlantinMTPro-Italic"
 font_mana = "NDPMTG"
 font_subtext = "Beleren Small Caps Bold"
 font_collector = "Relay-Medium"
@@ -284,29 +279,27 @@ rarity_special = "special"
 rarity_bonus = "bonus"
 
 # Symbol colors basic
-rgb_primary = {'r': 0, 'g': 0, 'b': 0}
-rgb_secondary = {'r': 255, 'g': 255, 'b': 255}
+clr_primary = {'r': 0, 'g': 0, 'b': 0}
+clr_secondary = {'r': 255, 'g': 255, 'b': 255}
 
 # Symbol colors outer
-rgb_c = {'r': 204, 'g': 194, 'b': 193}
-rgb_w = {'r': 255, 'g': 251, 'b': 214}
-rgb_u = {'r': 170, 'g': 224, 'b': 250}
-rgb_b = {'r': 204, 'g': 194, 'b': 193}
-rgb_bh = {'r': 159, 'g': 146, 'b': 143}
-rgb_r = {'r': 249, 'g': 169, 'b': 143}
-rgb_g = {'r': 154, 'g': 211, 'b': 175}
+clr_c = {'r': 204, 'g': 194, 'b': 193}
+clr_w = {'r': 255, 'g': 251, 'b': 214}
+clr_u = {'r': 170, 'g': 224, 'b': 250}
+clr_b = {'r': 204, 'g': 194, 'b': 193}
+clr_bh = {'r': 159, 'g': 146, 'b': 143}
+clr_r = {'r': 249, 'g': 169, 'b': 143}
+clr_g = {'r': 154, 'g': 211, 'b': 175}
 
 # Symbol colors inner
-rgbi_c = rgb_primary
-rgbi_w = rgb_primary
-rgbi_u = rgb_primary
-rgbi_b = rgb_primary
-rgbi_bh = rgb_primary
-rgbi_r = rgb_primary
-rgbi_g = rgb_primary
+clri_c = clr_primary
+clri_w = clr_primary
+clri_u = clr_primary
+clri_b = clr_primary
+clri_bh = clr_primary
+clri_r = clr_primary
+clri_g = clr_primary
 
-# Creator toggle features
-align_classic_quote = False
 
 # Import symbol library
 with open(os.path.join(cwd, "proxyshop/symbols.json"), "r", encoding="utf-8-sig") as js:
@@ -388,12 +381,13 @@ class Constants:
         # Cards
         self.symbols = symbols
         self.basic_land_names = basic_land_names
-        self.set_symbols = set_symbols
+        self.set_symbols = set_symbols.copy()
         self.Faces = Faces
 
         # Font names
         self.font_rules_text = font_rules_text
         self.font_rules_text_italic = font_rules_text_italic
+        self.font_rules_text_bold = font_rules_text_bold
         self.font_mana = font_mana
         self.font_subtext = font_subtext
         self.font_collector = font_collector
@@ -414,25 +408,22 @@ class Constants:
         self.rarity_bonus = rarity_bonus
 
         # Symbol colors
-        self.rgb_c = rgb_c
-        self.rgb_w = rgb_w
-        self.rgb_u = rgb_u
-        self.rgb_b = rgb_b
-        self.rgb_bh = rgb_bh
-        self.rgb_r = rgb_r
-        self.rgb_g = rgb_g
-        self.rgbi_c = rgbi_c
-        self.rgbi_w = rgbi_w
-        self.rgbi_u = rgbi_u
-        self.rgbi_b = rgbi_b
-        self.rgbi_bh = rgbi_bh
-        self.rgbi_r = rgbi_r
-        self.rgbi_g = rgbi_g
-        self.rgb_primary = rgb_primary
-        self.rgb_secondary = rgb_secondary
-
-        # Creator toggle features
-        self.align_classic_quote = align_classic_quote
+        self.clr_c = clr_c
+        self.clr_w = clr_w
+        self.clr_u = clr_u
+        self.clr_b = clr_b
+        self.clr_bh = clr_bh
+        self.clr_r = clr_r
+        self.clr_g = clr_g
+        self.clri_c = clri_c
+        self.clri_w = clri_w
+        self.clri_u = clri_u
+        self.clri_b = clri_b
+        self.clri_bh = clri_bh
+        self.clri_r = clri_r
+        self.clri_g = clri_g
+        self.clr_primary = clr_primary
+        self.clr_secondary = clr_secondary
 
         # HTTP Header for requests
         self.http_header = http_header
@@ -444,7 +435,13 @@ class Constants:
         self.google_api = g_api
         self.amazon_api = a_api
 
+        # Run headless
+        self.headless = False
+
     def reload(self):
+        """
+        Reloads default values
+        """
         self.load_values()
 
     def update_version_tracker(self):

@@ -34,9 +34,10 @@ class Config:
 		# CONF section
 		self.exit_early = self.file.getboolean('CONF', 'Manual.Edit')
 		self.skip_failed = self.file.getboolean('CONF', 'Skip.Failed')
+		self.scry_ascending = self.file.getboolean('CONF', 'Scryfall.Ascending')
 
 		# FILE section
-		self.save_jpeg = self.file.getboolean('FILES', 'Render.JPEG')
+		self.output_filetype = self.file['FILES']['Output.Filetype']
 		self.save_artist_name = self.file.getboolean('FILES', 'Save.Artist.Name')
 
 		# TEXT section
@@ -44,6 +45,7 @@ class Config:
 		self.remove_reminder = self.file.getboolean('TEXT', 'No.Reminder.Text')
 		self.real_collector = self.file.getboolean('TEXT', 'True.Collector.Info')
 		self.lang = self.file['TEXT']['Language']
+		self.force_english_formatting = self.file.getboolean('TEXT', "Force.English.Formatting")
 
 		# SYMBOLS section
 		self.symbol_char = self.file['SYMBOLS']['Default.Symbol']
@@ -61,12 +63,13 @@ class Config:
 	def update(self):
 		self.file.set("SYMBOLS", "Auto.Set.Symbol", str(self.auto_symbol))
 		self.file.set("SYMBOLS", "Auto.Symbol.Size", str(self.auto_symbol_size))
-		self.file.set("SYMBOLS", "Fill.Symbol.Background", str(self.fill_symbol))
-		self.file.set("FILES", "Render.JPEG", str(self.save_jpeg))
+		self.file.set("EXPERIMENTAL", "Flavor.Divider", str(self.flavor_divider))
+		self.file.set("FILES", "Output.Filetype", str(self.output_filetype))
 		self.file.set("TEXT", "No.Flavor.Text", str(self.remove_flavor))
 		self.file.set("TEXT", "No.Reminder.Text", str(self.remove_reminder))
 		self.file.set("CONF", "Manual.Edit", str(self.exit_early))
 		self.file.set("CONF", "Skip.Failed", str(self.skip_failed))
+		self.file.set("CONF", "Scryfall.Ascending", str(self.scry_ascending))
 		with open("config.ini", "w", encoding="utf-8") as config_file:
 			self.file.write(config_file)
 

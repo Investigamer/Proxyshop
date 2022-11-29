@@ -6,7 +6,10 @@ import re
 import photoshop.api as ps
 import proxyshop.helpers as psd
 from proxyshop.constants import con
-from proxyshop.gui import console_handler as console
+if not con.headless:
+    from proxyshop.gui import console
+else:
+    from proxyshop.core import console
 
 # QOL Definitions
 app = ps.Application()
@@ -22,60 +25,52 @@ class SymbolMapper:
     def load_values(self):
 
         # Symbol colors outer
-        self.rgb_c = psd.get_rgb(con.rgb_c['r'], con.rgb_c['g'], con.rgb_c['b'])
-        self.rgb_w = psd.get_rgb(con.rgb_w['r'], con.rgb_w['g'], con.rgb_w['b'])
-        self.rgb_u = psd.get_rgb(con.rgb_u['r'], con.rgb_u['g'], con.rgb_u['b'])
-        self.rgb_b = psd.get_rgb(con.rgb_b['r'], con.rgb_b['g'], con.rgb_b['b'])
-        self.rgb_bh = psd.get_rgb(con.rgb_bh['r'], con.rgb_bh['g'], con.rgb_bh['b'])
-        self.rgb_r = psd.get_rgb(con.rgb_r['r'], con.rgb_r['g'], con.rgb_r['b'])
-        self.rgb_g = psd.get_rgb(con.rgb_g['r'], con.rgb_g['g'], con.rgb_g['b'])
+        self.clr_c = psd.solidcolor(con.clr_c)
+        self.clr_w = psd.solidcolor(con.clr_w)
+        self.clr_u = psd.solidcolor(con.clr_u)
+        self.clr_b = psd.solidcolor(con.clr_b)
+        self.clr_bh = psd.solidcolor(con.clr_bh)
+        self.clr_r = psd.solidcolor(con.clr_r)
+        self.clr_g = psd.solidcolor(con.clr_g)
 
         # Symbol colors inner
-        self.rgbi_c = psd.get_rgb(con.rgbi_c['r'], con.rgbi_c['g'], con.rgbi_c['b'])
-        self.rgbi_w = psd.get_rgb(con.rgbi_w['r'], con.rgbi_w['g'], con.rgbi_w['b'])
-        self.rgbi_u = psd.get_rgb(con.rgbi_u['r'], con.rgbi_u['g'], con.rgbi_u['b'])
-        self.rgbi_b = psd.get_rgb(con.rgbi_b['r'], con.rgbi_b['g'], con.rgbi_b['b'])
-        self.rgbi_bh = psd.get_rgb(con.rgbi_bh['r'], con.rgbi_bh['g'], con.rgbi_bh['b'])
-        self.rgbi_r = psd.get_rgb(con.rgbi_r['r'], con.rgbi_r['g'], con.rgbi_r['b'])
-        self.rgbi_g = psd.get_rgb(con.rgbi_g['r'], con.rgbi_g['g'], con.rgbi_g['b'])
+        self.clri_c = psd.solidcolor(con.clri_c)
+        self.clri_w = psd.solidcolor(con.clri_w)
+        self.clri_u = psd.solidcolor(con.clri_u)
+        self.clri_b = psd.solidcolor(con.clri_b)
+        self.clri_bh = psd.solidcolor(con.clri_bh)
+        self.clri_r = psd.solidcolor(con.clri_r)
+        self.clri_g = psd.solidcolor(con.clri_g)
 
         # Primary inner color (black default)
-        self.rgb_primary = psd.get_rgb(
-            con.rgb_primary['r'],
-            con.rgb_primary['g'],
-            con.rgb_primary['b']
-        )
+        self.clr_primary = psd.solidcolor(con.clr_primary)
 
         # Secondary inner color (white default)
-        self.rgb_secondary = psd.get_rgb(
-            con.rgb_secondary['r'],
-            con.rgb_secondary['g'],
-            con.rgb_secondary['b']
-        )
+        self.clr_secondary = psd.solidcolor(con.clr_secondary)
 
         # Symbol map for regular mana symbols
         self.color_map = {
-            "W": self.rgb_w,
-            "U": self.rgb_u,
-            "B": self.rgb_b,
-            "R": self.rgb_r,
-            "G": self.rgb_g,
-            "2": self.rgb_c
+            "W": self.clr_w,
+            "U": self.clr_u,
+            "B": self.clr_b,
+            "R": self.clr_r,
+            "G": self.clr_g,
+            "2": self.clr_c
         }
         self.color_map_inner = {
-            "W": self.rgbi_w,
-            "U": self.rgbi_u,
-            "B": self.rgbi_b,
-            "R": self.rgbi_r,
-            "G": self.rgbi_g,
-            "2": self.rgbi_c,
+            "W": self.clri_w,
+            "U": self.clri_u,
+            "B": self.clri_b,
+            "R": self.clri_r,
+            "G": self.clri_g,
+            "2": self.clri_c,
         }
 
         # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
         self.hybrid_color_map = self.color_map.copy()
-        self.hybrid_color_map['B'] = self.rgb_bh
+        self.hybrid_color_map['B'] = self.clr_bh
         self.hybrid_color_map_inner = self.color_map_inner.copy()
-        self.hybrid_color_map_inner['B'] = self.rgbi_bh
+        self.hybrid_color_map_inner['B'] = self.clri_bh
 
     def reload(self):
         self.load_values()
@@ -123,10 +118,10 @@ def locate_italics(input_string, italics_strings):
     for italics in italics_strings:
 
         # replace symbols with their character representations in the italic string
-        if italics.find("}") >= 0:
+        if "}" in italics:
             for key, symbol in con.symbols.items():
-                try: italics = italics.replace(key, symbol)
-                except Exception as e: console.log_exception(e)
+                if key in italics:
+                    italics = italics.replace(key, symbol)
 
         # Locate Italicized text
         end_index = 0
@@ -134,7 +129,6 @@ def locate_italics(input_string, italics_strings):
             start_index = input_string.find(italics, end_index)
             end_index = start_index + len(italics)
             if start_index < 0: break
-
             italics_indices.append({
                 'start_index': start_index,
                 'end_index': end_index,
@@ -153,13 +147,13 @@ def determine_symbol_colors(symbol, symbol_length):
     # SPECIAL SYMBOLS
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
-        return [sym.rgb_primary]
+        return [sym.clr_primary]
     elif symbol == "{S}":
         # Snow symbol
-        return [sym.rgb_c, sym.rgb_primary, sym.rgb_secondary]
+        return [sym.clr_c, sym.clr_primary, sym.clr_secondary]
     elif symbol == "{Q}":
         # Untap symbol
-        return [sym.rgb_primary, sym.rgb_secondary]
+        return [sym.clr_primary, sym.clr_secondary]
 
     # Phyrexian
     phyrexian_regex = r"\{([W,U,B,R,G])\/P\}"
@@ -206,7 +200,7 @@ def determine_symbol_colors(symbol, symbol_length):
         ]
 
     # Weird situation?
-    if symbol_length == 2: return [sym.rgb_c, sym.rgb_primary]
+    if symbol_length == 2: return [sym.clr_c, sym.clr_primary]
 
     # Nothing matching found!
     console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
@@ -221,7 +215,6 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
     for i, color in enumerate(symbol_colors):
         desc1 = ps.ActionDescriptor()
         desc2 = ps.ActionDescriptor()
-        desc3 = ps.ActionDescriptor()
         idTxtS = cID("TxtS")
         primary_action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
@@ -241,22 +234,118 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
             cID("Ldng"),
             cID("#Pnt"),
             layer_font_size)
-        desc3.putDouble(
-            cID("Rd  "),
-            color.rgb.red)  # rgb value.red
-        desc3.putDouble(
-            cID("Grn "),
-            color.rgb.green)  # rgb value.green
-        desc3.putDouble(
-            cID("Bl  "),
-            color.rgb.blue)  # rgb value.blue
-        desc2.putObject(
-            cID("Clr "),
-            cID("RGBC"),
-            desc3)
+
+        psd.apply_color(desc2, color)
+
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
+
+
+def basic_format_text(input_string):
+    """
+    Inserts the given string into the active layer and formats it without any of the more advanced features like
+    italics strings, centering, etc.
+    @param input_string: The string to insert into the active layer
+    """
+    # Is the active layer a text layer?
+    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
+
+    # Locate symbols and update the input string
+    ret = locate_symbols(input_string)
+    input_string = ret['input_string']
+    symbol_indices = ret['symbol_indices']
+
+    # Prepare action descriptor and reference variables
+    layer_font_size = app.activeDocument.activeLayer.textItem.size
+    layer_text_color = app.activeDocument.activeLayer.textItem.color
+    primary_action_descriptor = ps.ActionDescriptor()
+    primary_action_list = ps.ActionList()
+    desc119 = ps.ActionDescriptor()
+    desc26 = ps.ActionDescriptor()
+    desc25 = ps.ActionDescriptor()
+    ref101 = ps.ActionReference()
+    desc141 = ps.ActionDescriptor()
+    desc142 = ps.ActionDescriptor()
+    desc143 = ps.ActionDescriptor()
+    list13 = ps.ActionList()
+    list14 = ps.ActionList()
+    idkerningRange = sID("kerningRange")
+    idparagraphStyleRange = sID("paragraphStyleRange")
+    idfontPostScriptName = sID("fontPostScriptName")
+    idfirstLineIndent = sID("firstLineIndent")
+    idparagraphStyle = sID("paragraphStyle")
+    idautoLeading = sID("autoLeading")
+    idstartIndent = sID("startIndent")
+    idspaceBefore = sID("spaceBefore")
+    idleadingType = sID("leadingType")
+    idspaceAfter = sID("spaceAfter")
+    idendIndent = sID("endIndent")
+    idTxtS = sID("textStyle")
+    idsetd = cID("setd")
+    idTxLr = cID("TxLr")
+    idT = cID("T   ")
+    idFntN = cID("FntN")
+    idSz = cID("Sz  ")
+    idPnt = cID("#Pnt")
+    idLdng = cID("Ldng")
+    idTxtt = cID("Txtt")
+    idFrom = cID("From")
+    ref101.putEnumerated(
+        idTxLr,
+        cID("Ordn"),
+        cID("Trgt"))
+
+    # Spin up the text insertion action
+    desc119.putReference(cID("null"), ref101)
+    primary_action_descriptor.putString(cID("Txt "), input_string)
+    desc25.putInteger(idFrom, 0)
+    desc25.putInteger(idT, len(input_string))
+    desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
+    desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
+    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
+    psd.apply_color(desc26, layer_text_color)
+    desc26.putBoolean(idautoLeading, False)
+    desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
+    desc25.putObject(idTxtS, idTxtS, desc26)
+    current_layer_ref = desc25
+
+    # Format each symbol correctly
+    for symbol_index in symbol_indices:
+        current_layer_ref = format_symbol(
+            primary_action_list = primary_action_list,
+            starting_layer_ref = current_layer_ref,
+            symbol_index = symbol_index['index'],
+            symbol_colors = symbol_index['colors'],
+            layer_font_size = layer_font_size,
+        )
+
+    primary_action_list.putObject(idTxtt, current_layer_ref)
+    primary_action_descriptor.putList(idTxtt, primary_action_list)
+
+    # Paragraph formatting
+    desc141.putInteger(idFrom, 0)
+    desc141.putInteger(idT, len(input_string))  # input string length
+    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
+    desc142.putUnitDouble(idstartIndent, idPnt, 0)
+    desc142.putUnitDouble(idendIndent, idPnt, 0)
+    desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
+    desc142.putUnitDouble(idspaceAfter, idPnt, 0)
+    desc142.putInteger(sID("dropCapMultiplier"), 1)
+    desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
+    desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
+    desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
+    desc143.putBoolean(idautoLeading, False)
+    primary_action_descriptor.putList(idparagraphStyleRange, list13)
+    primary_action_descriptor.putList(idkerningRange, list14)
+    list13 = ps.ActionList()
+
+    # Push changes to document
+    desc119.putObject(idT, idTxLr, primary_action_descriptor)
+    app.executeAction(idsetd, desc119, NO_DIALOG)
+
+    # Reset layer's justification if needed and disable hyphenation
+    app.activeDocument.activeLayer.textItem.hyphenation = False
 
 
 def format_text(input_string, italics_strings, flavor_index, is_centered):
@@ -293,7 +382,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_descriptor = ps.ActionDescriptor()
     primary_action_list = ps.ActionList()
     desc119 = ps.ActionDescriptor()
-    desc27 = ps.ActionDescriptor()
     desc26 = ps.ActionDescriptor()
     desc25 = ps.ActionDescriptor()
     ref101 = ps.ActionReference()
@@ -320,11 +408,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     idFntN = cID("FntN")
     idSz = cID("Sz  ")
     idPnt = cID("#Pnt")
-    idClr = cID("Clr ")
-    idRd = cID("Rd  ")
-    idGrn = cID("Grn ")
-    idBl = cID("Bl  ")
-    idRGBC = cID("RGBC")
     idLdng = cID("Ldng")
     idTxtt = cID("Txtt")
     idFrom = cID("From")
@@ -332,6 +415,8 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         idTxLr,
         cID("Ordn"),
         cID("Trgt"))
+
+    # Spin up the text insertion action
     desc119.putReference(cID("null"), ref101)
     primary_action_descriptor.putString(cID("Txt "), input_string)
     desc25.putInteger(idFrom, 0)
@@ -339,37 +424,47 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
     desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
     desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-    desc27.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-    desc27.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-    desc27.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-    desc26.putObject(idClr, idRGBC, desc27)
+    psd.apply_color(desc26, layer_text_color)
     desc26.putBoolean(idautoLeading, False)
     desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
     current_layer_ref = desc25
 
-    for italics_index in italics_indices:
-        # Italics text
+    # Bold the contents if necessary
+    if con.bold_rules_text and flavor_index != 0:
+        bold_action1 = ps.ActionDescriptor()
+        bold_action2 = ps.ActionDescriptor()
+        contents_index = len(input_string) - 1 if flavor_index < 0 else flavor_index - 1
         primary_action_list.putObject(idTxtt, current_layer_ref)
-        desc125 = ps.ActionDescriptor()
-        desc125.putInteger(idFrom, italics_index['start_index'])  # italics start index
-        desc125.putInteger(idT, italics_index['end_index'])  # italics end index
-        desc126 = ps.ActionDescriptor()
-        desc126.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
-        desc126.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-        desc126.putUnitDouble(idSz, idPnt, layer_font_size)
-        desc126.putBoolean(idautoLeading, False)
-        desc126.putUnitDouble(idLdng, idPnt, layer_font_size)
-        # Added
-        descTemp = ps.ActionDescriptor()
+        bold_action1.putInteger(idFrom, 0)  # italics start index
+        bold_action1.putInteger(idT, contents_index)  # italics end index
+        bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
+        bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
+        bold_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+        bold_action2.putBoolean(idautoLeading, False)
+        bold_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
+        bold_action1.putObject(idTxtS, idTxtS, bold_action2)
+        current_layer_ref = bold_action1
+
+    # Italicize text from our italics indices
+    for italics_index in italics_indices:
+        italics_action1 = ps.ActionDescriptor()
+        italics_action2 = ps.ActionDescriptor()
+        primary_action_list.putObject(idTxtt, current_layer_ref)
+        italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
+        italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
+        italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+        italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
+        italics_action2.putUnitDouble(idSz, idPnt, layer_font_size)
+        italics_action2.putBoolean(idautoLeading, False)
+        italics_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
         # Default text box
-        descTemp.putDouble(idRd, layer_text_color.rgb.red)  # text color.red
-        descTemp.putDouble(idGrn, layer_text_color.rgb.green)  # text color.green
-        descTemp.putDouble(idBl, layer_text_color.rgb.blue)  # text color.blue
-        desc126.putObject(idClr, idRGBC, descTemp)
+
+        psd.apply_color(italics_action2, layer_text_color)
+
         # End
-        desc125.putObject(idTxtS, idTxtS, desc126)
-        current_layer_ref = desc125
+        italics_action1.putObject(idTxtS, idTxtS, italics_action2)
+        current_layer_ref = italics_action1
 
     # Format each symbol correctly
     for symbol_index in symbol_indices:
@@ -384,7 +479,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
     primary_action_list.putObject(idTxtt, current_layer_ref)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
 
-    # paragraph formatting
+    # Paragraph formatting
     desc141.putInteger(idFrom, 0)
     desc141.putInteger(idT, len(input_string))  # input string length
     desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
@@ -450,7 +545,6 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             list15 = ps.ActionList()
             desc144 = ps.ActionDescriptor()
             desc145 = ps.ActionDescriptor()
-            desc146 = ps.ActionDescriptor()
             desc144.PutInteger(sID("from"), flavor_index)
             desc144.PutInteger(sID("to"), len(input_string))
             desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
@@ -458,14 +552,14 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
             desc145.putUnitDouble(idSz, idPnt, layer_font_size)
             desc145.putBoolean(idautoLeading, False)
             desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
-            desc146.PutDouble(idRd, con.flavor_text_color['r'])
-            desc146.PutDouble(idGrn, con.flavor_text_color['g'])
-            desc146.PutDouble(idBl, con.flavor_text_color['b'])
-            desc145.PutObject(sID("color"), sID("RGBColor"), desc146)
+
+            psd.apply_color(desc145, con.flavor_text_color)
+
             desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
             list15.PutObject(sID("textStyleRange"), desc144)
             primary_action_descriptor.putList(sID("textStyleRange"), list15)
 
+    disable_justify = False
     if quote_index >= 0:
         # Adjust line break spacing if there's a line break in the flavor text
         list14 = ps.ActionList()
@@ -475,21 +569,19 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
         desc142.putUnitDouble(idspaceBefore, idPnt, 0)
         desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
         list13.putObject(idparagraphStyleRange, desc141)
+
+        # Optional, align quote credit to right
+        if input_string.find('"\r—') >= 0 and con.align_classic_quote:
+            # Get start and ending index of quotation credit
+            index_start = input_string.find('"\r—') + 2
+            index_end = len(input_string) - 1
+
+            # Align this part, disable justification reset
+            list13 = classic_align_right(list13, index_start, index_end)
+            disable_justify = True
+
         primary_action_descriptor.putList(idparagraphStyleRange, list13)
         primary_action_descriptor.putList(idkerningRange, list14)
-
-    # Optional, align last line to right
-    if input_string.find('"\r—') >= 0 and con.align_classic_quote:
-
-        # Get start and ending index of quotation credit
-        index_start = input_string.find('"\r—') + 2
-        index_end = len(input_string) - 1
-
-        # Align this part, disable justification reset
-        primary_action_descriptor = classic_align_right(primary_action_descriptor, index_start, index_end)
-        disable_justify = True
-
-    else: disable_justify = False
 
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
@@ -503,7 +595,7 @@ def format_text(input_string, italics_strings, flavor_index, is_centered):
 
 def generate_italics(card_text):
     """
-     * Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
+    Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
     """
     italic_text = []
 
@@ -515,41 +607,34 @@ def generate_italics(card_text):
             end_index = card_text.find(")", start_index + 1)
             end_index += 1
             italic_text.extend([card_text[start_index:end_index]])
-        else: break
+        else:
+            break
 
     # Find and add ability words
-    reg = re.compile(r"[•|\w|\-|\s|]*? — ")
-    for match in reg.findall(card_text):
-        # Cover boast cards and choose cards that aren't weird AFR cases
-        if (
-            any(s in match for s in ("• ", "Boast"))
-            and card_text[0:12] != "Choose one —"
-        ): continue
-
-        # Fix bullet points and carriage return
-        if "• " in match: match = match.replace("• ", "")
-        if "\r" in match: match = match.replace("\r", "")
-        italic_text.extend([match])
+    for match in re.findall(r"(?:\A|\r+|• +)([A-Za-z0-9 ]+) — ", card_text):
+        # Cover boast cards and cards like Mirrodin Besieged
+        if (f"• {match}" in card_text and card_text[0:12] != "Choose one —") or "Boast" in match:
+            continue
+        italic_text.append(match)
 
     return italic_text
 
 
 def format_text_wrapper():
     """
-     Wrapper for format_text which runs the function with the active layer's current text contents
-     and auto-generated italics array. Flavor text index and centered text not supported.
-     Super useful to add as a script action in Photoshop for making cards manually!
+    Wrapper for format_text which runs the function with the active layer's current text contents
+    and auto-generated italics array. Flavor text index and centered text not supported.
+    Super useful to add as a script action in Photoshop for making cards manually!
     """
     card_text = app.activeDocument.activeLayer.textItem.contents
     italic_text = generate_italics(card_text)
-    italic_text.color = psd.rgb_grey()
     format_text(card_text, italic_text, -1, False)
 
 
 def strip_reminder_text(oracle_text):
     """
     Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
-    If this would empty the string, instead return the original string.
+    If this empties the string, instead return the original string.
     """
     oracle_text_stripped = re.sub(r"\([^()]*\)", "", oracle_text)
 
@@ -560,34 +645,32 @@ def strip_reminder_text(oracle_text):
     return oracle_text
 
 
-def classic_align_right(primedesc, start, end):
+def classic_align_right(action_list, start, end):
     """
     Align the quote credit of --Name to the right like on some classic cards.
-    @param primedesc: Existing ActionDescriptor object
+    @param action_list: Action list to add this action to
     @param start: Starting index of the quote string
     @param end: Ending index of the quote string
     @return: Returns the existing ActionDescriptor with changes applied
     """
-    desc145 = ps.ActionDescriptor()
-    list15 = ps.ActionList()
-    desc145.putInteger(cID("From"), start)
-    desc145.putInteger(cID("T   "), end)
-    desc1265 = ps.ActionDescriptor()
+    desc1 = ps.ActionDescriptor()
+    desc1.putInteger(cID("From"), start)
+    desc1.putInteger(cID("T   "), end)
+    desc2 = ps.ActionDescriptor()
     idstyleSheetHasParent = sID("styleSheetHasParent")
-    desc1265.putBoolean(idstyleSheetHasParent, True)
-    desc1265.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
+    desc2.putBoolean(idstyleSheetHasParent, True)
+    desc2.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
     idparagraphStyle = sID("paragraphStyle")
-    desc145.putObject(idparagraphStyle, idparagraphStyle, desc1265)
+    desc1.putObject(idparagraphStyle, idparagraphStyle, desc2)
     idparagraphStyleRange = sID("paragraphStyleRange")
-    list15.putObject(idparagraphStyleRange, desc145)
-    primedesc.putList(idparagraphStyleRange, list15)
-    return primedesc
+    action_list.putObject(idparagraphStyleRange, desc1)
+    return action_list
 
 
 def scale_text_right_overlap(layer, reference) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 24 px clearance from a reference layer's left bound.
+    has a 36 px clearance from a reference layer's left bound.
     @param layer: The text item layer to scale.
     @param reference: Reference layer we need to avoid.
     """
@@ -601,10 +684,14 @@ def scale_text_right_overlap(layer, reference) -> None:
     elif reference.bounds == [0, 0, 0, 0]: return
 
     # Can't find UnitValue object in python api
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     reference_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
-    old_size = float(layer.textItem.size)
+    old_size = font_size
     step, half_step = 0.4, 0.2
 
     # Obtain proper spacing for this document size
@@ -614,13 +701,16 @@ def scale_text_right_overlap(layer, reference) -> None:
     if reference_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
         while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
-            layer.textItem.size -= step
+            font_size -= step
+            layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
 
-        layer.textItem.size += half_step
+        font_size += half_step
+        layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
         if layer_right_bound > (reference_left_bound - spacing):
-            layer.textItem.size -= half_step
+            font_size -= half_step
+            layer.textItem.size = font_size
 
     # Shift baseline up to keep text centered vertically
     if old_size > layer.textItem.size:
@@ -639,11 +729,14 @@ def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
+    factor = 1
     if not ref: return
     if not spacing:  # If no spacing provided, use default
         spacing = int((app.activeDocument.width / 3264) * 64)
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
     ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
-    font_size = layer.textItem.size
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
@@ -671,7 +764,10 @@ def scale_text_to_fit_height(layer, height: int):
     @param height: Reference height to fit.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    font_size = layer.textItem.size
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer

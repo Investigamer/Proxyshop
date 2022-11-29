@@ -275,6 +275,7 @@
             "common-fill": "white"
         }
     ],
+    "J20": "\uE96A",
     "SS3": [
         {
             "char": "",
@@ -406,7 +407,7 @@
             "char": "",
             "rarity": false,
             "color": "white",
-            "stroke": false,
+            "stroke": ["black", 6],
             "common-color": "white",
             "common-stroke": ["black", 6]
         },

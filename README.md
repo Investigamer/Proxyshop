@@ -52,16 +52,59 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Create a virtual environment: `py -m venv /venv`
 * Activate virtual environment: `venv/scripts/activate`
 * Install requirements.txt: `pip install -r requirements.txt`
+* Duplicate the file `proxyshop/env.json.dist` and rename to `env.json`.
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
 * Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
 * Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.
 * File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "Creator" in the Legal layer group.
 * Run the app: `py main.py`
 
-# FAQ
-* *I want to change the set symbol to something else.* Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards. Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
-* *Where is a good place to get high quality MTG art?* Your best source is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/ESRGAN. On our discord we provide a lot of resources for learning how to upscale art easily and effectively. Also for mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
-* *The app stops when trying to enter text and Photoshop becomes unresponsive.* There is a known bug where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
+# FAQ 
+
+_Click questions to see answers_
+
+<details>
+<summary>How do I change the set symbol to something else?</summary>
+  
+Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards.
+Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
+  
+</details>
+
+<details>
+<summary>How do I completely hide the set symbol?</summary>
+  
+Open `config.ini` and set `Auto.Set.Symbol = False`, then replace the value of `Default.Symbol` with a blank space.
+  
+</details>
+
+
+<details>
+<summary>How do I hide any photoshop layer?</summary>
+  
+In the photoshop template of your choice, change the opacity to 0 on the layer you wish to hide.
+You can use this method to hide anything, including set symbol and collector's info layers.
+  
+</details>
+
+
+<details>
+<summary>Where is a good place to get high quality MTG art?</summary>
+  
+Your best source is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/ESRGAN.
+On our [discord](https://discord.gg/magicproxies) we provide a lot of resources for learning how to upscale art easily and effectively.
+Also for mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
+  
+</details>
+
+
+<details>
+<summary>The app stops when trying to enter text and Photoshop becomes unresponsive!</summary>
+  
+There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
+  
+</details>
+
 
 # Scope
 * Modern style cards, normal and extended; transform and mdfc, front and back; basic lands, normal, Theros, and Unstable styles; planeswalkers, normal and extended; mutate, adventure, miracle, and snow cards; and various flavours of fancy frames - stargazing, universes beyond, masterpiece, ZNE expedition, and womensday.

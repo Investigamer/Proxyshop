@@ -2,27 +2,22 @@
 CORE LAYOUTS
 """
 import re
+from functools import cached_property
+from typing import Optional, Match
+
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import scryfall as scry
 from proxyshop import frame_logic
 
 
-def determine_card_face(scryfall, card_name):
-    """
-    Helper Function, returns card face int
-    """
-    if scryfall['card_faces'][0]['name'] == card_name: return con.Faces['FRONT']
-    return con.Faces['BACK']
-
-
 class BasicLand:
     """
     No special data entry, just a basic land
     """
-    def __init__(self, name, artist=None, set_code=None):
+    def __init__(self, file):
         # Mandatory vars
-        self.name = name
+        self.name = file['name']
         self.card_class = con.basic_class
         self.collector_number = None
         self.card_count = None
@@ -30,200 +25,363 @@ class BasicLand:
         self.rarity = "common"
 
         # Optional vars
-        if artist: self.artist = artist
-        else: self.artist = "Unknown"
-        if set_code: self.set = set_code.upper()
-        else: self.set = "MTG"
-        if len(self.set) > 3: self.set = self.set[1:]
+        self.artist = file['artist'] if file['artist'] else "Unknown"
+        self.set = file['set'].upper() if file['set'] else "MTG"
+        self.creator = file['creator']
+        self.filename = file['filename']
 
         # Automatic set symbol enabled?
+        self.symbol = cfg.symbol_char
         if cfg.auto_symbol:
-            if self.set in con.set_symbols: self.symbol = con.set_symbols[self.set]
-            else: self.symbol = cfg.symbol_char
-        else: self.symbol = cfg.symbol_char
+            if self.set in con.set_symbols:
+                self.symbol = con.set_symbols[self.set]
+            elif len(self.set) > 3 and self.set[0:1] == "P":
+                self.symbol = con.set_symbols[self.set[1:]]
 
     def __str__(self):
-        return "{} [{}]".format(self.name, self.set)
+        return f"{self.name} [{self.set}]"
+
+    @cached_property
+    def is_creature(self):
+        return False
+
+    @cached_property
+    def is_land(self):
+        return True
+
+    @cached_property
+    def is_nyx(self):
+        return False
+
+    @cached_property
+    def is_companion(self):
+        return False
+
+    @cached_property
+    def is_legendary(self):
+        return False
+
+    """
+    SETTABLE
+    """
+
+    @property
+    def filename(self) -> str:
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = value
 
 
 class BaseLayout:
     """
-    Superclass, extend to this class at bare minimum for info all cards should have.
+    Defines unified properties for all cards.
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        """
-        Constructor for base layout that unpacks scryfall data shared by all card types, includes method that
-        calls select_frame_layers to determine frame colors for the card.
-        """
-        # Set these later
-        self.twins = None
-        self.pinlines = None
-        self.background = None
-        self.is_colorless = False
-        self.color_indicator = None
-        self.card_class = None
-        self.is_nyx = False
+    def __init__(self, scryfall: dict, file: dict):
 
-        # Basic data
+        # Scryfall data
+        self.file = file
         self.scryfall = scryfall
-        self.card_name_raw = card_name
 
-        # Alternate language?
-        if scryfall['lang'] != "en":
-            self.name_key = 'printed_name'
-            self.oracle_key = 'printed_text'
-            self.type_key = 'printed_type_line'
+        # Settable properties
+        self.filename = self.file['filename']
+
+    def __str__(self):
+        return "{} [{}]".format(self.name, self.set)
+
+    """
+    SETTABLE
+    """
+
+    @property
+    def filename(self) -> str:
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = value
+
+    """
+    IMMUTABLES
+    """
+
+    @cached_property
+    def card(self) -> dict:
+        if 'card_faces' in self.scryfall:
+            if self.scryfall['card_faces'][0]['name'] == self.name_raw:
+                self.scryfall['card_faces'][0]['front'] = True
+                return self.scryfall['card_faces'][0]
+            self.scryfall['card_faces'][1]['front'] = False
+            return self.scryfall['card_faces'][1]
+        self.scryfall['front'] = True
+        return self.scryfall
+
+    @cached_property
+    def other_face(self) -> dict:
+        if 'card_faces' in self.scryfall:
+            if self.scryfall['card_faces'][0]['name'] == self.name_raw:
+                return self.scryfall['card_faces'][1]
+            return self.scryfall['card_faces'][0]
+        return {}
+
+    @cached_property
+    def frame_effects(self) -> list:
+        if 'frame_effects' in self.scryfall:
+            return self.scryfall['frame_effects']
+        return []
+
+    @property
+    def keywords(self) -> list:
+        if 'keywords' in self.scryfall:
+            return self.scryfall['keywords']
+        return []
+
+    @cached_property
+    def name(self) -> str:
+        if self.lang != 'EN' and 'printed_name' in self.card:
+            return self.card['printed_name']
+        return self.card['name']
+
+    @cached_property
+    def name_raw(self) -> str:
+        return self.file['name']
+
+    @cached_property
+    def mana_cost(self) -> Optional[str]:
+        if 'mana_cost' in self.card:
+            return self.card['mana_cost']
+        return
+
+    @cached_property
+    def oracle_text(self) -> str:
+        # Alt lang?
+        if self.lang != 'EN' and 'printed_text' in self.card:
+            text = self.card['printed_text']
         else:
-            self.name_key = 'name'
-            self.oracle_key = 'oracle_text'
-            self.type_key = 'type_line'
+            text = self.card['oracle_text']
 
-        # Extract scryfall info that is shared by all card types
-        self.rarity = self.scryfall['rarity']
-        self.rarity_letter = self.rarity[0:1].upper()
-        self.artist = self.scryfall['artist']
-        self.color_identity = self.scryfall['color_identity']
-        if 'lang' in self.scryfall:
-            self.lang = self.scryfall['lang'].upper()
-        else: self.lang = cfg.lang.upper()
+        # Planeswalker?
+        if 'Planeswalker' in self.type_line:
+            text = text.replace("\u2212", "-")
+        return text
 
-        # Correct for duplicate artist names
-        if "&" in self.artist:
+    @cached_property
+    def oracle_text_raw(self) -> str:
+        return self.card['oracle_text']
+
+    @cached_property
+    def flavor_text(self) -> str:
+        return self.card['flavor_text'] if 'flavor_text' in self.card else ""
+
+    @cached_property
+    def type_line(self) -> str:
+        if self.lang != 'EN' and 'printed_type_line' in self.card:
+            return self.card['printed_type_line']
+        return self.card['type_line']
+
+    @cached_property
+    def type_line_raw(self) -> str:
+        return self.card['type_line']
+
+    @cached_property
+    def collector_number(self) -> str:
+        num = str(self.scryfall['collector_number']).replace("p", "")
+        if len(num) == 2:
+            num = f"0{num}"
+        elif len(num) == 1:
+            num = f"00{num}"
+        return num
+
+    @cached_property
+    def rarity(self) -> str:
+        return self.scryfall['rarity']
+
+    @cached_property
+    def rarity_letter(self) -> str:
+        return self.rarity[0:1].upper()
+
+    @cached_property
+    def artist(self) -> str:
+        if self.file['artist']:
+            return self.file['artist']
+        if "&" in self.card['artist']:
             count = []
-            for w in self.artist.split(" "):
+            for w in self.card['artist'].split(" "):
                 if w in count: count.remove(w)
                 count.append(w)
-            self.artist = " ".join(count)
+            return " ".join(count)
+        return self.card['artist']
 
-        # Prepare set code
-        self.set = self.scryfall['set'].upper()
+    @cached_property
+    def creator(self) -> str:
+        return self.file['creator']
 
-        # Prepare rarity letter + collector number
-        self.collector_number = self.scryfall['collector_number']
-        if len(self.collector_number) == 2:
-            self.collector_number = f"0{self.collector_number}"
-        elif len(self.collector_number) == 1:
-            self.collector_number = f"00{self.collector_number}"
-        self.collector_number = self.collector_number.replace("p", "")
+    @cached_property
+    def color_identity(self) -> list:
+        return self.scryfall['color_identity']
 
-        # Was card count already provided?
-        if 'printed_size' not in self.scryfall:
-            # Get set info to find card count
-            if len(self.set) > 3 and self.set[0] == "P":
-                self.mtgset = scry.set_info(self.scryfall['set'][1:])
-            else:
-                self.mtgset = scry.set_info(self.scryfall['set'])
-            try: self.card_count = self.mtgset['baseSetSize']
-            except (KeyError, TypeError):
-                try: self.card_count = self.mtgset['totalSetSize']
-                except (KeyError, TypeError):
-                    if 'card_count' in self.scryfall:
-                        self.card_count = self.scryfall['card_count']
-                    else: self.card_count = ""
-        else: self.card_count = scryfall['printed_size']
+    @cached_property
+    def lang(self) -> str:
+        if 'lang' in self.scryfall:
+            return self.scryfall['lang'].upper()
+        return cfg.lang.upper()
 
-        # Ensure card_count minimum 3 digit number length
-        if len(str(self.card_count)) == 2:
-            self.card_count = "0" + str(self.card_count)
-        elif len(str(self.card_count)) == 1:
-            self.card_count = "00" + str(self.card_count)
-        elif len(str(self.card_count)) == 0:
-            self.card_count = None
+    @cached_property
+    def set(self) -> str:
+        return self.scryfall['set'].upper()
 
+    @cached_property
+    def mtgset(self) -> dict:
+        return scry.set_info(self.set.lower())
+
+    @cached_property
+    def card_count(self) -> Optional[str]:
+        # Select the best available card count
+        if 'printed_size' in self.scryfall:
+            cc = self.scryfall['printed_size']
+        elif 'baseSetSize' in self.mtgset:
+            cc = self.mtgset['baseSetSize']
+        elif 'totalSetSize' in self.mtgset:
+            cc = self.mtgset['totalSetSize']
+        elif 'card_count' in self.scryfall:
+            cc = self.scryfall['card_count']
+        else:
+            return
+
+        # Ensure formatting of count
+        if len(str(cc)) == 2:
+            return f"0{cc}"
+        elif len(str(cc)) == 1:
+            return f"00{cc}"
+        return cc
+
+    @cached_property
+    def symbol(self) -> str:
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
-            self.symbol = con.set_symbols[self.set]
+            return con.set_symbols[self.set]
         elif cfg.auto_symbol and self.set[1:] in con.set_symbols:
-            self.symbol = con.set_symbols[self.set[1:]]
-        else: self.symbol = cfg.symbol_char
+            return con.set_symbols[self.set[1:]]
+        return cfg.symbol_char
 
-        # Optional vars
-        if 'keywords' in self.scryfall: self.keywords = self.scryfall['keywords']
-        else: self.keywords = []
-        if 'frame_effects' in self.scryfall: self.frame_effects = self.scryfall['frame_effects']
-        else: self.frame_effects = []
+    @cached_property
+    def power(self) -> str:
+        return self.card['power'] if 'power' in self.card else None
 
-    def frame_logic(self):
-        """
-        Retrieve frame element information used to build the card.
-        """
-        ret = frame_logic.select_frame_layers(
+    @cached_property
+    def toughness(self) -> str:
+        return self.card['toughness'] if 'toughness' in self.card else None
+
+    @cached_property
+    def color_indicator(self) -> str:
+        return self.card['color_indicator'] if 'color_indicator' in self.card else None
+
+    @cached_property
+    def transform_icon(self) -> None:
+        return
+
+    @cached_property
+    def scryfall_scan(self) -> Optional[str]:
+        if 'image_uris' in self.card:
+            if 'large' in self.card['image_uris']:
+                return self.card['image_uris']['large']
+        return
+
+    @cached_property
+    def loyalty(self) -> str:
+        return self.card['loyalty'] if 'loyalty' in self.card else None
+
+    """
+    BOOL
+    """
+
+    @cached_property
+    def is_creature(self) -> bool:
+        return 'Creature' in self.type_line
+
+    @cached_property
+    def is_land(self) -> bool:
+        return 'Land' in self.type_line
+
+    @cached_property
+    def is_legendary(self) -> bool:
+        return 'Legendary' in self.type_line
+
+    @cached_property
+    def is_nyx(self) -> bool:
+        return "nyxtouched" in self.frame_effects
+
+    @cached_property
+    def is_companion(self) -> bool:
+        return "companion" in self.frame_effects
+
+    @cached_property
+    def is_colorless(self) -> bool:
+        return self.frame['is_colorless']
+
+    """
+    FRAME PROPERTIES
+    """
+
+    @cached_property
+    def frame(self) -> dict:
+        return frame_logic.select_frame_layers(
             self.mana_cost,
             self.type_line_raw,
             self.oracle_text_raw,
             self.color_identity,
             self.color_indicator
         )
-        self.twins = ret['twins']
-        self.pinlines = ret['pinlines']
-        self.background = ret['background']
-        self.is_colorless = ret['is_colorless']
-        self.is_nyx = bool("nyxtouched" in self.frame_effects)
-        self.set_card_class()
 
-    def get_default_class(self):
-        """
-        Returns the default template type
-        """
-        return None
+    @cached_property
+    def twins(self) -> str:
+        return self.frame['twins']
 
-    def set_card_class(self):
+    @cached_property
+    def pinlines(self) -> str:
+        return self.frame['pinlines']
+
+    @cached_property
+    def background(self) -> str:
+        return self.frame['background']
+
+    """
+    CARD CLASS
+    """
+
+    @cached_property
+    def default_class(self):
+        return
+
+    @cached_property
+    def card_class(self):
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
-        self.card_class = self.get_default_class()
-        if self.card_class == con.transform_front_class and self.face == con.Faces['BACK']:
-            self.card_class = con.transform_back_class
-            if "Land" in self.type_line: self.card_class = con.ixalan_class
-        elif self.card_class == con.mdfc_front_class and self.face == con.Faces['BACK']:
-            self.card_class = con.mdfc_back_class
-        elif "Planeswalker" in self.type_line and self.card_class == con.normal_class:
-            self.card_class = con.planeswalker_class
-        elif "Mutate" in self.keywords: self.card_class = con.mutate_class
-        elif "Miracle" in self.frame_effects: self.card_class = con.miracle_class
-        # elif "Snow" in self.type_line:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
-        #    self.card_class = con.snow_class
-
-    def __str__(self):
-        return "{} [{}]".format(self.name, self.set)
+        if self.default_class == con.transform_front_class and self.card['front']:
+            if "Land" in self.type_line: return con.ixalan_class
+            return con.transform_back_class
+        elif self.default_class == con.mdfc_front_class and not self.card['front']:
+            return con.mdfc_back_class
+        elif self.default_class == con.normal_class and "Planeswalker" in self.card['type_line']:
+            return con.planeswalker_class
+        elif "Mutate" in self.keywords:
+            return con.mutate_class
+        elif "Miracle" in self.frame_effects:
+            return con.miracle_class
+        # elif "Snow" in self.card['type_line']:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
+        #    return con.snow_class
+        return self.default_class
 
 
 class NormalLayout (BaseLayout):
     """
     Use this as Superclass for most regular layouts
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
-        # Mandatory vars
-        self.name = self.scryfall[self.name_key]
-        self.mana_cost = self.scryfall['mana_cost']
-        self.type_line = self.scryfall[self.type_key]
-        self.type_line_raw = self.scryfall['type_line']
-        self.oracle_text = self.scryfall[self.oracle_key]
-        self.oracle_text_raw = self.scryfall['oracle_text']
-
-        # Optional vars
-        try: self.flavor_text = self.scryfall['flavor_text']
-        except KeyError: self.flavor_text = ""
-        try: self.power = self.scryfall['power']
-        except KeyError: self.power = None
-        try: self.toughness = self.scryfall['toughness']
-        except KeyError: self.toughness = None
-        try: self.color_indicator = self.scryfall['color_indicator']
-        except KeyError: self.color_indicator = None
-        try: self.scryfall_scan = self.scryfall['image_uris']['large']
-        except KeyError: self.scryfall_scan = None
-
-        # Planeswalker
-        if 'Planeswalker' in self.type_line:
-            self.oracle_text = self.oracle_text.replace("\u2212", "-")
-            self.loyalty = self.scryfall['loyalty']
-
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         return con.normal_class
 
 
@@ -231,53 +389,29 @@ class TransformLayout (BaseLayout):
     """
     Used for transform cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
-        # Mandatory vars
-        self.face = determine_card_face(self.scryfall, self.card_name_raw)
-        self.other_face = -1 * (self.face - 1)
-        self.name = self.scryfall['card_faces'][self.face][self.name_key]
-        self.mana_cost = self.scryfall['card_faces'][self.face]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][self.face][self.type_key]
-        self.type_line_raw = self.scryfall['card_faces'][self.face]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][self.face][self.oracle_key]
-        self.oracle_text_raw = self.scryfall['card_faces'][self.face]['oracle_text']
-        self.scryfall_scan = self.scryfall['card_faces'][self.face]['image_uris']['large']
+    @cached_property
+    def other_face_power(self) -> Optional[str]:
+        return self.other_face['power'] if 'power' in self.other_face else None
 
-        # Optional vars
-        try: self.flavor_text = self.scryfall['card_faces'][self.face]['flavor_text']
-        except KeyError: self.flavor_text = ""
-        try: self.power = self.scryfall['card_faces'][self.face]['power']
-        except KeyError: self.power = None
-        try: self.other_face_power = self.scryfall['card_faces'][self.other_face]['power']
-        except KeyError: self.other_face_power = None
-        try: self.toughness = self.scryfall['card_faces'][self.face]['toughness']
-        except KeyError: self.toughness = None
-        try: self.other_face_toughness = self.scryfall['card_faces'][self.other_face]['toughness']
-        except KeyError: self.other_face_toughness = None
-        try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']
-        except KeyError: self.color_indicator = None
+    @cached_property
+    def other_face_toughness(self) -> Optional[str]:
+        return self.other_face['toughness'] if 'toughness' in self.other_face else None
 
+    @cached_property
+    def transform_icon(self) -> str:
         # TODO: safe to assume the first frame effect will be the transform icon?
-        if self.scryfall['frame_effects']:
+        if 'frame_effects' in self.scryfall:
             if self.scryfall['frame_effects'][0] != "legendary":
-                self.transform_icon = self.scryfall['frame_effects'][0]
-            else: self.transform_icon = "sunmoondfc"
-        else: self.transform_icon = "sunmoondfc"
+                return self.scryfall['frame_effects'][0]
+        return "sunmoondfc"
 
-        # Planeswalker
-        if 'Planeswalker' in self.type_line:
-            self.loyalty = self.scryfall['card_faces'][self.face]['loyalty']
-            self.oracle_text = self.oracle_text.replace("\u2212", "-")
-
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
-        if 'Planeswalker' in self.type_line:
-            if self.face == con.Faces['BACK']: return con.pw_tf_back_class
-            else: return con.pw_tf_front_class
+    @cached_property
+    def default_class(self):
+        if 'Planeswalker' in self.card['type_line']:
+            if self.card['front']:
+                return con.pw_tf_front_class
+            return con.pw_tf_back_class
         return con.transform_front_class
 
 
@@ -285,35 +419,44 @@ class MeldLayout (NormalLayout):
     """
     Used for Meld cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
+    def __init__(self, scryfall: dict, file: dict):
+        super().__init__(scryfall, file)
 
         # Determine if this card is a meld part or a meld result
-        self.face = con.Faces['FRONT']
         all_parts = self.scryfall['all_parts']
         meld_result_name = ""
-        meld_result_idx = 0
+        self.meld_index = 0
         for part in all_parts:
             if part['component'] == "meld_result":
                 meld_result_name = part['name']
-                meld_result_idx = all_parts.index(part)
+                self.meld_index = all_parts.index(part)
                 break
 
         # Is this the meld result?
-        if self.name == meld_result_name: self.face = con.Faces['BACK']
+        if self.name_raw == meld_result_name:
+            self.card['front'] = False
         else:
-            # Retrieve power and toughness of meld result
-            self.other_face_power = self.scryfall['all_parts'][meld_result_idx]['info']['power']
-            self.other_face_toughness = self.scryfall['all_parts'][meld_result_idx]['info']['toughness']
+            self.card['front'] = True
 
+    @cached_property
+    def other_face_power(self) -> Optional[str]:
+        if 'info' in self.scryfall['all_parts'][self.meld_index] and self.card['front']:
+            return self.scryfall['all_parts'][self.meld_index]['info']['power']
+        return
+
+    @cached_property
+    def other_face_toughness(self) -> Optional[str]:
+        if 'info' in self.scryfall['all_parts'][self.meld_index] and self.card['front']:
+            return self.scryfall['all_parts'][self.meld_index]['info']['toughness']
+        return
+
+    @cached_property
+    def transform_icon(self) -> str:
         # TODO: safe to assume the first frame effect is transform icon?
-        self.transform_icon = self.scryfall['frame_effects'][0]
-        self.scryfall_scan = self.scryfall['image_uris']['large']
+        return self.scryfall['frame_effects'][0]
 
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         return con.transform_front_class
 
 
@@ -321,66 +464,65 @@ class ModalDoubleFacedLayout (BaseLayout):
     """
     Used for Modal Double Faced cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
+    def __init__(self, scryfall: dict, file: dict):
+        super().__init__(scryfall, file)
 
-        # Mandatory vars
-        self.face = determine_card_face(self.scryfall, self.card_name_raw)
-        self.other_face = -1 * (self.face - 1)
-        self.name = self.scryfall['card_faces'][self.face][self.name_key]
-        self.mana_cost = self.scryfall['card_faces'][self.face]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][self.face][self.type_key]
-        self.type_line_raw = self.scryfall['card_faces'][self.face]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][self.face][self.oracle_key]
-        self.oracle_text_raw = self.scryfall['card_faces'][self.face]['oracle_text']
-        self.transform_icon = "modal_dfc"
-        if self.lang != "EN":
-            num_breaks = self.oracle_text.count("\n")
-            num_breaks_raw = self.oracle_text_raw.count("\n")
+    @cached_property
+    def oracle_text(self) -> Optional[str]:
+
+        # Overwrite this property to modify
+        if self.lang != "EN" and 'printed_text' in self.card:
+            text = self.card['printed_text']
+            num_breaks = text.count("\n")
+            num_breaks_raw = text.count("\n")
             if num_breaks > num_breaks_raw:
-                self.oracle_text = self.oracle_text.split("\n", num_breaks_raw+1)
-                self.oracle_text.pop()
-                self.oracle_text = "\n".join(self.oracle_text)
+                text = text.split("\n", num_breaks_raw + 1)
+                text.pop()
+                text = "\n".join(text)
+        else:
+            text = self.card['oracle_text']
 
-        # Optional vars
-        try: self.flavor_text = self.scryfall['card_faces'][self.face]['flavor_text']
-        except KeyError: self.flavor_text = ""
-        try: self.power = self.scryfall['card_faces'][self.face]['power']
-        except KeyError: self.power = None
-        try: self.toughness = self.scryfall['card_faces'][self.face]['toughness']
-        except KeyError: self.toughness = None
-        try: self.color_indicator = self.scryfall['card_faces'][self.face]['color_indicator']
-        except KeyError: self.color_indicator = None
-        try: self.color_indicator_other = self.scryfall['card_faces'][self.other_face]['color_indicator']
-        except KeyError: self.color_indicator_other = None
-        try: self.color_identity_other = self.scryfall['card_faces'][self.other_face]['color_identity']
-        except KeyError: self.color_identity_other = self.color_identity
-
-        # Planeswalker
+        # Planeswalker?
         if 'Planeswalker' in self.type_line:
-            self.oracle_text = self.oracle_text.replace("\u2212", "-")
-            self.loyalty = self.scryfall['card_faces'][self.face]['loyalty']
-            if self.face == con.Faces['BACK']: self.card_class = con.pw_mdfc_back_class
-            else: self.card_class = con.pw_mdfc_front_class
+            text = text.replace("\u2212", "-")
+        return text
 
-        # MDFC banner twins
-        self.other_face_twins = frame_logic.select_frame_layers(
-            self.scryfall['card_faces'][self.other_face]['mana_cost'],
-            self.scryfall['card_faces'][self.other_face]['type_line'],
-            self.scryfall['card_faces'][self.other_face]['oracle_text'],
+    @cached_property
+    def color_indicator_other(self) -> Optional[str]:
+        if 'color_indicator' in self.other_face:
+            return self.other_face['color_indicator']
+        return
+
+    @cached_property
+    def color_identity_other(self) -> Optional[list]:
+        if 'color_identity' in self.other_face:
+            return self.other_face['color_identity']
+        return
+
+    @cached_property
+    def other_face_twins(self) -> str:
+        return frame_logic.select_frame_layers(
+            self.other_face['mana_cost'],
+            self.other_face['type_line'],
+            self.other_face['oracle_text'],
             self.color_identity_other,
             self.color_indicator_other)['twins']
 
-        # Opposite card info
-        other_face_type_line_split = self.scryfall['card_faces'][self.other_face][self.type_key].split(" ")
-        self.other_face_left = other_face_type_line_split[len(other_face_type_line_split)-1]
-        self.other_face_right = self.scryfall['card_faces'][self.other_face]['mana_cost']
+    @cached_property
+    def other_face_left(self) -> str:
+        if self.lang != "EN" and 'printed_text' in self.other_face:
+            other_face_type_line_split = self.other_face['printed_type_line'].split(" ")
+        else:
+            other_face_type_line_split = self.other_face['type_line'].split(" ")
+        return other_face_type_line_split[len(other_face_type_line_split) - 1]
 
+    @cached_property
+    def other_face_right(self) -> str:
         # Opposite card land info
-        if self.scryfall['card_faces'][self.other_face]['type_line'].find("Land") >= 0:
+        if 'Land' in self.other_face['type_line']:
             # other face is a land - right MDFC banner text should say what color of mana the land taps for
-            other_face_oracle_text_split = self.scryfall['card_faces'][self.other_face]['oracle_text'].split("\n")
-            other_face_mana_text = self.scryfall['card_faces'][self.other_face]['oracle_text']
+            other_face_oracle_text_split = self.other_face['oracle_text'].split("\n")
+            other_face_mana_text = self.other_face['oracle_text']
             if len(other_face_oracle_text_split) > 1:
                 # iterate over rules text lines until the line that adds mana is identified
                 for i in other_face_oracle_text_split:
@@ -389,18 +531,19 @@ class ModalDoubleFacedLayout (BaseLayout):
                         break
 
             # Truncate anything in the mana text after the first sentence
-            self.other_face_right = other_face_mana_text.split(".")[0] + "."
+            return other_face_mana_text.split(".")[0] + "."
+        return self.other_face['mana_cost']
 
-        # Scryfall scan
-        self.scryfall_scan = self.scryfall['card_faces'][self.face]['image_uris']['large']
+    @cached_property
+    def transform_icon(self) -> str:
+        return "modal_dfc"
 
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         if 'Planeswalker' in self.type_line:
-            if self.face == con.Faces['BACK']: return con.pw_mdfc_back_class
-            else: return con.pw_mdfc_front_class
+            if not self.card['front']:
+                return con.pw_mdfc_back_class
+            return con.pw_mdfc_front_class
         return con.mdfc_front_class
 
 
@@ -408,40 +551,18 @@ class AdventureLayout (BaseLayout):
     """
     Used for Adventure cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
-        # Mandatory vars
-        self.name = self.scryfall['card_faces'][0][self.name_key]
-        self.mana_cost = self.scryfall['card_faces'][0]['mana_cost']
-        self.type_line = self.scryfall['card_faces'][0][self.type_key]
-        self.type_line_raw = self.scryfall['card_faces'][0]['type_line']
-        self.oracle_text = self.scryfall['card_faces'][0][self.oracle_key]
-        self.oracle_text_raw = self.scryfall['card_faces'][0]['oracle_text']
-        self.adventure = {
+    @cached_property
+    def adventure(self) -> dict:
+        return {
             'name': self.scryfall['card_faces'][1]['name'],
             'mana_cost': self.scryfall['card_faces'][1]['mana_cost'],
             'type_line': self.scryfall['card_faces'][1]['type_line'],
             'oracle_text': self.scryfall['card_faces'][1]['oracle_text']
         }
-        self.rarity = self.scryfall['rarity']
-        self.artist = self.scryfall['artist']
 
-        # Optional vars
-        try: self.flavor_text = self.scryfall['card_faces'][0]['flavor_text']
-        except KeyError: self.flavor_text = ""
-        try: self.power = self.scryfall['power']
-        except KeyError: self.power = None
-        try: self.toughness = self.scryfall['toughness']
-        except KeyError: self.toughness = None
-
-        # Scryfall image
-        self.scryfall_scan = self.scryfall['image_uris']['large']
-
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         return con.adventure_class
 
 
@@ -449,27 +570,46 @@ class LevelerLayout (NormalLayout):
     """
     Used for Leveler cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
+    @cached_property
+    def leveler_match(self) -> Optional[Match[str]]:
         # Unpack oracle text into: level text, levels x-y text, levels z+ text, middle level,
         # middle level power/toughness, bottom level, and bottom level power/toughness
         leveler_regex = re.compile(
             """(.*?)\\nLEVEL ([\\d]*-[\\d]*)\\n([\\d]*/[\\d]*)\\n(.*)\\nLEVEL ([\\d]*[+])\\n([\\d]*/[\\d]*)\\n(.*)"""
         )
-        leveler_match = leveler_regex.match(self.oracle_text)
-        self.level_up_text = leveler_match[1]
-        self.middle_level = leveler_match[2]
-        self.middle_power_toughness = leveler_match[3]
-        self.levels_x_y_text = leveler_match[4]
-        self.bottom_level = leveler_match[5]
-        self.bottom_power_toughness = leveler_match[6]
-        self.levels_z_plus_text = leveler_match[7]
+        return leveler_regex.match(self.oracle_text)
 
-        # Assign frame elements
-        super().frame_logic()
+    @cached_property
+    def level_up_text(self) -> str:
+        return self.leveler_match[1]
 
-    def get_default_class(self):
+    @cached_property
+    def middle_level(self) -> str:
+        return self.leveler_match[2]
+
+    @cached_property
+    def middle_power_toughness(self) -> str:
+        return self.leveler_match[3]
+
+    @cached_property
+    def levels_x_y_text(self) -> str:
+        return self.leveler_match[4]
+
+    @cached_property
+    def bottom_level(self) -> str:
+        return self.leveler_match[5]
+
+    @cached_property
+    def bottom_power_toughness(self) -> str:
+        return self.leveler_match[6]
+
+    @cached_property
+    def levels_z_plus_text(self) -> str:
+        return self.leveler_match[7]
+
+    @cached_property
+    def default_class(self) -> str:
         return con.leveler_class
 
 
@@ -477,18 +617,17 @@ class SagaLayout (NormalLayout):
     """
     Used for Saga cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
+    @cached_property
+    def saga_lines(self) -> list:
         # Unpack oracle text into saga lines
-        self.saga_lines = self.oracle_text.split("\n")[1::]
-        for i, line in enumerate(self.saga_lines):
-            self.saga_lines[i] = line.split(" \u2014 ")[1]
+        saga_lines = self.oracle_text.split("\n")[1::]
+        for i, line in enumerate(saga_lines):
+            saga_lines[i] = line.split(" \u2014 ")[1]
+        return saga_lines
 
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         return con.saga_class
 
 
@@ -496,24 +635,9 @@ class PlanarLayout (BaseLayout):
     """
     Used for Planar cards
     """
-    def __init__(self, scryfall: dict, card_name: str):
-        super().__init__(scryfall, card_name)
 
-        # Mandatory vars
-        self.scryfall_scan = self.scryfall['image_uris']['large']
-        self.oracle_text = self.scryfall[self.oracle_key]
-        self.oracle_text_raw = self.scryfall['oracle_text']
-        self.type_line = self.scryfall[self.type_key]
-        self.type_line_raw = self.scryfall['type_line']
-        self.rarity = self.scryfall['rarity']
-        self.artist = self.scryfall['artist']
-        self.name = self.scryfall[self.name_key]
-        self.mana_cost = ""
-
-        # Assign frame elements
-        super().frame_logic()
-
-    def get_default_class(self):
+    @cached_property
+    def default_class(self):
         return con.planar_class
 
 
