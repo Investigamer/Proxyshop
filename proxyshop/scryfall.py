@@ -84,12 +84,18 @@ def get_card_search(
     code = f"+set%3A{set_code}" if set_code else ""
 
     # Query Scryfall, 3 retries
-    url = f'https://api.scryfall.com/cards/search?unique=prints{order}&q=!"{name}"{code} include:extras{lang}'
+    url = f'https://api.scryfall.com/cards/search?unique=prints' \
+          f'{order}&q=!"{parse.quote(name)}"{code} include:extras{lang}'
+    print(url)
     err = None
     for i in range(3):
         try:
             card = requests.get(url, headers=con.http_header).json()
-            return add_meld_info(card['data'][0])
+            for card in card['data']:
+                if 'set_type' in card:
+                    if card['set_type'] != "memorabilia":
+                        return card
+            raise Exception("Could not find a playable card with this name!")
         except Exception as e:
             err = e
         time.sleep(float(i / 3))
