@@ -195,6 +195,8 @@ class FormattedTextField (TextField):
 
     @cached_property
     def font_size(self) -> float:
+        if 'font_size' in self.kwargs:
+            return self.kwargs['font_size'] * psd.get_text_scale_factor(self.layer)
         return self.layer.textItem.size * psd.get_text_scale_factor(self.layer)
 
     """
