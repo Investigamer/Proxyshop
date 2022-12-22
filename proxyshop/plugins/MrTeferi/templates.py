@@ -76,6 +76,14 @@ class KaldheimTemplate (temp.NormalTemplate):
         super().__init__(layout)
 
     @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_legendary(self) -> bool:
+        return False
+
+    @property
     def twins_layer(self) -> Optional[ArtLayer]:
         return
 
