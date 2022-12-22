@@ -15,10 +15,10 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 
 # Requirements
   * Windows (currently incompatible with Mac/Linux)
-  * A copy of Photoshop (2015-2022 Tested)
+  * Photoshop (2015-2023 Tested)
   * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
   * The following fonts, included in fonts folder:
-    * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, MPlantin and MPlantin-Italics
+    * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, Plantin MT Pro and Plantin MT Pro Italics
     * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Keep Keyrune updated for expansion symbols)
     * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium), [Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium), and Calibri (comes with Windows)
     * Chilli's custom Magic symbols font, NDPMTG.ttf
