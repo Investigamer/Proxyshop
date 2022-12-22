@@ -86,7 +86,6 @@ def get_card_search(
     # Query Scryfall, 3 retries
     url = f'https://api.scryfall.com/cards/search?unique=prints' \
           f'{order}&q=!"{parse.quote(name)}"{code} include:extras{lang}'
-    print(url)
     err = None
     for i in range(3):
         try:
