@@ -172,7 +172,7 @@ def rgb_white():
     return color
 
 
-def get_rgb(r, g, b):
+def get_rgb(r: int, g: int, b: int):
     """
     Creates a SolidColor object with the given RGB values.
     @param r: Integer from 0 to 255 for red spectrum.
