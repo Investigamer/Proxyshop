@@ -238,13 +238,13 @@ class BaseLayout:
     @cached_property
     def card_count(self) -> Optional[str]:
         # Select the best available card count
-        if 'printed_size' in self.scryfall:
+        if 'printed_size' in self.scryfall and self.scryfall['printed_size'] > int(self.collector_number):
             cc = self.scryfall['printed_size']
-        elif 'baseSetSize' in self.mtgset:
+        elif 'baseSetSize' in self.mtgset and self.mtgset['baseSetSize'] > int(self.collector_number):
             cc = self.mtgset['baseSetSize']
-        elif 'totalSetSize' in self.mtgset:
+        elif 'totalSetSize' in self.mtgset and self.mtgset['totalSetSize'] > int(self.collector_number):
             cc = self.mtgset['totalSetSize']
-        elif 'card_count' in self.scryfall:
+        elif 'card_count' in self.scryfall and self.scryfall['card_count'] > int(self.collector_number):
             cc = self.scryfall['card_count']
         else:
             return
