@@ -340,7 +340,7 @@ class BaseTemplate:
             self.creator_layer.textItem.contents = self.layout.creator
 
         # Use realistic collector information?
-        if all([self.layout.collector_number, self.layout.card_count, self.layout.rarity, cfg.real_collector]):
+        if all([self.layout.collector_number, self.layout.rarity, cfg.real_collector]):
 
             # Reveal collector group, hide old layers
             collector_layer = psd.getLayerSet(con.layers['COLLECTOR'], con.layers['LEGAL'])
@@ -359,8 +359,12 @@ class BaseTemplate:
                 psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
 
             # Apply the collector info
-            collector_top.contents = \
-                f"{self.layout.collector_number}/{self.layout.card_count} {self.layout.rarity_letter}"
+            if self.layout.card_count:
+                collector_top.contents = \
+                    f"{self.layout.collector_number}/{self.layout.card_count} {self.layout.rarity_letter}"
+            else:
+                collector_top.contents = \
+                    f"{self.layout.collector_number} {self.layout.rarity_letter}"
             psd.replace_text(collector_bottom, "SET", str(self.layout.set))
             psd.replace_text(collector_bottom, "Artist", self.layout.artist)
 
@@ -434,6 +438,16 @@ class BaseTemplate:
             app.activeDocument.activeLayer = layer
             return psd.fill_expansion_symbol(ref_layer, color)
 
+        def get_color_choice(color):
+            # Figure out what color to use
+            if isinstance(color, str) and color in colors:
+                return colors[color]
+            if isinstance(color, list) and len(color) == 3:
+                return psd.get_rgb(color[0], color[1], color[2])
+            if isinstance(color, list) and len(color) == 4:
+                return psd.get_cmyk(color[0], color[1], color[2], color[3])
+            return colors['black']
+
         # Create each symbol layer
         for i, lay in enumerate(symbols):
             # Establish new current layer
@@ -444,11 +458,11 @@ class BaseTemplate:
             if rarity != con.rarity_common:
                 # Color replace
                 if lay['color']:
-                    current_layer.textItem.color = colors[lay['color']]
+                    current_layer.textItem.color = get_color_choice(lay['color'])
 
                 # Stroke
                 if lay['stroke']:
-                    psd.apply_stroke(current_layer, lay['stroke'][1], colors[lay['stroke'][0]])
+                    psd.apply_stroke(current_layer, lay['stroke'][1], get_color_choice(lay['stroke'][0]))
                 else:
                     psd.clear_layer_style(current_layer)
 
@@ -456,7 +470,7 @@ class BaseTemplate:
                 if lay['fill'] == 'rarity':
                     # Apply fill before rarity
                     psd.rasterize_layer_style(current_layer)
-                    fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                    fill_layer = apply_fill(current_layer, get_color_choice(lay['fill']))
                     fill_layer = apply_rarity(fill_layer)
                     current_layer = psd.merge_layers([current_layer, fill_layer])
                 else:
@@ -465,24 +479,24 @@ class BaseTemplate:
                         current_layer = apply_rarity(current_layer)
                     psd.rasterize_layer_style(current_layer)
                     if lay['fill']:
-                        fill_layer = apply_fill(current_layer, colors[lay['fill']])
+                        fill_layer = apply_fill(current_layer, get_color_choice(lay['fill']))
                         current_layer = psd.merge_layers([current_layer, fill_layer])
 
             else:
                 # Common color
                 if lay['common-color']:
-                    current_layer.textItem.color = colors[lay['common-color']]
+                    current_layer.textItem.color = get_color_choice(lay['common-color'])
 
                 # Common stroke
                 if lay['common-stroke']:
-                    psd.apply_stroke(current_layer, lay['common-stroke'][1], colors[lay['common-stroke'][0]])
+                    psd.apply_stroke(current_layer, lay['common-stroke'][1], get_color_choice(lay['common-stroke'][0]))
                 else:
                     psd.clear_layer_style(current_layer)
 
                 # Common fill
                 psd.rasterize_layer_style(current_layer)
                 if lay['common-fill']:
-                    fill_layer = apply_fill(current_layer, colors[lay['common-fill']])
+                    fill_layer = apply_fill(current_layer, get_color_choice(lay['common-fill']))
                     current_layer = psd.merge_layers([current_layer, fill_layer])
 
             # Scale factor
