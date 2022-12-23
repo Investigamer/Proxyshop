@@ -83,7 +83,15 @@
     "CON": "",
     "DDC": "",
     "ARB": "",
-    "M10": "",
+    "M10": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V09": "",
     "HOP": "",
     "ME3": "",
@@ -95,7 +103,15 @@
     "ROE": "",
     "DPA": "",
     "ARC": "",
-    "M11": "",
+    "M11": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V10": "",
     "DDF": "",
     "SOM": "",
@@ -106,7 +122,15 @@
     "DDG": "",
     "NPH": "",
     "CMD": "",
-    "M12": "",
+    "M12": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V11": "",
     "DDH": "",
     "ISD": "",
@@ -115,7 +139,15 @@
     "DDI": "",
     "AVR": "",
     "PC2": "",
-    "M13": "",
+    "M13": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V12": "",
     "DDJ": "",
     "RTR": "",
@@ -125,7 +157,15 @@
     "DDK": "",
     "DGM": "",
     "MMA": "",
-    "M14": "",
+    "M14": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V13": "",
     "DDL": "",
     "THS": "",
@@ -136,7 +176,15 @@
     "MD1": "",
     "CNS": "",
     "VMA": "",
-    "M15": "",
+    "M15": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "V14": "",
     "DDN": "",
     "KTK": "",
@@ -198,7 +246,15 @@
         }
     ],
     "DDU": "",
-    "DOM": "",
+    "DOM": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "black",
+            "common-color": "white",
+            "common-stroke": ["black", 6]
+        }
+    ],
     "CM2": [
         {
             "char": "",
@@ -432,5 +488,81 @@
             "reference": true
         }
     ],
-    "2X2": ""
+    "2X2": "",
+    "DMU": "\uE993",
+    "DMC": [
+        {
+            "char": "\uE997",
+            "color": "white",
+            "stroke": false,
+            "common-color": "black",
+            "common-stroke": false,
+            "rarity": false
+        },
+        {
+            "char": "\uE995",
+            "stroke": false,
+            "common-stroke": false,
+            "common-color": "black"
+        },
+        {
+            "char": "\uE996",
+            "stroke": false,
+            "rarity": false,
+            "color": "black",
+            "common-color": "white",
+            "common-stroke": false,
+            "reference": true
+        }
+    ],
+    "BRO": "\uE99D",
+    "BRR": "\uE9A0",
+    "BRC": [
+        {
+            "char": "\uE99F",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "white",
+            "common-fill": "white",
+            "reference": true
+        },
+        {
+            "char": "\uE99F",
+            "stroke": ["white", 6],
+            "common-stroke": ["white", 6],
+            "rarity": false
+        }
+    ],
+    "40K": [
+        {
+            "char": "\uE99B",
+            "color": "white",
+            "fill": "black",
+            "stroke": false,
+            "common-color": "black",
+            "common-fill": "white",
+            "common-stroke": false,
+            "rarity": false
+        },
+        {
+            "char": "\uE999",
+            "color": "black",
+            "fill": false,
+            "stroke": false,
+            "common-color": "black",
+            "common-fill": false,
+            "common-stroke": false
+        },
+        {
+            "char": "\uE99A",
+            "color": "black",
+            "fill": false,
+            "stroke": false,
+            "common-color": "white",
+            "common-fill": false,
+            "common-stroke": false,
+            "rarity": false,
+            "reference": true
+        }
+    ]
 }
