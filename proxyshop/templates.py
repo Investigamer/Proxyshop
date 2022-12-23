@@ -1136,7 +1136,7 @@ class MiracleTemplate (NormalTemplate):
         return False
 
     @property
-    def is_companion(self) -> bool:
+    def is_legendary(self) -> bool:
         return False
 
 
@@ -2117,6 +2117,9 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
     """
     template_file_name = "basic-unstable"
     template_suffix = "Unstable"
+
+    def create_expansion_symbol(self, centered=False):
+        pass
 
     def basic_text_layers(self):
         pass
