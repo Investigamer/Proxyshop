@@ -78,12 +78,21 @@ class ScaledTextField (TextField):
     A TextField which automatically scales down its font size (in 0.25 pt increments) until
     its right bound no longer overlaps with a reference layer's left bound.
     """
+    @cached_property
+    def flip_scale(self):
+        if 'flip_scale' in self.kwargs:
+            return self.kwargs['flip_scale']
+        return False
+
     def execute(self):
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            ft.scale_text_right_overlap(self.layer, self.reference)
+            if self.flip_scale:
+                ft.scale_text_left_overlap(self.layer, self.reference)
+            else:
+                ft.scale_text_right_overlap(self.layer, self.reference)
 
 
 class FormattedTextField (TextField):
