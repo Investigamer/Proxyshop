@@ -66,6 +66,9 @@ class StainedGlassTemplate (temp.NormalTemplate):
         # Fill in language if needed
         if self.layout.lang != "en": psd.replace_text(set_layer, "EN", self.layout.lang.upper())
 
+        # Generate the expansion symbol
+        self.create_expansion_symbol()
+
     def get_file_name(self):
         """
         Format the output filename.
