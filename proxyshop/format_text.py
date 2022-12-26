@@ -705,6 +705,7 @@ def scale_text_right_overlap(layer, reference) -> None:
             layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
 
+        # Go up a half step and check if still in bounds
         font_size += half_step
         layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
@@ -712,12 +713,68 @@ def scale_text_right_overlap(layer, reference) -> None:
             font_size -= half_step
             layer.textItem.size = font_size
 
-    # Shift baseline up to keep text centered vertically
-    if old_size > layer.textItem.size:
-        layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * 0.3)
+        # Shift baseline up to keep text centered vertically
+        if old_size > (layer.textItem.size * factor):
+            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
 
     # Fix corrected reference layer
-    if contents: reference.textItem.contents = contents
+    if contents:
+        reference.textItem.contents = contents
+
+
+def scale_text_left_overlap(layer, reference) -> None:
+    """
+    Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 36 px clearance from a reference layer's left bound.
+    @param layer: The text item layer to scale.
+    @param reference: Reference layer we need to avoid.
+    """
+    # Ensure a proper reference layer
+    contents = None
+    if not reference: return
+    if reference.kind is ps.LayerKind.TextLayer:
+        if reference.textItem.contents in ("", " "):
+            contents = reference.textItem.contents
+            reference.textItem.contents = "."
+    elif reference.bounds == [0, 0, 0, 0]: return
+
+    # Can't find UnitValue object in python api
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
+    reference_left_bound = reference.bounds[0]
+    reference_right_bound = reference.bounds[2]
+    layer_left_bound = layer.bounds[0]
+    old_size = font_size
+    step, half_step = 0.4, 0.2
+
+    # Obtain proper spacing for this document size
+    spacing = int((app.activeDocument.width / 3264) * 36)
+
+    # Guard against the reference's left bound being left of the layer's left bound
+    if layer_left_bound >= reference_left_bound:
+        # Step down the font till it clears the reference
+        while reference_right_bound > (layer_left_bound - spacing):  # minimum 24 px gap
+            font_size -= step
+            layer.textItem.size = font_size
+            layer_left_bound = layer.bounds[0]
+
+        # Go up a half step and check if still in bounds
+        font_size += half_step
+        layer.textItem.size = font_size
+        layer_left_bound = layer.bounds[0]
+        if reference_right_bound > (layer_left_bound - spacing):
+            font_size -= half_step
+            layer.textItem.size = font_size
+
+        # Shift baseline up to keep text centered vertically
+        if old_size > (layer.textItem.size * factor):
+            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
+
+    # Fix corrected reference layer
+    if contents:
+        reference.textItem.contents = contents
 
 
 def scale_text_to_fit_reference(layer, ref, spacing: int = None):
