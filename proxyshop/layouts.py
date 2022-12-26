@@ -359,7 +359,7 @@ class BaseLayout:
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
-        if self.default_class == con.transform_front_class and self.card['front']:
+        if self.default_class == con.transform_front_class and not self.card['front']:
             if "Land" in self.type_line: return con.ixalan_class
             return con.transform_back_class
         elif self.default_class == con.mdfc_front_class and not self.card['front']:
