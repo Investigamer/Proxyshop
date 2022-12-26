@@ -385,6 +385,10 @@ class BaseTemplate:
         # Generate the expansion symbol
         self.create_expansion_symbol()
 
+    @property
+    def expansion_symbol_anchor(self) -> ps.AnchorPosition:
+        return ps.AnchorPosition.MiddleRight
+
     def create_expansion_symbol(self, centered=False):
         """
         Builds the expansion symbol
@@ -418,7 +422,7 @@ class BaseTemplate:
 
         # Size to fit reference?
         if cfg.auto_symbol_size:
-            psd.frame_layer(symbol_layer, ref_layer, ps.AnchorPosition.MiddleRight, True, centered)
+            psd.frame_layer(symbol_layer, ref_layer, self.expansion_symbol_anchor, True, centered)
 
         def apply_rarity(layer):
             # Apply rarity gradient to this layer
