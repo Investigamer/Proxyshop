@@ -28,10 +28,10 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
     def background_layer(self) -> Optional[ArtLayer]:
         # Background
         if self.is_nyx:
-            return psd.getLayer(self.background, con.layers['NYX'])
+            return psd.getLayer(self.background, con.layers.NYX)
         if self.background == "Colorless":
             return
-        return psd.getLayer(self.background, con.layers['BACKGROUND'])
+        return psd.getLayer(self.background, con.layers.BACKGROUND)
 
     def load_artwork(self):
         super().load_artwork()
@@ -50,7 +50,7 @@ class SilvanMDFCBackTemplate (temp.MDFCBackTemplate):
     Silvan extended template modified for MDFC
     """
     template_file_name = "SilvanMTG/extended-mdfc-back"
-    dfc_layer_group = con.layers['MDFC_BACK']
+    dfc_layer_group = con.layers.MDFC_BACK
     template_suffix = "Extended"
 
     def __init__(self, layout):
@@ -69,5 +69,5 @@ class SilvanMDFCFrontTemplate (SilvanMDFCBackTemplate):
     Silvan extended template modified for MDFC
     """
     template_file_name = "SilvanMTG/extended-mdfc-front"
-    dfc_layer_group = con.layers['MDFC_FRONT']
+    dfc_layer_group = con.layers.MDFC_FRONT
     template_suffix = "Extended"

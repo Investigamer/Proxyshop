@@ -94,16 +94,16 @@ class KaldheimTemplate (temp.NormalTemplate):
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
         if "Vehicle" in self.layout.type_line:
-            return psd.getLayer("Vehicle", con.layers['PT_BOX'])
-        return psd.getLayer(self.twins, con.layers['PT_BOX'])
+            return psd.getLayer("Vehicle", con.layers.PT_BOX)
+        return psd.getLayer(self.twins, con.layers.PT_BOX)
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         if self.is_land:
-            return psd.getLayer(self.pinlines, con.layers['LAND_PINLINES_TEXTBOX'])
+            return psd.getLayer(self.pinlines, con.layers.LAND_PINLINES_TEXTBOX)
         if "Vehicle" in self.layout.type_line:
-            return psd.getLayer("Vehicle", con.layers['PINLINES_TEXTBOX'])
-        return psd.getLayer(self.pinlines, con.layers['PINLINES_TEXTBOX'])
+            return psd.getLayer("Vehicle", con.layers.PINLINES_TEXTBOX)
+        return psd.getLayer(self.pinlines, con.layers.PINLINES_TEXTBOX)
 
 
 class CrimsonFangTemplate (temp.NormalTemplate):
@@ -128,10 +128,10 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     def pinlines_layer(self) -> Optional[ArtLayer]:
         # Pinlines
         if self.is_land:
-            return psd.getLayer(self.pinlines, con.layers['LAND_PINLINES_TEXTBOX'])
+            return psd.getLayer(self.pinlines, con.layers.LAND_PINLINES_TEXTBOX)
         if self.name_shifted and not self.is_front:
-            return psd.getLayer(self.pinlines, "MDFC " + con.layers['PINLINES_TEXTBOX'])
-        return psd.getLayer(self.pinlines, con.layers['PINLINES_TEXTBOX'])
+            return psd.getLayer(self.pinlines, "MDFC " + con.layers.PINLINES_TEXTBOX)
+        return psd.getLayer(self.pinlines, con.layers.PINLINES_TEXTBOX)
 
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
@@ -225,7 +225,7 @@ class MaleMPCTemplate (temp.NormalTemplate):
         psd.content_fill_empty_area(self.art_layer)
 
     def enable_crown(self):
-        psd.enable_mask(psd.getLayer(con.layers['SHADOWS']))
+        psd.enable_mask(psd.getLayer(con.layers.SHADOWS))
         psd.enable_mask(self.pinlines_layer.parent)
         super().enable_crown()
 
@@ -246,7 +246,7 @@ class PromoClassicTemplate (temp.NormalClassicTemplate):
         super().enable_frame_layers()
 
         # Add the promo star
-        psd.getLayer("Promo Star", con.layers['TEXT_AND_ICONS']).visible = True
+        psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
 
 class ColorshiftedTemplate (temp.NormalTemplate):
@@ -279,9 +279,9 @@ class ColorshiftedTemplate (temp.NormalTemplate):
         if self.is_creature:
             # Check if vehicle
             if "Vehicle" in self.layout.type_line:
-                return psd.getLayer("Vehicle", con.layers['PT_BOX'])
-            return psd.getLayer(self.twins, con.layers['PT_BOX'])
-        return psd.getLayerSet(con.layers['PT_BOX'])
+                return psd.getLayer("Vehicle", con.layers.PT_BOX)
+            return psd.getLayer(self.twins, con.layers.PT_BOX)
+        return psd.getLayerSet(con.layers.PT_BOX)
 
     @property
     def is_nyx(self) -> bool:
@@ -329,7 +329,7 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
 
     def collector_info(self):
         # Collector info only has artist
-        psd.replace_text(psd.getLayer(con.layers['ARTIST'], self.legal_layer), "Artist", self.layout.artist)
+        psd.replace_text(psd.getLayer(con.layers.ARTIST, self.legal_layer), "Artist", self.layout.artist)
 
     def load_artwork(self):
         super().load_artwork()

@@ -4,6 +4,8 @@ FUNCTIONS THAT INTERACT WITH SCRYFALL
 import os
 import time
 import json
+from shutil import copyfileobj
+
 import requests
 from typing import Optional, Union
 from urllib import request, parse
@@ -143,16 +145,18 @@ def card_scan(img_url: str) -> Optional[str]:
     @return: Filename of the saved image.
     """
     try:
-        request.urlretrieve(img_url, con.scryfall_scan_path)
-        if not cfg.dev_mode:
-            console.update(f"Downloaded Scryfall scan!")
+        print(img_url)
+        r = requests.get(img_url, stream=True)
+        with open(con.scryfall_scan_path, 'wb') as f:
+            copyfileobj(r.raw, f)
+            if not cfg.dev_mode:
+                console.update(f"Downloaded Scryfall scan!")
+            return f.name
     except Exception as e:
         # HTTP request failed
         if not cfg.dev_mode:
             console.update(f"Couldn't retrieve scryfall image scan! Continuing without it.", e)
         return
-    with open(con.scryfall_scan_path, encoding="utf-8") as file:
-        return file.name
 
 
 def add_meld_info(card_json: dict) -> dict:

@@ -8,7 +8,7 @@ from typing import Optional, Match
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import scryfall as scry
-from proxyshop import frame_logic
+from proxyshop.frame_logic import select_frame_layers
 
 
 class BasicLand:
@@ -41,23 +41,23 @@ class BasicLand:
     def __str__(self):
         return f"{self.name} [{self.set}]"
 
-    @cached_property
+    @property
     def is_creature(self):
         return False
 
-    @cached_property
+    @property
     def is_land(self):
         return True
 
-    @cached_property
+    @property
     def is_nyx(self):
         return False
 
-    @cached_property
+    @property
     def is_companion(self):
         return False
 
-    @cached_property
+    @property
     def is_legendary(self):
         return False
 
@@ -149,9 +149,7 @@ class BaseLayout:
 
     @cached_property
     def mana_cost(self) -> Optional[str]:
-        if 'mana_cost' in self.card:
-            return self.card['mana_cost']
-        return
+        return self.card.get('mana_cost', None)
 
     @cached_property
     def oracle_text(self) -> str:
@@ -238,13 +236,13 @@ class BaseLayout:
     @cached_property
     def card_count(self) -> Optional[str]:
         # Select the best available card count
-        if 'printed_size' in self.scryfall and self.scryfall['printed_size'] > int(self.collector_number):
+        if 'printed_size' in self.scryfall and int(self.scryfall['printed_size']) > int(self.collector_number):
             cc = self.scryfall['printed_size']
-        elif 'baseSetSize' in self.mtgset and self.mtgset['baseSetSize'] > int(self.collector_number):
+        elif 'baseSetSize' in self.mtgset and int(self.mtgset['baseSetSize']) > int(self.collector_number):
             cc = self.mtgset['baseSetSize']
-        elif 'totalSetSize' in self.mtgset and self.mtgset['totalSetSize'] > int(self.collector_number):
+        elif 'totalSetSize' in self.mtgset and int(self.mtgset['totalSetSize']) > int(self.collector_number):
             cc = self.mtgset['totalSetSize']
-        elif 'card_count' in self.scryfall and self.scryfall['card_count'] > int(self.collector_number):
+        elif 'card_count' in self.scryfall and int(self.scryfall['card_count']) > int(self.collector_number):
             cc = self.scryfall['card_count']
         else:
             return
@@ -326,13 +324,7 @@ class BaseLayout:
 
     @cached_property
     def frame(self) -> dict:
-        return frame_logic.select_frame_layers(
-            self.mana_cost,
-            self.type_line_raw,
-            self.oracle_text_raw,
-            self.color_identity,
-            self.color_indicator
-        )
+        return select_frame_layers(self.card)
 
     @cached_property
     def twins(self) -> str:
@@ -359,7 +351,7 @@ class BaseLayout:
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
-        if self.default_class == con.transform_front_class and self.card['front']:
+        if self.default_class == con.transform_front_class and not self.card['front']:
             if "Land" in self.type_line: return con.ixalan_class
             return con.transform_back_class
         elif self.default_class == con.mdfc_front_class and not self.card['front']:
@@ -370,7 +362,10 @@ class BaseLayout:
             return con.mutate_class
         elif "Miracle" in self.frame_effects:
             return con.miracle_class
-        # elif "Snow" in self.card['type_line']:  # frame_effects doesn't contain "snow" for pre-KHM snow cards
+        elif "Prototype" in self.keywords:
+            return con.prototype_class
+        # elif "Snow" in self.card['type_line']:
+        # frame_effects doesn't contain "snow" for pre-KHM snow cards
         #    return con.snow_class
         return self.default_class
 
@@ -488,33 +483,14 @@ class ModalDoubleFacedLayout (BaseLayout):
         return text
 
     @cached_property
-    def color_indicator_other(self) -> Optional[str]:
-        if 'color_indicator' in self.other_face:
-            return self.other_face['color_indicator']
-        return
-
-    @cached_property
-    def color_identity_other(self) -> Optional[list]:
-        if 'color_identity' in self.other_face:
-            return self.other_face['color_identity']
-        return
-
-    @cached_property
     def other_face_twins(self) -> str:
-        return frame_logic.select_frame_layers(
-            self.other_face['mana_cost'],
-            self.other_face['type_line'],
-            self.other_face['oracle_text'],
-            self.color_identity_other,
-            self.color_indicator_other)['twins']
+        return select_frame_layers(self.other_face)['twins']
 
     @cached_property
     def other_face_left(self) -> str:
-        if self.lang != "EN" and 'printed_text' in self.other_face:
-            other_face_type_line_split = self.other_face['printed_type_line'].split(" ")
-        else:
-            other_face_type_line_split = self.other_face['type_line'].split(" ")
-        return other_face_type_line_split[len(other_face_type_line_split) - 1]
+        if self.lang != "EN" and 'printed_type_line' in self.other_face:
+            return self.other_face['printed_type_line'].split(" ")[-1]
+        return self.other_face['type_line'].split(" ")[-1]
 
     @cached_property
     def other_face_right(self) -> str:

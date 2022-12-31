@@ -24,6 +24,8 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.utils import get_color_from_hex
+
+from proxyshop.constants import con
 from proxyshop.core import (
     check_for_updates,
     update_template,
@@ -324,14 +326,23 @@ class UpdateEntry(BoxLayout):
         download.clear_widgets()
         download.add_widget(self.progress)
         result = await ak.run_in_thread(
-            lambda: update_template(self.data, self.progress.update_progress, self.progress.s3_update_progress
-        ), daemon=True)
+            lambda: update_template(
+                self.data,
+                self.progress.update_progress,
+                self.progress.s3_update_progress),
+            daemon=True
+        )
         await ak.sleep(.5)
         if result:
             self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
         else:
             download.clear_widgets()
             download.add_widget(Label(text="[color=#a84747]FAILED[/color]", markup=True))
+
+    async def mark_updated(self):
+        self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
+        con.versions[self.data['id']] = self.data['version_new']
+        con.update_version_tracker()
 
     def update_progress(self, tran: int, total: int) -> None:
         progress = int((tran/total)*100)

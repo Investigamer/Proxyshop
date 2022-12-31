@@ -169,7 +169,7 @@
         text_size: self.size
         halign: "left"
         valign: "center"
-        size_hint: (.75, 1)
+        size_hint: (.55, 1)
         markup: True
     Label:
         id: status
@@ -181,6 +181,14 @@
         size_hint: (.10, 1)
         markup: True
     BoxLayout:
+        id: mark_updated
+        size_hint: (.20, 1)
+        HoverButton:
+            options: ["Mark Updated"]
+            text: "Mark Updated"
+            font_size: 18
+            on_release: ak.start(entry.mark_updated())
+    BoxLayout:
         id: download
         size_hint: (.15, 1)
         HoverButton:
@@ -188,18 +196,6 @@
             text: "Download"
             font_size: 20
             on_release: ak.start(entry.download_update(self.parent))
-
-<Authenticator>:
-    title: "You need to Authenticate with Google Drive"
-    size_hint: (.50,.25)
-    auto_dismiss: True
-    BoxLayout:
-        Label:
-            id: response
-            text_autoupdate: True
-            markup: True
-            font_size: 24
-            text: "[b]Authenticating...[/b]"
 
 <TestApp>:
     id: test_app

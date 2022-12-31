@@ -1,59 +1,73 @@
 """
 Functions handling logic for card frames
 """
-from typing import Union
+from typing import Union, Optional
 
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 
 
-def fix_color_pair(pair):
+def fix_color_pair(pair: str) -> Optional[str]:
     """
-    * Utility function to standardise ordering of color pairs, e.g. "UW" becomes "WU"
+    Utility function to standardise ordering of color pairs, e.g. "UW" becomes "WU"
+    @param pair: String containing 2 color characters, ex: UW
+    @return: Correct color pair string
     """
     color_pairs = [
-        con.layers['WU'],
-        con.layers['UB'],
-        con.layers['BR'],
-        con.layers['RG'],
-        con.layers['GW'],
-        con.layers['WB'],
-        con.layers['BG'],
-        con.layers['GU'],
-        con.layers['UR'],
-        con.layers['RW']
+        con.layers.WU,
+        con.layers.UB,
+        con.layers.BR,
+        con.layers.RG,
+        con.layers.GW,
+        con.layers.WB,
+        con.layers.BG,
+        con.layers.GU,
+        con.layers.UR,
+        con.layers.RW
     ]
     if pair in color_pairs: return pair
     elif pair[::-1] in color_pairs: return pair[::-1]
-    else: return None
+    return
 
 
-def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array, color_indicator):
+def select_frame_layers(card: dict) -> dict:
     """
     * Figure out which layers to use for pinlines, background, twins
     * Also define the color identity
     """
+    # Destructure the attributes we need
+    mana_cost, type_line, oracle_text, color_identity_array, color_indicator, mdfc = [
+        card['mana_cost'],
+        card['type_line'],
+        card['oracle_text'] if 'oracle_text' in card else '',
+        card['color_identity'] if 'color_identity' in card else [],
+        card['color_indicator'] if 'color_indicator' in card else [],
+        card['object'] == 'card_face'
+    ]
     colors = [
-        con.layers['WHITE'],
-        con.layers['BLUE'],
-        con.layers['BLACK'],
-        con.layers['RED'],
-        con.layers['GREEN']
+        con.layers.WHITE,
+        con.layers.BLUE,
+        con.layers.BLACK,
+        con.layers.RED,
+        con.layers.GREEN
     ]
     basic_colors = {
-        "Plains": con.layers['WHITE'],
-        "Island": con.layers['BLUE'],
-        "Swamp": con.layers['BLACK'],
-        "Mountain": con.layers['RED'],
-        "Forest": con.layers['GREEN']
+        "Plains": con.layers.WHITE,
+        "Island": con.layers.BLUE,
+        "Swamp": con.layers.BLACK,
+        "Mountain": con.layers.RED,
+        "Forest": con.layers.GREEN
     }
     hybrid_symbols = ["W/U", "U/B", "B/R", "R/G", "G/W", "W/B", "B/G", "G/U", "U/R", "R/W"]
-    twins = ""
+    twins = colors_tapped = color_identity = basic_identity = ""
 
-    if con.layers['LAND'] in type_line:
+    """
+    Handle Land cards
+    """
+
+    if 'Land' in type_line:
 
         # Check if it has a basic land subtype
-        basic_identity = ""
         for key, basic in basic_colors.items():
             if key in type_line:
                 # The land has this basic type on its type_line
@@ -65,18 +79,15 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
             # Exactly two basic land types. Fix naming convention, return frame elements
             basic_identity = fix_color_pair(basic_identity)
             return {
-                'background': con.layers['LAND'],
+                'background': con.layers.LAND,
                 'pinlines': basic_identity,
-                'twins': con.layers['LAND'],
+                'twins': con.layers.LAND,
                 'is_colorless': False
             }
 
-        # Array of rules text lines on the card
-        rules_lines = oracle_text.split("\n")
-        colors_tapped, basic_identity = "", ""
-
         # Iterate over rules text lines
-        for line in rules_lines:
+        basic_identity = ""
+        for line in oracle_text.split("\n"):
             # Identify if the card is a fetchland
             if "search your library" in line.lower():
                 if "cycling" not in line.lower():
@@ -90,7 +101,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                 if len(basic_identity) == 1:
                     # One basic mentioned - the land should just be this color
                     return {
-                        'background': con.layers['LAND'],
+                        'background': con.layers.LAND,
                         'pinlines': basic_identity,
                         'twins': basic_identity,
                         'is_colorless': False,
@@ -99,34 +110,34 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                     # Two basics mentioned - the land should use the land name box and those pinlines
                     basic_identity = fix_color_pair(basic_identity)
                     return {
-                        'background': con.layers['LAND'],
+                        'background': con.layers.LAND,
                         'pinlines': basic_identity,
-                        'twins': con.layers['LAND'],
+                        'twins': con.layers.LAND,
                         'is_colorless': False,
                     }
                 elif len(basic_identity) == 3:
                     # Three basic mentioned - panorama land
                     return {
-                        'background': con.layers['LAND'],
-                        'pinlines': con.layers['LAND'],
-                        'twins': con.layers['LAND'],
+                        'background': con.layers.LAND,
+                        'pinlines': con.layers.LAND,
+                        'twins': con.layers.LAND,
                         'is_colorless': False,
                     }
-                elif line.find(con.layers['LAND'].lower()) >= 0:
+                elif line.find(con.layers.LAND.lower()) >= 0:
                     # Assume we get here when the land fetches for any basic
                     if "tapped" not in line or "untap" in line:
                         # Gold fetchland
                         return {
-                            'background': con.layers['LAND'],
-                            'pinlines': con.layers['GOLD'],
-                            'twins': con.layers['GOLD'],
+                            'background': con.layers.LAND,
+                            'pinlines': con.layers.GOLD,
+                            'twins': con.layers.GOLD,
                             'is_colorless': False,
                         }
                     # Colorless fetchland
                     return {
-                        'background': con.layers['LAND'],
-                        'pinlines': con.layers['LAND'],
-                        'twins': con.layers['LAND'],
+                        'background': con.layers.LAND,
+                        'pinlines': con.layers.LAND,
+                        'twins': con.layers.LAND,
                         'is_colorless': False,
                     }
 
@@ -147,9 +158,9 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                     if not any(x in line for x in phrases):
                         # This is a gold land - use gold twins and pinlines
                         return {
-                            'background': con.layers['LAND'],
-                            'pinlines': con.layers['GOLD'],
-                            'twins': con.layers['GOLD'],
+                            'background': con.layers.LAND,
+                            'pinlines': con.layers.GOLD,
+                            'twins': con.layers.GOLD,
                             'is_colorless': False,
                         }
 
@@ -158,7 +169,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                 for k, v in basic_colors.items():
                     if k in line:
                         return {
-                            'background': con.layers['LAND'],
+                            'background': con.layers.LAND,
                             'pinlines': v, 'twins': v,
                             'is_colorless': False,
                         }
@@ -175,32 +186,32 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
         # Evaluate colors_tapped and make decisions from here
         if len(colors_tapped) == 1:
             pinlines = colors_tapped
-            if twins == "": twins = colors_tapped
+            twins = colors_tapped if twins == "" else twins
         elif len(colors_tapped) == 2:
-            colors_tapped = fix_color_pair(colors_tapped)
-            pinlines = colors_tapped
-            if twins == "": twins = con.layers['LAND']
+            pinlines = fix_color_pair(colors_tapped)
+            twins = con.layers.LAND if twins == "" else twins
         elif len(colors_tapped) > 2:
-            pinlines = con.layers['GOLD']
-            if twins == "": twins = con.layers['GOLD']
+            pinlines = con.layers.GOLD
+            twins = con.layers.GOLD if twins == "" else twins
         else:
-            pinlines = con.layers['LAND']
-            if twins == "": twins = con.layers['LAND']
+            pinlines = con.layers.LAND
+            twins = con.layers.LAND if twins == "" else twins
 
         # Final return statement
         return {
-            'background': con.layers['LAND'],
+            'background': con.layers.LAND,
             'pinlines': pinlines,
             'twins': twins,
             'is_colorless': False,
         }
 
-    # NONLAND CARD - Decide on the color identity of the card, as far as the frame is concerned
-    # e.g. Noble Hierarch's color identity is [W, U, G], but the card is considered green, frame-wise
-    color_identity = ""
+    """
+    NONLAND CARD - Decide on the color identity of the card, as far as the frame is concerned.
+    e.g. Noble Hierarch's color identity is [W, U, G], but the card is considered green, frame-wise
+    """
 
     # Card with no mana cost
-    if mana_cost == "" or (mana_cost == "{0}" and con.layers['ARTIFACT'] not in type_line):
+    if mana_cost == "" or (mana_cost == "{0}" and con.layers.ARTIFACT not in type_line):
         # If `color_indicator` is defined for this card, use that as the colour identity
         # Otherwise, use `color_identity` as the color identity
         if color_identity_array is None: color_identity = ""
@@ -224,20 +235,20 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
     # Assume all non-land cards with the word "Devoid" in their rules text use the BFZ colorless frame
     devoid = bool("Devoid" in oracle_text and len(color_identity) > 0)
     if (
-        len(color_identity) <= 0 and type_line.find(con.layers['ARTIFACT']) < 0
+        len(color_identity) <= 0 and type_line.find(con.layers.ARTIFACT) < 0
     ) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
         # colorless-style card identified
-        background = con.layers['COLORLESS']
-        pinlines = con.layers['COLORLESS']
-        twins = con.layers['COLORLESS']
+        background = con.layers.COLORLESS
+        pinlines = con.layers.COLORLESS
+        twins = con.layers.COLORLESS
 
         # Handle devoid frame
         if devoid:
             # Select the name box and devoid-style background based on the color identity
             if len(color_identity) > 1:
                 # Use gold name box and devoid-style background
-                twins = con.layers['GOLD']
-                background = con.layers['GOLD']
+                twins = con.layers.GOLD
+                background = con.layers.GOLD
             else:
                 # Use mono colored namebox and devoid-style background
                 twins = color_identity
@@ -259,27 +270,30 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
                 # The card is two colors and has a hybrid symbol in its mana cost
                 hybrid = True
                 break
+        # Hybrid blank mana cost cards like Asmo
+        if mana_cost == "" and not mdfc:
+            hybrid = True
 
     # Select background
-    if type_line.find(con.layers['ARTIFACT']) >= 0:
-        background = con.layers['ARTIFACT']
+    if type_line.find(con.layers.ARTIFACT) >= 0:
+        background = con.layers.ARTIFACT
     elif hybrid: background = color_identity
-    elif len(color_identity) >= 2: background = con.layers['GOLD']
+    elif len(color_identity) >= 2: background = con.layers.GOLD
     else: background = color_identity
 
     # Identify if the card is a vehicle, and override the selected background if necessary
-    if type_line.find(con.layers['VEHICLE']) >= 0: background = con.layers['VEHICLE']
+    if type_line.find(con.layers.VEHICLE) >= 0: background = con.layers.VEHICLE
 
     # Select pinlines
-    if len(color_identity) <= 0: pinlines = con.layers['ARTIFACT']
+    if len(color_identity) <= 0: pinlines = con.layers.ARTIFACT
     elif len(color_identity) <= 2: pinlines = color_identity
-    else: pinlines = con.layers['GOLD']
+    else: pinlines = con.layers.GOLD
 
     # Select name box
-    if len(color_identity) <= 0: twins = con.layers['ARTIFACT']
+    if len(color_identity) <= 0: twins = con.layers.ARTIFACT
     elif len(color_identity) == 1: twins = color_identity
-    elif hybrid: twins = con.layers['LAND']
-    elif len(color_identity) >= 2: twins = con.layers['GOLD']
+    elif hybrid: twins = con.layers.LAND
+    elif len(color_identity) >= 2: twins = con.layers.GOLD
 
     # Finally, return the selected layers
     return {
@@ -290,7 +304,7 @@ def select_frame_layers(mana_cost, type_line, oracle_text, color_identity_array,
     }
 
 
-def format_expansion_symbol_info(symbol: Union[str, list]):
+def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str, list]]:
     """
     Takes in set code and returns information needed to build the expansion symbol.
     @param symbol: Symbol chosen by layout object.

@@ -42,6 +42,9 @@
 	"miracle": {
 		"Normal": "MiracleTemplate"
 	},
+	"prototype": {
+		"Normal": "PrototypeTemplate"
+	},
 	"planeswalker": {
 		"Normal": "PlaneswalkerTemplate",
 		"Extended": "PlaneswalkerExtendedTemplate"

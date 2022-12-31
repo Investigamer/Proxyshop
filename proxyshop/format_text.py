@@ -3,7 +3,11 @@ Utility functions to format text
 """
 import math
 import re
+from typing import Optional, Union
+
 import photoshop.api as ps
+from photoshop.api._artlayer import ArtLayer
+
 import proxyshop.helpers as psd
 from proxyshop.constants import con
 if not con.headless:
@@ -242,7 +246,7 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
     return current_ref
 
 
-def basic_format_text(input_string):
+def format_flavor_text(input_string: str):
     """
     Inserts the given string into the active layer and formats it without any of the more advanced features like
     italics strings, centering, etc.
@@ -251,345 +255,40 @@ def basic_format_text(input_string):
     # Is the active layer a text layer?
     if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
 
-    # Locate symbols and update the input string
-    ret = locate_symbols(input_string)
-    input_string = ret['input_string']
-    symbol_indices = ret['symbol_indices']
-
     # Prepare action descriptor and reference variables
     layer_font_size = app.activeDocument.activeLayer.textItem.size
-    layer_text_color = app.activeDocument.activeLayer.textItem.color
     primary_action_descriptor = ps.ActionDescriptor()
     primary_action_list = ps.ActionList()
     desc119 = ps.ActionDescriptor()
     desc26 = ps.ActionDescriptor()
     desc25 = ps.ActionDescriptor()
     ref101 = ps.ActionReference()
-    desc141 = ps.ActionDescriptor()
-    desc142 = ps.ActionDescriptor()
-    desc143 = ps.ActionDescriptor()
-    list13 = ps.ActionList()
-    list14 = ps.ActionList()
-    idkerningRange = sID("kerningRange")
-    idparagraphStyleRange = sID("paragraphStyleRange")
-    idfontPostScriptName = sID("fontPostScriptName")
-    idfirstLineIndent = sID("firstLineIndent")
-    idparagraphStyle = sID("paragraphStyle")
-    idautoLeading = sID("autoLeading")
-    idstartIndent = sID("startIndent")
-    idspaceBefore = sID("spaceBefore")
-    idleadingType = sID("leadingType")
-    idspaceAfter = sID("spaceAfter")
-    idendIndent = sID("endIndent")
     idTxtS = sID("textStyle")
-    idsetd = cID("setd")
     idTxLr = cID("TxLr")
     idT = cID("T   ")
-    idFntN = cID("FntN")
-    idSz = cID("Sz  ")
     idPnt = cID("#Pnt")
-    idLdng = cID("Ldng")
     idTxtt = cID("Txtt")
-    idFrom = cID("From")
-    ref101.putEnumerated(
-        idTxLr,
-        cID("Ordn"),
-        cID("Trgt"))
 
     # Spin up the text insertion action
+    ref101.putEnumerated(idTxLr, cID("Ordn"), cID("Trgt"))
     desc119.putReference(cID("null"), ref101)
     primary_action_descriptor.putString(cID("Txt "), input_string)
-    desc25.putInteger(idFrom, 0)
+    desc25.putInteger(cID("From"), 0)
     desc25.putInteger(idT, len(input_string))
-    desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
-    desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
-    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-    psd.apply_color(desc26, layer_text_color)
-    desc26.putBoolean(idautoLeading, False)
-    desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
+    desc26.putString(sID("fontPostScriptName"), con.font_rules_text)  # MPlantin default
+    desc26.putString(cID("FntN"), con.font_rules_text)  # MPlantin default
+    desc26.putUnitDouble(cID("Sz  "), idPnt, layer_font_size)
+    desc26.putBoolean(sID("autoLeading"), False)
+    desc26.putUnitDouble(cID("Ldng"), idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
-    current_layer_ref = desc25
-
-    # Format each symbol correctly
-    for symbol_index in symbol_indices:
-        current_layer_ref = format_symbol(
-            primary_action_list = primary_action_list,
-            starting_layer_ref = current_layer_ref,
-            symbol_index = symbol_index['index'],
-            symbol_colors = symbol_index['colors'],
-            layer_font_size = layer_font_size,
-        )
-
-    primary_action_list.putObject(idTxtt, current_layer_ref)
+    primary_action_list.putObject(idTxtt, desc25)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
-
-    # Paragraph formatting
-    desc141.putInteger(idFrom, 0)
-    desc141.putInteger(idT, len(input_string))  # input string length
-    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-    desc142.putUnitDouble(idstartIndent, idPnt, 0)
-    desc142.putUnitDouble(idendIndent, idPnt, 0)
-    desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
-    desc142.putUnitDouble(idspaceAfter, idPnt, 0)
-    desc142.putInteger(sID("dropCapMultiplier"), 1)
-    desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
-    desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-    desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
-    desc143.putBoolean(idautoLeading, False)
-    primary_action_descriptor.putList(idparagraphStyleRange, list13)
-    primary_action_descriptor.putList(idkerningRange, list14)
-    list13 = ps.ActionList()
 
     # Push changes to document
     desc119.putObject(idT, idTxLr, primary_action_descriptor)
-    app.executeAction(idsetd, desc119, NO_DIALOG)
+    app.executeAction(cID("setd"), desc119, NO_DIALOG)
 
     # Reset layer's justification if needed and disable hyphenation
-    app.activeDocument.activeLayer.textItem.hyphenation = False
-
-
-def format_text(input_string, italics_strings, flavor_index, is_centered):
-    """
-    Inserts the given string into the active layer and formats it according to defined parameters with symbols
-    from the NDPMTG font.
-    @param input_string: The string to insert into the active layer
-    @param italics_strings: An array containing strings that should be italicized within the input_string.
-    @param flavor_index: The index at which linebreak spacing should be increased and any subsequent
-    chars should be italicized (where the card's flavor text begins)
-    @param is_centered: Should the input text should be center-justified
-    """
-    # Is the active layer a text layer?
-    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
-
-    # Record the layer's justification before modifying the layer in case it's reset along the way
-    layer_justification = app.activeDocument.activeLayer.textItem.justification
-
-    # Check if the flavor text contains a quote
-    if flavor_index >= 0: quote_index = input_string.find("\r", flavor_index + 3)
-    else: quote_index = -1
-
-    # Locate symbols and update the input string
-    ret = locate_symbols(input_string)
-    input_string = ret['input_string']
-    symbol_indices = ret['symbol_indices']
-
-    # Locate italics text indices
-    italics_indices = locate_italics(input_string, italics_strings)
-
-    # Prepare action descriptor and reference variables
-    layer_font_size = app.activeDocument.activeLayer.textItem.size
-    layer_text_color = app.activeDocument.activeLayer.textItem.color
-    primary_action_descriptor = ps.ActionDescriptor()
-    primary_action_list = ps.ActionList()
-    desc119 = ps.ActionDescriptor()
-    desc26 = ps.ActionDescriptor()
-    desc25 = ps.ActionDescriptor()
-    ref101 = ps.ActionReference()
-    desc141 = ps.ActionDescriptor()
-    desc142 = ps.ActionDescriptor()
-    desc143 = ps.ActionDescriptor()
-    list13 = ps.ActionList()
-    list14 = ps.ActionList()
-    idkerningRange = sID("kerningRange")
-    idparagraphStyleRange = sID("paragraphStyleRange")
-    idfontPostScriptName = sID("fontPostScriptName")
-    idfirstLineIndent = sID("firstLineIndent")
-    idparagraphStyle = sID("paragraphStyle")
-    idautoLeading = sID("autoLeading")
-    idstartIndent = sID("startIndent")
-    idspaceBefore = sID("spaceBefore")
-    idleadingType = sID("leadingType")
-    idspaceAfter = sID("spaceAfter")
-    idendIndent = sID("endIndent")
-    idTxtS = sID("textStyle")
-    idsetd = cID("setd")
-    idTxLr = cID("TxLr")
-    idT = cID("T   ")
-    idFntN = cID("FntN")
-    idSz = cID("Sz  ")
-    idPnt = cID("#Pnt")
-    idLdng = cID("Ldng")
-    idTxtt = cID("Txtt")
-    idFrom = cID("From")
-    ref101.putEnumerated(
-        idTxLr,
-        cID("Ordn"),
-        cID("Trgt"))
-
-    # Spin up the text insertion action
-    desc119.putReference(cID("null"), ref101)
-    primary_action_descriptor.putString(cID("Txt "), input_string)
-    desc25.putInteger(idFrom, 0)
-    desc25.putInteger(idT, len(input_string))
-    desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
-    desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
-    desc26.putUnitDouble(idSz, idPnt, layer_font_size)
-    psd.apply_color(desc26, layer_text_color)
-    desc26.putBoolean(idautoLeading, False)
-    desc26.putUnitDouble(idLdng, idPnt, layer_font_size)
-    desc25.putObject(idTxtS, idTxtS, desc26)
-    current_layer_ref = desc25
-
-    # Bold the contents if necessary
-    if con.bold_rules_text and flavor_index != 0:
-        bold_action1 = ps.ActionDescriptor()
-        bold_action2 = ps.ActionDescriptor()
-        contents_index = len(input_string) - 1 if flavor_index < 0 else flavor_index - 1
-        primary_action_list.putObject(idTxtt, current_layer_ref)
-        bold_action1.putInteger(idFrom, 0)  # italics start index
-        bold_action1.putInteger(idT, contents_index)  # italics end index
-        bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
-        bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
-        bold_action2.putUnitDouble(idSz, idPnt, layer_font_size)
-        bold_action2.putBoolean(idautoLeading, False)
-        bold_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
-        bold_action1.putObject(idTxtS, idTxtS, bold_action2)
-        current_layer_ref = bold_action1
-
-    # Italicize text from our italics indices
-    for italics_index in italics_indices:
-        italics_action1 = ps.ActionDescriptor()
-        italics_action2 = ps.ActionDescriptor()
-        primary_action_list.putObject(idTxtt, current_layer_ref)
-        italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
-        italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
-        italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
-        italics_action2.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-        italics_action2.putUnitDouble(idSz, idPnt, layer_font_size)
-        italics_action2.putBoolean(idautoLeading, False)
-        italics_action2.putUnitDouble(idLdng, idPnt, layer_font_size)
-        # Default text box
-
-        psd.apply_color(italics_action2, layer_text_color)
-
-        # End
-        italics_action1.putObject(idTxtS, idTxtS, italics_action2)
-        current_layer_ref = italics_action1
-
-    # Format each symbol correctly
-    for symbol_index in symbol_indices:
-        current_layer_ref = format_symbol(
-            primary_action_list = primary_action_list,
-            starting_layer_ref = current_layer_ref,
-            symbol_index = symbol_index['index'],
-            symbol_colors = symbol_index['colors'],
-            layer_font_size = layer_font_size,
-        )
-
-    primary_action_list.putObject(idTxtt, current_layer_ref)
-    primary_action_descriptor.putList(idTxtt, primary_action_list)
-
-    # Paragraph formatting
-    desc141.putInteger(idFrom, 0)
-    desc141.putInteger(idT, len(input_string))  # input string length
-    desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-    desc142.putUnitDouble(idstartIndent, idPnt, 0)
-    desc142.putUnitDouble(idendIndent, idPnt, 0)
-    if is_centered:  # line break lead
-        desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-    else:
-        desc142.putUnitDouble(idspaceBefore, idPnt, con.line_break_lead)
-    desc142.putUnitDouble(idspaceAfter, idPnt, 0)
-    desc142.putInteger(sID("dropCapMultiplier"), 1)
-    desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
-    desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-    desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
-    desc143.putBoolean(idautoLeading, False)
-    primary_action_descriptor.putList(idparagraphStyleRange, list13)
-    primary_action_descriptor.putList(idkerningRange, list14)
-    list13 = ps.ActionList()
-
-    if input_string.find("\u2022") >= 0:
-        # Modal card with bullet points - adjust the formatting slightly
-        startIndexBullet = input_string.find("\u2022")
-        endIndexBullet = input_string.rindex("\u2022")
-        list13 = ps.ActionList()
-        list14 = ps.ActionList()
-        desc141 = ps.ActionDescriptor()
-        desc141.putInteger(idFrom, startIndexBullet)
-        desc141.putInteger(idT, endIndexBullet + 1)
-        desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent)  # negative modal indent
-        desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent)  # modal indent
-        desc142.putUnitDouble(idspaceBefore, idPnt, 1)
-        desc142.putUnitDouble(idspaceAfter, idPnt, 0)
-        desc143 = ps.ActionDescriptor()
-        desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-        desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
-        desc143.putUnitDouble(idSz, idPnt, 12)
-        desc143.putBoolean(idautoLeading, False)
-        desc142.putObject(sID("defaultStyle"), idTxtS, desc143)
-        desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        list13.putObject(idparagraphStyleRange, desc141)
-        primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        primary_action_descriptor.putList(idkerningRange, list14)
-
-    if flavor_index >= 0:
-        # Adjust line break spacing if there's a line break in the flavor text
-        list14 = ps.ActionList()
-        desc141 = ps.ActionDescriptor()
-        desc141.putInteger(idFrom, flavor_index + 3)
-        desc141.putInteger(idT, flavor_index + 4)
-        desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-        idimpliedFirstLineIndent = sID("impliedFirstLineIndent")
-        desc142.putUnitDouble(idimpliedFirstLineIndent, idPnt, 0)
-        desc142.putUnitDouble(idstartIndent, idPnt, 0)
-        desc142.putUnitDouble(sID("impliedStartIndent"), idPnt, 0)
-        desc142.putUnitDouble(idspaceBefore, idPnt, con.flavor_text_lead)  # Lead size between rules and flavor text
-        desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        list13.putObject(idparagraphStyleRange, desc141)
-        primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        primary_action_descriptor.putList(idkerningRange, list14)
-
-        # Adjust flavor text color
-        if con.flavor_text_color:
-            list15 = ps.ActionList()
-            desc144 = ps.ActionDescriptor()
-            desc145 = ps.ActionDescriptor()
-            desc144.PutInteger(sID("from"), flavor_index)
-            desc144.PutInteger(sID("to"), len(input_string))
-            desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
-            desc145.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-            desc145.putUnitDouble(idSz, idPnt, layer_font_size)
-            desc145.putBoolean(idautoLeading, False)
-            desc145.putUnitDouble(idLdng, idPnt, layer_font_size)
-
-            psd.apply_color(desc145, con.flavor_text_color)
-
-            desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
-            list15.PutObject(sID("textStyleRange"), desc144)
-            primary_action_descriptor.putList(sID("textStyleRange"), list15)
-
-    disable_justify = False
-    if quote_index >= 0:
-        # Adjust line break spacing if there's a line break in the flavor text
-        list14 = ps.ActionList()
-        desc141 = ps.ActionDescriptor()
-        desc141.putInteger(idFrom, quote_index + 3)
-        desc141.putInteger(idT, len(input_string))
-        desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-        desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-        list13.putObject(idparagraphStyleRange, desc141)
-
-        # Optional, align quote credit to right
-        if input_string.find('"\r—') >= 0 and con.align_classic_quote:
-            # Get start and ending index of quotation credit
-            index_start = input_string.find('"\r—') + 2
-            index_end = len(input_string) - 1
-
-            # Align this part, disable justification reset
-            list13 = classic_align_right(list13, index_start, index_end)
-            disable_justify = True
-
-        primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        primary_action_descriptor.putList(idkerningRange, list14)
-
-    # Push changes to document
-    desc119.putObject(idT, idTxLr, primary_action_descriptor)
-    app.executeAction(idsetd, desc119, NO_DIALOG)
-
-    # Reset layer's justification if needed and disable hyphenation
-    if not disable_justify:
-        app.activeDocument.activeLayer.textItem.justification = layer_justification
     app.activeDocument.activeLayer.textItem.hyphenation = False
 
 
@@ -618,17 +317,6 @@ def generate_italics(card_text):
         italic_text.append(match)
 
     return italic_text
-
-
-def format_text_wrapper():
-    """
-    Wrapper for format_text which runs the function with the active layer's current text contents
-    and auto-generated italics array. Flavor text index and centered text not supported.
-    Super useful to add as a script action in Photoshop for making cards manually!
-    """
-    card_text = app.activeDocument.activeLayer.textItem.contents
-    italic_text = generate_italics(card_text)
-    format_text(card_text, italic_text, -1, False)
 
 
 def strip_reminder_text(oracle_text):
@@ -705,6 +393,7 @@ def scale_text_right_overlap(layer, reference) -> None:
             layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
 
+        # Go up a half step and check if still in bounds
         font_size += half_step
         layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
@@ -712,15 +401,75 @@ def scale_text_right_overlap(layer, reference) -> None:
             font_size -= half_step
             layer.textItem.size = font_size
 
-    # Shift baseline up to keep text centered vertically
-    if old_size > layer.textItem.size:
-        layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * 0.3)
+        # Shift baseline up to keep text centered vertically
+        if old_size > (layer.textItem.size * factor):
+            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
 
     # Fix corrected reference layer
-    if contents: reference.textItem.contents = contents
+    if contents:
+        reference.textItem.contents = contents
 
 
-def scale_text_to_fit_reference(layer, ref, spacing: int = None):
+def scale_text_left_overlap(layer, reference) -> None:
+    """
+    Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 36 px clearance from a reference layer's left bound.
+    @param layer: The text item layer to scale.
+    @param reference: Reference layer we need to avoid.
+    """
+    # Ensure a proper reference layer
+    contents = None
+    if not reference: return
+    if reference.kind is ps.LayerKind.TextLayer:
+        if reference.textItem.contents in ("", " "):
+            contents = reference.textItem.contents
+            reference.textItem.contents = "."
+    elif reference.bounds == [0, 0, 0, 0]: return
+
+    # Can't find UnitValue object in python api
+    factor = 1
+    if app.activeDocument.width != 3264:
+        factor = psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * factor
+    reference_left_bound = reference.bounds[0]
+    reference_right_bound = reference.bounds[2]
+    layer_left_bound = layer.bounds[0]
+    old_size = font_size
+    step, half_step = 0.4, 0.2
+
+    # Obtain proper spacing for this document size
+    spacing = int((app.activeDocument.width / 3264) * 36)
+
+    # Guard against the reference's left bound being left of the layer's left bound
+    if layer_left_bound >= reference_left_bound:
+        # Step down the font till it clears the reference
+        while reference_right_bound > (layer_left_bound - spacing):  # minimum 24 px gap
+            font_size -= step
+            layer.textItem.size = font_size
+            layer_left_bound = layer.bounds[0]
+
+        # Go up a half step and check if still in bounds
+        font_size += half_step
+        layer.textItem.size = font_size
+        layer_left_bound = layer.bounds[0]
+        if reference_right_bound > (layer_left_bound - spacing):
+            font_size -= half_step
+            layer.textItem.size = font_size
+
+        # Shift baseline up to keep text centered vertically
+        if old_size > (layer.textItem.size * factor):
+            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
+
+    # Fix corrected reference layer
+    if contents:
+        reference.textItem.contents = contents
+
+
+def scale_text_to_fit_reference(
+    layer: ArtLayer,
+    ref: Union[ArtLayer, int, float],
+    spacing: Optional[int] = None
+):
     """
     Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
     The resulting text layer will have equal font and lead sizes.
@@ -729,13 +478,18 @@ def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    factor = 1
     if not ref: return
-    if not spacing:  # If no spacing provided, use default
-        spacing = int((app.activeDocument.width / 3264) * 64)
-    if app.activeDocument.width != 3264:
-        factor = psd.get_text_scale_factor(layer)
-    ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
+    if isinstance(ref, int) or isinstance(ref, float):
+        # Only checking against fixed height
+        ref_height = ref
+    elif isinstance(ref, ArtLayer):
+        # Use a reference layer
+        if not spacing:  # If no spacing provided, use default
+            spacing = int((app.activeDocument.width / 3264) * 64)
+        ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
+    else:
+        return
+    factor = psd.get_text_scale_factor(layer) or 1
     font_size = layer.textItem.size * factor
     step, half_step = 0.4, 0.2
 
@@ -751,37 +505,6 @@ def scale_text_to_fit_reference(layer, ref, spacing: int = None):
     layer.textItem.size = font_size
     layer.textItem.leading = font_size
     if ref_height < psd.get_text_layer_dimensions(layer)['height']:
-        font_size -= half_step
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
-
-
-def scale_text_to_fit_height(layer, height: int):
-    """
-    Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
-    The resulting text layer will have equal font and lead sizes.
-    @param layer: Text layer to scale.
-    @param height: Reference height to fit.
-    """
-    # Establish base variables, ensure a level of spacing at the margins
-    factor = 1
-    if app.activeDocument.width != 3264:
-        factor = psd.get_text_scale_factor(layer)
-    font_size = layer.textItem.size * factor
-    step, half_step = 0.4, 0.2
-
-    # Step down font and lead sizes by the step size, and update those sizes in the layer
-    if height > psd.get_text_layer_dimensions(layer)['height']: return
-    while height < psd.get_text_layer_dimensions(layer)['height']:
-        font_size -= step
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
-
-    # Take a half step back up, check if still in bounds and adjust back if needed
-    font_size += half_step
-    layer.textItem.size = font_size
-    layer.textItem.leading = font_size
-    if height < psd.get_text_layer_dimensions(layer)['height']:
         font_size -= half_step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
