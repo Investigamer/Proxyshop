@@ -185,23 +185,32 @@ class ProxyshopApp(App):
 		self.load_defaults()
 		try:
 
+			# Choose an image
 			app = ps.Application()
 			file = app.openDialog()
 			if file is None:
 				self.enable_buttons()
 				return
-			scryfall['filename'] = file[0]
+
+			# Setup file info
+			file = {
+				'filename': file[0],
+				'name': scryfall['name'],
+				'artist': scryfall['artist'],
+				'set': scryfall['set'],
+				'creator': None
+			}
 			console.update(
 				f"Rendering custom card: [b]{scryfall['name']}[/b]"
 			)
 
 			# If basic, manually call the BasicLand layout OBJ
 			if scryfall['name'] in con.basic_land_names:
-				layout = layouts.BasicLand(scryfall)
+				layout = layouts.BasicLand(file)
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				scryfall['lang'] = "en"
-				try: layout = layouts.layout_map[scryfall['layout']](scryfall, scryfall['name'])
+				try: layout = layouts.layout_map[scryfall['layout']](scryfall, file)
 				except (KeyError, TypeError) as e:
 					console.update(f"Layout not supported!\n", e)
 					return
@@ -571,7 +580,7 @@ if __name__ == '__main__':
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.2.0"
+	__version__ = "v1.2.1"
 	Factory.register('HoverBehavior', HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()

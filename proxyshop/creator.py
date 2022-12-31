@@ -11,8 +11,8 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
 from proxyshop import core
-cwd = os.getcwd()
 
+cwd = os.getcwd()
 
 """
 DISPLAY ELEMENTS
@@ -90,6 +90,7 @@ class CreatorNormalLayout(CreatorLayout):
         flavor_text = self.ids.flavor_text.text.replace("~", self.ids.name.text)
         scryfall = {
             "layout": "normal",
+            "object": "card",
             "set": self.ids.set.text,
             "name": self.ids.name.text,
             "oracle_text": oracle_text,
@@ -119,6 +120,7 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
         ])
         scryfall = {
             "layout": "normal",
+            "object": "card",
             "set": self.ids.set.text,
             "name": self.ids.name.text,
             "artist": self.ids.artist.text,
@@ -142,20 +144,23 @@ class CreatorSagaLayout(CreatorLayout):
         num_lines = "I"
         if self.ids.line_1.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_1.text.replace("~", self.ids.name.text))
-            num_lines+="I"
+            num_lines += "I"
         if self.ids.line_2.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_2.text.replace("~", self.ids.name.text))
             num_lines += "I"
         if self.ids.line_3.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_3.text.replace("~", self.ids.name.text))
-            if len(num_lines) == 3: num_lines = "IV"
-            else: num_lines += "I"
+            if len(num_lines) == 3:
+                num_lines = "IV"
+            else:
+                num_lines += "I"
         if self.ids.line_4.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_4.text.replace("~", self.ids.name.text))
         text_arr.insert(0, f"Empty words.")
         rules_text = "\n".join(text_arr)
         scryfall = {
             "layout": "saga",
+            "object": "card",
             "flavor_text": "",
             "set": self.ids.set.text,
             "oracle_text": rules_text,
@@ -195,8 +200,10 @@ class InputItem(TextInput):
         Enable tab to next or previous input
         """
         if keycode[1] == 'tab':  # deal with cycle
-            if 'shift' in modifiers: nxt = self.get_focus_previous()
-            else: nxt = self.get_focus_next()
+            if 'shift' in modifiers:
+                nxt = self.get_focus_previous()
+            else:
+                nxt = self.get_focus_next()
             if nxt:
                 self.focus = False
                 nxt.focus = True
