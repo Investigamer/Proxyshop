@@ -1130,20 +1130,6 @@ def fill_expansion_symbol(reference, color=rgb_black()):
     app.activeDocument.selection.invert()
     app.activeDocument.selection.contract(1)
 
-    """ # Not necessary?
-    # Magic Wand cross select
-    click2 = ps.ActionDescriptor()
-    ref2 = ps.ActionReference()
-    ref2.putProperty(cID("Chnl"), cID("fsel"))
-    click2.putReference(cID("null"), ref2)
-    click2.putObject(cID("T   "), cID("Pnt "), coords)
-    click2.putInteger(cID("Tlrn"), 12)
-    click2.putBoolean(cID("AntA"), True)
-    click2.putBoolean(cID("Cntg"), False)
-    app.executeAction(cID("IntW"), click2)
-    app.activeDocument.selection.expand(4)
-    """
-
     # Make a new layer
     layer = app.activeDocument.artLayers.add()
     layer.name = "Expansion Mask"
@@ -1162,10 +1148,6 @@ def fill_expansion_symbol(reference, color=rgb_black()):
 
     # Clear Selection
     clear_selection()
-
-    # Maximum filter to keep the antialiasing normal
-    # layer.applyMaximum(1) # Do we need this?
-
     return layer
 
 
