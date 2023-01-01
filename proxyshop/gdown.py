@@ -17,8 +17,6 @@ from typing import Callable
 
 import boto3
 import requests
-from boto3.s3.transfer import TransferConfig
-from s3transfer.constants import ALLOWED_DOWNLOAD_ARGS
 
 from proxyshop.constants import con
 
