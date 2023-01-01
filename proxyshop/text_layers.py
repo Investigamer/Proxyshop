@@ -511,7 +511,6 @@ class FormattedTextArea (FormattedTextField):
         # Fix length procedure before super called
         if self.fix_length and self.reference:
             self.layer.textItem.contents = self.contents + "\r" + self.flavor_text
-            print("Hello")
             ft.scale_text_to_fit_reference(
                 self.layer, int(psd.get_layer_dimensions(self.reference)['height']*1.01)
             )
