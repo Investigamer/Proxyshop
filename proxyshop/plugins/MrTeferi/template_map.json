@@ -16,6 +16,7 @@
 		"Crimson Fang": "CrimsonFangTemplate"
 	},
 	"basic": {
+		"Classic Promo": "BasicLandClassicPromo",
 		"Dark Mode": "BasicLandDarkMode"
 	}
 }

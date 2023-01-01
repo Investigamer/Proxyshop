@@ -33,6 +33,10 @@
 		}
 	},
 	"Basic Land": {
+		"Classic Promo": {
+			"file": "basic-classic.psd",
+            "id": "10e7c4-ar_w0cv11-7KcFoq6MGXYb8N9x"
+		},
 		"Dark Mode": {
 			"file": "basic-dark-mode.psd",
 			"id": "1LPOhN4hVYkvYbn26XeSn_YBQ2p9gB3JV"
