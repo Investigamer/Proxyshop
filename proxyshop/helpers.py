@@ -848,10 +848,11 @@ def replace_text(layer, find, replace):
     desc31.putReference(sID("null"), ref3)
     desc32.putString(sID("find"), f"{find}")
     desc32.putString(sID("replace"), f"{replace}")
-    if int(app.version[0:2]) > 22 or cfg.targeted_replace:
-        if cfg.targeted_replace: app.bringToFront()
-        desc32.putBoolean(sID("checkAll"), False)
-    else: desc32.putBoolean(sID("checkAll"), True)
+    # if cfg.targeted_replace: app.bringToFront()
+    desc32.putBoolean(
+        sID("checkAll"),  # Targeted replace doesn't work on old PS versions
+        False if cfg.targeted_replace and int(app.version[0:2]) > 22 else True
+    )
     desc32.putBoolean(sID("forward"), True)
     desc32.putBoolean(sID("caseSensitive"), True)
     desc32.putBoolean(sID("wholeWord"), False)
