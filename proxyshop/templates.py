@@ -1179,7 +1179,7 @@ class TransformBackTemplate (NormalTemplate):
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.layout.transform_icon, psd.getLayerSet(
-            self.dfc_layer_group, con.layers.TEXT_AND_ICONS)
+            self.dfc_layer_group, self.text_layers)
         )
 
     def enable_frame_layers(self):
@@ -1220,7 +1220,7 @@ class TransformFrontTemplate (TransformBackTemplate):
         if self.other_face_is_creature:
             self.text.append(
                 text_classes.TextField(
-                    layer=psd.getLayer(con.layers.FLIPSIDE_POWER_TOUGHNESS, con.layers.TEXT_AND_ICONS),
+                    layer=psd.getLayer(con.layers.FLIPSIDE_POWER_TOUGHNESS, self.text_layers),
                     contents=str(self.layout.other_face_power) + "/" + str(self.layout.other_face_toughness)
                 )
             )
