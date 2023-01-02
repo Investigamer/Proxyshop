@@ -48,6 +48,9 @@ class SketchTemplate (temp.NormalTemplate):
 
     def __init__(self, layout):
 
+        # Disable reminder text
+        cfg.remove_reminder = True
+
         # Run a sketch action?
         if sketch_cfg['action'] == 1:
             self.art_action = sketch.run
