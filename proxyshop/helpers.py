@@ -1,9 +1,8 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
-from typing import Optional
+from typing import Optional, Union
 
-import _ctypes
 import os
 
 from photoshop.api import PhotoshopPythonAPIError
@@ -36,17 +35,18 @@ SYSTEM FUNCTIONS
 """
 
 
-def check_fonts(fonts: list):
+def check_fonts(fonts: list) -> list:
     """
     Check if given fonts exist in users Photoshop Application.
     @return: Array of missing fonts or None
     """
     missing = []
     for f in fonts:
-        try: assert isinstance(app.fonts.getByName(f).name, str)
-        except AssertionError: missing.append(f)
-    if len(missing) == 0: return
-    else: return missing
+        try:
+            assert isinstance(app.fonts.getByName(f).name, str)
+        except AssertionError:
+            missing.append(f)
+    return missing
 
 
 """
@@ -54,7 +54,7 @@ UTILITY FUNCTIONS
 """
 
 
-def getLayer(name: str, group=None) -> Optional[ArtLayer]:
+def getLayer(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = None) -> Optional[ArtLayer]:
     """
     Retrieve layer object.
     @param name: Name of the layer
@@ -92,11 +92,10 @@ def getLayer(name: str, group=None) -> Optional[ArtLayer]:
                 return layer
     except (PhotoshopPythonAPIError, AttributeError) as e:
         print(e)
-        return
     return
 
 
-def getLayerSet(name, group=None) -> Optional[LayerSet]:
+def getLayerSet(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = None) -> Optional[LayerSet]:
     """
     Retrieve layer group object.
     @param name: Name of the group
@@ -128,7 +127,7 @@ def getLayerSet(name, group=None) -> Optional[LayerSet]:
         return app.activeDocument.layerSets.getByName(name)
     except (PhotoshopPythonAPIError, AttributeError) as e:
         print(e)
-        return
+    return
 
 
 """
@@ -136,7 +135,7 @@ COLOR FUNCTIONS
 """
 
 
-def rgb_black():
+def rgb_black() -> ps.SolidColor:
     """
     Creates a black SolidColor object.
     @return: SolidColor object
@@ -148,7 +147,7 @@ def rgb_black():
     return color
 
 
-def rgb_grey():
+def rgb_grey() -> ps.SolidColor:
     """
     Creates a grey SolidColor object.
     @return: SolidColor object.
@@ -160,7 +159,7 @@ def rgb_grey():
     return color
 
 
-def rgb_white():
+def rgb_white() -> ps.SolidColor:
     """
     Creates a white SolidColor object.
     @return: SolidColor object.
@@ -172,7 +171,7 @@ def rgb_white():
     return color
 
 
-def get_rgb(r: int, g: int, b: int):
+def get_rgb(r: int, g: int, b: int) -> ps.SolidColor:
     """
     Creates a SolidColor object with the given RGB values.
     @param r: Integer from 0 to 255 for red spectrum.
@@ -187,7 +186,7 @@ def get_rgb(r: int, g: int, b: int):
     return color
 
 
-def get_cmyk(c: float, m: float, y: float, k: float):
+def get_cmyk(c: float, m: float, y: float, k: float) -> ps.SolidColor:
     """
     Creates a SolidColor object with the given CMYK values.
     @param c: Float from 0.0 to 100.0 for Cyan component.
@@ -214,59 +213,36 @@ def solidcolor(color) -> Optional[ps.SolidColor]:
         return get_rgb(color['r'], color['g'], color['b'])
     elif 'c' in color.keys():
         return get_cmyk(color['c'], color['m'], color['y'], color['k'])
-    else:
-        console.update(f"Don't know how to convert color {color} to a ps.Solidcolor!")
-        return
+    console.update(f"Don't know how to convert color {color} to a ps.Solidcolor!")
+    return
 
 
-def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor):
+def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor) -> None:
     """
     Applies color to the specified action_descriptor
     """
-
     cd = ps.ActionDescriptor()
-
     if color.model == ps.ColorModel.RGBModel:
-        cd.putDouble(
-            cID("Rd  "),
-            color.rgb.red)  # rgb value.red
-        cd.putDouble(
-            cID("Grn "),
-            color.rgb.green)  # rgb value.green
-        cd.putDouble(
-            cID("Bl  "),
-            color.rgb.blue)  # rgb value.blue
-        action_descriptor.putObject(
-            cID("Clr "),
-            cID("RGBC"),
-            cd)
+        cd.putDouble(cID("Rd  "), color.rgb.red)
+        cd.putDouble(cID("Grn "), color.rgb.green)
+        cd.putDouble(cID("Bl  "), color.rgb.blue)
+        action_descriptor.putObject(cID("Clr "), cID("RGBC"), cd)
     elif color.model == ps.ColorModel.CMYKModel:
-
-        cd.putDouble(
-            cID("Cyn "),
-            color.cmyk.cyan)
-        cd.putDouble(
-            cID("Mgnt"),
-            color.cmyk.magenta)
-        cd.putDouble(
-            cID("Ylw "),
-            color.cmyk.yellow)
-        cd.putDouble(
-            cID("Blck"),
-            color.cmyk.black)
-        action_descriptor.putObject(
-            cID("Clr "),
-            cID("CMYC"),
-            cd)
+        cd.putDouble(cID("Cyn "), color.cmyk.cyan)
+        cd.putDouble(cID("Mgnt"), color.cmyk.magenta)
+        cd.putDouble(cID("Ylw "), color.cmyk.yellow)
+        cd.putDouble(cID("Blck"), color.cmyk.black)
+        action_descriptor.putObject(cID("Clr "), cID("CMYC"), cd)
     else:
         console.update(f"Unknown color model: {color.model}")
+
 
 """
 LAYER PROPERTIES
 """
 
 
-def layer_bounds_no_effects(layer):
+def layer_bounds_no_effects(layer: ArtLayer) -> list[int, int, int, int]:
     """
     Returns the bounds of a given layer without its effects applied.
     @param layer: A layer object
@@ -281,7 +257,7 @@ def layer_bounds_no_effects(layer):
     return [int(num) for num in bounds.replace(" px", "").split(",")]
 
 
-def get_dimensions_no_effects(layer):
+def get_dimensions_no_effects(layer: ArtLayer) -> dict[str: Union[float, int]]:
     """
     Compute the dimensions of a layer without its effects applied.
     @param layer: A layer object
@@ -294,7 +270,7 @@ def get_dimensions_no_effects(layer):
     }
 
 
-def get_layer_dimensions(layer):
+def get_layer_dimensions(layer: ArtLayer) -> dict[str: Union[float, int]]:
     """
     Compute the width and height dimensions of a layer.
     @param layer: A layer object
@@ -311,50 +287,50 @@ TEXT LAYER PROPERTIES
 """
 
 
-def get_text_layer_bounds(layer, text=False):
+def get_text_layer_bounds(layer: ArtLayer, legacy: bool = False) -> dict[str: Union[int, float]]:
     """
     Return an object with the specified text layer's bounding box.
     @param layer: Layer to get the bounds of.
-    @param text: Force old way for legacy text layers.
+    @param legacy: Force old way for legacy text layers.
     @return: Array of the bounds of the given layer.
     """
-    if int(app.version[0:2]) < 21 or text:
+    if int(app.version[0:2]) < 21 or legacy:
         layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
         layer_copy.rasterize(ps.RasterizeType.TextContents)
         layer_bounds = layer.bounds
         layer_copy.remove()
         return layer_bounds
-    else: return layer.bounds
+    return layer.bounds
 
 
-def get_text_layer_dimensions(layer, text=False):
+def get_text_layer_dimensions(layer, legacy: bool = False) -> dict[str: Union[int, float]]:
     """
     Return an object with the specified text layer's width and height, which is achieved by rasterising
     the layer and computing its width and height from its bounds.
     @param layer: Layer to get the dimensions of.
-    @param text: Force old way for legacy text layers.
+    @param legacy: Force old way for legacy text layers.
     @return: Dict containing height and width of the given layer.
     """
-    if int(app.version[0:2]) < 21 or text:
+    if int(app.version[0:2]) < 21 or legacy:
         layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
         layer_copy.rasterize(ps.RasterizeType.TextContents)
         dimensions = get_layer_dimensions(layer_copy)
         layer_copy.remove()
         return dimensions
-    else: return get_layer_dimensions(layer)
+    return get_layer_dimensions(layer)
 
 
-def get_text_layer_color(layer):
+def get_text_layer_color(layer: ArtLayer) -> ps.SolidColor:
     """
     Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
     against errors and null values by defaulting to rgb_black() in the event of a problem.
     @param layer: Layer object that must be TextLayer
     """
-    try:
-        if layer.kind == ps.LayerKind.TextLayer:
+    if isinstance(layer, ArtLayer) and layer.kind == ps.LayerKind.TextLayer:
+        if hasattr(layer.textItem, 'color'):
             return layer.textItem.color
-        else: return rgb_black()
-    except _ctypes.COMError: return rgb_black()
+        print(f"Couldn't retrieve color of layer: {layer.name}")
+    return rgb_black()
 
 
 def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") -> float:
@@ -365,23 +341,17 @@ def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") ->
     @return: Float scale factor
     """
     # Change the active layer, if needed
-    current = None
-    factor = 1
     if layer:
-        current = app.activeDocument.activeLayer
         app.activeDocument.activeLayer = layer
 
     # Get the scale factor if not 1
+    factor = 1
     ref = ps.ActionReference()
-    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt") )
+    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
     desc = app.executeActionGet(ref).getObjectValue(sID('textKey'))
     if desc.hasKey(sID('transform')):
         transform = desc.getObjectValue(sID('transform'))
         factor = transform.getUnitDoubleValue(sID(axis))
-
-    # Reset active layer
-    if current:
-        app.activeDocument.activeLayer = current
     return factor
 
 
@@ -392,9 +362,7 @@ def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
     @param size: New size of layer
     """
     # Set the active layer if needed
-    current = None
     if layer:
-        current = app.activeDocument.activeLayer
         app.activeDocument.activeLayer = layer
 
     # Set the new size
@@ -410,38 +378,24 @@ def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
     desc2361.putObject(sID("to"), sID("textStyle"), desc2362)
     app.ExecuteAction(sID("set"), desc2361, NO_DIALOG)
 
-    # Reset active layer
-    if current:
-        app.activeDocument.activeLayer = current
-
 
 def update_text_layer_size(
     layer: ArtLayer,
     change: float,
     factor: Optional[float] = None,
-    make_active: bool = False
 ) -> None:
     """
     Sets the text item size while ensuring proper scaling.
     @param layer: Layer containing TextItem object.
     @param change: Difference in size (+/-).
     @param factor: Scale factor of text item.
-    @param make_active: Make the layer active before running operation.
     """
     # Set the active layer if needed
-    current = None
-    if make_active:
-        current = app.activeDocument.activeLayer
-        app.activeDocument.activeLayer = layer
     if not factor:
         factor = get_text_scale_factor()
 
     # Increase the size
     set_text_size(size=(factor*layer.textItem.size)+change)
-
-    # Reset active layer
-    if current:
-        app.activeDocument.activeLayer = current
 
 
 """
@@ -449,7 +403,7 @@ LAYER ACTIONS
 """
 
 
-def create_new_layer(layer_name=None):
+def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
     """
     Creates a new layer below the currently active layer. The layer will be visible.
     @param layer_name: Optional name for the new layer
@@ -471,7 +425,7 @@ def create_new_layer(layer_name=None):
     return layer
 
 
-def lock_layer(layer, protection = "protectAll"):
+def lock_layer(layer: ArtLayer, protection: str = "protectAll") -> None:
     """
     Locks the given layer.
     @param layer: A layer object
@@ -488,7 +442,7 @@ def lock_layer(layer, protection = "protectAll"):
     app.executeAction(sID("applyLocking"), desc819, NO_DIALOG)
 
 
-def unlock_layer(layer):
+def unlock_layer(layer: ArtLayer) -> None:
     """
     Unlocks the given layer.
     @param layer: A layer object
@@ -496,7 +450,7 @@ def unlock_layer(layer):
     lock_layer(layer, "protectNone")
 
 
-def select_layer_bounds(layer):
+def select_layer_bounds(layer: ArtLayer):
     """
     Select the bounding box of a given layer.
     @param layer: Layer to select the pixels of.
@@ -505,7 +459,6 @@ def select_layer_bounds(layer):
     top = layer.bounds[1]
     right = layer.bounds[2]
     bottom = layer.bounds[3]
-
     app.activeDocument.selection.select([
         [left, top],
         [right, top],
@@ -514,45 +467,35 @@ def select_layer_bounds(layer):
     ])
 
 
-def select_current_layer():
+def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
     """
     Select pixels of the active layer.
     """
-    des1 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    ref258 = ps.ActionReference()
-    ref1.putProperty(cID("Chnl"), cID("fsel"))
-    des1.putReference(cID("null"), ref1)
     idChnl = cID("Chnl")
-    ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
-    des1.putReference(cID("T   "), ref258)
-    app.executeAction(cID("setd"), des1, NO_DIALOG)
-
-
-def select_layer_pixels(layer):
-    """
-    Selects the pixels of a given layer.
-    @param layer: Layer object
-    """
     des1 = ps.ActionDescriptor()
     ref1 = ps.ActionReference()
     ref2 = ps.ActionReference()
-    ref1.putProperty(cID("Chnl"), cID("fsel"))
+    ref1.putProperty(idChnl, cID("fsel"))
     des1.putReference(cID("null"), ref1)
-    ref2.putEnumerated(cID("Chnl"), cID("Chnl"), cID("Trsp"))
-    ref2.putIdentifier(cID("Lyr "), layer.id)
-    des1.putReference(cID("T   "), ref2)
-    app.executeAction(cID("setd"), des1, NO_DIALOG)
+    ref2.putEnumerated(idChnl, idChnl, cID("Trsp"))
+    if layer:
+        ref2.putIdentifier(sID("layer"), layer.id)
+    des1.putReference(sID("to"), ref2)
+    app.executeAction(sID("set"), des1, NO_DIALOG)
 
 
-def align(align_type = "AdCH", layer = None, ref = None):
+def align(
+    align_type: str = "AdCH",
+    layer: Optional[ArtLayer] = None,
+    reference: Optional[ArtLayer] = None
+) -> None:
     """
     Align the currently active layer to current selection, vertically or horizontally.
     Used with align_vertical() or align_horizontal().
     `align_type`: "AdCV" vertical, "AdCH" horizontal
     """
     # Optionally create a selection based on given reference
-    if ref: select_layer_pixels(ref)
+    if reference: select_layer_pixels(reference)
 
     # Optionally make a given layer the active layer
     if layer: app.activeDocument.activeLayer = layer
@@ -566,21 +509,28 @@ def align(align_type = "AdCH", layer = None, ref = None):
     app.executeAction(cID("Algn"), desc, NO_DIALOG)
 
 
-def align_vertical(layer = None, ref = None):
+def align_vertical(layer: Optional[ArtLayer] = None, ref: Optional[ArtLayer] = None) -> None:
     """
     Align the currently active layer vertically with respect to the current selection.
     """
     align("AdCV", layer, ref)
 
 
-def align_horizontal(layer = None, ref = None):
+def align_horizontal(layer: Optional[ArtLayer] = None, ref: Optional[ArtLayer] = None) -> None:
     """
     Align the currently active layer horizontally with respect to the current selection.
     """
     align("AdCH", layer, ref)
 
 
-def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=False, align_h=True, align_v=True):
+def frame_layer(
+    layer: ArtLayer,
+    reference: ArtLayer,
+    anchor: ps.AnchorPosition = ps.AnchorPosition.TopLeft,
+    smallest: bool = False,
+    align_h: bool = True,
+    align_v: bool = True
+) -> None:
     """
     Scale a layer equally to the bounds of a reference layer, then center the layer vertically and horizontally
     within those bounds.
@@ -602,7 +552,7 @@ def frame_layer(layer, reference, anchor=ps.AnchorPosition.TopLeft, smallest=Fal
     clear_selection()
 
 
-def set_active_layer_mask(visible=True):
+def set_active_layer_mask(visible: bool = True) -> None:
     """
     Set the visibility of the active layer's layer mask.
     """
@@ -616,21 +566,21 @@ def set_active_layer_mask(visible=True):
     app.executeAction(cID("setd"), desc3078, NO_DIALOG)
 
 
-def enable_active_layer_mask():
+def enable_active_layer_mask() -> None:
     """
     Enables the active layer's layer mask.
     """
     set_active_layer_mask(True)
 
 
-def disable_active_layer_mask():
+def disable_active_layer_mask() -> None:
     """
     Disables the active layer's layer mask.
     """
     set_active_layer_mask(False)
 
 
-def set_layer_mask(layer, visible=True):
+def set_layer_mask(layer: ArtLayer, visible: bool = True) -> None:
     """
     Set the visibility of the active layer's layer mask.
     """
@@ -644,7 +594,7 @@ def set_layer_mask(layer, visible=True):
     app.executeAction(cID("setd"), desc1, NO_DIALOG)
 
 
-def enable_mask(layer):
+def enable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
     """
     Enables a given layer's mask.
     @param layer: A layer object
@@ -652,7 +602,7 @@ def enable_mask(layer):
     set_layer_mask(layer, True)
 
 
-def disable_mask(layer):
+def disable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
     """
     Disables a given layer's mask.
     @param layer: A layer object
@@ -660,7 +610,7 @@ def disable_mask(layer):
     set_layer_mask(layer, False)
 
 
-def select_no_layers():
+def select_no_layers() -> None:
     """
     Deselect all layers.
     """
@@ -676,7 +626,7 @@ def select_no_layers():
     app.executeAction(idselectNoLayers, descSelectNoLayers, NO_DIALOG)
 
 
-def select_layer(layer):
+def select_layer(layer: ArtLayer) -> None:
     """
     Select a layer
     """
@@ -692,46 +642,43 @@ def select_layer(layer):
     app.ExecuteAction(sID("select"), desc, NO_DIALOG)
 
 
-def merge_layers(layers):
+def merge_layers(layers: list[ArtLayer]) -> ArtLayer:
     """
     Merge a set of layers together.
     @param layers: Layer objects to be merged.
     @return: Returns the merged layer.
     """
-
+    # Select none, then select entire list
     select_no_layers()
-
     for layer in layers:
         select_layer(layer)
 
+    # Merge layers and return result
     app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
     return app.activeDocument.activeLayer
 
 
-def leaf_layers():
+def leaf_layers() -> list[ArtLayer]:
     """
     Utility function to iterate over leaf layers in a document
     """
     to_visit = [node for node in app.activeDocument.layers]
     layers = []
-
     while to_visit:
-
         node = to_visit.pop()
-
         try:
-            sublayers = node.layers
-        except NameError:
+            to_visit.extend([n for n in node.layers])
+        except (NameError, AttributeError):
             # It's a leaf node, no sublayers
             layers.append(node)
-        else:
-            # Continue exploration of sublayers
-            to_visit.extend([node for node in sublayers])
-
     return layers
 
 
-def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
+def apply_stroke(
+    layer: ArtLayer,
+    stroke_weight: int,
+    stroke_color: ps.SolidColor = rgb_black()
+) -> None:
     """
     Applies an outer stroke to the active layer with the specified weight and color.
     """
@@ -749,15 +696,13 @@ def apply_stroke(layer, stroke_weight, stroke_color=rgb_black()):
     desc610.putEnumerated(cID("Md  "), cID("BlnM"), cID("Nrml"))
     desc610.putUnitDouble(cID("Opct"), cID("#Prc"), 100)
     desc610.putUnitDouble(cID("Sz  "), cID("#Pxl"), int(stroke_weight))
-
     apply_color(desc610, stroke_color)
-
     desc609.putObject(cID("FrFX"), cID("FrFX"), desc610)
     desc608.putObject(cID("T   "), cID("Lefx"), desc609)
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
 
 
-def clear_layer_style(layer):
+def clear_layer_style(layer: ArtLayer) -> None:
     """
     Removes all layer style effects.
     @param layer: Layer object
@@ -772,7 +717,7 @@ def clear_layer_style(layer):
     app.activeDocument.activeLayer = current
 
 
-def rasterize_layer_style(layer):
+def rasterize_layer_style(layer: ArtLayer) -> None:
     """
     Rasterizes a layer including its style.
     @param layer: Layer object
@@ -785,7 +730,12 @@ def rasterize_layer_style(layer):
     app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
-def paste_file(layer, file, action=None, action_args=None):
+def paste_file(
+    layer: ArtLayer,
+    file: str,
+    action: any = None,
+    action_args: dict = None
+) -> None:
     """
     Pastes the given file into the specified layer.
     @param layer: Layer object to paste the image into.
@@ -813,7 +763,7 @@ def paste_file(layer, file, action=None, action_args=None):
     app.activeDocument.activeLayer = prev_active_layer
 
 
-def paste_file_into_new_layer(file):
+def paste_file_into_new_layer(file: str) -> ArtLayer:
     """
     Wrapper for paste_file which creates a new layer for the file next to the active layer.
     Returns the new layer.
@@ -828,7 +778,7 @@ TEXT LAYER ACTIONS
 """
 
 
-def replace_text(layer, find, replace):
+def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`.
     @param layer: Layer object to search through.
@@ -869,14 +819,14 @@ DOCUMENT ACTIONS
 """
 
 
-def clear_selection():
+def clear_selection() -> None:
     """
     Clear the current selection.
     """
     app.activeDocument.selection.select([])
 
 
-def trim_transparent_pixels():
+def trim_transparent_pixels() -> None:
     """
     Trim transparent pixels from Photoshop document.
     """
@@ -889,7 +839,7 @@ def trim_transparent_pixels():
     app.ExecuteAction(sID("trim"), desc258, NO_DIALOG)
 
 
-def run_action(action_set, action):
+def run_action(action_set: str, action: str) -> None:
     """
     Runs a Photoshop action.
     @param action_set: Name of the group the action is in.
@@ -905,7 +855,7 @@ def run_action(action_set, action):
     app.ExecuteAction(sID("play"), desc310, NO_DIALOG)
 
 
-def save_document_png(file_name):
+def save_document_png(file_name: str) -> None:
     """
     Save the current document to /out/ as a PNG.
     """
@@ -920,7 +870,7 @@ def save_document_png(file_name):
     app.executeAction(cID("save"), desc3, NO_DIALOG)
 
 
-def save_document_jpeg(file_name):
+def save_document_jpeg(file_name: str) -> None:
     """
     Save the current document to /out/ as a JPEG.
     """
@@ -932,7 +882,7 @@ def save_document_jpeg(file_name):
     )
 
 
-def save_document_psd(file_name):
+def save_document_psd(file_name: str) -> None:
     """
     Save the current document to /out/ as PSD.
     """
@@ -943,14 +893,14 @@ def save_document_psd(file_name):
     )
 
 
-def close_document():
+def close_document() -> None:
     """
     Close the document
     """
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
 
-def open_svg(path, max_width=500, dpi=1200):
+def open_svg(path: str, max_width: int = 500, dpi: int = 1200) -> None:
     """
     Opens a rasterized SVG file in Photoshop.
     @param path: Path to the file
@@ -971,7 +921,7 @@ def open_svg(path, max_width=500, dpi=1200):
     app.ExecuteAction(sID("open"), desc227, NO_DIALOG)
 
 
-def reset_document(filename):
+def reset_document(filename: str) -> None:
     """
     Reset all changes to the current document
     @param filename: Document file name
@@ -991,7 +941,7 @@ DESIGN UTILITIES
 """
 
 
-def content_fill_empty_area(layer=None):
+def content_fill_empty_area(layer: Optional[ArtLayer] = None) -> None:
     """
     Helper function intended to streamline the workflow of making extended art cards.
     This script rasterizes the active layer and fills all empty pixels in the canvas
@@ -1036,7 +986,7 @@ def content_fill_empty_area(layer=None):
     app.activeDocument.activeLayer = current
 
 
-def apply_vibrant_saturation(VibValue, SatValue):
+def apply_vibrant_saturation(VibValue: int, SatValue: int) -> None:
     """
     Experimental scoot action to add vibrancy and saturation.
     @param VibValue: Vibrancy level integer
@@ -1050,7 +1000,7 @@ def apply_vibrant_saturation(VibValue, SatValue):
     app.executeAction(idvibrance, desc232, NO_DIALOG)
 
 
-def repair_edges(edge=6):
+def repair_edges(edge: int = 6) -> None:
     """
     Select a small area at the edges of an image and content aware fill to repair upscale damage.
     @param edge: How many pixels to select at the edge.
@@ -1108,7 +1058,7 @@ PROXYSHOP UTILITIES
 """
 
 
-def fill_expansion_symbol(reference, color=rgb_black()):
+def fill_expansion_symbol(reference: ArtLayer, color: ps.SolidColor = rgb_black()) -> ArtLayer:
     """
     Give the symbol a background for open space symbols (i.e. M10)
     @param reference: Reference layer to put the new fill layer underneath
@@ -1152,7 +1102,7 @@ def fill_expansion_symbol(reference, color=rgb_black()):
     return layer
 
 
-def insert_scryfall_scan(image_url):
+def insert_scryfall_scan(image_url: str) -> Optional[ArtLayer]:
     """
     Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
     Returns the new layer.
