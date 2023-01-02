@@ -38,32 +38,6 @@ def card_info(card_name: str, card_set: Optional[str] = None) -> Union[dict, Exc
     return card
 
 
-def get_card_named(name: str, set_code: Optional[str] = None) -> Union[dict, Exception]:
-    """
-    DEPRECATED: Get card using cards/named scryfall API.
-    @param name: Name of card
-    @param set_code: Specific set code
-    @return: Card dict or error
-    """
-    # Choose order of search
-    order = "&order=released&dir=asc" if cfg.scry_ascending else ""
-
-    # Set code given?
-    code = f"&set={set_code}" if set_code else ""
-
-    # Query Scryfall, 3 retries
-    url = f'https://api.scryfall.com/cards/named?fuzzy={parse.quote(name)}{code}{order}'
-    err = None
-    for i in range(3):
-        try:
-            card = requests.get(url, headers=con.http_header).json()
-            return add_meld_info(card)
-        except Exception as e:
-            err = e
-        time.sleep(float(i / 3))
-    return err
-
-
 def get_card_search(
         name: str,
         language: Optional[str] = None,
