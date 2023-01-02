@@ -181,10 +181,14 @@ class Constants:
                 self.versions = {}
 
         # Import API Keys
-        with open(os.path.join(self.cwd, "proxyshop/env.json"), "r", encoding="utf-8") as api_keys:
-            keys = json.load(api_keys)
-            self.google_api = keys['g_api']
-            self.amazon_api = keys['a_api']
+        try:
+            with open(os.path.join(self.cwd, "proxyshop/env.json"), "r", encoding="utf-8") as api_keys:
+                keys = json.load(api_keys)
+                self.google_api = keys['g_api']
+                self.amazon_api = keys['a_api']
+        except FileNotFoundError:
+            self.google_api = ""
+            self.amazon_api = {}
 
         # Important paths
         self.json_custom_path = os.path.join(self.cwd, "tmp\\custom.json")
