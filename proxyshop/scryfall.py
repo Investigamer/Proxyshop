@@ -119,7 +119,6 @@ def card_scan(img_url: str) -> Optional[str]:
     @return: Filename of the saved image.
     """
     try:
-        print(img_url)
         r = requests.get(img_url, stream=True)
         with open(con.scryfall_scan_path, 'wb') as f:
             copyfileobj(r.raw, f)
