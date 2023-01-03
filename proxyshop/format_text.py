@@ -21,13 +21,24 @@ sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
 NO_DIALOG = ps.DialogModes.DisplayNoDialogs
 
+# Precompiled regex
+reg_symbol = re.compile(r"(\{.*?})")
+reg_mana_normal = re.compile(r"{([WUBRG])}")
+reg_mana_hybrid = re.compile(r"{([2WUBRG])/([WUBRG])}")
+reg_mana_phyrexian = re.compile(r"{([WUBRG])/P}")
+reg_mana_phyrexian_hybrid = re.compile(r"{([WUBRG])/([WUBRG])/P}")
+reg_ability_words = re.compile(r"(?:\A|\r+|• +)([A-Za-z0-9 ]+) — ")
+reg_reminder_text = re.compile(r"\([^()]*\)")
+
 
 class SymbolMapper:
     def __init__(self):
         self.load_values()
 
     def load_values(self):
-
+        """
+        Load SolidColor objects using data from the constants object.
+        """
         # Symbol colors outer
         self.clr_c = psd.solidcolor(con.clr_c)
         self.clr_w = psd.solidcolor(con.clr_w)
@@ -77,21 +88,25 @@ class SymbolMapper:
         self.hybrid_color_map_inner['B'] = self.clri_bh
 
     def reload(self):
+        """
+        Reload default values.
+        """
         self.load_values()
 
 
-def locate_symbols(input_string):
+def locate_symbols(input_string: str) -> dict[str: Union[str, dict]]:
     """
     Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG,
     and determine the colors those characters need to be. Returns an object with the modified input string and
     a list of symbol indices.
     """
+    # Ensure symbol mappings are up-to-date
+    sym.reload()
     symbol = ""
-    symbol_re = r"(\{.*?\})"
     symbol_indices = []
     try:
         while True:
-            match = re.search(symbol_re, input_string)
+            match = reg_symbol.search(input_string)
             if match:
                 symbol = match[1]
                 symbol_index = match.span()[0]
@@ -112,13 +127,12 @@ def locate_symbols(input_string):
     }
 
 
-def locate_italics(input_string, italics_strings):
+def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: int]]:
     """
     Locate all instances of italic strings in the input string and record their start and end indices.
     Returns a list of italic string indices (start and end).
     """
     italics_indices = []
-
     for italics in italics_strings:
 
         # replace symbols with their character representations in the italic string
@@ -141,14 +155,14 @@ def locate_italics(input_string, italics_strings):
     return italics_indices
 
 
-def determine_symbol_colors(symbol, symbol_length):
+def determine_symbol_colors(
+    symbol: str,
+    symbol_length: int
+) -> Optional[list[ps.SolidColor]]:
     """
     Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
     """
-    # Ensure symbol mappings are up-to-date
-    sym.reload()
-
-    # SPECIAL SYMBOLS
+    # Special Symbols
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
         return [sym.clr_primary]
@@ -159,9 +173,28 @@ def determine_symbol_colors(symbol, symbol_length):
         # Untap symbol
         return [sym.clr_primary, sym.clr_secondary]
 
+    # Normal mana symbol
+    normal_symbol_match = reg_mana_normal.match(symbol)
+    if normal_symbol_match:
+        return [
+            sym.color_map[normal_symbol_match[1]],
+            sym.color_map_inner[normal_symbol_match[1]]
+        ]
+
+    # Hybrid
+    hybrid_match = reg_mana_hybrid.match(symbol)
+    if hybrid_match:
+        # Use the darker color for black's symbols for 2/B hybrid symbols
+        color_map = sym.hybrid_color_map if hybrid_match[1] == "2" else sym.color_map
+        return [
+            color_map[hybrid_match[2]],
+            color_map[hybrid_match[1]],
+            sym.color_map_inner[hybrid_match[1]],
+            sym.color_map_inner[hybrid_match[2]]
+        ]
+
     # Phyrexian
-    phyrexian_regex = r"\{([W,U,B,R,G])\/P\}"
-    phyrexian_match = re.match(phyrexian_regex, symbol)
+    phyrexian_match = reg_mana_phyrexian.match(symbol)
     if phyrexian_match:
         return [
             sym.hybrid_color_map[phyrexian_match[1]],
@@ -169,8 +202,7 @@ def determine_symbol_colors(symbol, symbol_length):
         ]
 
     # Phyrexian hybrid
-    phyrexian_hybrid_regex = r"\{([W,U,B,R,G])\/([W,U,B,R,G])\/P\}"
-    phyrexian_hybrid_match = re.match(phyrexian_hybrid_regex, symbol)
+    phyrexian_hybrid_match = reg_mana_phyrexian_hybrid.match(symbol)
     if phyrexian_hybrid_match:
         return [
             sym.color_map[phyrexian_hybrid_match[2]],
@@ -179,41 +211,24 @@ def determine_symbol_colors(symbol, symbol_length):
             sym.color_map_inner[phyrexian_hybrid_match[2]]
         ]
 
-    # Hybrid
-    hybrid_regex = r"\{([2,W,U,B,R,G])\/([W,U,B,R,G])\}"
-    hybrid_match = re.match(hybrid_regex, symbol)
-    if hybrid_match:
-        if hybrid_match[1] == "2":
-            # Use the darker color for black's symbols for 2/B hybrid symbols
-            color_map = sym.hybrid_color_map
-        else: color_map = sym.color_map
-        return [
-            color_map[hybrid_match[2]],
-            color_map[hybrid_match[1]],
-            sym.color_map_inner[hybrid_match[1]],
-            sym.color_map_inner[hybrid_match[2]]
-        ]
-
-    # Normal mana symbol
-    normal_symbol_regex = r"\{([W,U,B,R,G])\}"
-    normal_symbol_match = re.match(normal_symbol_regex, symbol)
-    if normal_symbol_match:
-        return [
-            sym.color_map[normal_symbol_match[1]],
-            sym.color_map_inner[normal_symbol_match[1]]
-        ]
-
     # Weird situation?
-    if symbol_length == 2: return [sym.clr_c, sym.clr_primary]
+    if symbol_length == 2:
+        return [sym.clr_c, sym.clr_primary]
 
     # Nothing matching found!
     console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
     return None
 
 
-def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_colors, layer_font_size):
+def format_symbol(
+    primary_action_list: ps.ActionList,
+    starting_layer_ref: ps.ActionDescriptor,
+    symbol_index: int,
+    symbol_colors: list[ps.SolidColor],
+    layer_font_size: Union[int, float]
+) -> ps.ActionDescriptor:
     """
-     * Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
+    Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
     """
     current_ref = starting_layer_ref
     for i, color in enumerate(symbol_colors):
@@ -223,30 +238,18 @@ def format_symbol(primary_action_list, starting_layer_ref, symbol_index, symbol_
         primary_action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
         desc1.putInteger(cID("T   "), symbol_index + i + 1)
-        desc2.putString(
-            sID("fontPostScriptName"),
-            con.font_mana)  # NDPMTG default
-        desc2.putString(
-            cID("FntN"),
-            con.font_mana)  # NDPMTG default
-        desc2.putUnitDouble(
-            cID("Sz  "),
-            cID("#Pnt"),
-            layer_font_size)
+        desc2.putString(sID("fontPostScriptName"), con.font_mana)
+        desc2.putString(cID("FntN"), con.font_mana)
+        desc2.putUnitDouble(cID("Sz  "), cID("#Pnt"), layer_font_size)
         desc2.putBoolean(sID("autoLeading"), False)
-        desc2.putUnitDouble(
-            cID("Ldng"),
-            cID("#Pnt"),
-            layer_font_size)
-
+        desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), layer_font_size)
         psd.apply_color(desc2, color)
-
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
 
 
-def format_flavor_text(input_string: str):
+def format_flavor_text(input_string: str) -> None:
     """
     Inserts the given string into the active layer and formats it without any of the more advanced features like
     italics strings, centering, etc.
@@ -292,7 +295,7 @@ def format_flavor_text(input_string: str):
     app.activeDocument.activeLayer.textItem.hyphenation = False
 
 
-def generate_italics(card_text):
+def generate_italics(card_text: str) -> list[str]:
     """
     Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
     """
@@ -310,7 +313,7 @@ def generate_italics(card_text):
             break
 
     # Find and add ability words
-    for match in re.findall(r"(?:\A|\r+|• +)([A-Za-z0-9 ]+) — ", card_text):
+    for match in reg_ability_words.findall(card_text):
         # Cover boast cards and cards like Mirrodin Besieged
         if (f"• {match}" in card_text and card_text[0:12] != "Choose one —") or "Boast" in match:
             continue
@@ -319,12 +322,12 @@ def generate_italics(card_text):
     return italic_text
 
 
-def strip_reminder_text(oracle_text):
+def strip_reminder_text(oracle_text: str) -> str:
     """
     Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
     If this empties the string, instead return the original string.
     """
-    oracle_text_stripped = re.sub(r"\([^()]*\)", "", oracle_text)
+    oracle_text_stripped = reg_reminder_text.sub("", oracle_text)
 
     # ensure we didn't add any double whitespace by doing that
     oracle_text_stripped = re.sub(r"  +", "", oracle_text_stripped)
@@ -333,7 +336,7 @@ def strip_reminder_text(oracle_text):
     return oracle_text
 
 
-def classic_align_right(action_list, start, end):
+def classic_align_right(action_list: ps.ActionList, start: int, end: int) -> ps.ActionList:
     """
     Align the quote credit of --Name to the right like on some classic cards.
     @param action_list: Action list to add this action to
@@ -355,7 +358,7 @@ def classic_align_right(action_list, start, end):
     return action_list
 
 
-def scale_text_right_overlap(layer, reference) -> None:
+def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
     has a 36 px clearance from a reference layer's left bound.
@@ -410,7 +413,7 @@ def scale_text_right_overlap(layer, reference) -> None:
         reference.textItem.contents = contents
 
 
-def scale_text_left_overlap(layer, reference) -> None:
+def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
     has a 36 px clearance from a reference layer's left bound.
@@ -469,7 +472,7 @@ def scale_text_to_fit_reference(
     layer: ArtLayer,
     ref: Union[ArtLayer, int, float],
     spacing: Optional[int] = None
-):
+) -> None:
     """
     Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
     The resulting text layer will have equal font and lead sizes.
@@ -510,7 +513,7 @@ def scale_text_to_fit_reference(
         layer.textItem.leading = font_size
 
 
-def vertically_align_text(layer, reference_layer):
+def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer):
     """
     Centers a given text layer vertically with respect to the bounding box of a reference layer.
     """
@@ -521,7 +524,11 @@ def vertically_align_text(layer, reference_layer):
     layer.translate(0, bound_delta + height_delta / 2)
 
 
-def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
+def vertically_nudge_creature_text(
+    layer: ArtLayer,
+    reference_layer: ArtLayer,
+    top_reference_layer: ArtLayer
+) -> Optional[int]:
     """
     Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
     determined by the given reference layers.
@@ -545,7 +552,14 @@ def vertically_nudge_creature_text(layer, reference_layer, top_reference_layer):
         return delta
 
 
-def vertically_nudge_pw_text(text_layers, space, layer_gap, ref_height, adj_reference, top_reference):
+def vertically_nudge_pw_text(
+    text_layers: list[ArtLayer],
+    space: Union[int, float],
+    layer_gap: Union[int, float],
+    ref_height: Union[int, float],
+    adj_reference: ArtLayer,
+    top_reference: ArtLayer
+) -> None:
     """
     Shift or resize planeswalker text to prevent overlap with the loyalty shield.
     """
@@ -586,8 +600,8 @@ def vertically_nudge_pw_text(text_layers, space, layer_gap, ref_height, adj_refe
             # Layer gap would be too small, need to resize text then shift upward
             total_h = 0
             for lyr in text_layers:
-                lyr.textItem.size -= .2000000000000
-                lyr.textItem.leading -= .2000000000000
+                lyr.textItem.size -= 0.2
+                lyr.textItem.leading -= 0.2
                 total_h += psd.get_text_layer_dimensions(lyr)["height"]
 
             # Get the exact spacing left over
@@ -607,7 +621,7 @@ PARAGRAPH FORMATTING
 """
 
 
-def space_after_paragraph(space):
+def space_after_paragraph(space: Union[int, float]) -> None:
     """
     Set the space after paragraph value.
     @param space: Space after paragraph
