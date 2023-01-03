@@ -33,10 +33,9 @@ card_types = {
     "Planar": ["planar"]
 }
 
-# REGEX Patterns
-re_art = re.compile(r'\(+(.*?)\)')
-re_set = re.compile(r'\[(.*)\]')
-re_cre = re.compile(r'{(.*)}')
+reg_artist = re.compile(r'\(+(.*?)\)')
+reg_set = re.compile(r'\[(.*)]')
+reg_creator = re.compile(r'{(.*)}')
 
 """
 TEMPLATE FUNCTIONS
@@ -155,21 +154,22 @@ def retrieve_card_info(filename):
     name = fn_split[0]
 
     # Match pattern
-    artist = re_art.findall(fname)
-    set_code = re_set.findall(fname)
-    creator = re_cre.findall(fname)
+    artist = reg_artist.findall(fname)
+    set_code = reg_set.findall(fname)
+    creator = reg_creator.findall(fname)
 
     # Check for these values
-    if creator: creator = creator[0]
-    else: creator = None
-    if artist: artist = artist[0]
-    else: artist = None
-    if set_code:
-        set_code = set_code[0]
-        if set_code.upper() not in con.set_symbols:
-            if set_code.upper()[1:] in con.set_symbols:
-                set_code = set_code[1:]
-    else: set_code = None
+    creator = creator[0] if creator else None
+    artist = artist[0] if artist else None
+    set_code = set_code[0] if set_code else None
+
+    # Correct strange set codes like promo variants (PMID)
+    if (
+        set_code and
+        set_code.upper() not in con.set_symbols and
+        set_code.upper()[1:] in con.set_symbols
+    ):
+        set_code = set_code[1:]
 
     return {
         'name': name,
