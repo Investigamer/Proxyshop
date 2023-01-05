@@ -580,7 +580,7 @@ if __name__ == '__main__':
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.2.1"
+	__version__ = "v1.3.0"
 	Factory.register('HoverBehavior', HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()
