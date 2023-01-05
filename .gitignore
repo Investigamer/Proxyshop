@@ -164,3 +164,6 @@ tester.py
 /proxyshop/version_tracker.json
 /release
 /proxyshop/env.json
+/proxyshop/plugins/*
+!/proxyshop/plugins/MrTeferi
+!/proxyshop/plugins/SilvanMTG
