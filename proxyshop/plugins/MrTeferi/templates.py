@@ -2,9 +2,7 @@
 MRTEFERI TEMPLATES
 """
 from functools import cached_property
-from typing import Optional
-
-from photoshop.api._artlayer import ArtLayer
+from typing import Optional, Callable
 
 from actions import pencilsketch, sketch
 import proxyshop.templates as temp
@@ -12,6 +10,8 @@ from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
 import proxyshop.core as core
+
+from photoshop.api._artlayer import ArtLayer
 import photoshop.api as ps
 app = ps.Application()
 
@@ -46,23 +46,28 @@ class SketchTemplate (temp.NormalTemplate):
     def is_companion(self) -> bool:
         return False
 
-    def __init__(self, layout):
-
-        # Disable reminder text
-        cfg.remove_reminder = True
-
-        # Run a sketch action?
+    @property
+    def art_action(self) -> Optional[Callable]:
         if sketch_cfg['action'] == 1:
-            self.art_action = sketch.run
+            return sketch.run
         elif sketch_cfg['action'] == 2:
-            self.art_action = pencilsketch.run
-            self.art_action_args = {
+            return pencilsketch.run
+        return
+
+    @property
+    def art_action_args(self) -> Optional[dict]:
+        if sketch_cfg['action'] == 2:
+            return {
                 'rough_sketch': bool(sketch_cfg['rough-sketch-lines']),
                 'draft_sketch': bool(sketch_cfg['draft-sketch-lines']),
                 'colored': bool(sketch_cfg['colored']),
             }
+        return
 
-        # self.art_action_args = [True]
+    def __init__(self, layout):
+
+        # Disable reminder text
+        cfg.remove_reminder = True
         super().__init__(layout)
 
 

@@ -4,7 +4,7 @@ CORE TEMPLATES
 import os
 import re
 from functools import cached_property
-from typing import Optional
+from typing import Optional, Callable
 
 from PIL import Image
 from photoshop.api._artlayer import ArtLayer
@@ -28,6 +28,9 @@ class BaseTemplate:
     """
     Set up variables for things which are common to all templates, extend this at bare minimum.
     """
+    template_file_name = None
+    template_suffix = None
+
     def __init__(self, layout):
 
         # Setup manual properties
@@ -137,11 +140,6 @@ class BaseTemplate:
         # The current template document
         return app.activeDocument
 
-    @cached_property
-    def art_layer(self) -> ArtLayer:
-        # The MTG art layer
-        return psd.getLayer(con.default_layer)
-
     @property
     def active_layer(self):
         # Current active layer
@@ -152,12 +150,25 @@ class BaseTemplate:
         # Set the active layer
         self.docref.activeLayer = value
 
+    @cached_property
+    def art_layer(self) -> ArtLayer:
+        # The MTG art layer
+        return psd.getLayer(con.default_layer)
+
+    @property
+    def art_action(self) -> Optional[Callable]:
+        return None
+
+    @property
+    def art_action_args(self) -> Optional[dict]:
+        return None
+
     @property
     def art_reference(self) -> str:
         return con.layers.ART_FRAME
 
     @cached_property
-    def art_reference_layer(self):
+    def art_reference_layer(self) -> ArtLayer:
         # Select a main reference layer
         if isinstance(self.art_reference, ArtLayer):
             # Art reference not given
@@ -329,7 +340,7 @@ class BaseTemplate:
     METHODS
     """
 
-    def collector_info(self):
+    def collector_info(self) -> None:
         """
         Format and add the collector info at the bottom.
         """
@@ -391,7 +402,7 @@ class BaseTemplate:
     def expansion_symbol_anchor(self) -> ps.AnchorPosition:
         return ps.AnchorPosition.MiddleRight
 
-    def create_expansion_symbol(self, centered=False):
+    def create_expansion_symbol(self, centered=False) -> None:
         """
         Builds the expansion symbol
         @param centered: Center the symbol within its reference.
@@ -426,7 +437,7 @@ class BaseTemplate:
         if cfg.auto_symbol_size:
             psd.frame_layer(symbol_layer, ref_layer, self.expansion_symbol_anchor, True, centered)
 
-        def apply_rarity(layer):
+        def apply_rarity(layer) -> ArtLayer:
             # Apply rarity gradient to this layer
             mask_layer = rarity_layer.duplicate(layer, ps.ElementPlacement.PlaceBefore)
             mask_layer.grouped = True
@@ -516,7 +527,7 @@ class BaseTemplate:
         self.expansion_symbol = group.merge()
         self.expansion_symbol.name = "Expansion Symbol"
 
-    def load_template(self):
+    def load_template(self) -> None:
         """
         Opens the template's PSD file in Photoshop.
         """
@@ -524,11 +535,10 @@ class BaseTemplate:
         self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file}")
         app.load(self.file_path)
 
-    def load_artwork(self):
+    def load_artwork(self) -> None:
         """
         Loads the specified art file into the specified layer.
         """
-
         # Choose image for dev_mode
         if cfg.dev_mode:
             # Check for Fullart test image
@@ -539,31 +549,42 @@ class BaseTemplate:
 
         # Paste the file into the art
         self.active_layer = self.art_layer
-        if hasattr(self, 'art_action'):
-            if hasattr(self, 'art_action_args'):
-                psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
-            else: psd.paste_file(self.art_layer, self.layout.filename, self.art_action)
-        else: psd.paste_file(self.art_layer, self.layout.filename)
+        psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
 
         # Frame the artwork
         psd.frame_layer(self.art_layer, self.art_reference_layer)
 
-    def get_file_name(self):
+    def get_file_name(self) -> str:
         """
         Format the output filename.
         Overwrite this function if your template has specific demands.
         """
-        if not hasattr(self, 'template_suffix'): suffix = None
-        elif callable(self.template_suffix): suffix = self.template_suffix()
-        else: suffix = self.template_suffix
+        # Establish the name
+        suffix = self.template_suffix
         if cfg.save_artist_name:
-            if suffix: suffix = f"{suffix} {self.layout.artist}"
-            else: suffix = self.layout.artist
-        if suffix: name = f"{self.layout.name} ({suffix})"
-        else: name = self.layout.name
+            suffix = f"{suffix} {self.layout.artist}" if suffix else self.layout.artist
+        name = f"{self.layout.name} ({suffix})" if suffix else self.layout.name
+
+        # Check if name already exists
+        if not cfg.overwrite_duplicate:
+            num = 0
+            while any([
+                os.path.exists(os.path.join(con.cwd, f"out/{name}.png")),
+                os.path.exists(os.path.join(con.cwd, f"out/{name}.psd")),
+                os.path.exists(os.path.join(con.cwd, f"out/{name}.jpg")),
+            ]):
+                num += 1
+                if ")" not in name:
+                    name = f'{name} (1)'
+                elif ")" in name and num == 1:
+                    name = name.replace(f'({suffix})', f'({suffix} 1)')
+                else:
+                    name = name.replace(f'{num - 1})', f'{num})')
         return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "-", name)
 
-    def paste_scryfall_scan(self, reference_layer, rotate=False, visible=True):
+    def paste_scryfall_scan(
+        self, reference_layer: ArtLayer, rotate: bool = False, visible: bool = True
+    ) -> Optional[ArtLayer]:
         """
         Downloads the card's scryfall scan, pastes it into the document next to the active layer,
         and frames it to fill the given reference layer. Can optionally rotate the layer by 90 degrees
@@ -578,14 +599,14 @@ class BaseTemplate:
                 layer.visible = False
         return layer
 
-    def basic_text_layers(self):
+    def basic_text_layers(self) -> None:
         """
         Set up the card's mana cost, name (scaled to not overlap with mana cost), expansion symbol, and type line
         (scaled to not overlap with the expansion symbol).
         """
         pass
 
-    def rules_text_and_pt_layers(self):
+    def rules_text_and_pt_layers(self) -> None:
         """
         Set up the card's rules text and power/toughness according to whether or not the card is a creature.
         You're encouraged to override this method if a template extending this one doesn't have the option for
@@ -593,25 +614,25 @@ class BaseTemplate:
         """
         pass
 
-    def enable_frame_layers(self):
+    def enable_frame_layers(self) -> None:
         """
         Enable the correct layers for this card's frame.
         """
         pass
 
-    def post_text_layers(self):
+    def post_text_layers(self) -> None:
         """
         Write code that will be processed after text layers are executed.
         """
         pass
 
-    def post_execute(self):
+    def post_execute(self) -> None:
         """
         Write code that will be processed after execute completes.
         """
         pass
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the document, purge the cache, end await.
         """
@@ -619,16 +640,16 @@ class BaseTemplate:
         app.purge(4)
         console.end_await()
 
-    def raise_error(self, msg, e):
+    def raise_error(self, message: str, error: Exception) -> bool:
         """
         Raise an error on the console display.
-        @param msg: Message to be displayed
-        @param e: Exception object
+        @param message: Message to be displayed
+        @param error: Exception object
         @return:
         """
         result = console.log_error(
-            f"{msg}\nCheck [b]/tmp/error.txt[/b] for details.",
-            self.layout.name, self.template_file, e
+            f"{message}\nCheck [b]/tmp/error.txt[/b] for details.",
+            self.layout.name, self.template_file, error
         )
         self.reset()
         return result
@@ -637,7 +658,7 @@ class BaseTemplate:
     HOOKS
     """
 
-    def hook_creature(self):
+    def hook_creature(self) -> None:
         """
         Run this if creature.
         """
@@ -647,7 +668,7 @@ class BaseTemplate:
     Execution Sequence
     """
 
-    def execute(self):
+    def execute(self) -> bool:
         """
         Perform actions to populate this template. Load and frame artwork, enable frame layers,
         and execute all text layers. Returns the file name of the image w/ the template's suffix if it
@@ -748,7 +769,7 @@ class StarterTemplate (BaseTemplate):
     HOOKS
     """
 
-    def hook_creature(self):
+    def hook_creature(self) -> None:
         check = ["+", "*"]
         if all(sub in self.layout.power for sub in check) and all(sub in self.layout.toughness for sub in check):
             # Resize the PT text for cards like Gaea's Avenger
@@ -760,9 +781,10 @@ class StarterTemplate (BaseTemplate):
     METHODS
     """
 
-    def basic_text_layers(self):
-
-        # Add text layers
+    def basic_text_layers(self) -> None:
+        """
+        Add text layers.
+        """
         self.text.extend([
             text_classes.FormattedTextField(
                 layer = self.text_layer_mana,
@@ -786,7 +808,7 @@ class NormalTemplate (StarterTemplate):
     Normal M15-style template.
     Extend this for most normal card templates that have typical MTG card layer setups.
     """
-    template_file_name = "normal.psd"
+    template_file_name = "normal"
 
     def __init__(self, layout):
         super().__init__(layout)
@@ -802,7 +824,7 @@ class NormalTemplate (StarterTemplate):
     METHODS
     """
 
-    def rules_text_and_pt_layers(self):
+    def rules_text_and_pt_layers(self) -> None:
 
         if self.is_creature:
             # Creature Rules Text + PT
@@ -836,7 +858,7 @@ class NormalTemplate (StarterTemplate):
                 )
             )
 
-    def enable_frame_layers(self):
+    def enable_frame_layers(self) -> None:
 
         # Twins
         if self.twins_layer:
@@ -862,7 +884,7 @@ class NormalTemplate (StarterTemplate):
         if self.is_legendary and self.crown_layer:
             self.enable_crown()
 
-    def enable_crown(self):
+    def enable_crown(self) -> None:
         """
         Enable the Legendary crown
         """
@@ -878,7 +900,7 @@ class NormalTemplate (StarterTemplate):
             if self.is_companion and self.companion_layer:
                 self.companion_layer.visible = True
 
-    def enable_hollow_crown(self, shadows=None):
+    def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
         """
         Enable the hollow legendary crown for this card given layer groups for the crown and pinlines.
         """
@@ -894,7 +916,7 @@ class NormalClassicTemplate (StarterTemplate):
     """
     A template for 7th Edition frame. Lacks many of the Normal Template features.
     """
-    template_file_name = "normal-classic.psd"
+    template_file_name = "normal-classic"
     template_suffix = "Classic"
 
     def __init__(self, layout):
@@ -910,7 +932,6 @@ class NormalClassicTemplate (StarterTemplate):
         return False
 
     def rules_text_and_pt_layers(self):
-
         # Move mana layer down for hybrid mana
         if len(self.background) == 2:
             self.text_layer_mana.translate(0, -5)
@@ -945,7 +966,6 @@ class NormalClassicTemplate (StarterTemplate):
             self.text_layer_pt.visible = False
 
     def enable_frame_layers(self):
-
         # Simple one image background, Land or Nonland
         if self.is_land:
             psd.getLayer(self.pinlines, con.layers.LAND).visible = True
@@ -963,7 +983,7 @@ class NormalExtendedTemplate (NormalTemplate):
      An extended-art version of the normal template. The layer structure of this template and
      NormalTemplate are identical.
     """
-    template_file_name = "normal-extended.psd"
+    template_file_name = "normal-extended"
     template_suffix = "Extended"
 
     def __init__(self, layout):
@@ -975,7 +995,7 @@ class NormalFullartTemplate (NormalTemplate):
     """
     Normal full art template (Also called "Universes Beyond")
     """
-    template_file_name = "normal-fullart.psd"
+    template_file_name = "normal-fullart"
     template_suffix = "Fullart"
 
 
@@ -984,7 +1004,7 @@ class WomensDayTemplate (NormalTemplate):
     The showcase template first used on the Women's Day Secret Lair. Doesn't have any background layers, needs a
     layer mask on the pinlines group when card is legendary, and doesn't support companions.
     """
-    template_file_name = "womensday.psd"
+    template_file_name = "womensday"
     template_suffix = "Showcase"
 
     def __init__(self, layout):
@@ -1173,7 +1193,7 @@ class TransformBackTemplate (NormalTemplate):
     """
     Template for the back faces of transform cards.
     """
-    template_file_name = "tf-back.psd"
+    template_file_name = "tf-back"
     dfc_layer_group = con.layers.TF_BACK
 
     @cached_property
@@ -1950,7 +1970,7 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     An extended version of PlaneswalkerTemplate. Functionally identical except for the lack of background textures.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-extended.psd"
+    template_file_name = "pw-extended"
     template_suffix = "Extended"
 
     @cached_property

@@ -39,6 +39,7 @@ class Config:
 		# FILE section
 		self.output_filetype = self.file['FILES']['Output.Filetype']
 		self.save_artist_name = self.file.getboolean('FILES', 'Save.Artist.Name')
+		self.overwrite_duplicate = self.file.getboolean('FILES', 'Overwrite.Duplicate')
 
 		# TEXT section
 		self.remove_flavor = self.file.getboolean('TEXT', 'No.Flavor.Text')
