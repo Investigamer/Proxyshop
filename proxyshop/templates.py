@@ -734,7 +734,7 @@ class BaseTemplate:
         try:
             if cfg.output_filetype == "png":
                 psd.save_document_png(file_name)
-            if cfg.output_filetype == "psd":
+            elif cfg.output_filetype == "psd":
                 psd.save_document_psd(file_name)
             else:
                 psd.save_document_jpeg(file_name)
