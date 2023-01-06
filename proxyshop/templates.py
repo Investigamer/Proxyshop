@@ -8,6 +8,7 @@ from typing import Optional, Callable
 
 from PIL import Image
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._core import Photoshop
 from photoshop.api._layerSet import LayerSet
 
 from proxyshop.frame_logic import format_expansion_symbol_info
@@ -21,7 +22,6 @@ if not con.headless:
     from proxyshop.gui import console
 else:
     from proxyshop.core import console
-app = ps.Application()
 
 
 class BaseTemplate:
@@ -122,6 +122,10 @@ class BaseTemplate:
     """
 
     @cached_property
+    def app(self) -> Photoshop:
+        return ps.Application()
+
+    @cached_property
     def template_file(self) -> str:
         # Get from callable
         if callable(self.template_file_name):
@@ -138,7 +142,7 @@ class BaseTemplate:
     @cached_property
     def docref(self):
         # The current template document
-        return app.activeDocument
+        return self.app.activeDocument
 
     @property
     def active_layer(self):
@@ -426,7 +430,7 @@ class BaseTemplate:
         current_layer = symbol_layer
 
         # Put everything in a group
-        group = app.activeDocument.layerSets.add()
+        group = self.app.activeDocument.layerSets.add()
         group.move(current_layer, ps.ElementPlacement.PlaceAfter)
         symbol_layer.move(group, ps.ElementPlacement.PlaceInside)
 
@@ -443,7 +447,7 @@ class BaseTemplate:
             mask_layer.grouped = True
             mask_layer.visible = True
             psd.select_layer_bounds(layer)
-            app.activeDocument.activeLayer = mask_layer
+            self.app.activeDocument.activeLayer = mask_layer
             psd.align_horizontal()
             psd.align_vertical()
             psd.clear_selection()
@@ -452,7 +456,7 @@ class BaseTemplate:
 
         def apply_fill(layer, color=psd.rgb_black()):
             # Make active and fill background
-            app.activeDocument.activeLayer = layer
+            self.app.activeDocument.activeLayer = layer
             return psd.fill_expansion_symbol(ref_layer, color)
 
         def get_color_choice(color):
@@ -533,7 +537,7 @@ class BaseTemplate:
         """
         # Create our full path and load it, set our document reference
         self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file}")
-        app.load(self.file_path)
+        self.app.load(self.file_path)
 
     def load_artwork(self) -> None:
         """
@@ -637,7 +641,7 @@ class BaseTemplate:
         Reset the document, purge the cache, end await.
         """
         psd.reset_document(os.path.basename(self.file_path))
-        app.purge(4)
+        self.app.purge(4)
         console.end_await()
 
     def raise_error(self, message: str, error: Exception) -> bool:
@@ -2242,7 +2246,7 @@ class BasicLandTemplate (BaseTemplate):
 
     @cached_property
     def text_layers(self) -> Optional[LayerSet]:
-        return app.activeDocument
+        return self.app.activeDocument
 
     def enable_frame_layers(self):
         psd.getLayer(self.layout.name).visible = True
