@@ -347,8 +347,9 @@ class Constants:
 
         # HTTP Header for requests
         self.http_header = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1;'
-            ' WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.107 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/39.0.2171.95 Safari/537.36"
         }
 
         # Run headless
