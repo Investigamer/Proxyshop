@@ -142,13 +142,13 @@ class Console (BoxLayout):
             self.ids.cancel_btn.disabled = True
             App.get_running_app().enable_buttons()
             self.kill_thread(thr)
-            self.update("Canceling render process!\n")
+            self.update("Canceling render process!")
             sys.exit()
         else: return True
 
     def end_await(self):
         """
-        Ends the await cancel loop
+        Stops awaiting cancellation
         """
         self.ids.console_controls.success = True
         self.ids.console_controls.running = False
