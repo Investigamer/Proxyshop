@@ -750,8 +750,7 @@ def paste_file(
 
     # Optionally run action on art before importing it
     if action:
-        if action_args: action(**action_args)
-        else: action()
+        action(**action_args) if action_args else action()
 
     # Select the entire image, copy it, and close the file
     app.activeDocument.selection.selectAll()
@@ -858,21 +857,20 @@ def run_action(action_set: str, action: str) -> None:
 def save_document_png(file_name: str) -> None:
     """
     Save the current document to /out/ as a PNG.
+    @param file_name: Name of the output file.
     """
-    desc3 = ps.ActionDescriptor()
-    desc4 = ps.ActionDescriptor()
-    desc4.putEnumerated(cID("PGIT"), cID("PGIT"), cID("PGIN"))
-    desc4.putEnumerated(cID("PNGf"), cID("PNGf"), cID("PGAd"))
-    desc4.putInteger(cID("Cmpr"), 3)
-    desc3.putObject(cID("As  "), cID("PNGF"), desc4)
-    desc3.putPath(cID("In  "), os.path.join(cwd, f"out/{file_name}.png"))
-    desc3.putBoolean(cID("Cpy "), True)
-    app.executeAction(cID("save"), desc3, NO_DIALOG)
+    png_options = ps.PNGSaveOptions()
+    png_options.compression = 3
+    app.activeDocument.saveAs(
+        file_path=os.path.join(cwd, f"out/{file_name}.png"),
+        options=png_options, asCopy=True
+    )
 
 
 def save_document_jpeg(file_name: str) -> None:
     """
     Save the current document to /out/ as a JPEG.
+    @param file_name: Name of the output file.
     """
     jpeg_options = ps.JPEGSaveOptions(quality=12)
     jpeg_options.scans = 3
@@ -885,6 +883,7 @@ def save_document_jpeg(file_name: str) -> None:
 def save_document_psd(file_name: str) -> None:
     """
     Save the current document to /out/ as PSD.
+    @param file_name: Name of the output file.
     """
     app.activeDocument.saveAs(
         file_path=os.path.join(cwd, f"out/{file_name}.psd"),
