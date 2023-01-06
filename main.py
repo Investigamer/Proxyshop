@@ -21,6 +21,8 @@ from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
+
+from proxyshop.__version__ import version
 from proxyshop.creator import CreatorPanels
 from proxyshop.gui import HoverBehavior, TestApp, console
 from proxyshop.scryfall import card_info
@@ -50,7 +52,7 @@ class ProxyshopApp(App):
 		super().__init__(**kwargs)
 
 		# App settings
-		self.title = f"Proxyshop {__version__}"
+		self.title = f"Proxyshop {version}"
 		self.icon = 'proxyshop/img/proxyshop.png'
 		self.cont_padding = 10
 
@@ -96,6 +98,7 @@ class ProxyshopApp(App):
 			return
 		else:
 			# Start a new thread
+			console.update()
 			template = core.get_template(temps[card.card_class])
 			thr = threading.Thread(target=self.render, args=(template, card), daemon=True)
 			self.start_thread(thr)
@@ -164,7 +167,6 @@ class ProxyshopApp(App):
 			template = core.get_template(temps[card_type])
 			for card in cards:
 				# Load defaults and start thread
-				console.update(f"[color=#59d461]---- {card.name} ----[/color]")
 				thr = threading.Thread(target=self.render, args=(template, card), daemon=True)
 				if not self.start_thread(thr):
 					self.load_defaults()
@@ -200,9 +202,6 @@ class ProxyshopApp(App):
 				'set': scryfall['set'],
 				'creator': None
 			}
-			console.update(
-				f"Rendering custom card: [b]{scryfall['name']}[/b]"
-			)
 
 			# If basic, manually call the BasicLand layout OBJ
 			if scryfall['name'] in con.basic_land_names:
@@ -216,26 +215,20 @@ class ProxyshopApp(App):
 					return
 
 			# Get our template class
-			try: card_template = core.get_template(temp)
+			try: template = core.get_template(temp)
 			except Exception as e:
 				console.update(f"Template not found!\n", e)
 				return
 
-			# Select and execute the template
-			try:
-				proxy = card_template(layout)
-				self.docref = proxy.docref
-				proxy.execute()
-				self.close_document()
-			except Exception as e:
-				console.update(f"Template failed to execute! Check your custom inputs.\n", e)
-				self.close_document()
-				return
+			# Execute template
+			console.update()
+			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
+			self.start_thread(thr)
+			self.close_document()
 
 		except Exception as e:
 			console.update(f"General error! Maybe Photoshop was busy?\n", e)
 		self.enable_buttons()
-		console.update("")
 
 	def assign_layout(
 			self, filename: Union[Path, str], index: int = 0
@@ -346,14 +339,16 @@ class ProxyshopApp(App):
 		self.close_document()
 		self.enable_buttons()
 
-	def render(self, template: type, card: type) -> None:
+	def render(self, template: any, card: any) -> None:
 		"""
 		Execute a render job.
-		@param template: Template class to use for this card
-		@param card: Card layout object containing scryfall data
-		@return: True/False, if False cancel the render operation
+		@param template: Template class to use to render this card.
+		@param card: Layout object containing validated scryfall data.
+		@return: True/False, if False cancel the render operation.
 		"""
 		try:
+			if not cfg.dev_mode:
+				console.update(f"[color=#59d461]---- {card.name} ----[/color]")
 			proxy = template(card)
 			self.docref = proxy.docref
 			self.result = proxy.execute()
@@ -580,7 +575,6 @@ if __name__ == '__main__':
 	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
-	__version__ = "v1.3.0"
 	Factory.register('HoverBehavior', HoverBehavior)
 	Builder.load_file(os.path.join(cwd, "proxyshop/kivy/proxyshop.kv"))
 	ProxyshopApp().run()
