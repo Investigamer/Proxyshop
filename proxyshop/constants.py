@@ -184,11 +184,11 @@ class Constants:
         try:
             with open(os.path.join(self.cwd, "proxyshop/env.json"), "r", encoding="utf-8") as api_keys:
                 keys = json.load(api_keys)
-                self.google_api = keys['g_api']
-                self.amazon_api = keys['a_api']
-        except FileNotFoundError:
+                self.google_api = keys['google']
+                self.cloudfront_url = keys['cloudfront']
+        except (FileNotFoundError, KeyError):
             self.google_api = ""
-            self.amazon_api = {}
+            self.cloudfront_url = ""
 
         # Important paths
         self.json_custom_path = os.path.join(self.cwd, "tmp\\custom.json")

@@ -1,9 +1,8 @@
 """
-Modified from Gdown Project
+Borrows from Gdown Project
 Source: https://github.com/wkentaro/gdown
 License: https://github.com/wkentaro/gdown/blob/main/LICENSE
 """
-from __future__ import print_function
 import json
 from pathlib import Path
 import os
@@ -13,26 +12,29 @@ import shutil
 import sys
 import tempfile
 import textwrap
-from typing import Callable
-
-import boto3
+from typing import Callable, Optional
 import requests
 
 from proxyshop.constants import con
 
-CHUNK_SIZE = 1024 * 1024  # 512KB
+CHUNK_SIZE = 1024 * 1024  # 1 MB
 cwd = os.getcwd()
 
 
-def get_url_from_gdrive_confirmation(contents):
+def get_url_from_gdrive_confirmation(contents: str) -> str:
+    """
+    Get the correct URL for downloading Google Drive file.
+    @param contents: Google Drive page data.
+    @return: Correct url for downloading.
+    """
     url = ""
     for line in contents.splitlines():
-        m = re.search(r'href="(\/uc\?export=download[^"]+)', line)
+        m = re.search(r'href="(/uc\?export=download[^"]+)', line)
         if m:
             url = "https://docs.google.com" + m.groups()[0]
             url = url.replace("&amp;", "&")
             break
-        m = re.search('id="downloadForm" action="(.+?)"', line)
+        m = re.search('id="download-form" action="(.+?)"', line)
         if m:
             url = m.groups()[0]
             url = url.replace("&amp;", "&")
@@ -56,10 +58,10 @@ def get_url_from_gdrive_confirmation(contents):
     return url
 
 
-def download(
+def download_google(
     file_id: str,
     path: str,
-    callback: any,
+    callback: Callable,
     use_cookies: bool = True
 ):
     """
@@ -81,13 +83,11 @@ def download(
     output: bool
         True if success, False if failed.
     """
+    Path(os.path.dirname(Path(path))).mkdir(mode=511, parents=True, exist_ok=True)
     url = "https://drive.google.com/uc?id={id}".format(id=file_id)
-    current = 0
     url_origin = url
     sess = requests.session()
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"  # NOQA
-    }
+    header = con.http_header.copy()
 
     # Cookies
     cache_dir = osp.join(cwd, "tmp")
@@ -102,7 +102,8 @@ def download(
 
     # Get file resource
     while True:
-        res = sess.get(url, headers=headers, stream=True, verify=True)
+        res = sess.get(url, headers=header, stream=True, verify=True)
+        print(res.headers)
 
         # Save cookies
         with open(cookies_file, "w") as f:
@@ -131,57 +132,19 @@ def download(
             print("\n\t", url_origin, "\n", file=sys.stderr)
             return False
 
-    # Ensure path exists
-    Path(os.path.dirname(Path(path))).mkdir(mode=511, parents=True, exist_ok=True)
-    total = int(res.headers.get("Content-Length"))
-
-    existing_tmp_files = []
-    file_name = osp.basename(path)
-    for file in os.listdir(osp.dirname(path) or "."):
-        if file.startswith(file_name) and file != file_name:
-            existing_tmp_files.append(osp.join(osp.dirname(path), file))
-    if len(existing_tmp_files) != 0:
-        tmp_file = existing_tmp_files[0]
-        current = int(os.path.getsize(tmp_file))
-        resume = True
-    else:
-        resume = False
-        # mkstemp is preferred, but does not work on Windows
-        # https://github.com/wkentaro/gdown/issues/153
-        tmp_file = tempfile.mktemp(
-            suffix=tempfile.template,
-            prefix=osp.basename(path),
-            dir=osp.dirname(path),
-        )
-    f = open(tmp_file, "ab")
-
-    if tmp_file is not None and f.tell() != 0:
-        headers["Range"] = "bytes={}-".format(f.tell())
-        res = sess.get(url, headers=headers, stream=True, verify=True)
+    # Get temp file
+    details = get_temp_file(res, sess, path, url)
+    file, current, res = details['file'], details['current'], details['res']
 
     # Let the user know its downloading
     print("Downloading...", file=sys.stderr)
-    if resume:
-        print("Resume:", tmp_file, file=sys.stderr)
+    if current != 0:
+        print("Resume:", file, file=sys.stderr)
     print("From:", url_origin, file=sys.stderr)
     print("To:", path, file=sys.stderr)
 
-    # Try to download
-    try:
-        for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
-            f.write(chunk)
-            current += int(CHUNK_SIZE)
-            if callback:
-                callback(current, total)
-        if tmp_file:
-            f.close()
-            shutil.move(tmp_file, path)
-    except IOError as e:
-        print(e, file=sys.stderr)
-        return False
-    finally:
-        sess.close()
-    return True
+    # Start the download
+    return download_file(file, res, sess, path, callback)
 
 
 def download_s3(temp: dict, callback: Callable) -> bool:
@@ -192,21 +155,89 @@ def download_s3(temp: dict, callback: Callable) -> bool:
     @return: True if success, False if failed.
     """
     # Establish this object's key
-    if temp['plugin']:
-        key = f"{temp['plugin']}/{temp['filename']}"
-    else: key = temp['filename']
+    key = f"{temp['plugin']}/{temp['filename']}" if temp['plugin'] else temp['filename']
+    url = f"{con.cloudfront_url}/{key}"
 
-    # Establish S3 client
-    client_s3 = boto3.client(
-        "s3",
-        aws_access_key_id=con.amazon_api['access'],
-        aws_secret_access_key=con.amazon_api['secret']
-    )
+    # Establish session
+    sess = requests.session()
+    header = con.http_header.copy()
+    res = sess.get(url, headers=header, stream=True, verify=True)
 
-    # Attempt the download
+    # Get temp file
+    details = get_temp_file(res, sess, temp['path'], url)
+    file, current, res = details['file'], details['current'], details['res']
+
+    # Let the user know its downloading
+    print("Downloading...", file=sys.stderr)
+    if current != 0:
+        print("Resume:", file, file=sys.stderr)
+    print("From:", url, file=sys.stderr)
+    print("To:", temp['path'], file=sys.stderr)
+
+    # Start the download
+    return download_file(file, res, sess, temp['path'], callback)
+
+
+def get_temp_file(
+        res: requests.Response,
+        sess: requests.Session,
+        path: str,
+        url: str,
+) -> dict:
+    # Check for existing Temp file, or setup new one
+    existing_tmp_files = []
+    header = con.http_header.copy()
+    file_name = osp.basename(path)
+    for file in os.listdir(osp.dirname(path) or "."):
+        if file.startswith(file_name) and file != file_name:
+            existing_tmp_files.append(osp.join(osp.dirname(path), file))
+    if len(existing_tmp_files) != 0:
+        tmp_file = existing_tmp_files[0]
+        current = int(os.path.getsize(tmp_file))
+    else:
+        current = 0
+        # mkstemp is preferred, but does not work on Windows
+        # https://github.com/wkentaro/gdown/issues/153
+        tmp_file = tempfile.mktemp(
+            suffix=tempfile.template,
+            prefix=osp.basename(path),
+            dir=osp.dirname(path),
+        )
+
+    # Resumable temp file found, update request with Range header
+    with open(tmp_file, "ab") as f:
+        if tmp_file is not None and f.tell() != 0:
+            header["Range"] = "bytes={}-".format(f.tell())
+            res = sess.get(url, headers=header, stream=True, verify=True)
+    return {
+        'file': tmp_file,
+        'res': res,
+        'current': current
+    }
+
+
+def download_file(
+        file: str,
+        res: requests.Response,
+        sess: requests.Session,
+        path: Optional[str] = None,
+        callback: Optional[Callable] = None
+) -> bool:
+    # Try to download the file
+    total = int(res.headers.get("Content-Length"))
+    current = int(os.path.getsize(file))
     try:
-        client_s3.download_file(temp['s3'], key, temp['path'], Callback=callback)
-        return True
-    except Exception as e:
-        print(e)
+        with open(file, "ab") as f:
+            for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
+                f.write(chunk)
+                current += int(CHUNK_SIZE)
+                if callback:
+                    callback(current, total)
+        if path and file != path:
+            shutil.move(file, path)
+    except IOError as e:
+        print(e, file=sys.stderr)
         return False
+    finally:
+        sess.close()
+    return True

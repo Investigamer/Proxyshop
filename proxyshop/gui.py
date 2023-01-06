@@ -328,8 +328,7 @@ class UpdateEntry(BoxLayout):
         result = await ak.run_in_thread(
             lambda: update_template(
                 self.data,
-                self.progress.update_progress,
-                self.progress.s3_update_progress),
+                self.progress.update_progress),
             daemon=True
         )
         await ak.sleep(.5)
@@ -357,10 +356,6 @@ class UpdateProgress(ProgressBar):
 
     def update_progress(self, tran: int, total: int) -> None:
         self.value = int((tran / total) * 100)
-
-    def s3_update_progress(self, tran: int) -> None:
-        self.current += tran
-        self.value = int((self.current / self.download_size) * 100)
 
 
 """

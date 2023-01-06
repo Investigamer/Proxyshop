@@ -10,7 +10,7 @@ from glob import glob
 from pathlib import Path
 from typing import Optional, Callable
 from importlib import util, import_module
-from proxyshop import gdown
+from proxyshop import update
 from proxyshop.constants import con
 cwd = os.getcwd()
 
@@ -340,19 +340,22 @@ def get_current_version(file_id: str, path: str):
     return version
 
 
-def update_template(temp: dict, callback: Callable, s3_callback: Callable):
+def update_template(temp: dict, callback: Callable):
     """
     Update a given template to the latest version.
     @param temp: Dict containing template information.
     @param callback: Callback method to update progress bar.
-    @param s3_callback: Callback method to update progress bar for S3 downloading.
     """
     # Download using authorization
-    result = gdown.download(temp['id'], temp['path'], callback)
-    if not result:
-        if temp['s3']:
-            # Try grabbing from Amazon S3 instead
-            result = gdown.download_s3(temp, s3_callback)
+    try:
+        result = update.download_google(temp['id'], temp['path'], callback)
+        if not result:
+            if temp['s3']:
+                # Try grabbing from Amazon S3 instead
+                result = update.download_s3(temp, callback)
+    except Exception as e:
+        print(e)
+        return False
 
     # Change the version to match the new version
     if result:
