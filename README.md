@@ -27,35 +27,72 @@ Photoshop scripting to generate high-quality Magic card renders, original concep
 * Extract release into a folder of your choice.
 * Install the fonts included in the fonts folder.
 * OPTION 1: Download the templates linked above and drop them inside the templates folder. Make sure to keep named plugin folders like "MrTeferi" intact in the templates folder.
-* OPTION 2: Launch `Proxyshop.exe`. Click "Update", a window in your browser will open asking you to authenticate with Proxyshop using your google account. Once you've authenticated, Proxyshop will load templates available to download, download them as you please.
+* OPTION 2: Launch `Proxyshop.exe`. Click "Update". Proxyshop will load templates available to download, download them as you please.
 * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which will allow you to render your own custom cards.
 * The next set of tabs are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Fullart" for normal cards, "SilvanExtended" for MDFC, "Extended" for Planeswalker cards.
 * At the top are settings, saved to the config.ini file and maintained the next time you open the app. Automatic Set Symbol will input the correct expansion symbol according to the card's set information. Auto Symbol Size will size and center that symbol on the end of the typeline. Manual Edit Step will end the script automation when the card is finished so you can make manual changes before saving. You can also remove reminder text or flavor text from the card.
 * Hit "Render all" to render every card art in the `art` folder. Hit "Render target" to render one specific card.
+* Art file names should be structured like `<CARDNAME>.jpg`. You can optionally specify the card's set code in square brackets: 
+`<CARDNAME> [<SET>].jpg`. You can specify artist name in parentheses: `<CARDNAME> (<ARTIST NAME>).jpg`. Currently supported 
+filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
 * During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
-<br clear="right"/>
 
 # Config
-* Proxyshop has multiple settings options.
-    * Auto Set Symbol — Automatically insert the correct set symbol for each card.
-    * Auto Symbol Size — Automatically resize and position the set symbol on the typeline box.
-    * Auto Symbol Fill — Experimental feature that fills gaps in set symbol background.
-    * JPEG Saving — Will save render output files as JPEG.
-    * No Reminder Text — Remove reminder text from cards.
-    * No Flavor Text — Remove flavor text from cards.
-    * Manual Edit Step — Will pause the rendering process before saving for manual changes.
-    * Skip Failed Cards — Automatically skip any cards that fail (instead of asking to continue).
+* Proxyshop settings shown on the GUI:
+  * **Auto Set Symbol** — Automatically insert the correct set symbol for each card.
+  * **Auto Symbol Size** — Automatically resize and position the set symbol on the typeline box.
+  * **Flavor Divider** — Whether to render cards with a flavor divider when appropriate.
+  * **Reverse Scryfall** — When enabled, scryfall will use the oldest version of a card instead of newest.
+  * **No Reminder Text** — Remove reminder text from cards.
+  * **No Flavor Text** — Remove flavor text from cards.
+  * **Manual Edit Step** — Will pause the rendering process before saving for manual changes.
+  * **Skip Failed Cards** — Automatically skip any cards that fail (instead of asking to continue).
+* Proxyshop settings in config.ini only:
+  * `Save.Artist.Name` — Includes name of the artist in rendered files.
+  * `Output.Filetype` — Filetype to save renders as. (`jpg`, `png`, or `psd` supported)
+  * `Overwrite.Duplicate` — When disabled, duplicate renders will be saved numerically to avoid overwriting.
+  * `True.Collector.Info` — When set to false, the only collector info will be artist and set code.
+  * `Language` — You can specify a [Scryfall appropriate language code](https://scryfall.com/docs/api/languages) to render in alternate language.
+  * `Force.English.Formatting` — Will force english formatting on Photoshop text items, useful for regional Windows OS.
+  * `Default.Symbol` — The symbol that will be used if Auto.Set.Symbol is disabled. [See options here.](https://keyrune.andrewgioia.com/cheatsheet.html)
+  * `Symbol.Stroke.Size` — The default outline thickness of the set symbol.
+  * `Fill.Symbol.Background` — Experimental feature, will attempt to fill in the empty space of set symbols. Mostly deprecated.
+  * `Targeted.Replace` — Disable this if Proxyshop always crashes during filling collector info.
+  * `Dev.Mode` — When enabled, Proxyshop will launch with a simple interface used to test templates for consistency.
 
 # Setup and Usage Guide (Python Version)
-* Clone to a folder of your choice, referred to as the *working directory*.
-* Create a virtual environment: `py -m venv /venv`
-* Activate virtual environment: `venv/scripts/activate`
-* Install requirements.txt: `pip install -r requirements.txt`
+* Install Poetry to your system:
+```bash
+# Use this in Powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+
+# Also works on Windows if you have WSL
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Works if you have Scoop (http://scoop.sh)
+scoop install poetry
+```
+* Clone Proxyshop to a folder of your choice, referred to as the ***working directory***.
+* Open terminal/powershell in the working directory, enter `poetry install`. This will set up Proxyshop's dependencies 
+and virtual environment with Poetry.
 * Install the included fonts, only the ones listed above are required, the others may be useful to have.
-* Download the Photoshop templates, create a folder called `templates` in the working directory, and extract them into the folder.
-* Create a folder called `art` in the working directory. This is where you place art images for cards you want to proxy.
-* File names should be structured like `<CARDNAME> (<ARTIST NAME>).jpg`. Artist name is optional - if omitted, it will be retrieved from Scryfall. You can optionally specify the card's set like so: `<CARDNAME> [<SET>].jpg`. You can also include your proxy creator name like so: `<CARDNAME> {<CREATOR NAME>}.jpg`. For this to work you need to go into the photoshop template and add a text layer called "Creator" in the Legal layer group.
-* Run the app: `py main.py`
+* Create a folder called `templates` in the working directory. Download [the Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W), 
+it's recommended to download the entire folder. Google Drive will compress the folder into multiple zips. Once they finish
+downloading move all the zips into the `templates` folder you created, select them, right click and extract all. Doing it
+this way will guarantee the correct folder structure.
+* Create a folder called `art` in the working directory. This is where you place art images for cards you want to render.
+* File names should be structured like `<CARDNAME>.jpg`. You can optionally specify the card's set code in square brackets: 
+`<CARDNAME> [<SET>].jpg`. You can specify artist name in parentheses: `<CARDNAME> (<ARTIST NAME>).jpg`. Currently supported 
+filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
+* Run the app: 
+```bash
+# poetry run - Executes within Virtual environment
+poetry run main.py
+
+# poetry shell - Enters the virtual environment, from there things can be executed normally
+poetry shell
+py main.py
+```
 
 # FAQ 
 
@@ -107,7 +144,7 @@ There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where
 # Scope
 * Modern style cards, normal and extended; transform and mdfc, front and back; basic lands, normal, Theros, and Unstable styles; planeswalkers, normal and extended; mutate, adventure, miracle, and snow cards; and various flavours of fancy frames - stargazing, universes beyond, masterpiece, ZNE expedition, and womensday.
 * Leveler and saga cards require manual intervention to position text layers, but are automated up until that point.
-* Planeswalkers also require manual intervention to position text layers and the ragged textbox divider, but are automated up until that point.
+* Planeswalkers are fully automated now but may occasionally still need a human touch.
 
 # Google Drive Privacy Policy
 Proxyshop does not collect any information from users, period.
