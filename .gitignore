@@ -163,7 +163,7 @@ tester.py
 /proxyshop/datas/
 /proxyshop/version_tracker.json
 /release
-/proxyshop/env.json
+/proxyshop/__env__.py
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG

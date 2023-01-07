@@ -5,6 +5,12 @@ Keep all global variables here.
 import os
 import json
 from dataclasses import dataclass
+try:
+    from proxyshop.__env__ import google
+    from proxyshop.__env__ import cloudfront
+except ModuleNotFoundError:
+    google = ""
+    cloudfront = ""
 
 
 @dataclass
@@ -181,14 +187,8 @@ class Constants:
                 self.versions = {}
 
         # Import API Keys
-        try:
-            with open(os.path.join(self.cwd, "proxyshop/env.json"), "r", encoding="utf-8") as api_keys:
-                keys = json.load(api_keys)
-                self.google_api = keys['google']
-                self.cloudfront_url = keys['cloudfront']
-        except (FileNotFoundError, KeyError):
-            self.google_api = ""
-            self.cloudfront_url = ""
+        self.google_api = google
+        self.cloudfront_url = cloudfront
 
         # Important paths
         self.json_custom_path = os.path.join(self.cwd, "tmp\\custom.json")
