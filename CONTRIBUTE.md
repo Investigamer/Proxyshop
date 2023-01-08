@@ -4,10 +4,10 @@
 intention of contributing to the main Proxyshop repo, you need to use commitizen to make these commits. Commitizen 
 enforces [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), tracks version changes, and helps us automatically generate accurate changelogs.
 3. Start by staging your changes:
-`git add filename.py` - This will stage one file
-`git add path/to/filename.py` - This will stage a file in a directory
-`git add .` - This will stage every file that has changed
-You can also see files that have changed, or files that are currently staged with: `git status` or unstage all files with `git reset`
+   - `git add filename.py` - This will stage one file
+   - `git add path/to/filename.py` - This will stage a file in a directory
+   - `git add .` - This will stage every file that has changed
+   - You can also see files that have changed, or files that are currently staged with `git status` or unstage all files with `git reset`
 4. Commit your changes with commitizen using `cz commit`. Commitizen will now take you through some prompts to put together the perfect commit. Let's look at each part of this process:
 > **Select the type of change you are commiting**
 > You're presented with a multiple choice selection. The descriptions are pretty self-explanatory, you can google them up for deeper explanation.
