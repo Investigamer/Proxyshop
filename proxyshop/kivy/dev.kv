@@ -1,0 +1,48 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import ScrollView kivy.uix.scrollview.ScrollView
+#:import Window kivy.core.window.Window
+#:import Thread threading.Thread
+#:import ak asynckivy
+#:import cfg proxyshop.settings.cfg
+
+<TestApp>:
+    id: test_app
+    orientation: "vertical"
+    BoxLayout:
+        size_hint: 1, .08
+        orientation: "horizontal"
+        spacing: 12
+        padding: 12
+        HoverButton:
+            id: test_all
+            font_size: 20
+            text: "Test All"
+            font_name: "Roboto"
+            on_release: Thread(target=app.test_all, daemon=True).start()
+        HoverButton:
+            id: test_target
+            font_size: 20
+            text: "Deep Test Target"
+            font_name: "Roboto"
+            on_release: test_app.select_template()
+        HoverButton:
+            id: test_all_deep
+            font_size: 20
+            text: "Deep Test All"
+            font_name: "Roboto"
+            on_release: Thread(target=app.test_all, args=(True,), daemon=True).start()
+
+<TemplateSelector>:
+    title: "Select a template to test!"
+    ScrollView:
+        id: viewport
+        always_overscroll: False
+        do_scroll_x: False
+        size_hint: (1, 1)
+        scroll_wheel_distance: 60
+        BoxLayout:
+            id: content
+            title: "Select test template"
+            orientation: "vertical"
+            size_hint: (1, None)
+            height: self.minimum_height

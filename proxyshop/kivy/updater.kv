@@ -1,0 +1,107 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import ScrollView kivy.uix.scrollview.ScrollView
+#:import Window kivy.core.window.Window
+#:import Thread threading.Thread
+#:import ak asynckivy
+#:import cfg proxyshop.settings.cfg
+
+<UpdatePopup>:
+    title: "Proxyshop Updater"
+    BoxLayout:
+        orientation: "vertical"
+        BoxLayout:
+            canvas:
+                Color:
+                    rgba: get_color_from_hex("#181818")
+                Rectangle:
+                    size: self.width,self.height
+                    pos: self.pos
+            orientation: "horizontal"
+            size_hint: (1,None)
+            height: 40
+            padding: 5
+            spacing: 10
+            Label:
+                id: loading_text
+                text: " [i]Checking for updates...[/i]"
+                halign: "left"
+                valign: "center"
+                text_size: self.size
+                font_size: 18
+                size_hint: (.85, 1)
+                markup: True
+            HoverButton:
+                options: ["CLOSE"]
+                text: "Close"
+                size_hint: (.15,1)
+                font_size: 20
+                on_release: root.dismiss()
+        ScrollView:
+            id: viewport
+            always_overscroll: False
+            do_scroll_x: False
+            size_hint: (1, 1)
+            GridLayout:
+                id: container
+                cols: 1
+                size_hint: (1,None)
+                height: self.minimum_height
+                padding: [0,20,0,0]
+                Image:
+                    id: loading
+                    source: "proxyshop/img/loading.gif"
+                    allow_stretch: True
+                    size_hint: 1, None
+                    height: 180
+                    width: 180
+                    keep_ratio: True
+                    anim_delay: .06
+
+<UpdateEntry>:
+    id: entry
+    size_hint: (1,None)
+    height: 40
+    padding: 5
+    spacing: 10
+    canvas:
+        Color:
+            rgba: get_color_from_hex(self.bg_color)
+        Rectangle:
+            size: self.width,self.height
+            pos: self.pos
+    Label:
+        id: title
+        text: self.parent.name
+        font_size: 20
+        text_size: self.size
+        halign: "left"
+        valign: "center"
+        size_hint: (.60, 1)
+        markup: True
+    Label:
+        id: status
+        text: self.parent.status
+        font_size: 18
+        text_size: self.size
+        halign: "right"
+        valign: "center"
+        size_hint: (.10, 1)
+        markup: True
+    BoxLayout:
+        id: mark_updated
+        size_hint: (.15, 1)
+        HoverButton:
+            options: ["Dismiss"]
+            text: "Dismiss"
+            font_size: 18
+            on_release: ak.start(entry.mark_updated())
+            background_color: get_color_from_hex("#821923")
+            hover_color: "#b81d2c"
+    BoxLayout:
+        id: download
+        size_hint: (.15, 1)
+        HoverButton:
+            options: ["Download"]
+            text: "Download"
+            font_size: 20
+            on_release: ak.start(entry.download_update(self.parent))

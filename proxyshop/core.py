@@ -403,5 +403,3 @@ class Console:
     def wait(msg):
         print(msg)
         input("Would you like to continue?")
-
-console = Console()

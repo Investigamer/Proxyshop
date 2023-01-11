@@ -12,10 +12,7 @@ from urllib import request, parse
 
 from proxyshop.settings import cfg
 from proxyshop.constants import con
-if not con.headless:
-    from proxyshop.gui import console
-else:
-    from proxyshop.core import console
+from proxyshop.__console__ import console
 
 
 def card_info(card_name: str, card_set: Optional[str] = None) -> Union[dict, Exception]:

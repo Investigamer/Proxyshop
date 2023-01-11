@@ -10,10 +10,7 @@ from photoshop.api._artlayer import ArtLayer
 
 import proxyshop.helpers as psd
 from proxyshop.constants import con
-if not con.headless:
-    from proxyshop.gui import console
-else:
-    from proxyshop.core import console
+from proxyshop.__console__ import console
 
 # QOL Definitions
 app = ps.Application()

@@ -21,10 +21,11 @@ from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from photoshop import api as ps
-
 from proxyshop.__version__ import version
-from proxyshop.creator import CreatorPanels
-from proxyshop.gui import HoverBehavior, TestApp, console
+from proxyshop.__console__ import console
+from proxyshop.gui.creator import CreatorPanels
+from proxyshop.gui.dev import TestApp
+from proxyshop.gui.utils import HoverBehavior
 from proxyshop.scryfall import card_info
 from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info
@@ -52,7 +53,7 @@ class ProxyshopApp(App):
 		super().__init__(**kwargs)
 
 		# App settings
-		self.title = f"Proxyshop {version}"
+		self.title = f"Proxyshop v{version}"
 		self.icon = 'proxyshop/img/proxyshop.png'
 		self.cont_padding = 10
 
@@ -424,8 +425,10 @@ class ProxyshopApp(App):
 		"""
 		Build the app for display.
 		"""
-		if cfg.dev_mode: layout = TestApp()
-		else: layout = ProxyshopPanels()
+		if cfg.dev_mode:
+			layout = TestApp()
+		else:
+			layout = ProxyshopPanels()
 		layout.add_widget(console)
 		return layout
 
@@ -559,8 +562,9 @@ class SettingButton(ToggleButton):
 		"""
 		Retrieve initial state based on user settings.
 		"""
-		if setting: return "down"
-		else: return "normal"
+		if setting:
+			return "down"
+		return "normal"
 
 
 if __name__ == '__main__':

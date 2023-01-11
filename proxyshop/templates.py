@@ -18,10 +18,7 @@ from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
 from photoshop import api as ps
-if not con.headless:
-    from proxyshop.gui import console
-else:
-    from proxyshop.core import console
+from proxyshop.__console__ import console
 
 
 class BaseTemplate:

@@ -2,21 +2,17 @@
 PHOTOSHOP HELPER FUNCTIONS
 """
 from typing import Optional, Union
-
 import os
 
+import photoshop.api as ps
 from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
-from proxyshop.constants import con
-import photoshop.api as ps
-if not con.headless:
-    from proxyshop.gui import console
-else:
-    from proxyshop.core import console
+from proxyshop.__console__ import console
+
 
 # QOL Definitions
 cwd = os.getcwd()
