@@ -9,17 +9,24 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
 photoshop-python-api = "^0.21.0"
-Kivy = "^2.1.0"
 requests = "^2.28.1"
 asynckivy = "^0.5.4"
 Pillow = "^9.4.0"
 pyclean = "^2.2.0"
+kivy = {version = "^2.2.0.dev0", source = "kivy"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 mypy = "^0.991"
 commitizen = "^2.39.1"
 pyinstaller = "5.6.2"
+
+
+[[tool.poetry.source]]
+name = "kivy"
+url = "https://kivy.org/downloads/simple/"
+default = false
+secondary = true
 
 [build-system]
 requires = ["poetry-core"]
