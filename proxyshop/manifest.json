@@ -76,6 +76,12 @@
             "id": "1HSR4-p1Vc536MplMMonPiL5lehM-cSGo"
         }
     },
+    "Prototype": {
+        "Normal": {
+            "file": "prototype.psd",
+            "id": "1Pss6HUhxIpuC2TdQ-PR5rU0Fa9BZzjQ7"
+        }
+    },
     "Adventure": {
         "Normal": {
             "file": "adventure.psd",
