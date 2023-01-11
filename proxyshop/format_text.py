@@ -265,7 +265,7 @@ def format_flavor_text(input_string: str) -> None:
     ref101 = ps.ActionReference()
     idTxtS = sID("textStyle")
     idTxLr = cID("TxLr")
-    idT = cID("T   ")
+    idTo = sID("to")
     idPnt = cID("#Pnt")
     idTxtt = cID("Txtt")
 
@@ -274,21 +274,19 @@ def format_flavor_text(input_string: str) -> None:
     desc119.putReference(cID("null"), ref101)
     primary_action_descriptor.putString(cID("Txt "), input_string)
     desc25.putInteger(cID("From"), 0)
-    desc25.putInteger(idT, len(input_string))
-    desc26.putString(sID("fontPostScriptName"), con.font_rules_text)  # MPlantin default
-    desc26.putString(cID("FntN"), con.font_rules_text)  # MPlantin default
-    desc26.putUnitDouble(cID("Sz  "), idPnt, layer_font_size)
+    desc25.putInteger(idTo, len(input_string))
+    desc26.putString(sID("fontPostScriptName"), con.font_rules_text)
+    desc26.putString(sID("fontName"), con.font_rules_text)
+    desc26.putUnitDouble(sID("size"), idPnt, layer_font_size)
     desc26.putBoolean(sID("autoLeading"), False)
-    desc26.putUnitDouble(cID("Ldng"), idPnt, layer_font_size)
+    desc26.putUnitDouble(sID("leading"), idPnt, layer_font_size)
     desc25.putObject(idTxtS, idTxtS, desc26)
     primary_action_list.putObject(idTxtt, desc25)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
 
-    # Push changes to document
-    desc119.putObject(idT, idTxLr, primary_action_descriptor)
-    app.executeAction(cID("setd"), desc119, NO_DIALOG)
-
-    # Reset layer's justification if needed and disable hyphenation
+    # Push changes to document, disable hyphenation
+    desc119.putObject(idTo, idTxLr, primary_action_descriptor)
+    app.executeAction(sID("set"), desc119, NO_DIALOG)
     app.activeDocument.activeLayer.textItem.hyphenation = False
 
 
@@ -333,12 +331,18 @@ def strip_reminder_text(oracle_text: str) -> str:
     return oracle_text
 
 
-def classic_align_right(action_list: ps.ActionList, start: int, end: int) -> ps.ActionList:
+def align_formatted_text(
+    action_list: ps.ActionList,
+    start: int,
+    end: int,
+    alignment: str = "right"
+):
     """
     Align the quote credit of --Name to the right like on some classic cards.
     @param action_list: Action list to add this action to
     @param start: Starting index of the quote string
     @param end: Ending index of the quote string
+    @param alignment: left, right, or center
     @return: Returns the existing ActionDescriptor with changes applied
     """
     desc1 = ps.ActionDescriptor()
@@ -347,12 +351,33 @@ def classic_align_right(action_list: ps.ActionList, start: int, end: int) -> ps.
     desc2 = ps.ActionDescriptor()
     idstyleSheetHasParent = sID("styleSheetHasParent")
     desc2.putBoolean(idstyleSheetHasParent, True)
-    desc2.putEnumerated(cID("Algn"), cID("Alg "), cID("Rght"))
+    desc2.putEnumerated(cID("Algn"), cID("Alg "), sID(alignment))
     idparagraphStyle = sID("paragraphStyle")
     desc1.putObject(idparagraphStyle, idparagraphStyle, desc2)
     idparagraphStyleRange = sID("paragraphStyleRange")
     action_list.putObject(idparagraphStyleRange, desc1)
     return action_list
+
+
+def align_formatted_text_right(action_list: ps.ActionList, start: int, end: int):
+    """
+    Quality of life shorthand to call align_formatted_text with correct alignment.
+    """
+    align_formatted_text(action_list, start, end, "right")
+
+
+def align_formatted_text_left(action_list: ps.ActionList, start: int, end: int):
+    """
+    Quality of life shorthand to call align_formatted_text with correct alignment.
+    """
+    align_formatted_text(action_list, start, end, "left")
+
+
+def align_formatted_text_center(action_list: ps.ActionList, start: int, end: int):
+    """
+    Quality of life shorthand to call align_formatted_text with correct alignment.
+    """
+    align_formatted_text(action_list, start, end, "center")
 
 
 def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:

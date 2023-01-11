@@ -169,7 +169,7 @@ class FormattedTextField (TextField):
 
     @cached_property
     def flavor_centered(self) -> bool:
-        return self.kwargs.get('flavor_centered', False)
+        return self.kwargs.get('flavor_centered', self.contents_centered)
 
     @cached_property
     def line_break_lead(self) -> Union[int, float]:
@@ -222,9 +222,6 @@ class FormattedTextField (TextField):
         Inserts the given string into the active layer and formats it according to defined parameters with symbols
         from the NDPMTG font.
         """
-        # Record the layer's justification before modifying the layer in case it's reset along the way
-        layer_justification = app.activeDocument.activeLayer.textItem.justification
-
         # Prepare action descriptor and reference variables
         primary_action_descriptor = ps.ActionDescriptor()
         primary_action_list = ps.ActionList()
@@ -252,7 +249,7 @@ class FormattedTextField (TextField):
         idspaceAfter = sID("spaceAfter")
         idTxtS = sID("textStyle")
         idTxLr = sID("textLayer")
-        idT = sID("to")
+        idTo = sID("to")
         idFntN = sID("fontName")
         idSz = sID("size")
         idPnt = sID("pointsUnit")
@@ -265,7 +262,7 @@ class FormattedTextField (TextField):
         desc119.putReference(cID("null"), ref101)
         primary_action_descriptor.putString(sID("textKey"), self.input)
         desc25.putInteger(idFrom, 0)
-        desc25.putInteger(idT, len(self.input))
+        desc25.putInteger(idTo, len(self.input))
         desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
         desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
         desc26.putUnitDouble(idSz, idPnt, self.font_size)
@@ -282,9 +279,9 @@ class FormattedTextField (TextField):
             contents_index = len(self.input) - 1 if self.flavor_index < 0 else self.flavor_index - 1
             primary_action_list.putObject(idTxtt, current_layer_ref)
             bold_action1.putInteger(idFrom, 0)  # bold start index
-            bold_action1.putInteger(idT, contents_index)  # bold end index
-            bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)  # MPlantin italic default
-            bold_action2.putString(idFntN, con.font_rules_text_bold)  # MPlantin italic default
+            bold_action1.putInteger(idTo, contents_index)  # bold end index
+            bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)
+            bold_action2.putString(idFntN, con.font_rules_text_bold)
             bold_action2.putUnitDouble(idSz, idPnt, self.font_size)
             psd.apply_color(bold_action2, self.color)
             bold_action2.putBoolean(idautoLeading, False)
@@ -298,7 +295,7 @@ class FormattedTextField (TextField):
             italics_action2 = ps.ActionDescriptor()
             primary_action_list.putObject(idTxtt, current_layer_ref)
             italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
-            italics_action1.putInteger(idT, italics_index['end_index'])  # italics end index
+            italics_action1.putInteger(idTo, italics_index['end_index'])  # italics end index
             italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)
             italics_action2.putString(idFntN, con.font_rules_text_italic)
             italics_action2.putUnitDouble(idSz, idPnt, self.font_size)
@@ -324,7 +321,7 @@ class FormattedTextField (TextField):
 
         # Paragraph formatting
         desc141.putInteger(idFrom, 0)
-        desc141.putInteger(idT, len(self.input))  # input string length
+        desc141.putInteger(idTo, len(self.input))  # input string length
         desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
         desc142.putUnitDouble(idstartIndent, idPnt, 0)
         desc142.putUnitDouble(sID("endIndent"), idPnt, 0)
@@ -343,7 +340,7 @@ class FormattedTextField (TextField):
             startIndexBullet = self.input.find("\u2022")
             endIndexBullet = self.input.rindex("\u2022")
             desc141.putInteger(idFrom, startIndexBullet)
-            desc141.putInteger(idT, endIndexBullet + 1)
+            desc141.putInteger(idTo, endIndexBullet + 1)
             desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent)  # negative modal indent
             desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent)  # modal indent
             desc142.putUnitDouble(idspaceBefore, idPnt, 1)
@@ -362,7 +359,7 @@ class FormattedTextField (TextField):
         if self.flavor_index >= 0:
             # Add linebreak spacing between rules and flavor text
             desc141.putInteger(idFrom, self.flavor_index + 3)
-            desc141.putInteger(idT, self.flavor_index + 4)
+            desc141.putInteger(idTo, self.flavor_index + 4)
             desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
             desc142.putUnitDouble(sID("impliedFirstLineIndent"), idPnt, 0)
             desc142.putUnitDouble(idstartIndent, idPnt, 0)
@@ -388,11 +385,10 @@ class FormattedTextField (TextField):
                 primary_action_descriptor.putList(sID("textStyleRange"), list15)
 
         # Quote actions flavor text
-        disable_justify = False
         if self.quote_index >= 0:
             # Adjust line break spacing if there's a line break in the flavor text
             desc141.putInteger(idFrom, self.quote_index + 3)
-            desc141.putInteger(idT, len(self.input))
+            desc141.putInteger(idTo, len(self.input))
             desc142.putUnitDouble(idspaceBefore, idPnt, 0)
             desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
             list13.putObject(idparagraphStyleRange, desc141)
@@ -404,20 +400,15 @@ class FormattedTextField (TextField):
                 index_end = len(self.input) - 1
 
                 # Align this part, disable justification reset
-                list13 = ft.classic_align_right(list13, index_start, index_end)
-                disable_justify = True
+                ft.align_formatted_text_right(list13, index_start, index_end)
 
             # Add quote actions to primary action
             primary_action_descriptor.putList(idparagraphStyleRange, list13)
             primary_action_descriptor.putList(idkerningRange, list14)
 
         # Push changes to text layer
-        desc119.putObject(idT, idTxLr, primary_action_descriptor)
+        desc119.putObject(idTo, idTxLr, primary_action_descriptor)
         app.executeAction(sID("set"), desc119, NO_DIALOG)
-
-        # Reset layer's justification if needed and disable hyphenation
-        if not disable_justify:
-            app.activeDocument.activeLayer.textItem.justification = layer_justification
         app.activeDocument.activeLayer.textItem.hyphenation = False
 
     def execute(self):
@@ -524,7 +515,7 @@ class FormattedTextArea (FormattedTextField):
             ft.vertically_align_text(self.layer, self.reference)
 
             # Ensure the layer is centered horizontally if needed
-            if self.contents_centered:
+            if self.contents_centered and self.flavor_centered:
                 psd.select_layer_bounds(self.reference)
                 app.activeDocument.activeLayer = self.layer
                 psd.align_horizontal()

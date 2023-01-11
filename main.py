@@ -3,6 +3,7 @@ PROXYSHOP - GUI LAUNCHER
 """
 import json
 import os
+os.environ["KIVY_NO_CONSOLELOG"] = "1"
 import sys
 import threading
 import time

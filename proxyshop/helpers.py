@@ -321,6 +321,7 @@ def get_text_layer_color(layer: ArtLayer) -> ps.SolidColor:
     Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
     against errors and null values by defaulting to rgb_black() in the event of a problem.
     @param layer: Layer object that must be TextLayer
+    @return: SolidColor object representing the color of the text item.
     """
     if isinstance(layer, ArtLayer) and layer.kind == ps.LayerKind.TextLayer:
         if hasattr(layer.textItem, 'color'):
