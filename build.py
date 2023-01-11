@@ -8,11 +8,14 @@ from pathlib import Path
 from shutil import copy2, copytree, rmtree, move
 import PyInstaller.__main__
 
+from proxyshop.__version__ import version
+
 # Folder definitions
 CWD = os.getcwd()
-DIST = os.path.join(CWD, 'dist')
 PS = os.path.join(os.getcwd(), 'proxyshop')
+DIST = os.path.join(CWD, 'dist')
 DIST_PS = os.path.join(os.getcwd(), 'dist/proxyshop')
+DIST_PS_PLUGINS = os.path.join(DIST_PS, 'plugins')
 
 # All individual files that need to be copied upon pyinstaller completion
 files = [
@@ -32,9 +35,11 @@ folders = [
     # --- WORKING DIRECTORY
     {'src': os.path.join(CWD, "fonts"), 'dst': os.path.join(DIST, 'fonts')},
     # --- PROXYSHOP DIRECTORY
-    {'src': os.path.join(PS, "plugins"), 'dst': os.path.join(DIST_PS, 'plugins')},
     {'src': os.path.join(PS, "kivy"), 'dst': os.path.join(DIST_PS, 'kivy')},
     {'src': os.path.join(PS, "img"), 'dst': os.path.join(DIST_PS, 'img')},
+    # --- PLUGINS DIRECTORY
+    {'src': os.path.join(PS, "plugins/MrTeferi"), 'dst': os.path.join(DIST_PS_PLUGINS, 'MrTeferi')},
+    {'src': os.path.join(PS, "plugins/SilvanMTG"), 'dst': os.path.join(DIST_PS_PLUGINS, 'SilvanMTG')},
 ]
 
 
@@ -59,6 +64,7 @@ def make_dirs():
     Path(DIST_PS).mkdir(mode=511, parents=True, exist_ok=True)
     Path(os.path.join(DIST, "art")).mkdir(mode=511, parents=True, exist_ok=True)
     Path(os.path.join(DIST, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(DIST_PS_PLUGINS).mkdir(mode=511, parents=True, exist_ok=True)
 
 
 def move_data():
@@ -74,7 +80,7 @@ def move_data():
     for f in folders: copytree(f['src'], f['dst'])
 
 
-def build_zip(version):
+def build_zip():
     """
     Create a zip of this release.
     """
@@ -90,9 +96,6 @@ def build_zip(version):
 
 if __name__ == '__main__':
 
-    # Prompt user to start
-    v = input("ENTER VERSION NUMBER, EX: 1.2.0\n")
-
     # Pre-build steps
     clear_build_files()
     make_dirs()
@@ -106,5 +109,5 @@ if __name__ == '__main__':
 
     # Post-build steps
     move_data()
-    build_zip(v)
+    build_zip()
     clear_build_files(False)
