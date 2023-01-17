@@ -184,7 +184,7 @@ class BaseLayout:
 
     @cached_property
     def collector_number(self) -> str:
-        num = str(self.scryfall['collector_number']).replace("p", "")
+        num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
         if len(num) == 2:
             num = f"0{num}"
         elif len(num) == 1:
@@ -414,41 +414,41 @@ class MeldLayout (NormalLayout):
     """
     Used for Meld cards
     """
-    def __init__(self, scryfall: dict, file: dict):
-        super().__init__(scryfall, file)
 
-        # Determine if this card is a meld part or a meld result
-        all_parts = self.scryfall['all_parts']
-        meld_result_name = ""
-        self.meld_index = 0
-        for part in all_parts:
-            if part['component'] == "meld_result":
-                meld_result_name = part['name']
-                self.meld_index = all_parts.index(part)
-                break
+    @cached_property
+    def card(self) -> dict:
+        for face in self.scryfall['faces']:
+            if face['name'] == self.scryfall['name']:
+                if face['component'] == 'meld_result':
+                    face['front'] = False
+                    return face
+                face['front'] = True
+                return face
 
-        # Is this the meld result?
-        if self.name_raw == meld_result_name:
-            self.card['front'] = False
-        else:
-            self.card['front'] = True
+    @cached_property
+    def other_face(self) -> Optional[dict]:
+        if self.card['front']:
+            for face in self.scryfall['faces']:
+                if face['component'] == 'meld_result':
+                    return face
+        return
 
     @cached_property
     def other_face_power(self) -> Optional[str]:
-        if 'info' in self.scryfall['all_parts'][self.meld_index] and self.card['front']:
-            return self.scryfall['all_parts'][self.meld_index]['info']['power']
+        if self.other_face:
+            return self.other_face['power']
         return
 
     @cached_property
     def other_face_toughness(self) -> Optional[str]:
-        if 'info' in self.scryfall['all_parts'][self.meld_index] and self.card['front']:
-            return self.scryfall['all_parts'][self.meld_index]['info']['toughness']
+        if self.other_face:
+            return self.other_face['toughness']
         return
 
     @cached_property
     def transform_icon(self) -> str:
-        # TODO: safe to assume the first frame effect is transform icon?
-        return self.scryfall['frame_effects'][0]
+        # TODO: Safe to assume the first frame effect is transform icon?
+        return self.card['frame_effects'][0]
 
     @cached_property
     def default_class(self):

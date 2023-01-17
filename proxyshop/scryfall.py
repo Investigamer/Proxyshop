@@ -8,7 +8,7 @@ from shutil import copyfileobj
 
 import requests
 from typing import Optional, Union
-from urllib import request, parse
+from urllib import parse
 
 from proxyshop.settings import cfg
 from proxyshop.constants import con
@@ -17,20 +17,23 @@ from proxyshop.__console__ import console
 
 def card_info(card_name: str, card_set: Optional[str] = None) -> Union[dict, Exception]:
     """
-    Search Scryfall for a card
+    Search Scryfall for a card.
     @param card_name: Name of card
-    @param card_set: OPTIONAL, Card set
+    @param card_set: Set code of card
     @return: Card dict or error
     """
-    # Was an alternate language provided?
+    # Alternate language
     if cfg.lang != "en":
-
-        # Query the card in given language, have to use /card/search/
         card = get_card_search(card_name, cfg.lang, card_set)
-        if isinstance(card, dict): return card
-        else: console.update(f"Reverting to English: [b]{card_name} [lang: {str(cfg.lang)}][/b]", card)
+        if isinstance(card, dict):
+            return card
+        # Failed to find alternate language version
+        if not cfg.dev_mode:
+            console.update(
+                f"Reverting to English: [b]{card_name} [lang: {str(cfg.lang)}][/b]", card
+            )
 
-    # Query the card using /card/named/
+    # Query the card in English
     card = get_card_search(card_name, set_code=card_set)
     return card
 
@@ -47,13 +50,9 @@ def get_card_search(
     @param set_code: Set code to look for, ex: MH2
     @return: Card dict or exception
     """
-    # Choose order of search
+    # Order, language, set code
     order = "&order=released&dir=asc" if cfg.scry_ascending else ""
-
-    # Lang code given?
     lang = f" lang:{language}" if language else ""
-
-    # Set code given?
     code = f"+set%3A{set_code}" if set_code else ""
 
     # Query Scryfall, 3 retries
@@ -66,7 +65,7 @@ def get_card_search(
             for card in card['data']:
                 if 'set_type' in card:
                     if card['set_type'] != "memorabilia":
-                        return card
+                        return add_meld_info(card)
             raise Exception("Could not find a playable card with this name!")
         except Exception as e:
             err = e
@@ -87,7 +86,8 @@ def set_info(set_code: str) -> Optional[dict]:
             with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
                 return loaded
-    except Exception as e: console.log_exception(e)
+    except Exception as e:
+        console.log_exception(e)
     err = None
     url = f"https://mtgjson.com/api/v5/{set_code.upper()}.json"
 
@@ -95,18 +95,17 @@ def set_info(set_code: str) -> Optional[dict]:
     for i in range(5):
         try:
             source = requests.get(url, headers=con.http_header).text
-            j = json.loads(source)
-            j = j['data']
+            j = json.loads(source)['data']
             j.pop('cards')
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(j, f, sort_keys = True, ensure_ascii = False)
+                json.dump(j, f, sort_keys=True, ensure_ascii=False)
             return j
         except Exception as e:
             # Remote disconnected
             err = e
         time.sleep(float(i/5))
     console.log_exception(err)
-    return None
+    return
 
 
 def card_scan(img_url: str) -> Optional[str]:
@@ -135,9 +134,15 @@ def add_meld_info(card_json: dict) -> dict:
     difficult to make another query while building the card's layout obj. For each part in all_parts, query Scryfall
     for the full card info from that part's uri.
     """
-    if card_json["layout"] == "meld":
-        for i in range(0, 3):
-            uri = card_json["all_parts"][i]["uri"]
-            with request.urlopen(uri) as data:
-                card_json["all_parts"][i]["info"] = json.loads(data.read())
+    # Only for Meld cards
+    if card_json['layout'] == "meld":
+        # Add list of faces to the JSON data
+        card_json['faces'] = []
+        for part in card_json['all_parts']:
+            # Ignore tokens and other objects
+            if part['component'] in ('meld_part', 'meld_result'):
+                # Grab the card face data, add component type, insert it
+                data = requests.get(part["uri"], headers=con.http_header).json()
+                data['component'] = part['component']
+                card_json["faces"].append(data)
     return card_json
