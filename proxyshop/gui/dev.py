@@ -5,10 +5,10 @@ import os
 import threading
 
 from kivy.app import App
-from kivy.core.text import Label
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
+from kivy.uix.label import Label
 
 from proxyshop.core import get_templates
 from proxyshop.gui.utils import HoverButton
@@ -20,7 +20,7 @@ class TestApp(BoxLayout):
     """
     Template Tester
     """
-    Builder.load_file(os.path.join(cwd, "proxyshop/kivy/dev.kv"))
+    Builder.load_file(os.path.join(cwd, "proxyshop/kv/dev.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

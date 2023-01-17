@@ -3,11 +3,11 @@ UPDATER FUNCTIONALITY
 """
 import os
 
-from kivy.core.text import Label
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
+from kivy.uix.label import Label
 import asynckivy as ak
 
 from proxyshop.constants import con
@@ -20,7 +20,7 @@ class UpdatePopup(Popup):
     """
     Popup modal for updating templates.
     """
-    Builder.load_file(os.path.join(cwd, "proxyshop/kivy/updater.kv"))
+    Builder.load_file(os.path.join(cwd, "proxyshop/kv/updater.kv"))
     loading = True
     updates = {}
     categories = {}

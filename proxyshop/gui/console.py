@@ -8,30 +8,30 @@ import threading
 import time
 from traceback import print_tb
 from typing import Union
-
+import asynckivy as ak
+from datetime import datetime as dt
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-from datetime import datetime as dt
-import asynckivy as ak
 from kivy.uix.label import Label
 
+
 from proxyshop.gui.updater import UpdatePopup
-from proxyshop.settings import cfg
+from proxyshop.settings import cfg, Singleton
 
 cwd = os.getcwd()
 
 
-class Console (BoxLayout):
+class Console(BoxLayout):
     """
     Main console class
     """
-    Builder.load_file(os.path.join(cwd, "proxyshop/kivy/console.kv"))
+    __metaclass__ = Singleton
+    Builder.load_file(os.path.join(cwd, "proxyshop/kv/console.kv"))
     lines = 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Dev mode has larger view
         if not cfg.dev_mode:
             self.size_hint = (1, .58)
 
@@ -182,10 +182,8 @@ class ConsoleOutput(Label):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if cfg.dev_mode:
-            self.text = "Test mode enabled!\n"
-        else:
-            self.text = "All systems go! Let's make a proxy.\n"
+        if cfg.dev_mode: self.text = "Test mode enabled!\n"
+        else: self.text = "All systems go! Let's make a proxy.\n"
 
 
 class ConsoleControls(BoxLayout):

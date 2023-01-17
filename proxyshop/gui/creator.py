@@ -6,11 +6,13 @@ import threading
 from typing import Callable
 
 from kivy.app import App
+from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
 from proxyshop import core
+from proxyshop.core import TemplateDetails
 
 cwd = os.getcwd()
 
@@ -20,6 +22,8 @@ DISPLAY ELEMENTS
 
 
 class CreatorPanels(TabbedPanel):
+    Builder.load_file(os.path.join(cwd, "proxyshop/kv/creator.kv"))
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -42,15 +46,16 @@ class CreatorTabItem(TabbedPanelItem):
 
 
 class CreatorLayout(GridLayout):
-    def __init__(self, parent: TabbedPanel, c_type: str, **kwargs):
-        # Get our templates alphabetical
+    def __init__(self, parent: TabbedPanel, card_type: str, **kwargs):
         self.root = parent
         self.selected_template = "Normal"
-        temps_t = core.get_templates()[c_type]
-        self.templates = ["Normal"]
-        temps_t.pop("Normal")
-        self.templates.extend(sorted(temps_t))
-        del temps_t
+
+        # Get our templates alphabetical
+        temps = core.get_templates()[card_type]
+        temps = [temp['name'] for temp in temps]
+        normal = temps.pop(0)
+        self.templates = sorted(temps)
+        self.templates.insert(0, normal)
         super().__init__(**kwargs)
 
     def select_template(self, spinner: Spinner):
@@ -76,7 +81,7 @@ class CreatorLayout(GridLayout):
         self.root.creator_pw_layout.ids.render_pw.disabled = False
         self.root.creator_saga_layout.ids.render_saga.disabled = False
 
-    def render_custom(self, func: Callable, temp: list, scryfall: dict):
+    def render_custom(self, func: Callable, temp: TemplateDetails, scryfall: dict):
         self.disable_buttons()
         th = threading.Thread(target=func, args=(temp, scryfall), daemon=True)
         th.start()
@@ -106,8 +111,8 @@ class CreatorNormalLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_templates()["normal"][self.ids.template.text]
-        self.render_custom(root.render_custom, temp, scryfall)
+        temp = core.get_my_templates({"normal": self.ids.template.text})
+        self.render_custom(root.render_custom, temp["normal"], scryfall)
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
@@ -134,8 +139,8 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_templates()["planeswalker"][self.ids.template.text]
-        self.render_custom(root.render_custom, temp, scryfall)
+        temp = core.get_my_templates({"planeswalker": self.ids.template.text})
+        self.render_custom(root.render_custom, temp['planeswalker'], scryfall)
 
 
 class CreatorSagaLayout(CreatorLayout):
@@ -174,8 +179,8 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_templates()["saga"][self.ids.template.text]
-        self.render_custom(root.render_custom, temp, scryfall)
+        temp = core.get_my_templates({"saga": self.ids.template.text})
+        self.render_custom(root.render_custom, temp['saga'], scryfall)
 
 
 """

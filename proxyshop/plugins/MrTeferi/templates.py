@@ -243,20 +243,6 @@ CLASSIC TEMPLATE VARIANTS
 """
 
 
-class PromoClassicTemplate (temp.NormalClassicTemplate):
-    """
-    Identical to NormalClassic
-    Promo star added
-    """
-    template_suffix = "Classic Promo"
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add the promo star
-        psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
-
-
 class ColorshiftedTemplate (temp.NormalTemplate):
     """
     Planar Chaos era colorshifted template
@@ -344,18 +330,3 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
 
         # Content aware fill
         psd.content_fill_empty_area(self.art_layer)
-
-
-class BasicLandClassicPromo (temp.BasicLandTemplate):
-    """
-    Basic land template for 7th Edition basics.
-    Adds promo star.
-    """
-    template_file_name = "basic-classic"
-    template_suffix = "Promo Classic"
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add the promo star
-        psd.getLayer("Promo Star").visible = True

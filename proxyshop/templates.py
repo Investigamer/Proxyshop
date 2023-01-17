@@ -25,8 +25,8 @@ class BaseTemplate:
     """
     Set up variables for things which are common to all templates, extend this at bare minimum.
     """
-    template_file_name = None
-    template_suffix = None
+    template_file_name = ""
+    template_suffix = ""
 
     def __init__(self, layout):
 
@@ -569,11 +569,7 @@ class BaseTemplate:
         # Check if name already exists
         if not cfg.overwrite_duplicate:
             num = 0
-            while any([
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.png")),
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.psd")),
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.jpg")),
-            ]):
+            while os.path.exists(os.path.join(con.cwd, f"out/{name}.{cfg.output_filetype}")):
                 num += 1
                 if ")" not in name:
                     name = f'{name} (1)'
@@ -683,6 +679,8 @@ class BaseTemplate:
             self.load_artwork()
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
+        print(self.art_reference)
+        print(self.art_reference_layer)
 
         # Add collector info
         try:
@@ -918,7 +916,6 @@ class NormalClassicTemplate (StarterTemplate):
     A template for 7th Edition frame. Lacks many of the Normal Template features.
     """
     template_file_name = "normal-classic"
-    template_suffix = "Classic"
 
     def __init__(self, layout):
         cfg.real_collector = False
@@ -932,16 +929,31 @@ class NormalClassicTemplate (StarterTemplate):
     def type_line_shifted(self) -> bool:
         return False
 
+    @property
+    def promo_star(self) -> str:
+        return cfg.get_setting(
+            section="FRAME",
+            key="Promo.Star",
+            default=False
+        )
+
+    @cached_property
+    def template_suffix(self) -> str:
+        if self.promo_star:
+            return "Promo Classic"
+        return "Classic"
+
     def rules_text_and_pt_layers(self):
         # Move mana layer down for hybrid mana
         if len(self.background) == 2:
             self.text_layer_mana.translate(0, -5)
 
         # Text reference and rules text
-        if self.is_land:
-            reference_layer = psd.getLayer(con.layers.TEXTBOX_REFERENCE_LAND, self.text_layers)
-        else:
-            reference_layer = psd.getLayer(con.layers.TEXTBOX_REFERENCE, self.text_layers)
+        reference_layer = psd.getLayer(
+            con.layers.TEXTBOX_REFERENCE_LAND if self.is_land
+            else con.layers.TEXTBOX_REFERENCE,
+            self.text_layers
+        )
 
         # Add rules text
         self.text.append(
@@ -968,11 +980,14 @@ class NormalClassicTemplate (StarterTemplate):
 
     def enable_frame_layers(self):
         # Simple one image background, Land or Nonland
-        if self.is_land:
-            psd.getLayer(self.pinlines, con.layers.LAND).visible = True
-        else:
-            psd.getLayer(self.background, con.layers.NONLAND).visible = True
+        psd.getLayer(
+            self.pinlines,
+            con.layers.LAND if self.is_land else con.layers.NONLAND
+        ).visible = True
 
+        # Add the promo star
+        if self.promo_star:
+            psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
 """
 Templates similar to NormalTemplate but with aesthetic differences
@@ -1068,18 +1083,18 @@ class InventionTemplate (NormalTemplate):
     template_file_name = "masterpiece.psd"
     template_suffix = "Masterpiece"
 
-    def __init__(self, layout):
-        # Mandatory settings
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
-    @property
+    @cached_property
     def twins(self) -> str:
-        return "Bronze"
+        return str(cfg.get_setting(
+            section="FRAME",
+            key="Accent",
+            default="Silver",
+            is_bool=False
+        ))
 
-    @property
+    @cached_property
     def background(self) -> str:
-        return "Bronze"
+        return self.twins
 
     @property
     def is_nyx(self) -> bool:
@@ -1096,20 +1111,6 @@ class InventionTemplate (NormalTemplate):
     @property
     def is_land(self) -> bool:
         return False
-
-
-class InventionSilverTemplate (InventionTemplate):
-    """
-    Kaladesh Invention template, Silver choice.
-    """
-
-    @property
-    def twins(self) -> str:
-        return "Silver"
-
-    @property
-    def background(self) -> str:
-        return "Silver"
 
 
 class ExpeditionTemplate (NormalTemplate):
@@ -1211,9 +1212,9 @@ class TransformBackTemplate (NormalTemplate):
     def basic_text_layers(self):
         # For eldrazi card, set the color of the rules text, type line, and power/toughness to black
         if self.layout.transform_icon == con.layers.MOON_ELDRAZI_DFC:
-            self.text_layer_name.color = psd.rgb_black()
-            self.text_layer_type.color = psd.rgb_black()
-            self.text_layer_pt.color = psd.rgb_black()
+            self.text_layer_name.textItem.color = psd.rgb_black()
+            self.text_layer_type.textItem.color = psd.rgb_black()
+            self.text_layer_pt.textItem.color = psd.rgb_black()
         super().basic_text_layers()
 
 
@@ -1667,11 +1668,9 @@ class PlaneswalkerTemplate (StarterTemplate):
     @property
     def art_reference(self):
         # Name of art reference layer
-        return psd.getLayer(
-            con.layers.FULL_ART_FRAME
-        ) if self.is_colorless else psd.getLayer(
-            con.layers.PLANESWALKER_ART_FRAME
-        )
+        if self.is_colorless:
+            return con.layers.FULL_ART_FRAME
+        return con.layers.PLANESWALKER_ART_FRAME
 
     """
     TEXT LAYERS
@@ -2277,4 +2276,24 @@ class BasicLandClassicTemplate (BasicLandTemplate):
     Basic land template for 7th Edition basics.
     """
     template_file_name = "basic-classic"
-    template_suffix = "Classic"
+
+    @cached_property
+    def template_suffix(self) -> str:
+        if self.promo_star:
+            return "Promo Classic"
+        return "Classic"
+
+    @property
+    def promo_star(self) -> str:
+        return cfg.get_setting(
+            section="FRAME",
+            key="Promo.Star",
+            default=False
+        )
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+
+        # Add the promo star
+        if self.promo_star:
+            psd.getLayer("Promo Star").visible = True

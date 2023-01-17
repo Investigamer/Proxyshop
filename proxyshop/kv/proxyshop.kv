@@ -1,0 +1,113 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import HoverButton proxyshop.gui.utils.HoverButton
+#:import Thread threading.Thread
+#:import cfg proxyshop.settings.cfg
+#:import ak asynckivy
+#:import ScrollEffect kivy.effects.scroll.ScrollEffect
+
+<TabbedPanelHeader>:
+    cols: 5
+
+<ProxyshopPanels>:
+    orientation: "vertical"
+    AppTabs:
+        do_default_tab: False
+        tab_width: 120
+        tab_height: 30
+        tab_spacing: 0
+        padding: app.cont_padding
+        canvas:
+            Color:
+                rgb: get_color_from_hex('#2e2e2e')
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        MainTab:
+            text: "Render Cards"
+            spacing: 0
+            BoxLayout:
+                id: container
+                orientation: "vertical"
+                padding: 5
+                spacing: 0
+                canvas:
+                    Color:
+                        rgba: get_color_from_hex("#141414")
+                    Rectangle:
+                        size: container.size
+                        pos: container.pos
+                BoxLayout:
+                    orientation: "horizontal"
+                    padding: [2,3,2,1]
+                    size_hint: (1, None)
+                    height: 40
+                    HoverButton:
+                        id: rend_targ_btn
+                        text: "Render Target"
+                        options: ["RENDER TARGET"]
+                        font_size: 18
+                        on_press: Thread(target=app.render_target, daemon=True).start()
+                        background_color: get_color_from_hex("#376aa3")
+                    HoverButton:
+                        id: rend_all_btn
+                        text: "Render All"
+                        options: ["RENDER ALL"]
+                        font_size: 18
+                        on_press: Thread(target=app.render_all, daemon=True).start()
+                        background_color: get_color_from_hex("#376aa3")
+                    HoverButton:
+                        id: app_settings_btn
+                        text: "Global Settings"
+                        options: ["GLOBAL SETTINGS"]
+                        font_size: 18
+                        on_press: ak.start(app.open_app_settings())
+                        background_color: get_color_from_hex("#376aa3")
+                TemplateModule:
+                    tab_pos: "top_mid"
+                    do_default_tab: False
+                    tab_spacing: 0
+                    tab_height: 26
+                    size_hint: (1, 2)
+                    pos: 50,0
+        CreatorTab:
+            text: "Custom Creator"
+
+<TabbedPanelItem>:
+    pos: 0,0
+    spacing: 0
+    orientation: "vertical"
+
+<TemplateList>:
+    padding: 0
+    spacing: 0
+    size_hint: (1,None)
+    height: self.minimum_height
+    cols: 1
+
+<TemplateView>:
+    bar_width: 4
+    always_overscroll: False
+    do_scroll_x: False
+    size_hint: (1,1)
+    scroll_wheel_distance: 40
+    effect_cls: ScrollEffect
+    canvas:
+        Color:
+            rgba: get_color_from_hex("#111111")
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+<TemplateRow>:
+    orientation: "horizontal"
+    size_hint: (1, None)
+    height: 35
+    ToggleButton:
+        id: toggle_button
+        on_press: app.select_template(self)
+        size_hint: (.9, 1)
+    TemplateSettingsButton:
+        id: settings_button
+        text: "Settings"
+        size_hint: (.1, 1)
+        on_press: ak.start(self.open_settings())

@@ -1,0 +1,159 @@
+[
+  {
+    "type": "title",
+    "title": "App Configuration"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Manual Editing Mode[/b]",
+    "desc": "Pause the render process before saving to allow for manual edits.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Manual.Edit"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Skip Failed Cards[/b]",
+    "desc": "Automatically skip failed cards without asking for confirmation.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Manual.Edit"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Scryfall Search Ascending[/b]",
+    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Scryfall.Ascending"
+  },
+  {
+    "type": "title",
+    "title": "Files and Saving"
+  },
+  {
+    "type": "options",
+    "title": "[b]Output Filetype[/b]",
+    "desc": "File extension to use for rendered images.\n[b](Default: jpg)[/b]",
+    "section": "FILES",
+    "key": "Output.Filetype",
+    "options": ["jpg", "png", "psd"]
+  },
+  {
+    "type": "bool",
+    "title": "[b]Save Artist Name[/b]",
+    "desc": "Include artist in rendered file name, e.g. Damnation (Seb McKinnon).jpg\n[b](Default: True)[/b]",
+    "section": "FILES",
+    "key": "Save.Artist.Name"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Overwrite Duplicates[/b]",
+    "desc": "Overwrite rendered files with identical file names.\n[b](Default: True)[/b]",
+    "section": "FILES",
+    "key": "Overwrite.Duplicate"
+  },
+  {
+    "type": "title",
+    "title": "Text Options"
+  },
+  {
+    "type": "options",
+    "title": "[b]Language[/b]",
+    "desc": "A scryfall supported language code to look for alternate language text.\nPhyrexian is not supported at this time.\n[b](Default: en)[/b]",
+    "section": "TEXT",
+    "key": "Language",
+    "options": ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"]
+  },
+  {
+    "type": "bool",
+    "title": "[b]Enable Flavor Divider[/b]",
+    "desc": "Adds flavor divider to rendered card when appropriate.\n[b](Default: True)[/b]",
+    "section": "TEXT",
+    "key": "Flavor.Divider"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Remove Flavor Text[/b]",
+    "desc": "Renders cards without flavor text.\n[b](Default: False)[/b]",
+    "section": "TEXT",
+    "key": "No.Flavor.Text"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Remove Reminder Text[/b]",
+    "desc": "Renders cards without reminder text.\n[b](Default: False)[/b]",
+    "section": "TEXT",
+    "key": "No.Reminder.Text"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Realistic Collector Info[/b]",
+    "desc": "Disabling this will limit collector info to set code and artist only.\n[b](Default: True)[/b]",
+    "section": "TEXT",
+    "key": "True.Collector.Info"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Force English Formatting[/b]",
+    "desc": "Enabling this will force Photoshop text layers to use English formatting.\n[b](Default: False)[/b]",
+    "section": "TEXT",
+    "key": "Force.English.Formatting"
+  },
+  {
+    "type": "title",
+    "title": "Expansion Symbol"
+  },
+  {
+    "type": "string",
+    "title": "[b]Default Expansion Symbol[/b]",
+    "desc": "Symbol character used in lieu of an automatically generated one.\nCopy the symbol from here: http://keyrune.andrewgioia.com/cheatsheet.html\n[b]This setting must be changed manually.[/b]",
+    "section": "SYMBOLS",
+    "key": "Default.Symbol",
+    "disabled": true
+  },
+  {
+    "type": "bool",
+    "title": "[b]Automatically Generate Expansion Symbol[/b]",
+    "desc": "Generates an accurate looking expansion symbol.\n[b](Default: True)[/b]",
+    "section": "SYMBOLS",
+    "key": "Auto.Set.Symbol"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Automatically Position Expansion Symbol[/b]",
+    "desc": "Sizes and positions the expansion symbol to fit the type bar.\n[b](Default: True)[/b]",
+    "section": "SYMBOLS",
+    "key": "Auto.Symbol.Size"
+  },
+  {
+    "type": "numeric",
+    "title": "[b]Expansion Symbol Outline Size[/b]",
+    "desc": "Changes the thickness of the expansion symbol outline when not fully automated.\n[b](Default: 6)[/b]",
+    "section": "SYMBOLS",
+    "key": "Symbol.Stroke.Size"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Fill Expansion Symbol Background[/b]",
+    "desc": "Fills empty space in expansion symbol. This feature is mostly deprecated now.\n[b](Default: False)[/b]",
+    "section": "SYMBOLS",
+    "key": "Fill.Symbol.Background"
+  },
+  {
+    "type": "title",
+    "title": "Experimental Features"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Targeted Text Replacement[/b]",
+    "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop.\nTry disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
+    "section": "EXPERIMENTAL",
+    "key": "Targeted.Replace"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Development Testing Mode[/b]",
+    "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually.[/b]",
+    "section": "EXPERIMENTAL",
+    "key": "Dev.Mode",
+    "disabled": true
+  }
+]
