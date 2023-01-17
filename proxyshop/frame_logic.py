@@ -316,10 +316,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
             'rarity': True,
             'fill': "black" if cfg.fill_symbol else False,
             'color': False,
-            'stroke': ["black", 6],
+            'stroke': ["black", cfg.symbol_stroke],
             'common-fill': "white" if cfg.fill_symbol else False,
             'common-color': False,
-            'common-stroke': ["white", 6],
+            'common-stroke': ["white", cfg.symbol_stroke],
             'scale-factor': 1
         }]
     if isinstance(symbol, list):
@@ -328,10 +328,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
             if 'rarity' not in lyr: symbol[i]['rarity'] = True
             if 'fill' not in lyr: symbol[i]['fill'] = False
             if 'color' not in lyr: symbol[i]['color'] = False
-            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", 6]
+            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", cfg.symbol_stroke]
             if 'common-fill' not in lyr: symbol[i]['common-fill'] = False
             if 'common-color' not in lyr: symbol[i]['common-color'] = False
-            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", 6]
+            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", cfg.symbol_stroke]
             if 'scale-factor' not in lyr: symbol[i]['scale-factor'] = 1
             if 'reference' in lyr and lyr['reference']:
                 if lyr['reference']:
