@@ -3,6 +3,9 @@ PROXYSHOP - GUI LAUNCHER
 """
 import json
 import os
+
+from kivy.utils import get_color_from_hex
+
 os.environ["KIVY_NO_CONSOLELOG"] = "1"
 import sys
 import threading
@@ -28,7 +31,7 @@ from proxyshop.gui.creator import CreatorPanels
 from proxyshop.gui.dev import TestApp
 from proxyshop.gui.dict import GUI
 from proxyshop.gui.utils import (
-	HoverBehavior
+	HoverBehavior, HoverButton
 )
 from proxyshop.gui.settings import SettingsPopup
 from proxyshop.constants import con
@@ -584,10 +587,17 @@ class TemplateRow(BoxLayout):
 		self.plugin = plugin
 
 
-class TemplateSettingsButton(Button):
+class TemplateSettingsButton(HoverButton):
 	"""
 	Opens the settings panel for a given template.
 	"""
+	options = ["Settings"]
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+		self.font_name = "Roboto"
+		self.background_color = get_color_from_hex("#598cc5")
+
 	async def open_settings(self):
 		Settings = SettingsPopup({
 			'name': self.parent.name,
