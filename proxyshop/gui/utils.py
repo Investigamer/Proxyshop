@@ -32,7 +32,8 @@ def get_font(name: str, default: str = "Roboto"):
                     fn_regular=f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\Microsoft\\Windows\\Fonts\\{name}"
                 )
                 return basename
-            except OSError: return default
+            except OSError:
+                return default
 
 
 """

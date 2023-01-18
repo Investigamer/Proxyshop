@@ -9,18 +9,20 @@ from pathlib import Path
 from typing import TypedDict, Optional
 from kivy.config import ConfigParser
 import configparser
+
+from kivy.core.window import Window
+from kivy.metrics import dp
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
-from kivy.uix.settings import SettingsWithNoMenu, Settings
+from kivy.uix.popup import Popup
+from kivy.uix.settings import Settings, SettingOptions, SettingSpacer, SettingNumeric, SettingString
+from kivy.uix.textinput import TextInput
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
 
 cwd = os.getcwd()
-
-"""
-FUNCTIONS
-"""
-
-
-def build_ini_from_config():
-    pass
 
 
 """
@@ -32,6 +34,110 @@ class TemplateInfo(TypedDict):
     name: str
     type: str
     plugin: str
+
+
+class FormattedSettingString(SettingString):
+    def _create_popup(self, instance):
+        # create popup layout
+        content = BoxLayout(orientation='vertical', spacing='5dp')
+        popup_width = min(0.95 * Window.width, dp(500))
+        self.popup = popup = Popup(
+            title=self.title, content=content, size_hint=(None, None),
+            size=(popup_width, '250dp'))
+        popup.children[0].children[-1].markup = True
+
+        # create the textinput used for numeric input
+        self.textinput = textinput = TextInput(
+            text=self.value, font_size='24sp', multiline=False,
+            size_hint_y=None, height='42sp')
+        textinput.bind(on_text_validate=self._validate)
+        self.textinput = textinput
+
+        # construct the content, widget are used as a spacer
+        content.add_widget(Widget())
+        content.add_widget(textinput)
+        content.add_widget(Widget())
+        content.add_widget(SettingSpacer())
+
+        # 2 buttons are created for accept or cancel the current value
+        btnlayout = BoxLayout(size_hint_y=None, height='50dp', spacing='5dp')
+        btn = Button(text='Ok')
+        btn.bind(on_release=self._validate)
+        btnlayout.add_widget(btn)
+        btn = Button(text='Cancel')
+        btn.bind(on_release=self._dismiss)
+        btnlayout.add_widget(btn)
+        content.add_widget(btnlayout)
+
+        # all done, open the popup !
+        popup.open()
+
+
+class FormattedSettingNumeric(SettingNumeric):
+    def _create_popup(self, instance):
+        # create popup layout
+        content = BoxLayout(orientation='vertical', spacing='5dp')
+        popup_width = min(0.95 * Window.width, dp(500))
+        self.popup = popup = Popup(
+            title=self.title, content=content, size_hint=(None, None),
+            size=(popup_width, '250dp'))
+        popup.children[0].children[-1].markup = True
+
+        # create the textinput used for numeric input
+        self.textinput = textinput = TextInput(
+            text=self.value, font_size='24sp', multiline=False,
+            size_hint_y=None, height='42sp')
+        textinput.bind(on_text_validate=self._validate)
+        self.textinput = textinput
+
+        # construct the content, widget are used as a spacer
+        content.add_widget(Widget())
+        content.add_widget(textinput)
+        content.add_widget(Widget())
+        content.add_widget(SettingSpacer())
+
+        # 2 buttons are created for accept or cancel the current value
+        btnlayout = BoxLayout(size_hint_y=None, height='50dp', spacing='5dp')
+        btn = Button(text='Ok')
+        btn.bind(on_release=self._validate)
+        btnlayout.add_widget(btn)
+        btn = Button(text='Cancel')
+        btn.bind(on_release=self._dismiss)
+        btnlayout.add_widget(btn)
+        content.add_widget(btnlayout)
+
+        # all done, open the popup !
+        popup.open()
+
+
+class FormattedSettingOptions(SettingOptions):
+    def _create_popup(self, instance):
+        # create the popup
+        content = BoxLayout(orientation='vertical', spacing='5dp')
+        popup_width = min(0.95 * Window.width, dp(500))
+        self.popup = popup = Popup(
+            content=content, title=self.title, size_hint=(None, None),
+            size=(popup_width, '400dp'))
+        popup.height = len(self.options) * dp(55) + dp(150)
+        popup.children[0].children[-1].markup = True
+
+        # add all the options
+        content.add_widget(Widget(size_hint_y=None, height=1))
+        uid = str(self.uid)
+        for option in self.options:
+            state = 'down' if option == self.value else 'normal'
+            btn = ToggleButton(text=option, state=state, group=uid)
+            btn.bind(on_release=self._set_option)
+            content.add_widget(btn)
+
+        # finally, add a cancel button to return on the previous panel
+        content.add_widget(SettingSpacer())
+        btn = Button(text='Cancel', size_hint_y=None, height=dp(50))
+        btn.bind(on_release=popup.dismiss)
+        content.add_widget(btn)
+
+        # and open the popup !
+        popup.open()
 
 
 class SettingsPopup(ModalView):
@@ -76,6 +182,9 @@ class SettingsPopup(ModalView):
 
         s = Settings()
         s.bind(on_close=self.dismiss)
+        s.register_type('options', FormattedSettingOptions)
+        s.register_type('string', FormattedSettingString)
+        s.register_type('numeric', FormattedSettingNumeric)
         if custom_json:
             s.add_json_panel(f"{template['name']} Template", app_config, data=custom_json)
         s.add_json_panel('App Settings', app_config, 'proxyshop/app_settings.json')
