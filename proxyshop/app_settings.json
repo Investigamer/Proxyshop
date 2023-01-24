@@ -1,31 +1,6 @@
 [
   {
     "type": "title",
-    "title": "App Configuration"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Manual Editing Mode[/b]",
-    "desc": "Pause the render process before saving to allow for manual edits.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Manual.Edit"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Skip Failed Cards[/b]",
-    "desc": "Automatically skip failed cards without asking for confirmation.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Manual.Edit"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Scryfall Search Ascending[/b]",
-    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Scryfall.Ascending"
-  },
-  {
-    "type": "title",
     "title": "Files and Saving"
   },
   {
@@ -139,20 +114,48 @@
   },
   {
     "type": "title",
-    "title": "Experimental Features"
+    "title": "App Settings"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Manual Editing Mode[/b]",
+    "desc": "Pause the render process before saving to allow for manual edits.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Manual.Edit"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Skip Failed Cards[/b]",
+    "desc": "Automatically skip failed cards without asking for confirmation.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Skip.Failed"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Scryfall Search Ascending[/b]",
+    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Scryfall.Ascending"
   },
   {
     "type": "bool",
     "title": "[b]Targeted Text Replacement[/b]",
     "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop.\nTry disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
-    "section": "EXPERIMENTAL",
+    "section": "APP",
     "key": "Targeted.Replace"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Snow Cards with Snow Template[/b]",
+    "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
+    "section": "APP",
+    "key": "Render.Snow"
   },
   {
     "type": "bool",
     "title": "[b]Development Testing Mode[/b]",
     "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually.[/b]",
-    "section": "EXPERIMENTAL",
+    "section": "APP",
     "key": "Dev.Mode",
     "disabled": true
   }

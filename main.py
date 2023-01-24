@@ -3,10 +3,8 @@ PROXYSHOP - GUI LAUNCHER
 """
 import json
 import os
-
-from kivy.utils import get_color_from_hex
-
 os.environ["KIVY_NO_CONSOLELOG"] = "1"
+from kivy.utils import get_color_from_hex
 import sys
 import threading
 import time
@@ -18,7 +16,6 @@ from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.factory import Factory
-from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView

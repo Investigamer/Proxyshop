@@ -14,7 +14,6 @@ from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
 from kivy.uix.settings import Settings, SettingOptions, SettingSpacer, SettingNumeric, SettingString
@@ -26,7 +25,7 @@ cwd = os.getcwd()
 
 
 """
-CLASSES
+TYPES
 """
 
 
@@ -34,6 +33,11 @@ class TemplateInfo(TypedDict):
     name: str
     type: str
     plugin: str
+
+
+"""
+AESTHETIC CLASSES
+"""
 
 
 class FormattedSettingString(SettingString):
@@ -140,6 +144,11 @@ class FormattedSettingOptions(SettingOptions):
         popup.open()
 
 
+"""
+SETTINGS POPUP
+"""
+
+
 class SettingsPopup(ModalView):
 
     @property
@@ -167,14 +176,7 @@ class SettingsPopup(ModalView):
                 custom_json = osp.join(osp.dirname(template['plugin']), f"configs/{filename}")
             else:
                 custom_json = osp.join(cwd, f"proxyshop/configs/{filename}")
-
-            # Check if json exists
-            if not osp.exists(custom_json):
-                custom_json = None
-
-            # Import json data into template ini
-            if custom_json:
-                custom_json = self.update_config(custom_json)
+            custom_json = self.update_config(custom_json) if osp.exists(custom_json) else None
 
         app_config = ConfigParser(allow_no_value=True)
         app_config.optionxform = str

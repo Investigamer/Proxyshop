@@ -88,7 +88,7 @@ def get_template_class(template: TemplateDetails) -> Callable:
         return getattr(import_module("proxyshop.templates"), template['class_name'])
 
     # Plugin template
-    spec = util.spec_from_file_location("templates", os.path.join(cwd, template['class_name']))
+    spec = util.spec_from_file_location("templates", template['plugin_path'])
     temp_mod = util.module_from_spec(spec)
     spec.loader.exec_module(temp_mod)
     return getattr(temp_mod, template['class_name'])
@@ -122,7 +122,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
         # Guard clauses
         if Path(folder).stem == "__pycache__": continue
         json_file = osp.join(folder, 'template_map.json')
-        py_file = osp.join(folder, 'template_map.json')
+        py_file = osp.join(folder, 'templates.py')
         if not osp.exists(json_file) and not osp.exists(py_file):
             continue
 
@@ -217,9 +217,9 @@ def retrieve_card_info(filename: Union[str, Path]) -> CardDetails:
     creator = reg_creator.findall(fname)
 
     # Check for these values
-    creator = creator[0] if creator else None
-    artist = artist[0] if artist else None
-    set_code = set_code[0] if set_code else None
+    creator = creator[0] if creator else ''
+    artist = artist[0] if artist else ''
+    set_code = set_code[0] if set_code else ''
 
     # Correct strange set codes like promo variants (PMID)
     if (

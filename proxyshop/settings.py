@@ -32,11 +32,6 @@ class Config:
 		"""
 		Load the config values
 		"""
-		# APP section
-		self.exit_early = self.file.getboolean('APP', 'Manual.Edit')
-		self.skip_failed = self.file.getboolean('APP', 'Skip.Failed')
-		self.scry_ascending = self.file.getboolean('APP', 'Scryfall.Ascending')
-
 		# FILE section
 		self.output_filetype = self.file['FILES']['Output.Filetype']
 		self.save_artist_name = self.file.getboolean('FILES', 'Save.Artist.Name')
@@ -58,8 +53,12 @@ class Config:
 		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
 
 		# EXPERIMENTAL section
-		self.targeted_replace = self.file.getboolean('EXPERIMENTAL', 'Targeted.Replace')
-		self.dev_mode = self.file.getboolean('EXPERIMENTAL', 'Dev.Mode')
+		self.exit_early = self.file.getboolean('APP', 'Manual.Edit')
+		self.skip_failed = self.file.getboolean('APP', 'Skip.Failed')
+		self.scry_ascending = self.file.getboolean('APP', 'Scryfall.Ascending')
+		self.targeted_replace = self.file.getboolean('APP', 'Targeted.Replace')
+		self.render_snow = self.file.getboolean('APP', 'Render.Snow')
+		self.dev_mode = self.file.getboolean('APP', 'Dev.Mode')
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""
