@@ -1,10 +1,17 @@
 """
 Functions handling logic for card frames
 """
-from typing import Union, Optional
+from typing import Union, Optional, TypedDict
 
 from proxyshop.constants import con
 from proxyshop.settings import cfg
+
+
+class FrameDetails(TypedDict):
+    is_colorless: bool
+    background: Optional[str]
+    pinlines: Optional[str]
+    twins: Optional[str]
 
 
 def fix_color_pair(pair: str) -> Optional[str]:
@@ -30,7 +37,7 @@ def fix_color_pair(pair: str) -> Optional[str]:
     return
 
 
-def select_frame_layers(card: dict) -> dict:
+def select_frame_layers(card: dict) -> FrameDetails:
     """
     * Figure out which layers to use for pinlines, background, twins
     * Also define the color identity
@@ -214,7 +221,7 @@ def select_frame_layers(card: dict) -> dict:
     if mana_cost == "" or (mana_cost == "{0}" and con.layers.ARTIFACT not in type_line):
         # If `color_indicator` is defined for this card, use that as the colour identity
         # Otherwise, use `color_identity` as the color identity
-        if color_identity_array is None: color_identity = ""
+        if not color_identity_array: color_identity = ""
         elif color_indicator: color_identity = "".join(color_indicator)
         else: color_identity = "".join(color_identity_array)
     else:
