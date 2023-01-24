@@ -8,7 +8,12 @@ from typing import Optional, Match
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import scryfall as scry
-from proxyshop.frame_logic import select_frame_layers
+from proxyshop.frame_logic import select_frame_layers, FrameDetails
+
+# Regex
+leveler_regex = re.compile(
+    r"(.*?)\nLEVEL (\d*-\d*)\n(\d*/\d*)\n(.*?)\nLEVEL (\d*\+)\n(\d*/\d*)\n(.*?)$"
+)
 
 
 class BasicLand:
@@ -25,8 +30,8 @@ class BasicLand:
         self.rarity = "common"
 
         # Optional vars
-        self.artist = file['artist'] if file['artist'] else "Unknown"
-        self.set = file['set'].upper() if file['set'] else "MTG"
+        self.artist = file['artist'] or "Unknown"
+        self.set = file['set'].upper() or "MTG"
         self.creator = file['creator']
         self.filename = file['filename']
 
@@ -127,15 +132,11 @@ class BaseLayout:
 
     @cached_property
     def frame_effects(self) -> list:
-        if 'frame_effects' in self.scryfall:
-            return self.scryfall['frame_effects']
-        return []
+        return self.scryfall.get('frame_effects', [])
 
     @property
     def keywords(self) -> list:
-        if 'keywords' in self.scryfall:
-            return self.scryfall['keywords']
-        return []
+        return self.scryfall.get('keywords', [])
 
     @cached_property
     def name(self) -> str:
@@ -149,20 +150,16 @@ class BaseLayout:
 
     @cached_property
     def mana_cost(self) -> Optional[str]:
-        return self.card.get('mana_cost', None)
+        return self.card.get('mana_cost', '')
 
     @cached_property
     def oracle_text(self) -> str:
         # Alt lang?
         if self.lang != 'EN' and 'printed_text' in self.card:
-            text = self.card['printed_text']
-        else:
-            text = self.card['oracle_text']
-
-        # Planeswalker?
-        if 'Planeswalker' in self.type_line:
-            text = text.replace("\u2212", "-")
-        return text
+            return self.card['printed_text'].replace(
+                "\u2212", "-") if 'Planeswalker' in self.type_line else self.card['printed_text']
+        return self.card['oracle_text'].replace(
+            "\u2212", "-") if 'Planeswalker' in self.type_line else self.card['oracle_text']
 
     @cached_property
     def oracle_text_raw(self) -> str:
@@ -170,7 +167,7 @@ class BaseLayout:
 
     @cached_property
     def flavor_text(self) -> str:
-        return self.card['flavor_text'] if 'flavor_text' in self.card else ""
+        return self.card.get('flavor_text', '')
 
     @cached_property
     def type_line(self) -> str:
@@ -184,11 +181,12 @@ class BaseLayout:
 
     @cached_property
     def collector_number(self) -> str:
+        # Ensure only numbers
         num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
         if len(num) == 2:
-            num = f"0{num}"
+            return f"0{num}"
         elif len(num) == 1:
-            num = f"00{num}"
+            return f"00{num}"
         return num
 
     @cached_property
@@ -205,8 +203,10 @@ class BaseLayout:
             return self.file['artist']
         if "&" in self.card['artist']:
             count = []
+            # John Smith & Jane Smith => John & Jane Smith
             for w in self.card['artist'].split(" "):
-                if w in count: count.remove(w)
+                if w in count:
+                    count.remove(w)
                 count.append(w)
             return " ".join(count)
         return self.card['artist']
@@ -231,21 +231,19 @@ class BaseLayout:
 
     @cached_property
     def mtgset(self) -> dict:
-        return scry.set_info(self.set.lower())
+        return scry.set_info(self.set.lower()) or {}
 
     @cached_property
     def card_count(self) -> Optional[str]:
-        # Select the best available card count
-        if 'printed_size' in self.scryfall and int(self.scryfall['printed_size']) > int(self.collector_number):
+        if 'printed_size' in self.scryfall and int(self.scryfall['printed_size']) >= int(self.collector_number):
             cc = self.scryfall['printed_size']
-        elif 'baseSetSize' in self.mtgset and int(self.mtgset['baseSetSize']) > int(self.collector_number):
+        elif 'baseSetSize' in self.mtgset and int(self.mtgset['baseSetSize']) >= int(self.collector_number):
             cc = self.mtgset['baseSetSize']
-        elif 'totalSetSize' in self.mtgset and int(self.mtgset['totalSetSize']) > int(self.collector_number):
+        elif 'totalSetSize' in self.mtgset and int(self.mtgset['totalSetSize']) >= int(self.collector_number):
             cc = self.mtgset['totalSetSize']
-        elif 'card_count' in self.scryfall and int(self.scryfall['card_count']) > int(self.collector_number):
+        elif 'card_count' in self.scryfall and int(self.scryfall['card_count']) >= int(self.collector_number):
             cc = self.scryfall['card_count']
-        else:
-            return
+        else: return
 
         # Ensure formatting of count
         if len(str(cc)) == 2:
@@ -265,18 +263,18 @@ class BaseLayout:
 
     @cached_property
     def power(self) -> str:
-        return self.card['power'] if 'power' in self.card else None
+        return self.card.get('power', None)
 
     @cached_property
     def toughness(self) -> str:
-        return self.card['toughness'] if 'toughness' in self.card else None
+        return self.card.get('toughness', None)
 
     @cached_property
     def color_indicator(self) -> str:
-        return self.card['color_indicator'] if 'color_indicator' in self.card else None
+        return self.card.get('color_indicator', None)
 
     @cached_property
-    def transform_icon(self) -> None:
+    def transform_icon(self) -> Optional[str]:
         return
 
     @cached_property
@@ -288,7 +286,7 @@ class BaseLayout:
 
     @cached_property
     def loyalty(self) -> str:
-        return self.card['loyalty'] if 'loyalty' in self.card else None
+        return self.card.get('loyalty', None)
 
     """
     BOOL
@@ -323,7 +321,7 @@ class BaseLayout:
     """
 
     @cached_property
-    def frame(self) -> dict:
+    def frame(self) -> FrameDetails:
         return select_frame_layers(self.card)
 
     @cached_property
@@ -343,11 +341,11 @@ class BaseLayout:
     """
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> Optional[str]:
         return
 
     @cached_property
-    def card_class(self):
+    def card_class(self) -> Optional[str]:
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
@@ -364,9 +362,9 @@ class BaseLayout:
             return con.miracle_class
         elif "Prototype" in self.keywords:
             return con.prototype_class
-        # elif "Snow" in self.card['type_line']:
-        # frame_effects doesn't contain "snow" for pre-KHM snow cards
-        #    return con.snow_class
+        elif "Snow" in self.card['type_line'] and cfg.render_snow:
+            # frame_effects doesn't contain "snow" for pre-KHM snow cards
+            return con.snow_class
         return self.default_class
 
 
@@ -376,7 +374,7 @@ class NormalLayout (BaseLayout):
     """
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         return con.normal_class
 
 
@@ -387,15 +385,15 @@ class TransformLayout (BaseLayout):
 
     @cached_property
     def other_face_power(self) -> Optional[str]:
-        return self.other_face['power'] if 'power' in self.other_face else None
+        return self.other_face.get('power', None)
 
     @cached_property
     def other_face_toughness(self) -> Optional[str]:
-        return self.other_face['toughness'] if 'toughness' in self.other_face else None
+        return self.other_face.get('toughness', None)
 
     @cached_property
     def transform_icon(self) -> str:
-        # TODO: safe to assume the first frame effect will be the transform icon?
+        # Safe to assume the first frame effect will be the transform icon?
         if 'frame_effects' in self.scryfall:
             if self.scryfall['frame_effects'][0] != "legendary":
                 return self.scryfall['frame_effects'][0]
@@ -447,11 +445,14 @@ class MeldLayout (NormalLayout):
 
     @cached_property
     def transform_icon(self) -> str:
-        # TODO: Safe to assume the first frame effect is transform icon?
-        return self.card['frame_effects'][0]
+        # Safe to assume the first frame effect will be the transform icon?
+        if 'frame_effects' in self.card:
+            if self.card['frame_effects'][0] != "legendary":
+                return self.card['frame_effects'][0]
+        return "sunmoondfc"
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         return con.transform_front_class
 
 
@@ -459,28 +460,23 @@ class ModalDoubleFacedLayout (BaseLayout):
     """
     Used for Modal Double Faced cards
     """
-    def __init__(self, scryfall: dict, file: dict):
-        super().__init__(scryfall, file)
 
     @cached_property
     def oracle_text(self) -> Optional[str]:
 
-        # Overwrite this property to modify
+        # In alt lang text of both sides is combined, we must separate
         if self.lang != "EN" and 'printed_text' in self.card:
             text = self.card['printed_text']
-            num_breaks = text.count("\n")
-            num_breaks_raw = text.count("\n")
-            if num_breaks > num_breaks_raw:
-                text = text.split("\n", num_breaks_raw + 1)
+            num_breaks = self.card['oracle_text'].count('\n')
+            if text.count('\n') > num_breaks:
+                text = text.split('\n', num_breaks + 1)
                 text.pop()
-                text = "\n".join(text)
+                text = '\n'.join(text)
         else:
             text = self.card['oracle_text']
 
         # Planeswalker?
-        if 'Planeswalker' in self.type_line:
-            text = text.replace("\u2212", "-")
-        return text
+        return text.replace("\u2212", "-") if 'Planeswalker' in self.type_line else text
 
     @cached_property
     def other_face_twins(self) -> str:
@@ -515,7 +511,7 @@ class ModalDoubleFacedLayout (BaseLayout):
         return "modal_dfc"
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         if 'Planeswalker' in self.type_line:
             if not self.card['front']:
                 return con.pw_mdfc_back_class
@@ -538,7 +534,7 @@ class AdventureLayout (BaseLayout):
         }
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         return con.adventure_class
 
 
@@ -551,9 +547,6 @@ class LevelerLayout (NormalLayout):
     def leveler_match(self) -> Optional[Match[str]]:
         # Unpack oracle text into: level text, levels x-y text, levels z+ text, middle level,
         # middle level power/toughness, bottom level, and bottom level power/toughness
-        leveler_regex = re.compile(
-            """(.*?)\\nLEVEL ([\\d]*-[\\d]*)\\n([\\d]*/[\\d]*)\\n(.*)\\nLEVEL ([\\d]*[+])\\n([\\d]*/[\\d]*)\\n(.*)"""
-        )
         return leveler_regex.match(self.oracle_text)
 
     @cached_property
@@ -603,7 +596,7 @@ class SagaLayout (NormalLayout):
         return saga_lines
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         return con.saga_class
 
 
@@ -613,7 +606,7 @@ class PlanarLayout (BaseLayout):
     """
 
     @cached_property
-    def default_class(self):
+    def default_class(self) -> str:
         return con.planar_class
 
 
