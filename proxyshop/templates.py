@@ -679,8 +679,6 @@ class BaseTemplate:
             self.load_artwork()
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
-        print(self.art_reference)
-        print(self.art_reference_layer)
 
         # Add collector info
         try:
