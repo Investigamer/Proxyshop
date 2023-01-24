@@ -39,6 +39,10 @@ class SketchTemplate (temp.NormalTemplate):
     template_suffix = "Sketch"
 
     @property
+    def name_shifted(self) -> bool:
+        return False
+
+    @property
     def is_nyx(self) -> bool:
         return False
 
