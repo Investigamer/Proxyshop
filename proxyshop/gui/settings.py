@@ -21,18 +21,9 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
+from proxyshop.core import TemplateDetails
+
 cwd = os.getcwd()
-
-
-"""
-TYPES
-"""
-
-
-class TemplateInfo(TypedDict):
-    name: str
-    type: str
-    plugin: str
 
 
 """
@@ -159,7 +150,7 @@ class SettingsPopup(ModalView):
     def app_json(self) -> str:
         return osp.join(cwd, "proxyshop/app_settings.json")
 
-    def __init__(self, template: Optional[TemplateInfo] = None, **kwargs):
+    def __init__(self, template: Optional[TemplateDetails] = None, **kwargs):
         super().__init__(**kwargs)
 
         # Create ini if one doesn't exist
@@ -169,14 +160,7 @@ class SettingsPopup(ModalView):
             self.path_ini = self.app_ini
 
         # Get template configs
-        custom_json = None
-        if template:
-            filename = f"[{template['type']}] {template['name']}.json"
-            if template['plugin']:
-                custom_json = osp.join(osp.dirname(template['plugin']), f"configs/{filename}")
-            else:
-                custom_json = osp.join(cwd, f"proxyshop/configs/{filename}")
-            custom_json = self.update_config(custom_json) if osp.exists(custom_json) else None
+        custom_json = self.update_config(template['config_path']) if osp.exists(template['config_path']) else None
 
         app_config = ConfigParser(allow_no_value=True)
         app_config.optionxform = str
@@ -192,17 +176,13 @@ class SettingsPopup(ModalView):
         s.add_json_panel('App Settings', app_config, 'proxyshop/app_settings.json')
         self.add_widget(s)
 
-    def create_config(self, template: TemplateInfo):
+    def create_config(self, template: TemplateDetails):
         """
         Check this template's ini exists, if it doesn't create one.
         @param template:
         @return:
         """
-        filename = f"[{template['type']}] {template['name']}.ini"
-        if template['plugin']:
-            self.path_ini = osp.join(osp.dirname(template['plugin']), f"configs/{filename}")
-        else:
-            self.path_ini = osp.join(cwd, f"proxyshop/configs/{filename}")
+        self.path_ini = template['config_path'].replace('json', 'ini')
         if not osp.exists(self.path_ini):
             Path(osp.dirname(self.path_ini)).mkdir(mode=511, parents=True, exist_ok=True)
             shutil.copyfile('config.ini', self.path_ini)

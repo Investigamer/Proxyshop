@@ -5,6 +5,8 @@ import configparser
 import os
 from typing import Optional
 
+from proxyshop.core import TemplateDetails
+
 cwd = os.getcwd()
 
 
@@ -76,7 +78,7 @@ class Config:
 				return self.file[section][key]
 		return default
 
-	def load(self, template=None):
+	def load(self, template: Optional[TemplateDetails] = None):
 		"""
 		Reload the config file and define new values
 		"""
@@ -86,17 +88,14 @@ class Config:
 
 		# Choose the file
 		conf = os.path.join(cwd, "config.ini")
-		if template:
-			stem = f"{template['plugin_path']}/configs" if template['plugin_path'] else 'configs'
-			path = os.path.join(cwd, f"proxyshop/{stem}/[{template['type']}] {template['name']}.ini")
-			if os.path.exists(path):
-				conf = path
+		if template and os.path.exists(template['config_path'].replace('json', 'ini')):
+			conf = template['config_path'].replace('json', 'ini')
 
 		# Load necessary file
 		self.file = configparser.ConfigParser(allow_no_value=True)
 		self.file.optionxform = str
-		with open(conf, encoding="utf-8") as file:
-			self.file.read_file(file)
+		with open(conf, encoding="utf-8") as f:
+			self.file.read_file(f)
 		self.update_definitions()
 
 # Global settings object

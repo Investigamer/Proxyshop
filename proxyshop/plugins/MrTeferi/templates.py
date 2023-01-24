@@ -45,10 +45,10 @@ class SketchTemplate (temp.NormalTemplate):
         action = cfg.get_setting(
             section="ACTION",
             key="Sketch.Action",
-            default="Professional Color Pencil",
+            default="Advanced Sketch",
             is_bool=False
         )
-        if action == "Professional Color Pencil":
+        if action == "Advanced Sketch":
             return pencilsketch.run
         if action == "Quick Sketch":
             return sketch.run

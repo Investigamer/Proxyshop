@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from time import perf_counter
 from glob import glob
-from typing import Union, Optional
+from typing import Union
 from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
@@ -531,7 +531,7 @@ class TemplateModule(TabbedPanel):
 
 			# Add tab
 			scroll_box = TemplateView()
-			scroll_box.add_widget(TemplateList(named_type, temps))
+			scroll_box.add_widget(TemplateList(temps))
 			tab = TabbedPanelItem(text=named_type)
 			tab.content = scroll_box
 			self.add_widget(tab)
@@ -541,13 +541,13 @@ class TemplateList(GridLayout):
 	"""
 	Builds a listbox of templates based on a given type
 	"""
-	def __init__(self, named_type: str, temps: list[TemplateDetails], **kwargs):
+	def __init__(self, temps: list[TemplateDetails], **kwargs):
 		super().__init__(**kwargs)
 
 		# Create a list of buttons
 		for template in temps:
 			self.add_widget(TemplateRow(
-				name=template['name'], card_type=named_type, plugin=template['plugin_path']
+				template=template
 			))
 
 
@@ -565,23 +565,24 @@ class TemplateRow(BoxLayout):
 	@param name: Name of template display on the button.
 	@param card_type: Card type of this template.
 	"""
-	def __init__(self, name: str, card_type: str, plugin: Optional[str], **kwargs):
-		# Add to GUI element dictionary
+	def __init__(self, template: TemplateDetails, **kwargs):
 		super().__init__(**kwargs)
-		GUI.template_row[card_type][name] = self
-		GUI.template_btn[card_type][name] = self.ids.toggle_button
-		GUI.template_btn_cfg[card_type][name] = self.ids.settings_button
+
+		# Set up vars
+		self.template = template
+		self.name = template['name']
+		self.type = template['type']
+		self.ids.toggle_button.text = self.name
 
 		# Normal template default selected
-		if name == "Normal":
+		if self.name == "Normal":
 			self.ids.toggle_button.state = "down"
 			self.ids.toggle_button.disabled = True
 
-		# Set up vars
-		self.ids.toggle_button.text = name
-		self.name = name
-		self.type = card_type
-		self.plugin = plugin
+		# Add to GUI Dict
+		GUI.template_row[self.type][self.name] = self
+		GUI.template_btn[self.type][self.name] = self.ids.toggle_button
+		GUI.template_btn_cfg[self.type][self.name] = self.ids.settings_button
 
 
 class TemplateSettingsButton(HoverButton):
@@ -596,11 +597,7 @@ class TemplateSettingsButton(HoverButton):
 		self.background_color = get_color_from_hex("#598cc5")
 
 	async def open_settings(self):
-		Settings = SettingsPopup({
-			'name': self.parent.name,
-			'type': self.parent.type,
-			'plugin': self.parent.plugin
-		})
+		Settings = SettingsPopup(self.parent.template)
 		Settings.open()
 
 
