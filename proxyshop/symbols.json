@@ -1,4 +1,5 @@
 {
+    "OLGC": "\uE687",
     "MTG": "",
     "LEA": "",
     "LEB": "",
@@ -264,7 +265,13 @@
             "common-color": false
         }
     ],
-    "BBD": "",
+    "BBD": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "SS1": "",
     "GS1": "",
     "M19": [
@@ -297,9 +304,18 @@
     "C19": [
         {
             "char": "",
-            "fill": "black",
-            "common-fill": "white"
+            "fill": "white",
+            "stroke": ["black", 4],
+            "common-fill": "white",
+            "common-stroke": ["black", 4]
+        },
+        {
+            "reference": true,
+            "char": "",
+            "fill": false,
+            "common-fill": false
         }
+
     ],
     "ELD": "",
     "GN2": "",
@@ -331,7 +347,16 @@
             "common-fill": "white"
         }
     ],
+    "J12": "\uE96A",
+    "J13": "\uE96A",
+    "J14": "\uE96A",
+    "J15": "\uE96A",
+    "J16": "\uE96A",
+    "J17": "\uE96A",
+    "J18": "\uE96A",
+    "J19": "\uE96A",
     "J20": "\uE96A",
+    "P22": "\uE96A",
     "SS3": [
         {
             "char": "",
@@ -408,6 +433,9 @@
         }
     ],
     "SLD": "",
+    "SLC": "",
+    "SLU": "",
+    "OVNT": "",
     "J21": "",
     "MID": [
         {
@@ -565,5 +593,12 @@
             "reference": true
         }
     ],
-    "BOT": "\uE99E"
+    "BOT": "\uE99E",
+    "J22": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ]
 }
