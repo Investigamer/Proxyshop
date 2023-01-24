@@ -412,9 +412,15 @@
     "STA": "",
     "C21": [
         {
-            "char": "",
+            "char": "\uE97E",
             "fill": "white",
-            "common-fill": "white"
+            "stroke": ["black", 4],
+            "common-fill": "white",
+            "common-stroke": ["black", 4]
+        },
+        {
+            "char": "\uE97E",
+            "rarity": false
         }
     ],
     "MH2": "",
