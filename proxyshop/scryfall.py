@@ -64,7 +64,7 @@ def get_card_search(
             card = requests.get(url, headers=con.http_header).json()
             for card in card['data']:
                 if 'set_type' in card:
-                    if card['set_type'] != "memorabilia":
+                    if card['set_type'] != "memorabilia" or 'Championship' in card['set_name']:
                         return add_meld_info(card)
             raise Exception("Could not find a playable card with this name!")
         except Exception as e:
