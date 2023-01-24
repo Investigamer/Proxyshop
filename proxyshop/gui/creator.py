@@ -111,8 +111,8 @@ class CreatorNormalLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_my_templates({"normal": self.ids.template.text})
-        self.render_custom(root.render_custom, temp["normal"], scryfall)
+        temp = core.get_my_templates({"Normal": self.selected_template})
+        self.render_custom(root.render_custom, temp['normal'], scryfall)
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
@@ -139,7 +139,7 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_my_templates({"planeswalker": self.ids.template.text})
+        temp = core.get_my_templates({"Planeswalker": self.selected_template})
         self.render_custom(root.render_custom, temp['planeswalker'], scryfall)
 
 
@@ -179,7 +179,7 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        temp = core.get_my_templates({"saga": self.ids.template.text})
+        temp = core.get_my_templates({"Saga": self.selected_template})
         self.render_custom(root.render_custom, temp['saga'], scryfall)
 
 
