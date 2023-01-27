@@ -154,8 +154,8 @@ cython_debug/
 .vscode/
 
 # Specific to this project
-/art
-/out
+/art*
+/out*
 /tmp
 /templates
 test.py
@@ -167,3 +167,4 @@ tester.py
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG
+env.json

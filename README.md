@@ -59,6 +59,7 @@ filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
   * `Fill.Symbol.Background` — Experimental feature, will attempt to fill in the empty space of set symbols. Mostly deprecated.
   * `Targeted.Replace` — Disable this if Proxyshop always crashes during filling collector info.
   * `Dev.Mode` — When enabled, Proxyshop will launch with a simple interface used to test templates for consistency.
+  * `Color.Identity.Max` - Experimental feature that allows supported templates to utilize > 2-color identity frames (default value = 2)
 
 # Setup and Usage Guide (Python Version)
 * Install Poetry to your system:
