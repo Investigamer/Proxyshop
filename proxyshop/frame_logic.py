@@ -33,16 +33,16 @@ def fix_color_triple(triple):
     * Utility function to standardize ordering of color triples, ie. "BUR" becomes "UBR"
     """
     color_triples = [
-        con.layers["GWU"],
-        con.layers["WUB"],
-        con.layers["UBR"],
-        con.layers["BRG"],
-        con.layers["RGW"],
-        con.layers["WBG"],
-        con.layers["URW"],
-        con.layers["BGU"],
-        con.layers["RWB"],
-        con.layers["GUR"]
+        con.layers.GWU,
+        con.layers.WUB,
+        con.layers.UBR,
+        con.layers.BRG,
+        con.layers.RGW,
+        con.layers.WBG,
+        con.layers.URW,
+        con.layers.BGU,
+        con.layers.RWB,
+        con.layers.GUR
     ]
 
     # Return the triple if it's already in the correct order
@@ -124,9 +124,9 @@ def select_frame_layers(card: dict) -> dict:
             # Default = 2 since most templates only support 2-color frames
             basic_identity = fix_color_triple(basic_identity)
             return {
-                'background': con.layers['LAND'],
+                'background': con.layers.LAND,
                 'pinlines': basic_identity,
-                'twins': con.layers['LAND'],
+                'twins': con.layers.LAND,
                 'is_colorless': False
             }
 

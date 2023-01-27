@@ -1,6 +1,10 @@
 """
 DAVIDIANSTYLE'S TEMPLATES
 """
+from typing import Optional
+
+from photoshop.api._artlayer import ArtLayer
+
 import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
@@ -21,19 +25,19 @@ class StainedGlassTemplate (temp.NormalTemplate):
 
     def enable_frame_layers(self):
         # Twins and p/t box
-        psd.getLayer(self.layout.twins, con.layers['TWINS']).visible = False
-        if self.is_creature: psd.getLayer(self.layout.twins, con.layers['PT_BOX']).visible = True
+        psd.getLayer(self.twins, con.layers.TWINS).visible = False
+        if self.is_creature: psd.getLayer(self.twins, con.layers.PT_BOX).visible = True
 
         # Pinlines
-        if self.is_land: pinlines = psd.getLayerSet(con.layers['LAND_PINLINES_TEXTBOX'])
-        else: pinlines = psd.getLayerSet(con.layers['PINLINES_TEXTBOX'])
+        if self.is_land: pinlines = psd.getLayerSet(con.layers.LAND_PINLINES_TEXTBOX)
+        else: pinlines = psd.getLayerSet(con.layers.PINLINES_TEXTBOX)
         pinlines.visible = True
-        psd.getLayer(self.layout.pinlines, pinlines).visible = True
+        psd.getLayer(self.pinlines, pinlines).visible = True
 
         # Legendary crown
         if self.is_legendary:
-            crown = psd.getLayerSet(con.layers['LEGENDARY_CROWN'])
-            psd.getLayer(self.layout.pinlines, crown).visible = True
+            crown = psd.getLayerSet(con.layers.LEGENDARY_CROWN)
+            psd.getLayer(self.pinlines, crown).visible = True
 
     def load_artwork(self):
         super().load_artwork()
@@ -51,7 +55,7 @@ class StainedGlassTemplate (temp.NormalTemplate):
         # Layers we need
         set_layer = psd.getLayer("Set", self.legal_layer)
         pen_layer = psd.getLayer("Pen", self.legal_layer)
-        artist_layer = psd.getLayer(con.layers['ARTIST'], self.legal_layer)
+        artist_layer = psd.getLayer(con.layers.ARTIST, self.legal_layer)
 
         # Fill set info if Auto.Set.Symbol is set
         if cfg.auto_symbol:
