@@ -283,9 +283,11 @@ def select_frame_layers(card: dict) -> FrameDetails:
                 color_identity = color_identity + color
 
     # If the color identity is exactly two colors, ensure it fits into the proper naming convention
-    # e.g. 'WU' instead of 'UW'
-    if len(color_identity) == 2:
-        color_identity = fix_color_pair(color_identity)
+    # e.g. "WU" instead of "UW"
+    if len(color_identity) == 2: color_identity = fix_color_pair(color_identity)
+
+    # If the color identity is exactly three colors and the template can support three color frames, ensure it fits into the proper naming convention
+    if len(color_identity) == 3 and len(color_identity) <= cfg.color_identity_max: color_identity = fix_color_triple(color_identity)
 
     # Handle Transguild Courier case - cards that explicitly state that they're all colors
     if oracle_text.find(' is all colors.') > 0:
@@ -337,24 +339,20 @@ def select_frame_layers(card: dict) -> FrameDetails:
     # Select background
     if type_line.find(con.layers.ARTIFACT) >= 0:
         background = con.layers.ARTIFACT
-    elif hybrid:
-        background = color_identity
-    elif len(color_identity) >= 2:
-        background = con.layers.GOLD
-    else:
-        background = color_identity
+    elif hybrid: background = color_identity
+    elif len(color_identity) >= 3 and len(color_identity) <= cfg.color_identity_max: background = color_identity
+    elif len(color_identity) >= 2: background = con.layers.GOLD
+    else: background = color_identity
 
     # Identify if the card is a vehicle, and override the selected background if necessary
     if type_line.find(con.layers.VEHICLE) >= 0:
         background = con.layers.VEHICLE
 
     # Select pinlines
-    if len(color_identity) <= 0:
-        pinlines = con.layers.ARTIFACT
-    elif len(color_identity) <= 2:
-        pinlines = color_identity
-    else:
-        pinlines = con.layers.GOLD
+    if len(color_identity) <= 0: pinlines = con.layers.ARTIFACT
+    elif len(color_identity) <= 2: pinlines = color_identity
+    elif len(color_identity) >= 3 and len(color_identity) <= cfg.color_identity_max: pinlines = color_identity
+    else: pinlines = con.layers.GOLD
 
     # Select name box
     if len(color_identity) <= 0:
