@@ -807,9 +807,6 @@ class NormalTemplate (StarterTemplate):
     """
     template_file_name = "normal"
 
-    def __init__(self, layout):
-        super().__init__(layout)
-
     @property
     def art_reference(self) -> str:
         # If colorless, use fullart
@@ -1000,10 +997,6 @@ class NormalExtendedTemplate (NormalTemplate):
     template_file_name = "normal-extended"
     template_suffix = "Extended"
 
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
 
 class NormalFullartTemplate (NormalTemplate):
     """
@@ -1020,10 +1013,6 @@ class WomensDayTemplate (NormalTemplate):
     """
     template_file_name = "womensday"
     template_suffix = "Showcase"
-
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @cached_property
     def art_reference_layer(self) -> ArtLayer:
@@ -1055,11 +1044,6 @@ class StargazingTemplate (NormalTemplate):
     """
     template_file_name = "stargazing.psd"
     template_suffix = "Stargazing"
-
-    def __init__(self, layout):
-        # Strip out reminder text
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @property
     def is_nyx(self) -> bool:
@@ -1118,11 +1102,6 @@ class ExpeditionTemplate (NormalTemplate):
     """
     template_file_name = "znrexp.psd"
     template_suffix = "Expedition"
-
-    def __init__(self, layout):
-        # Strip reminder text
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
@@ -1650,8 +1629,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         self._ability_layers = []
         self._shields = []
         self._colons = []
-
-        cfg.exit_early = True
         super().__init__(layout)
 
     """
@@ -1819,17 +1796,18 @@ class PlaneswalkerTemplate (StarterTemplate):
         Auto-position the ability text, colons, and shields.
         """
         # Core vars
-        spacing = 80
+        scale = self.app.activeDocument.width / 3264
+        spacing = 80 * scale
         adjustment = 0
-        step = .2000000000000
+        step = 0.20
 
         # Special case: 2 Ability Planeswalker
         if len(self.ability_layers) == 2:
             for lyr in self.ability_layers:
                 lyr.textItem.size += 1.4
                 lyr.textItem.leading += 1.4
-                adjustment = 80
-                spacing = 240
+                adjustment = 80 * scale
+                spacing = adjustment * 3
 
         # Heights
         layer_heights = []
