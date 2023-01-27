@@ -155,9 +155,9 @@ cython_debug/
 
 # SPECIFIC TO THIS PROJECT
 # Art input folder
-/art
+/art*
 # Render output folder
-/out
+/out*
 # Temporary logging directory
 /tmp
 # PSD templates directory
@@ -176,7 +176,7 @@ cython_debug/
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG
-# User generated config files
+env.json# User generated config files
 /proxyshop/configs/*.ini
 # User generated plugin config files
 /proxyshop/plugins/*/configs/*.ini
