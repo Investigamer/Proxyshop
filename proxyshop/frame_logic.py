@@ -326,7 +326,7 @@ def select_frame_layers(card: dict) -> dict:
     if type_line.find(con.layers.ARTIFACT) >= 0:
         background = con.layers.ARTIFACT
     elif hybrid: background = color_identity
-    elif len(color_identity) >= 3 and len(color_identity) <= cfg.color_identity_max: background = color_identity
+    elif len(color_identity) == 3 and len(color_identity) <= cfg.color_identity_max: background = color_identity
     elif len(color_identity) >= 2: background = con.layers.GOLD
     else: background = color_identity
 
@@ -336,7 +336,7 @@ def select_frame_layers(card: dict) -> dict:
     # Select pinlines
     if len(color_identity) <= 0: pinlines = con.layers.ARTIFACT
     elif len(color_identity) <= 2: pinlines = color_identity
-    elif len(color_identity) >= 3 and len(color_identity) <= cfg.color_identity_max: pinlines = color_identity
+    elif len(color_identity) == 3 and len(color_identity) <= cfg.color_identity_max: pinlines = color_identity
     else: pinlines = con.layers.GOLD
 
     # Select name box
