@@ -172,9 +172,10 @@ class BaseTemplate:
     def art_reference_layer(self) -> ArtLayer:
         # Select a main reference layer
         if isinstance(self.art_reference, ArtLayer):
-            # Art reference not given
+            # Art reference given as a layer
             layer = self.art_reference
         else:
+            # Art reference given as a string
             layer = psd.getLayer(self.art_reference)
             if not layer:
                 psd.getLayer(con.layers.ART_FRAME)
@@ -1798,52 +1799,22 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Core vars
         scale = self.app.activeDocument.width / 3264
         spacing = 80 * scale
-        adjustment = 0
-        step = 0.20
-
-        # Special case: 2 Ability Planeswalker
-        if len(self.ability_layers) == 2:
-            for lyr in self.ability_layers:
-                lyr.textItem.size += 1.4
-                lyr.textItem.leading += 1.4
-                adjustment = 80 * scale
-                spacing = adjustment * 3
-
-        # Heights
-        layer_heights = []
-        for layer in self.ability_layers:
-            layer_heights.append(psd.get_text_layer_dimensions(layer)["height"])
-
-        # Reference heights
-        div = len(self.ability_layers) - 1
+        spaces = len(self.ability_layers) + 1
         ref_height = psd.get_layer_dimensions(self.ref)['height']
-        total_height = ref_height - (spacing * div)
+        total_height = ref_height - (spacing * spaces)
 
-        # Compare height of all 3 elements vs total reference height
-        while sum(layer_heights) > total_height:
-            for i, layer in enumerate(self.ability_layers):
-                layer.textItem.size -= step
-                layer.textItem.leading -= step
-                layer_heights[i] = psd.get_text_layer_dimensions(layer)["height"]
+        # Resize text items till they fit in the available space
+        ft.scale_pw_text_to_fit(self.ability_layers, total_height)
 
         # Get the exact gap between each layer left over
-        gap = (ref_height - sum(layer_heights)) / div
+        layer_heights = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in self.ability_layers])
+        gap = (ref_height - layer_heights) / spaces
 
-        # Position the bottom layers relative to the top
-        for i in range(div):
-            delta = gap - (self.ability_layers[i + 1].bounds[1] - self.ability_layers[i].bounds[3])
-            self.ability_layers[i + 1].translate(0, delta)
-
-        # Align the layers
-        top_gap = self.ref.bounds[1] - self.ability_layers[0].bounds[1]
-        for layer in self.ability_layers:
-            layer.translate(0, top_gap)
+        # Space Planeswalker text evenly apart
+        ft.space_apart_pw_text(self.ability_layers, self.ref, gap)
 
         # Check the top reference of loyalty badge
-        ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
-        if adjustment > 0:
-            self.ability_layers[0].translate(0, abs(adjustment))
-            self.ability_layers[1].translate(0, -abs(adjustment))
+        ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, self.ref, self.adj_ref, self.top_ref)
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -1890,29 +1861,29 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Position needed ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
-            self.position_ragged_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
+            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_divider_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
         else:
             # 2 Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
         if line2_top and line2_ref:
             # 4 Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
+            self.position_divider_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
 
         # Fill between the ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            self.fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_dividers(line1_top, line1_bottom)
         else:
             # 2 Ability Planeswalker
             line1_bottom.translate(0, 1000)
-            self.fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_dividers(line1_top, line1_bottom)
         if line2_top and line2_bottom:
             # 4 Ability Planeswalker
-            self.fill_between_ragged_lines(line2_top, line2_bottom)
+            self.fill_between_dividers(line2_top, line2_bottom)
 
     @staticmethod
-    def position_ragged_line(layers: list, line, line_ref):
+    def position_divider_line(layers: list, line, line_ref):
         """
         Positions the ragged line correctly.
         """
@@ -1921,7 +1892,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         targ_pos = dif + layers[0].bounds[3]
         line.translate(0, (targ_pos - ref_pos))
 
-    def fill_between_ragged_lines(self, line1, line2):
+    def fill_between_dividers(self, line1, line2):
         """
         Fill area between ragged lines.
         """
@@ -1948,6 +1919,10 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
     template_file_name = "pw-extended"
     template_suffix = "Extended"
+
+    @property
+    def art_reference(self) -> str:
+        return con.layers.PLANESWALKER_ART_FRAME
 
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:

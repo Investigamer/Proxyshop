@@ -475,27 +475,13 @@ class FormattedTextArea (FormattedTextField):
         app.activeDocument.selection.deselect()
         self.layer.visible = True
 
-        # Get contents southern bound, move flavor text to bottom, get its northern bound
-        text_contents_bottom = layer_text_contents.bounds[3]
+        # Move flavor text to bottom, then position divider
         layer_flavor_text.translate(0, psd.get_text_layer_bounds(self.layer)[3] - layer_flavor_text.bounds[3])
-        flavor_text_top = layer_flavor_text.bounds[1]
+        psd.position_between_layers(self.divider, layer_text_contents, layer_flavor_text)
 
-        # Take our final midpoint measurement and remove duplicates
-        divider_y_midpoint = (text_contents_bottom + flavor_text_top) / 2
+        # Remove reference layers
         layer_text_contents.remove()
         layer_flavor_text.remove()
-
-        # Enable the divider and move it
-        self.divider.visible = True
-        app.activeDocument.activeLayer = self.divider
-        app.activeDocument.selection.select([
-            [0, divider_y_midpoint - 1],
-            [1, divider_y_midpoint - 1],
-            [1, divider_y_midpoint + 1],
-            [0, divider_y_midpoint + 1]
-        ])
-        psd.align_vertical()
-        psd.clear_selection()
 
     def execute(self):
 

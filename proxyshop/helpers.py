@@ -520,6 +520,27 @@ def align_horizontal(layer: Optional[ArtLayer] = None, ref: Optional[ArtLayer] =
     align("AdCH", layer, ref)
 
 
+def position_between_layers(
+    layer: Union[ArtLayer, LayerSet],
+    top_layer: Union[ArtLayer, LayerSet],
+    bottom_layer: Union[ArtLayer, LayerSet]
+) -> None:
+    """
+    Align layer vertically between two reference layers.
+    @param layer: Layer to align vertically
+    @param top_layer: Reference layer above the layer to be aligned.
+    @param bottom_layer: Reference layer below the layer to be aligned.
+    """
+    app.activeDocument.selection.select([
+        [0, top_layer.bounds[3]],
+        [app.activeDocument.width, top_layer.bounds[3]],
+        [app.activeDocument.width, bottom_layer.bounds[1]],
+        [0, bottom_layer.bounds[1]]
+    ])
+    align_vertical(layer)
+    clear_selection()
+
+
 def frame_layer(
     layer: ArtLayer,
     reference: ArtLayer,
@@ -653,6 +674,21 @@ def merge_layers(layers: list[ArtLayer]) -> ArtLayer:
     # Merge layers and return result
     app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
     return app.activeDocument.activeLayer
+
+
+def group_layers(layers: list[Union[ArtLayer, LayerSet]], name: Optional[str] = None) -> LayerSet:
+    """
+    Add list of layers to a new group.
+    @param layers: List of ArtLayer or LayerSet objects.
+    @param name: Name of the new group
+    @return: Newly created group
+    """
+    group = app.activeDocument.layerSets.add()
+    if name:
+        group.name = name
+    for layer in layers:
+        layer.move(group, ps.ElementPlacement.PlaceInside)
+    return group
 
 
 def leaf_layers() -> list[ArtLayer]:

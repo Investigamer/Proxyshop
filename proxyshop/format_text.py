@@ -535,6 +535,38 @@ def scale_text_to_fit_reference(
         layer.textItem.leading = font_size
 
 
+def scale_pw_text_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
+    # Heights
+    font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
+    step = 0.40
+    half_step = 0.20
+    total_layer_height = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in text_layers])
+
+    # Compare height of all 3 elements vs total reference height
+    while total_layer_height > ref_height:
+        total_layer_height = 0
+        font_size -= step
+        for i, layer in enumerate(text_layers):
+            layer.textItem.size = font_size
+            layer.textItem.leading = font_size
+            total_layer_height += psd.get_text_layer_dimensions(layer)["height"]
+
+    # Check half_step
+    font_size += half_step
+    total_layer_height = 0
+    for i, layer in enumerate(text_layers):
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+        total_layer_height += psd.get_text_layer_dimensions(layer)["height"]
+
+    # Compare height of all 3 elements vs total reference height
+    if total_layer_height > ref_height:
+        font_size -= half_step
+        for i, layer in enumerate(text_layers):
+            layer.textItem.size = font_size
+            layer.textItem.leading = font_size
+
+
 def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer):
     """
     Centers a given text layer vertically with respect to the bounding box of a reference layer.
@@ -578,18 +610,24 @@ def vertically_nudge_pw_text(
     text_layers: list[ArtLayer],
     space: Union[int, float],
     layer_gap: Union[int, float],
-    ref_height: Union[int, float],
-    adj_reference: ArtLayer,
-    top_reference: ArtLayer
+    ref: ArtLayer,
+    adj_reference: Optional[ArtLayer],
+    top_reference: Optional[ArtLayer]
 ) -> None:
     """
     Shift or resize planeswalker text to prevent overlap with the loyalty shield.
     """
+    # Return if adjustments weren't provided
+    if not adj_reference or not top_reference:
+        return
+
     # Layer to check for overlap
     lyrs = text_layers.copy()
     bottom = lyrs[-1]
-    movable = len(lyrs)-1
+    movable = len(lyrs) + 1
     leftover = (layer_gap - space) * movable
+    ref_height = psd.get_layer_dimensions(ref)['height']
+    font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
 
     # Does the layer overlap with the loyalty box?
     if bottom.bounds[2] >= adj_reference.bounds[0]:
@@ -604,7 +642,8 @@ def vertically_nudge_pw_text(
         # Determine how much the rules text overlaps loyalty box
         dif = top_reference.bounds[3] - layer_copy.bounds[3]
         layer_copy.delete()
-        if dif > 0: return
+        if dif > 0:
+            return
 
         # Calculate the total distance needing to be covered
         total_move = 0
@@ -618,24 +657,35 @@ def vertically_nudge_pw_text(
             for n, lyr in enumerate(lyrs):
                 move_y = dif * ((len(lyrs) - n)/len(lyrs))
                 lyr.translate(0, move_y)
-        elif dif < 0:
-            # Layer gap would be too small, need to resize text then shift upward
-            total_h = 0
-            for lyr in text_layers:
-                lyr.textItem.size -= 0.2
-                lyr.textItem.leading -= 0.2
-                total_h += psd.get_text_layer_dimensions(lyr)["height"]
+            return
 
-            # Get the exact spacing left over
-            new_gap = (ref_height - total_h) / movable
+        # Layer gap would be too small, need to resize text then shift upward
+        total_h = 0
+        font_size -= 0.2
+        for lyr in text_layers:
+            lyr.textItem.size = font_size
+            lyr.textItem.leading = font_size
+            total_h += psd.get_text_layer_dimensions(lyr)["height"]
 
-            # Position the bottom layers relative to the top
-            for n in range(movable):
-                delta = new_gap - (text_layers[n + 1].bounds[1] - text_layers[n].bounds[3])
-                text_layers[n + 1].translate(0, delta)
+        # Get the exact spacing left over
+        new_gap = (ref_height - total_h) / movable
 
-            # Check for another iteration
-            vertically_nudge_pw_text(text_layers, space, new_gap, ref_height, adj_reference, top_reference)
+        # Space apart planeswalker text evenly
+        space_apart_pw_text(text_layers, ref, new_gap)
+
+        # Check for another iteration
+        vertically_nudge_pw_text(text_layers, space, new_gap, ref, adj_reference, top_reference)
+
+
+def space_apart_pw_text(text_layers: list[ArtLayer], ref: ArtLayer, gap: Union[int, float]) -> None:
+    # Position the top layer relative to the reference
+    delta = (ref.bounds[1] + gap) - text_layers[0].bounds[1]
+    text_layers[0].translate(0, delta)
+
+    # Position the bottom layers relative to the top
+    for n in range(len(text_layers) - 1):
+        delta = (text_layers[n].bounds[3] + gap) - text_layers[n + 1].bounds[1]
+        text_layers[n + 1].translate(0, delta)
 
 
 """
