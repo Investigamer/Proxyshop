@@ -33,6 +33,7 @@ from proxyshop.gui.utils import (
 	HoverBehavior, HoverButton
 )
 from proxyshop.gui.settings import SettingsPopup
+from proxyshop.update import download_s3_file
 from proxyshop.constants import con
 from proxyshop.core import retrieve_card_info, TemplateDetails
 from proxyshop.settings import cfg
@@ -626,6 +627,14 @@ if __name__ == '__main__':
 	# Kivy packaging for PyInstaller
 	if hasattr(sys, '_MEIPASS'):
 		resource_add_path(os.path.join(sys._MEIPASS))
+
+	# Update symbol library and manifest
+	try:
+		download_s3_file('manifest.json', osp.join(cwd, 'proxyshop/manifest.json'))
+		download_s3_file('symbols.json', osp.join(cwd, 'proxyshop/symbols.json'))
+		con.reload()
+	except Exception as e:
+		print(e)
 
 	# Ensure mandatory folders are created
 	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
