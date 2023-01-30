@@ -32,7 +32,7 @@
 - **symbols**: Add missing symbols to library
 - **config**: Reformat config for Kivy settings panel
 - **text_layers.py**: Refactored classic quote alignment
-- **gui**: Seperate GUI elements into modules
+- **gui**: Separate GUI elements into modules
 
 ## v1.3.0 (2023-01-06)
 
