@@ -49,6 +49,7 @@ TYPES
 class TemplateDetails(TypedDict):
     class_name: str
     plugin_path: Optional[str]
+    preview_path: Optional[str]
     config_path: str
     name: str
     type: str
@@ -114,6 +115,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 main_json[card_type].append({
                     "plugin_path": None,
                     "config_path": osp.join(cwd, f"proxyshop/configs/{class_name}.json"),
+                    "preview_path": osp.join(cwd, f"proxyshop/img/{class_name}.jpg"),
                     "class_name": class_name,
                     "name": name,
                     "type": named_type
@@ -142,6 +144,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 main_json[card_type].append({
                     "plugin_path": py_file,
                     "config_path": py_file.replace('templates.py', f'configs/{class_name}.json'),
+                    "preview_path": py_file.replace('templates.py', f'img/{class_name}.jpg'),
                     "class_name": class_name,
                     "name": name,
                     "type": named_type

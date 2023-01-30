@@ -3,6 +3,7 @@ PROXYSHOP - GUI LAUNCHER
 """
 import json
 import os
+import os.path as osp
 os.environ["KIVY_NO_CONSOLELOG"] = "1"
 from kivy.utils import get_color_from_hex
 import sys
@@ -16,6 +17,7 @@ from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.factory import Factory
+from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
@@ -114,6 +116,12 @@ class ProxyshopApp(App):
 		"""
 		Add selected template to the templates dict.
 		"""
+		# Set the preview image
+		btn.parent.image.source = btn.parent.preview if (
+			osp.exists(btn.parent.preview)
+		) else osp.join(cwd, "proxyshop/img/NotFound.jpg")
+
+		# Select the template
 		card_type = btn.parent.type
 		if btn.state == "down":
 			self.temps[card_type] = btn.text
@@ -378,7 +386,7 @@ class ProxyshopApp(App):
 				return
 			layout.filename = os.path.join(cwd, "proxyshop/img/test.png")
 			console.update(f"{card[0]} ... ", end="")
-			template = core.get_template_class(template)
+			template['loaded_class'] = core.get_template_class(template)
 			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
 			if self.start_thread(thr):
 				console.update("[color=#59d461]SUCCESS[/color]")
@@ -509,6 +517,11 @@ TEMPLATE MODULES
 """
 
 
+class TemplateTabContainer(BoxLayout):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
+
 class TemplateModule(TabbedPanel):
 	"""
 	Container for our template tabs
@@ -531,9 +544,14 @@ class TemplateModule(TabbedPanel):
 
 			# Add tab
 			scroll_box = TemplateView()
-			scroll_box.add_widget(TemplateList(temps))
+			container = TemplateTabContainer()
 			tab = TabbedPanelItem(text=named_type)
-			tab.content = scroll_box
+			scroll_box.add_widget(TemplateList(temps, preview=container.ids.preview_image))
+			container.ids.preview_image.source = temps[0]['preview_path'] if (
+				osp.exists(temps[0]['preview_path'])
+			) else osp.join(cwd, 'proxyshop/img/NotFound.jpg')
+			container.ids.template_view_container.add_widget(scroll_box)
+			tab.content = container
 			self.add_widget(tab)
 
 
@@ -541,13 +559,14 @@ class TemplateList(GridLayout):
 	"""
 	Builds a listbox of templates based on a given type
 	"""
-	def __init__(self, temps: list[TemplateDetails], **kwargs):
+	def __init__(self, temps: list[TemplateDetails], preview: Image, **kwargs):
 		super().__init__(**kwargs)
 
 		# Create a list of buttons
 		for template in temps:
 			self.add_widget(TemplateRow(
-				template=template
+				template=template,
+				preview=preview
 			))
 
 
@@ -565,13 +584,15 @@ class TemplateRow(BoxLayout):
 	@param name: Name of template display on the button.
 	@param card_type: Card type of this template.
 	"""
-	def __init__(self, template: TemplateDetails, **kwargs):
+	def __init__(self, template: TemplateDetails, preview: Image, **kwargs):
 		super().__init__(**kwargs)
 
 		# Set up vars
+		self.image = preview
 		self.template = template
 		self.name = template['name']
 		self.type = template['type']
+		self.preview = template['preview_path']
 		self.ids.toggle_button.text = self.name
 
 		# Normal template default selected

@@ -72,10 +72,43 @@
         CreatorTab:
             text: "Custom Creator"
 
+
+
 <TabbedPanelItem>:
     pos: 0,0
     spacing: 0
     orientation: "vertical"
+
+<TemplateTabContainer>:
+    orientation: "horizontal"
+    pos: 0,0
+    spacing: 0
+    background_color: get_color_from_hex("#303030")
+    BoxLayout:
+        id: template_view_container
+        size_hint: (1, 1)
+        background_color: get_color_from_hex("#303030")
+    BoxLayout:
+        id: preview_container
+        orientation: "vertical"
+        size_hint: (None, 1)
+        width: 0.735294117*preview_image.height if preview_image.height <=612 else 450
+        background_color: get_color_from_hex("#303030")
+        Image:
+            source: 'proxyshop/img/NotFound.jpg'
+            id: preview_image
+            mipmap: True
+            keep_ratio: True
+            nocache: True
+            canvas:
+                Rectangle:
+                    source: "proxyshop/img/Overlay.png"
+                    size: preview_image.size
+                    pos: preview_image.pos
+        BoxLayout:
+            size_hint: (1, None)
+            height: preview_container.height-612 if preview_container.height-612 >= 0 else 0
+
 
 <TemplateList>:
     padding: 0
@@ -105,9 +138,11 @@
     ToggleButton:
         id: toggle_button
         on_press: app.select_template(self)
-        size_hint: (.9, 1)
+        size_hint: (1, 1)
+        halign: "left"
     TemplateSettingsButton:
         id: settings_button
         text: "Settings"
-        size_hint: (.1, 1)
+        size_hint: (None, 1)
+        width: 80
         on_press: ak.start(self.open_settings())
