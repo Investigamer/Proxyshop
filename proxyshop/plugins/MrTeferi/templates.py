@@ -139,6 +139,10 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     def is_companion(self) -> bool:
         return False
 
+    @property
+    def background(self):
+        return self.pinlines
+
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         # Pinlines
