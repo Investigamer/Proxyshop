@@ -221,9 +221,11 @@ def select_frame_layers(card: dict) -> FrameDetails:
     if mana_cost == "" or (mana_cost == "{0}" and con.layers.ARTIFACT not in type_line):
         # If `color_indicator` is defined for this card, use that as the colour identity
         # Otherwise, use `color_identity` as the color identity
-        if not color_identity_array: color_identity = ""
-        elif color_indicator: color_identity = "".join(color_indicator)
-        else: color_identity = "".join(color_identity_array)
+        color_identity = ""
+        if color_indicator:
+            color_identity = "".join(color_indicator)
+        elif color_identity_array:
+            color_identity = "".join(color_identity_array)
     else:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost
