@@ -156,11 +156,10 @@ class SettingsPopup(ModalView):
         # Create ini if one doesn't exist
         if template:
             self.create_config(template)
+            custom_json = self.update_config(template['config_path']) if osp.exists(template['config_path']) else None
         else:
             self.path_ini = self.app_ini
-
-        # Get template configs
-        custom_json = self.update_config(template['config_path']) if osp.exists(template['config_path']) else None
+            custom_json = None
 
         app_config = ConfigParser(allow_no_value=True)
         app_config.optionxform = str
