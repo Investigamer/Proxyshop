@@ -54,7 +54,7 @@ class Config:
 		self.symbol_stroke = self.file['SYMBOLS']['Symbol.Stroke.Size']
 		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
 
-		# EXPERIMENTAL section
+		# APP section
 		self.exit_early = self.file.getboolean('APP', 'Manual.Edit')
 		self.skip_failed = self.file.getboolean('APP', 'Skip.Failed')
 		self.scry_ascending = self.file.getboolean('APP', 'Scryfall.Ascending')
