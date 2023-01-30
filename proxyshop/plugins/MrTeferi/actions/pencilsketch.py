@@ -1,7 +1,7 @@
 """
 Pencil Sketchify Action Module
 """
-from time import perf_counter
+from proxyshop.__console__ import console
 import photoshop.api as ps
 app = ps.Application()
 cID = app.charIDToTypeID
@@ -175,7 +175,7 @@ def blend_overlay(): blend('overlay')
 def blend_color(): blend('color')
 
 
-def run(draft_sketch=False, rough_sketch=False, colored=True):
+def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_editing=False):
 	"""
 	Pencil Sketchify Steps
 	"""
@@ -1164,8 +1164,10 @@ def run(draft_sketch=False, rough_sketch=False, colored=True):
 		hide_layer("Background copy 8")
 		hide_layer("Background copy 9")
 
-	if not colored:
+	if black_and_white:
 		hide_layer("Background copy 11")
 
 	# Flatten
+	if manual_editing:
+		console.wait("Sketch Action complete, hit continue when ready!")
 	app.executeAction(cID("FltI"), None, dialog_mode)

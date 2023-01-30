@@ -39,6 +39,13 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
         # Content aware fill
         psd.content_fill_empty_area(self.art_layer)
 
+    def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
+        super().enable_hollow_crown()
+
+        shadows = psd.getLayer("Shadows Light", "Shadows")
+        if shadows:
+            psd.enable_mask(shadows)
+
 
 """
 MDFC TEMPLATES

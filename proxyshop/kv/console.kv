@@ -1,11 +1,7 @@
 #:import HoverButton proxyshop.gui.utils.HoverButton
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import ScrollView kivy.uix.scrollview.ScrollView
-#:import Window kivy.core.window.Window
-#:import Thread threading.Thread
 #:import ak asynckivy
-#:import cfg proxyshop.settings.cfg
-
 <Console>:
     orientation: "horizontal"
     padding: 10
@@ -30,18 +26,18 @@
             do_scroll_x: False
             size_hint: 1, 1
             GridLayout:
-                id: console_output_container
                 cols: 1
                 padding: 0
                 spacing: 0
                 size_hint: (1,None)
                 height: self.minimum_height
                 ConsoleOutput:
-                    size_hint: 1,None
                     id: console_output
+                    padding: (0,0)
+                    size_hint: (1,None)
                     markup: True
                     font_size: 18
-                    text_size: self.width, None
+                    text_size: (self.width, None)
                     size: self.texture_size
                     text_autoupdate: True
                     halign: "left"

@@ -167,4 +167,5 @@ tester.py
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG
-env.json
+/proxyshop/configs/*.ini
+/proxyshop/plugins/*/configs/*.ini

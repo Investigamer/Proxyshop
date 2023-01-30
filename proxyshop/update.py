@@ -178,6 +178,27 @@ def download_s3(temp: dict, callback: Callable) -> bool:
     return download_file(file, res, sess, temp['path'], callback)
 
 
+def download_s3_file(filename: str, path: str) -> bool:
+    """
+    Download template from Amazon S3 bucket.
+    @param filename: Filename on S3
+    @param path: Path to save file to.
+    @return: True if success, False if failed.
+    """
+    # Establish this object's key
+    url = f"{con.cloudfront_url}/{filename}"
+
+    # Establish session
+    sess = requests.session()
+    header = con.http_header.copy()
+    res = sess.get(url, headers=header, stream=True, verify=True)
+
+    # Get temp file
+    details = get_temp_file(res, sess, path, url)
+    file, current, res = details['file'], details['current'], details['res']
+    return download_file(file, res, sess, path)
+
+
 def get_temp_file(
         res: requests.Response,
         sess: requests.Session,
@@ -224,14 +245,14 @@ def download_file(
         callback: Optional[Callable] = None
 ) -> bool:
     # Try to download the file
-    total = int(res.headers.get("Content-Length"))
+    total = int(res.headers.get("Content-Length") or 1)
     current = int(os.path.getsize(file))
     try:
         with open(file, "ab") as f:
             for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
                 f.write(chunk)
-                current += int(CHUNK_SIZE)
                 if callback:
+                    current += int(CHUNK_SIZE)
                     callback(current, total)
         if path and file != path:
             shutil.move(file, path)

@@ -1,6 +1,6 @@
 {
 	"__CONFIG__": {
-        "S3": "proxyshop-gh-app"
+        "S3": true
     },
 	"Normal": {
 		"Sketch": {

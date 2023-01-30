@@ -1,10 +1,18 @@
 """
 Functions handling logic for card frames
 """
-from typing import Union, Optional
+from typing import Union, Optional, TypedDict
 
 from proxyshop.constants import con
 from proxyshop.settings import cfg
+
+
+class FrameDetails(TypedDict):
+    is_colorless: bool
+    background: Optional[str]
+    pinlines: Optional[str]
+    twins: Optional[str]
+
 
 def fix_color_pair(pair: str) -> Optional[str]:
     """
@@ -64,7 +72,7 @@ def fix_color_triple(triple):
     else:
         return None
 
-def select_frame_layers(card: dict) -> dict:
+def select_frame_layers(card: dict) -> FrameDetails:
     """
     * Figure out which layers to use for pinlines, background, twins
     * Also define the color identity
@@ -259,9 +267,11 @@ def select_frame_layers(card: dict) -> dict:
     if mana_cost == "" or (mana_cost == "{0}" and con.layers.ARTIFACT not in type_line):
         # If `color_indicator` is defined for this card, use that as the colour identity
         # Otherwise, use `color_identity` as the color identity
-        if color_identity_array is None: color_identity = ""
-        elif color_indicator: color_identity = "".join(color_indicator)
-        else: color_identity = "".join(color_identity_array)
+        color_identity = ""
+        if color_indicator:
+            color_identity = "".join(color_indicator)
+        elif color_identity_array:
+            color_identity = "".join(color_identity_array)
     else:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost
@@ -366,10 +376,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
             'rarity': True,
             'fill': "black" if cfg.fill_symbol else False,
             'color': False,
-            'stroke': ["black", 6],
+            'stroke': ["black", cfg.symbol_stroke],
             'common-fill': "white" if cfg.fill_symbol else False,
             'common-color': False,
-            'common-stroke': ["white", 6],
+            'common-stroke': ["white", cfg.symbol_stroke],
             'scale-factor': 1
         }]
     if isinstance(symbol, list):
@@ -378,10 +388,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
             if 'rarity' not in lyr: symbol[i]['rarity'] = True
             if 'fill' not in lyr: symbol[i]['fill'] = False
             if 'color' not in lyr: symbol[i]['color'] = False
-            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", 6]
+            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", cfg.symbol_stroke]
             if 'common-fill' not in lyr: symbol[i]['common-fill'] = False
             if 'common-color' not in lyr: symbol[i]['common-color'] = False
-            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", 6]
+            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", cfg.symbol_stroke]
             if 'scale-factor' not in lyr: symbol[i]['scale-factor'] = 1
             if 'reference' in lyr and lyr['reference']:
                 if lyr['reference']:

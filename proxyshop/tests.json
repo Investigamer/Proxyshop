@@ -48,6 +48,10 @@
         ["Kasmina, Enigma Sage", "Dual"],
         ["Karn Liberated", "Colorless"]
     ],
+    "prototype": [
+        ["Rust Goliath", "Flavor text"],
+        ["Phyrexian Fleshgorger", "Normal"]
+    ],
     "pw_tf_front": [
         ["Arlinn Kord", "Dual"]
     ],

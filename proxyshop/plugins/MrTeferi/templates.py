@@ -9,20 +9,10 @@ import proxyshop.templates as temp
 from proxyshop.constants import con
 from proxyshop.settings import cfg
 import proxyshop.helpers as psd
-import proxyshop.core as core
 
 from photoshop.api._artlayer import ArtLayer
 import photoshop.api as ps
 app = ps.Application()
-
-
-"""
-LOAD CONFIGURATION
-"""
-
-
-my_config = core.import_json_config("MrTeferi/config.json")
-sketch_cfg = my_config['Sketch']
 
 
 """
@@ -39,6 +29,10 @@ class SketchTemplate (temp.NormalTemplate):
     template_suffix = "Sketch"
 
     @property
+    def name_shifted(self) -> bool:
+        return False
+
+    @property
     def is_nyx(self) -> bool:
         return False
 
@@ -48,27 +42,44 @@ class SketchTemplate (temp.NormalTemplate):
 
     @property
     def art_action(self) -> Optional[Callable]:
-        if sketch_cfg['action'] == 1:
-            return sketch.run
-        elif sketch_cfg['action'] == 2:
+        action = cfg.get_setting(
+            section="ACTION",
+            key="Sketch.Action",
+            default="Advanced Sketch",
+            is_bool=False
+        )
+        if action == "Advanced Sketch":
             return pencilsketch.run
+        if action == "Quick Sketch":
+            return sketch.run
         return
 
     @property
     def art_action_args(self) -> Optional[dict]:
-        if sketch_cfg['action'] == 2:
-            return {
-                'rough_sketch': bool(sketch_cfg['rough-sketch-lines']),
-                'draft_sketch': bool(sketch_cfg['draft-sketch-lines']),
-                'colored': bool(sketch_cfg['colored']),
-            }
-        return
-
-    def __init__(self, layout):
-
-        # Disable reminder text
-        cfg.remove_reminder = True
-        super().__init__(layout)
+        if not self.art_action == pencilsketch.run:
+            return
+        return {
+            'rough_sketch': cfg.get_setting(
+                section="ACTION",
+                key="Rough.Sketch.Lines",
+                default=False
+            ),
+            'draft_sketch': cfg.get_setting(
+                section="ACTION",
+                key="Draft.Sketch.Lines",
+                default=False
+            ),
+            'black_and_white': cfg.get_setting(
+                section="ACTION",
+                key="Black.And.White",
+                default=False
+            ),
+            'manual_editing': cfg.get_setting(
+                section="ACTION",
+                key="Sketch.Manual.Editing",
+                default=False
+            )
+        }
 
 
 class KaldheimTemplate (temp.NormalTemplate):
@@ -78,10 +89,6 @@ class KaldheimTemplate (temp.NormalTemplate):
     """
     template_file_name = "MrTeferi/kaldheim"
     template_suffix = "Kaldheim"
-
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @property
     def is_nyx(self) -> bool:
@@ -131,6 +138,10 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     @property
     def is_companion(self) -> bool:
         return False
+
+    @property
+    def background(self):
+        return self.pinlines
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
@@ -211,10 +222,6 @@ class MaleMPCTemplate (temp.NormalTemplate):
     template_file_name = "MrTeferi/male-mpc"
     template_suffix = "Extended Black"
 
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
     @cached_property
     def pinlines_layer_bottom(self) -> Optional[ArtLayer]:
         if self.is_land:
@@ -241,20 +248,6 @@ class MaleMPCTemplate (temp.NormalTemplate):
 """
 CLASSIC TEMPLATE VARIANTS
 """
-
-
-class PromoClassicTemplate (temp.NormalClassicTemplate):
-    """
-    Identical to NormalClassic
-    Promo star added
-    """
-    template_suffix = "Classic Promo"
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add the promo star
-        psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
 
 class ColorshiftedTemplate (temp.NormalTemplate):
@@ -344,18 +337,3 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
 
         # Content aware fill
         psd.content_fill_empty_area(self.art_layer)
-
-
-class BasicLandClassicPromo (temp.BasicLandTemplate):
-    """
-    Basic land template for 7th Edition basics.
-    Adds promo star.
-    """
-    template_file_name = "basic-classic"
-    template_suffix = "Promo Classic"
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add the promo star
-        psd.getLayer("Promo Star").visible = True

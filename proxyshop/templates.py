@@ -25,8 +25,8 @@ class BaseTemplate:
     """
     Set up variables for things which are common to all templates, extend this at bare minimum.
     """
-    template_file_name = None
-    template_suffix = None
+    template_file_name = ""
+    template_suffix = ""
 
     def __init__(self, layout):
 
@@ -172,9 +172,10 @@ class BaseTemplate:
     def art_reference_layer(self) -> ArtLayer:
         # Select a main reference layer
         if isinstance(self.art_reference, ArtLayer):
-            # Art reference not given
+            # Art reference given as a layer
             layer = self.art_reference
         else:
+            # Art reference given as a string
             layer = psd.getLayer(self.art_reference)
             if not layer:
                 psd.getLayer(con.layers.ART_FRAME)
@@ -569,11 +570,7 @@ class BaseTemplate:
         # Check if name already exists
         if not cfg.overwrite_duplicate:
             num = 0
-            while any([
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.png")),
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.psd")),
-                os.path.exists(os.path.join(con.cwd, f"out/{name}.jpg")),
-            ]):
+            while os.path.exists(os.path.join(con.cwd, f"out/{name}.{cfg.output_filetype}")):
                 num += 1
                 if ")" not in name:
                     name = f'{name} (1)'
@@ -811,9 +808,6 @@ class NormalTemplate (StarterTemplate):
     """
     template_file_name = "normal"
 
-    def __init__(self, layout):
-        super().__init__(layout)
-
     @property
     def art_reference(self) -> str:
         # If colorless, use fullart
@@ -918,7 +912,6 @@ class NormalClassicTemplate (StarterTemplate):
     A template for 7th Edition frame. Lacks many of the Normal Template features.
     """
     template_file_name = "normal-classic"
-    template_suffix = "Classic"
 
     def __init__(self, layout):
         cfg.real_collector = False
@@ -932,16 +925,31 @@ class NormalClassicTemplate (StarterTemplate):
     def type_line_shifted(self) -> bool:
         return False
 
+    @property
+    def promo_star(self) -> str:
+        return cfg.get_setting(
+            section="FRAME",
+            key="Promo.Star",
+            default=False
+        )
+
+    @cached_property
+    def template_suffix(self) -> str:
+        if self.promo_star:
+            return "Promo Classic"
+        return "Classic"
+
     def rules_text_and_pt_layers(self):
         # Move mana layer down for hybrid mana
         if len(self.background) == 2:
             self.text_layer_mana.translate(0, -5)
 
         # Text reference and rules text
-        if self.is_land:
-            reference_layer = psd.getLayer(con.layers.TEXTBOX_REFERENCE_LAND, self.text_layers)
-        else:
-            reference_layer = psd.getLayer(con.layers.TEXTBOX_REFERENCE, self.text_layers)
+        reference_layer = psd.getLayer(
+            con.layers.TEXTBOX_REFERENCE_LAND if self.is_land
+            else con.layers.TEXTBOX_REFERENCE,
+            self.text_layers
+        )
 
         # Add rules text
         self.text.append(
@@ -968,11 +976,14 @@ class NormalClassicTemplate (StarterTemplate):
 
     def enable_frame_layers(self):
         # Simple one image background, Land or Nonland
-        if self.is_land:
-            psd.getLayer(self.pinlines, con.layers.LAND).visible = True
-        else:
-            psd.getLayer(self.background, con.layers.NONLAND).visible = True
+        psd.getLayer(
+            self.pinlines,
+            con.layers.LAND if self.is_land else con.layers.NONLAND
+        ).visible = True
 
+        # Add the promo star
+        if self.promo_star:
+            psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
 """
 Templates similar to NormalTemplate but with aesthetic differences
@@ -986,10 +997,6 @@ class NormalExtendedTemplate (NormalTemplate):
     """
     template_file_name = "normal-extended"
     template_suffix = "Extended"
-
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
 
 class NormalFullartTemplate (NormalTemplate):
@@ -1006,10 +1013,6 @@ class WomensDayTemplate (NormalTemplate):
     """
     template_file_name = "womensday"
     template_suffix = "Showcase"
-
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @cached_property
     def art_reference_layer(self) -> ArtLayer:
@@ -1042,11 +1045,6 @@ class StargazingTemplate (NormalTemplate):
     template_file_name = "stargazing.psd"
     template_suffix = "Stargazing"
 
-    def __init__(self, layout):
-        # Strip out reminder text
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
     @property
     def is_nyx(self) -> bool:
         return True
@@ -1067,18 +1065,18 @@ class InventionTemplate (NormalTemplate):
     template_file_name = "masterpiece.psd"
     template_suffix = "Masterpiece"
 
-    def __init__(self, layout):
-        # Mandatory settings
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
-    @property
+    @cached_property
     def twins(self) -> str:
-        return "Bronze"
+        return str(cfg.get_setting(
+            section="FRAME",
+            key="Accent",
+            default="Silver",
+            is_bool=False
+        ))
 
-    @property
+    @cached_property
     def background(self) -> str:
-        return "Bronze"
+        return self.twins
 
     @property
     def is_nyx(self) -> bool:
@@ -1097,20 +1095,6 @@ class InventionTemplate (NormalTemplate):
         return False
 
 
-class InventionSilverTemplate (InventionTemplate):
-    """
-    Kaladesh Invention template, Silver choice.
-    """
-
-    @property
-    def twins(self) -> str:
-        return "Silver"
-
-    @property
-    def background(self) -> str:
-        return "Silver"
-
-
 class ExpeditionTemplate (NormalTemplate):
     """
     Zendikar Rising Expedition template. Masks pinlines for legendary cards, has a single static background layer,
@@ -1118,11 +1102,6 @@ class ExpeditionTemplate (NormalTemplate):
     """
     template_file_name = "znrexp.psd"
     template_suffix = "Expedition"
-
-    def __init__(self, layout):
-        # Strip reminder text
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
@@ -1210,9 +1189,9 @@ class TransformBackTemplate (NormalTemplate):
     def basic_text_layers(self):
         # For eldrazi card, set the color of the rules text, type line, and power/toughness to black
         if self.layout.transform_icon == con.layers.MOON_ELDRAZI_DFC:
-            self.text_layer_name.color = psd.rgb_black()
-            self.text_layer_type.color = psd.rgb_black()
-            self.text_layer_pt.color = psd.rgb_black()
+            self.text_layer_name.textItem.color = psd.rgb_black()
+            self.text_layer_type.textItem.color = psd.rgb_black()
+            self.text_layer_pt.textItem.color = psd.rgb_black()
         super().basic_text_layers()
 
 
@@ -1585,12 +1564,9 @@ class SagaTemplate (NormalTemplate):
     template_file_name = "saga"
 
     def __init__(self, layout):
-        cfg.exit_early = True
+        self._abilities = []
+        self._icons = []
         super().__init__(layout)
-
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TWINS)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME))
 
     @property
     def is_legendary(self) -> bool:
@@ -1612,25 +1588,105 @@ class SagaTemplate (NormalTemplate):
     def pinlines_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.background, con.layers.TEXTBOX)
 
-    def rules_text_and_pt_layers(self):
+    @property
+    def ability_layers(self) -> list[ArtLayer]:
+        return self._abilities
 
-        # Iterate through each saga stage and add line to text layers
-        saga_text_group = psd.getLayerSet("Saga", self.text_layers)
-        stages = ["I", "II", "III", "IV"]
+    @ability_layers.setter
+    def ability_layers(self, value):
+        self._abilities = value
 
-        for i, line in enumerate(self.layout.saga_lines):
-            stage_group = psd.getLayerSet(stages[i], saga_text_group)
-            stage_group.visible = True
-            self.text.append(
-                text_classes.FormattedTextField(
-                    layer = psd.getLayer("Text", stage_group),
-                    contents = line
-                )
-            )
+    @property
+    def icon_layers(self) -> list[list[ArtLayer]]:
+        return self._icons
+
+    @icon_layers.setter
+    def icon_layers(self, value):
+        self._icons = value
+
+    @cached_property
+    def saga_group(self):
+        return psd.getLayerSet("Saga", self.text_layers)
+
+    @cached_property
+    def ref(self):
+        return psd.getLayer(con.layers.TEXTBOX_REFERENCE, self.text_layers)
+
+    @cached_property
+    def ability_divider(self) -> ArtLayer:
+        return psd.getLayer(con.layers.DIVIDER, self.saga_group)
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
+
+        # Paste scryfall scan
+        self.active_layer = psd.getLayerSet(con.layers.TWINS)
+        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
+
+        # Saga stripe
         psd.getLayer(self.pinlines, con.layers.PINLINES_AND_SAGA_STRIPE).visible = True
+
+    def rules_text_and_pt_layers(self):
+
+        # Iterate through each saga stage and add line to text layers
+        for line in self.layout.saga_lines:
+            layer = psd.getLayer(con.layers.TEXT, self.saga_group).duplicate()
+            self.ability_layers.append(layer)
+            self.icon_layers.append([psd.getLayer(n, self.saga_group).duplicate() for n in line['icons']])
+            self.text.append(
+                text_classes.FormattedTextField(
+                    layer = layer,
+                    contents = line['text']
+                )
+            )
+
+    def post_text_layers(self) -> None:
+
+        # Core vars
+        spacing = 80 * self.app.activeDocument.width / 3264
+        spaces = len(self.ability_layers) - 1
+        spacing_total = (spaces * 1.5) + 2
+        ref_height = psd.get_layer_dimensions(self.ref)['height']
+        total_height = ref_height - (((spacing * 1.5) * spaces) + (spacing * 2))
+
+        # Resize text items till they fit in the available space
+        ft.scale_text_layers_to_fit(self.ability_layers, total_height)
+
+        # Get the exact gap between each layer left over
+        layer_heights = sum([psd.get_text_layer_dimensions(lyr)["height"] for lyr in self.ability_layers])
+        gap = (ref_height - layer_heights) * (1 / spacing_total)
+        inside_gap = (ref_height - layer_heights) * (1.5 / spacing_total)
+
+        # Space Planeswalker text evenly apart
+        psd.spread_layers_over_reference(self.ability_layers, self.ref, gap, inside_gap)
+
+        # Align colons and shields to respective text layers
+        for i, ref_layer in enumerate(self.ability_layers):
+            # Skip if this is a passive ability
+            icons = self.icon_layers[i]
+            if len(icons) > 1:
+                psd.space_layers_apart(icons, spacing/3)
+                icon_layer = psd.merge_layers(icons)
+            else:
+                icon_layer = icons[0]
+            self.docref.selection.select([
+                [0, ref_layer.bounds[1]],
+                [ref_layer.bounds[0], ref_layer.bounds[1]],
+                [ref_layer.bounds[0], ref_layer.bounds[3]],
+                [0, ref_layer.bounds[3]]
+            ])
+            psd.align_vertical(icon_layer)
+            psd.clear_selection()
+
+        # Position divider lines
+        self.position_divider_lines()
+
+    def position_divider_lines(self):
+
+        # Position a line between each ability layer
+        for i in range(len(self.ability_layers) - 1):
+            divider = self.ability_divider.duplicate()
+            psd.position_between_layers(divider, self.ability_layers[i], self.ability_layers[i + 1])
 
 
 """
@@ -1650,8 +1706,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         self._ability_layers = []
         self._shields = []
         self._colons = []
-
-        cfg.exit_early = True
         super().__init__(layout)
 
     """
@@ -1666,11 +1720,9 @@ class PlaneswalkerTemplate (StarterTemplate):
     @property
     def art_reference(self):
         # Name of art reference layer
-        return psd.getLayer(
-            con.layers.FULL_ART_FRAME
-        ) if self.is_colorless else psd.getLayer(
-            con.layers.PLANESWALKER_ART_FRAME
-        )
+        if self.is_colorless:
+            return con.layers.FULL_ART_FRAME
+        return con.layers.PLANESWALKER_ART_FRAME
 
     """
     TEXT LAYERS
@@ -1821,53 +1873,23 @@ class PlaneswalkerTemplate (StarterTemplate):
         Auto-position the ability text, colons, and shields.
         """
         # Core vars
-        spacing = 80
-        adjustment = 0
-        step = .2000000000000
-
-        # Special case: 2 Ability Planeswalker
-        if len(self.ability_layers) == 2:
-            for lyr in self.ability_layers:
-                lyr.textItem.size += 1.4
-                lyr.textItem.leading += 1.4
-                adjustment = 80
-                spacing = 240
-
-        # Heights
-        layer_heights = []
-        for layer in self.ability_layers:
-            layer_heights.append(psd.get_text_layer_dimensions(layer)["height"])
-
-        # Reference heights
-        div = len(self.ability_layers) - 1
+        spacing = 80 * self.app.activeDocument.width / 3264
+        spaces = len(self.ability_layers) + 1
         ref_height = psd.get_layer_dimensions(self.ref)['height']
-        total_height = ref_height - (spacing * div)
+        total_height = ref_height - (spacing * spaces)
 
-        # Compare height of all 3 elements vs total reference height
-        while sum(layer_heights) > total_height:
-            for i, layer in enumerate(self.ability_layers):
-                layer.textItem.size -= step
-                layer.textItem.leading -= step
-                layer_heights[i] = psd.get_text_layer_dimensions(layer)["height"]
+        # Resize text items till they fit in the available space
+        ft.scale_text_layers_to_fit(self.ability_layers, total_height)
 
         # Get the exact gap between each layer left over
-        gap = (ref_height - sum(layer_heights)) / div
+        layer_heights = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in self.ability_layers])
+        gap = (ref_height - layer_heights) / spaces
 
-        # Position the bottom layers relative to the top
-        for i in range(div):
-            delta = gap - (self.ability_layers[i + 1].bounds[1] - self.ability_layers[i].bounds[3])
-            self.ability_layers[i + 1].translate(0, delta)
-
-        # Align the layers
-        top_gap = self.ref.bounds[1] - self.ability_layers[0].bounds[1]
-        for layer in self.ability_layers:
-            layer.translate(0, top_gap)
+        # Space Planeswalker text evenly apart
+        psd.spread_layers_over_reference(self.ability_layers, self.ref, gap)
 
         # Check the top reference of loyalty badge
-        ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, ref_height, self.adj_ref, self.top_ref)
-        if adjustment > 0:
-            self.ability_layers[0].translate(0, abs(adjustment))
-            self.ability_layers[1].translate(0, -abs(adjustment))
+        ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, self.ref, self.adj_ref, self.top_ref)
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -1914,29 +1936,29 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Position needed ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
-            self.position_ragged_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
+            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_divider_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
         else:
             # 2 Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
+            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
         if line2_top and line2_ref:
             # 4 Ability Planeswalker
-            self.position_ragged_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
+            self.position_divider_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
 
         # Fill between the ragged lines
         if len(self.ability_layers) > 2:
             # 3+ Ability Planeswalker
-            self.fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_dividers(line1_top, line1_bottom)
         else:
             # 2 Ability Planeswalker
             line1_bottom.translate(0, 1000)
-            self.fill_between_ragged_lines(line1_top, line1_bottom)
+            self.fill_between_dividers(line1_top, line1_bottom)
         if line2_top and line2_bottom:
             # 4 Ability Planeswalker
-            self.fill_between_ragged_lines(line2_top, line2_bottom)
+            self.fill_between_dividers(line2_top, line2_bottom)
 
     @staticmethod
-    def position_ragged_line(layers: list, line, line_ref):
+    def position_divider_line(layers: list, line, line_ref):
         """
         Positions the ragged line correctly.
         """
@@ -1945,7 +1967,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         targ_pos = dif + layers[0].bounds[3]
         line.translate(0, (targ_pos - ref_pos))
 
-    def fill_between_ragged_lines(self, line1, line2):
+    def fill_between_dividers(self, line1, line2):
         """
         Fill area between ragged lines.
         """
@@ -1972,6 +1994,10 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
     template_file_name = "pw-extended"
     template_suffix = "Extended"
+
+    @property
+    def art_reference(self) -> str:
+        return con.layers.PLANESWALKER_ART_FRAME
 
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
@@ -2276,4 +2302,24 @@ class BasicLandClassicTemplate (BasicLandTemplate):
     Basic land template for 7th Edition basics.
     """
     template_file_name = "basic-classic"
-    template_suffix = "Classic"
+
+    @cached_property
+    def template_suffix(self) -> str:
+        if self.promo_star:
+            return "Promo Classic"
+        return "Classic"
+
+    @property
+    def promo_star(self) -> str:
+        return cfg.get_setting(
+            section="FRAME",
+            key="Promo.Star",
+            default=False
+        )
+
+    def enable_frame_layers(self):
+        super().enable_frame_layers()
+
+        # Add the promo star
+        if self.promo_star:
+            psd.getLayer("Promo Star").visible = True
