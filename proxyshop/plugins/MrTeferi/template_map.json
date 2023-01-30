@@ -6,7 +6,6 @@
 		"Phyrexian": "PhyrexianTemplate",
 		"Colorshifted": "ColorshiftedTemplate",
 		"Crimson Fang": "CrimsonFangTemplate",
-		"Classic Promo": "PromoClassicTemplate",
 		"Double Feature": "DoubleFeatureTemplate"
 	},
 	"transform_front": {
@@ -16,7 +15,6 @@
 		"Crimson Fang": "CrimsonFangTemplate"
 	},
 	"basic": {
-		"Classic Promo": "BasicLandClassicPromo",
 		"Dark Mode": "BasicLandDarkMode"
 	}
 }

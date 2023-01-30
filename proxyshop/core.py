@@ -6,15 +6,17 @@ import re
 import sys
 import json
 import requests
+import os.path as osp
 from glob import glob
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, TypedDict, Union
+from typing_extensions import NotRequired
 from importlib import util, import_module
 from proxyshop import update
 from proxyshop.constants import con
 cwd = os.getcwd()
 
-# Card types with more than 1 template
+# All Template types
 card_types = {
     "Normal": ["normal"],
     "MDFC": ["mdfc_front", "mdfc_back"],
@@ -25,6 +27,7 @@ card_types = {
     "Basic Land": ["basic"],
     "Ixalan": ["ixalan"],
     "Mutate": ["mutate"],
+    "Prototype": ["prototype"],
     "Adventure": ["adventure"],
     "Leveler": ["leveler"],
     "Saga": ["saga"],
@@ -37,105 +40,166 @@ reg_artist = re.compile(r'\(+(.*?)\)')
 reg_set = re.compile(r'\[(.*)]')
 reg_creator = re.compile(r'{(.*)}')
 
+
+"""
+TYPES
+"""
+
+
+class TemplateDetails(TypedDict):
+    class_name: str
+    plugin_path: Optional[str]
+    preview_path: Optional[str]
+    config_path: str
+    name: str
+    type: str
+    loaded_class: NotRequired[Callable]
+
+
+class CardDetails(TypedDict):
+    name: str
+    set: Optional[str]
+    artist: Optional[str]
+    creator: Optional[str]
+    filename: Union[str, Path]
+
+
 """
 TEMPLATE FUNCTIONS
 """
 
 
-def get_template(template: list, layout: Optional[str] = None):
+def get_named_type(layout_class: str) -> Optional[str]:
+    """
+    Finds the named type for a given layout class.
+    @param layout_class: Scryfall authentic layout type, ex: mdfc_font
+    @return: Displayed name of that type, ex: MDFC
+    """
+    for name, types in card_types.items():
+        if layout_class in types:
+            return name
+    return
+
+
+def get_template_class(template: TemplateDetails) -> Callable:
     """
     Get template based on input and layout
     """
-    # Was layout provided?
-    if layout:
-        # Get templates json
-        templates = get_templates()
-
-        # Select our template
-        if layout in templates:
-            if template in templates[layout]:
-                selected_template = templates[layout][template]
-            else: selected_template = templates[layout]["Normal"]
-        else: return None
-    else: selected_template = template
-
     # Built-in template?
-    if selected_template[0] is None:
-        return getattr(import_module("proxyshop.templates"), selected_template[1])
+    if not template['plugin_path']:
+        return getattr(import_module("proxyshop.templates"), template['class_name'])
 
     # Plugin template
-    spec = util.spec_from_file_location("templates", os.path.join(cwd, selected_template[0]))
+    spec = util.spec_from_file_location("templates", template['plugin_path'])
     temp_mod = util.module_from_spec(spec)
     spec.loader.exec_module(temp_mod)
-    return getattr(temp_mod, selected_template[1])
+    return getattr(temp_mod, template['class_name'])
 
 
-def get_templates():
+def get_templates() -> dict[str, list[TemplateDetails]]:
     """
-    Roll templates from our plugins into our main json
+    Generate a dictionary of templates using app included json and any plugins.
+    @return: Dictionary of lists containing template details.
     """
-
     # Plugin folders
     folders = glob(os.path.join(cwd, "proxyshop\\plugins\\*\\"))
 
-    # Get our main json
-    with open(os.path.join(cwd, "proxyshop\\templates.json"), encoding="utf-8") as json_file:
-        this_json = json.load(json_file)
+    # Process the default templates.json
+    with open(os.path.join(cwd, "proxyshop\\templates.json"), encoding="utf-8") as f:
+        app_json = json.load(f)
         main_json = {}
-        for key, val in this_json.items():
-            main_json[key] = {}
-            for k, v in val.items():
-                main_json[key][k] = [None, v]
+        for card_type, templates in app_json.items():
+            main_json[card_type] = []
+            named_type = get_named_type(card_type)
+            for name, class_name in templates.items():
+                main_json[card_type].append({
+                    "plugin_path": None,
+                    "config_path": osp.join(cwd, f"proxyshop/configs/{class_name}.json"),
+                    "preview_path": osp.join(cwd, f"proxyshop/img/{class_name}.jpg"),
+                    "class_name": class_name,
+                    "name": name,
+                    "type": named_type
+                })
 
-    # Iterate through folders
+    # Iterate through plugin folders
     for folder in folders:
+        # Guard clauses
         if Path(folder).stem == "__pycache__": continue
-        else:
-            j = []
-            for name in os.listdir(folder):
+        json_file = osp.join(folder, 'template_map.json')
+        py_file = osp.join(folder, 'templates.py')
+        if not osp.exists(json_file) and not osp.exists(py_file):
+            continue
 
-                # Load json
-                if name == "template_map.json":
-                    with open(
-                        os.path.join(cwd, f"proxyshop\\plugins\\{Path(folder).stem}\\{name}"),
-                        encoding="utf-8"
-                    ) as this_json:
-                        j = json.load(this_json)
+        # Load json
+        with open(json_file, "r", encoding="utf-8") as f:
+            plugin_json = json.load(f)
 
-                # Add to sys.path
-                sys.path.append(os.path.join(cwd, f"proxyshop/plugins/{Path(folder).stem}"))
+        # Add plugin folder to Python environment
+        sys.path.append(folder)
 
-            # Loop through keys in plugin json
-            try:
-                for key, val in j.items():
-                    # Add to existing templates
-                    for k, v in val.items():
-                        main_json[key][k] = [f"proxyshop\\plugins\\{Path(folder).stem}\\templates.py", v]
-            except Exception as e: print(e)
-
+        # Add plugin templates to dictionary
+        for card_type, templates in plugin_json.items():
+            named_type = get_named_type(card_type)
+            for name, class_name in templates.items():
+                main_json[card_type].append({
+                    "plugin_path": py_file,
+                    "config_path": py_file.replace('templates.py', f'configs/{class_name}.json'),
+                    "preview_path": py_file.replace('templates.py', f'img/{class_name}.jpg'),
+                    "class_name": class_name,
+                    "name": name,
+                    "type": named_type
+                })
     return main_json
 
 
-def get_my_templates(selected: dict):
+def get_template_details(
+    named_type: str,
+    name: str,
+    templates: dict[str, list[TemplateDetails]] = None
+) -> dict[str, TemplateDetails]:
+    """
+    Retrieve the full template details given a named type and a name.
+    @param named_type: Displayed type name, ex: MDFC
+    @param name: Displayed name of the template
+    @param templates: Dictionary of templates
+    @return:
+    """
+    # Get templates if not provided
+    if not templates:
+        templates = get_templates()
+
+    # Get the scryfall appropriate type(s) for this template
+    result = {}
+    for layout in card_types[named_type]:
+        for template in templates[layout]:
+            if template['name'] == name:
+                result[layout] = template
+    return result
+
+
+def get_my_templates(provided: dict[str, str]) -> dict[str, TemplateDetails]:
     """
     Retrieve templates based on user selection
-    @param selected: Selected templates to return data for.
+    @param provided: Provided templates to look up details for.
     @return: A dict of templates matching each layout type.
     """
-    temps = {}
+    result = {}
+    selected = {}
     templates = get_templates()
-    # Create new dict of selected templates
-    for key in card_types:
-        for k in selected:
-            if k == key:
-                for lay in card_types[key]:
-                    temps[lay] = templates[lay][selected[k]]
 
-    # Add default template for any unselected
-    for layout in templates:
-        if layout not in temps:
-            temps[layout] = templates[layout]["Normal"]
-    return temps
+    # Loop through our selected templates and get their details
+    for named_type, name in provided.items():
+        selected.update(get_template_details(named_type, name, templates))
+
+    # Loop through all template types, use the ones selected or Normal for default
+    for card_type, temps in templates.items():
+        if card_type in selected:
+            result[card_type] = selected[card_type]
+        else:
+            for template in temps:
+                if template['name'] == "Normal":
+                    result[card_type] = template
+    return result
 
 
 """
@@ -143,7 +207,7 @@ CARD FUNCTIONS
 """
 
 
-def retrieve_card_info(filename):
+def retrieve_card_info(filename: Union[str, Path]) -> CardDetails:
     """
     Retrieve card name and (if specified) artist from the input file.
     """
@@ -159,9 +223,9 @@ def retrieve_card_info(filename):
     creator = reg_creator.findall(fname)
 
     # Check for these values
-    creator = creator[0] if creator else None
-    artist = artist[0] if artist else None
-    set_code = set_code[0] if set_code else None
+    creator = creator[0] if creator else ''
+    artist = artist[0] if artist else ''
+    set_code = set_code[0] if set_code else ''
 
     # Correct strange set codes like promo variants (PMID)
     if (
@@ -185,7 +249,7 @@ UPDATE FUNCTIONS
 """
 
 
-def check_for_updates():
+def check_for_updates() -> dict:
     """
     Check our app manifest for base template updates.
     Also check any plugins for an update manifest.
@@ -198,7 +262,7 @@ def check_for_updates():
     with open("proxyshop/manifest.json", encoding="utf-8") as f:
         # Get config info
         data = json.load(f)
-        s3_bucket = data['__CONFIG__']['S3']
+        s3_enabled = data['__CONFIG__']['S3']
         data.pop("__CONFIG__")
 
         # Build update dict
@@ -213,7 +277,7 @@ def check_for_updates():
                 temp['name'] = name
                 temp['plugin'] = None
                 temp['manifest'] = os.path.join(cwd, 'proxyshop/manifest.json')
-                temp['s3'] = s3_bucket
+                temp['s3'] = s3_enabled
 
                 # Does this template need an update?
                 file = version_check(temp)
@@ -237,10 +301,10 @@ def check_for_updates():
         with open(plug['path'], encoding="utf-8") as f:
             # Check for S3 compatibility
             data = json.load(f)
+            s3_enabled = False
             if "__CONFIG__" in data:
                 if "S3" in data['__CONFIG__']:
-                    s3_bucket = data['__CONFIG__']['S3']
-                else: s3_bucket = None
+                    s3_enabled = data['__CONFIG__']['S3']
                 data.pop("__CONFIG__")
 
             # Append to the updates dict
@@ -255,29 +319,35 @@ def check_for_updates():
                     temp['name'] = name
                     temp['plugin'] = plug['name']
                     temp['manifest'] = plug['path']
-                    temp['s3'] = s3_bucket
+                    temp['s3'] = s3_enabled
 
                     # Does this template need an update?
                     file = version_check(temp, plug['name'])
                     if file:
-                        if cat not in updates: updates[cat] = [file]
-                        else: updates[cat].append(file)
+                        if cat not in updates:
+                            updates[cat] = [file]
+                        else:
+                            updates[cat].append(file)
 
     # Return dict of templates needing updates
     return updates
 
 
-def version_check(temp: dict, plugin: Optional[str] = None):
+def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
     """
     Check if a given file is up-to-date based on the live file metadata.
     @param temp: Template json data from the manifest
     @param plugin: Plugin name, optional
-    @return: True if it needs an update, False if it doesn't
+    @return: Dict of file details if it needs and update, otherwise None
     """
     # Get our current version
 
     # Get our basic metadata dict
     data = gdrive_metadata(temp['id'])
+    if not data or 'name' not in data:
+        # Gdrive couldn't locate the file
+        print(temp['name'], "couldn't be located!")
+        return
     plugin_path = f"{plugin}/" if plugin else ""
     full_path = os.path.join(cwd, f"templates/{plugin_path}{temp['file']}")
     if 'description' not in data: data['description'] = "v1.0.0"
@@ -306,11 +376,12 @@ def version_check(temp: dict, plugin: Optional[str] = None):
     if file['version_new'] in ("v1", "v1.0", "v1.0.0", "1", "1.0", "1.0.0", ""): return None
 
     # Update if version doesn't match
-    if file['version_old'] != file['version_new']: return file
-    else: return None
+    if file['version_old'] != file['version_new']:
+        return file
+    return
 
 
-def get_current_version(file_id: str, path: str):
+def get_current_version(file_id: str, path: str) -> Optional[str]:
     """
     Checks the current on-file version of this template.
     If the file is present, but no version tracked, fill in default.
@@ -340,7 +411,7 @@ def get_current_version(file_id: str, path: str):
     return version
 
 
-def update_template(temp: dict, callback: Callable):
+def update_template(temp: dict, callback: Callable) -> bool:
     """
     Update a given template to the latest version.
     @param temp: Dict containing template information.
@@ -364,7 +435,7 @@ def update_template(temp: dict, callback: Callable):
     return result
 
 
-def gdrive_metadata(file_id: str):
+def gdrive_metadata(file_id: str) -> dict:
     """
     Get the metadata of a given template file.
     @param file_id: ID of the Google Drive file
@@ -380,7 +451,7 @@ SYSTEM FUNCTIONS
 """
 
 
-def import_json_config(path: str):
+def import_json_config(path: str) -> dict:
     with open(os.path.join(f"{cwd}/proxyshop/plugins", path)) as f:
         return json.load(f)
 

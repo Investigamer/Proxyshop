@@ -1,0 +1,11 @@
+[
+  {
+    "type": "options",
+    "title": "[b]Accent Colors[/b]",
+    "desc": "Choose whether to use Silver or Bronze accents!\n[b](Default: Silver)[/b]",
+    "section": "FRAME",
+    "key": "Accent",
+    "options": ["Silver", "Bronze"],
+    "default": "Silver"
+  }
+]

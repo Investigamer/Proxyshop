@@ -5,6 +5,7 @@ from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.utils import get_color_from_hex
 
 """
@@ -31,7 +32,8 @@ def get_font(name: str, default: str = "Roboto"):
                     fn_regular=f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\Microsoft\\Windows\\Fonts\\{name}"
                 )
                 return basename
-            except OSError: return default
+            except OSError:
+                return default
 
 
 """
