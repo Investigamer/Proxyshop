@@ -1565,12 +1565,9 @@ class SagaTemplate (NormalTemplate):
     template_file_name = "saga"
 
     def __init__(self, layout):
-        cfg.exit_early = True
+        self._abilities = []
+        self._icons = []
         super().__init__(layout)
-
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TWINS)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME))
 
     @property
     def is_legendary(self) -> bool:
@@ -1592,25 +1589,105 @@ class SagaTemplate (NormalTemplate):
     def pinlines_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.background, con.layers.TEXTBOX)
 
-    def rules_text_and_pt_layers(self):
+    @property
+    def ability_layers(self) -> list[ArtLayer]:
+        return self._abilities
 
-        # Iterate through each saga stage and add line to text layers
-        saga_text_group = psd.getLayerSet("Saga", self.text_layers)
-        stages = ["I", "II", "III", "IV"]
+    @ability_layers.setter
+    def ability_layers(self, value):
+        self._abilities = value
 
-        for i, line in enumerate(self.layout.saga_lines):
-            stage_group = psd.getLayerSet(stages[i], saga_text_group)
-            stage_group.visible = True
-            self.text.append(
-                text_classes.FormattedTextField(
-                    layer = psd.getLayer("Text", stage_group),
-                    contents = line
-                )
-            )
+    @property
+    def icon_layers(self) -> list[list[ArtLayer]]:
+        return self._icons
+
+    @icon_layers.setter
+    def icon_layers(self, value):
+        self._icons = value
+
+    @cached_property
+    def saga_group(self):
+        return psd.getLayerSet("Saga", self.text_layers)
+
+    @cached_property
+    def ref(self):
+        return psd.getLayer(con.layers.TEXTBOX_REFERENCE, self.text_layers)
+
+    @cached_property
+    def ability_divider(self) -> ArtLayer:
+        return psd.getLayer(con.layers.DIVIDER, self.saga_group)
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
+
+        # Paste scryfall scan
+        self.active_layer = psd.getLayerSet(con.layers.TWINS)
+        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
+
+        # Saga stripe
         psd.getLayer(self.pinlines, con.layers.PINLINES_AND_SAGA_STRIPE).visible = True
+
+    def rules_text_and_pt_layers(self):
+
+        # Iterate through each saga stage and add line to text layers
+        for line in self.layout.saga_lines:
+            layer = psd.getLayer(con.layers.TEXT, self.saga_group).duplicate()
+            self.ability_layers.append(layer)
+            self.icon_layers.append([psd.getLayer(n, self.saga_group).duplicate() for n in line['icons']])
+            self.text.append(
+                text_classes.FormattedTextField(
+                    layer = layer,
+                    contents = line['text']
+                )
+            )
+
+    def post_text_layers(self) -> None:
+
+        # Core vars
+        spacing = 80 * self.app.activeDocument.width / 3264
+        spaces = len(self.ability_layers) - 1
+        spacing_total = (spaces * 1.5) + 2
+        ref_height = psd.get_layer_dimensions(self.ref)['height']
+        total_height = ref_height - (((spacing * 1.5) * spaces) + (spacing * 2))
+
+        # Resize text items till they fit in the available space
+        ft.scale_text_layers_to_fit(self.ability_layers, total_height)
+
+        # Get the exact gap between each layer left over
+        layer_heights = sum([psd.get_text_layer_dimensions(lyr)["height"] for lyr in self.ability_layers])
+        gap = (ref_height - layer_heights) * (1 / spacing_total)
+        inside_gap = (ref_height - layer_heights) * (1.5 / spacing_total)
+
+        # Space Planeswalker text evenly apart
+        psd.spread_layers_over_reference(self.ability_layers, self.ref, gap, inside_gap)
+
+        # Align colons and shields to respective text layers
+        for i, ref_layer in enumerate(self.ability_layers):
+            # Skip if this is a passive ability
+            icons = self.icon_layers[i]
+            if len(icons) > 1:
+                psd.space_layers_apart(icons, spacing/3)
+                icon_layer = psd.merge_layers(icons)
+            else:
+                icon_layer = icons[0]
+            self.docref.selection.select([
+                [0, ref_layer.bounds[1]],
+                [ref_layer.bounds[0], ref_layer.bounds[1]],
+                [ref_layer.bounds[0], ref_layer.bounds[3]],
+                [0, ref_layer.bounds[3]]
+            ])
+            psd.align_vertical(icon_layer)
+            psd.clear_selection()
+
+        # Position divider lines
+        self.position_divider_lines()
+
+    def position_divider_lines(self):
+
+        # Position a line between each ability layer
+        for i in range(len(self.ability_layers) - 1):
+            divider = self.ability_divider.duplicate()
+            psd.position_between_layers(divider, self.ability_layers[i], self.ability_layers[i + 1])
 
 
 """
@@ -1797,21 +1874,20 @@ class PlaneswalkerTemplate (StarterTemplate):
         Auto-position the ability text, colons, and shields.
         """
         # Core vars
-        scale = self.app.activeDocument.width / 3264
-        spacing = 80 * scale
+        spacing = 80 * self.app.activeDocument.width / 3264
         spaces = len(self.ability_layers) + 1
         ref_height = psd.get_layer_dimensions(self.ref)['height']
         total_height = ref_height - (spacing * spaces)
 
         # Resize text items till they fit in the available space
-        ft.scale_pw_text_to_fit(self.ability_layers, total_height)
+        ft.scale_text_layers_to_fit(self.ability_layers, total_height)
 
         # Get the exact gap between each layer left over
         layer_heights = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in self.ability_layers])
         gap = (ref_height - layer_heights) / spaces
 
         # Space Planeswalker text evenly apart
-        ft.space_apart_pw_text(self.ability_layers, self.ref, gap)
+        psd.spread_layers_over_reference(self.ability_layers, self.ref, gap)
 
         # Check the top reference of loyalty badge
         ft.vertically_nudge_pw_text(self.ability_layers, spacing, gap, self.ref, self.adj_ref, self.top_ref)

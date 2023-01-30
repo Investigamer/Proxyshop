@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 import photoshop.api as ps
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
 
 import proxyshop.helpers as psd
 from proxyshop.constants import con
@@ -535,7 +536,7 @@ def scale_text_to_fit_reference(
         layer.textItem.leading = font_size
 
 
-def scale_pw_text_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
+def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
     # Heights
     font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
     step = 0.40
@@ -671,21 +672,10 @@ def vertically_nudge_pw_text(
         new_gap = (ref_height - total_h) / movable
 
         # Space apart planeswalker text evenly
-        space_apart_pw_text(text_layers, ref, new_gap)
+        psd.spread_layers_over_reference(text_layers, ref, new_gap)
 
         # Check for another iteration
         vertically_nudge_pw_text(text_layers, space, new_gap, ref, adj_reference, top_reference)
-
-
-def space_apart_pw_text(text_layers: list[ArtLayer], ref: ArtLayer, gap: Union[int, float]) -> None:
-    # Position the top layer relative to the reference
-    delta = (ref.bounds[1] + gap) - text_layers[0].bounds[1]
-    text_layers[0].translate(0, delta)
-
-    # Position the bottom layers relative to the top
-    for n in range(len(text_layers) - 1):
-        delta = (text_layers[n].bounds[3] + gap) - text_layers[n + 1].bounds[1]
-        text_layers[n + 1].translate(0, delta)
 
 
 """

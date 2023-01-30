@@ -541,6 +541,27 @@ def position_between_layers(
     clear_selection()
 
 
+def spread_layers_over_reference(
+    layers: list[ArtLayer],
+    ref: ArtLayer,
+    gap: Union[int, float],
+    inside_gap: Union[int, float, None] = None
+) -> None:
+    # Position the top layer relative to the reference
+    delta = (ref.bounds[1] + gap) - layers[0].bounds[1]
+    layers[0].translate(0, delta)
+
+    # Position the bottom layers relative to the top
+    space_layers_apart(layers, inside_gap or gap)
+
+
+def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, float]) -> None:
+    # Position each layer relative to the one above it
+    for i in range((len(layers) - 1)):
+        delta = (layers[i].bounds[3] + gap) - layers[i + 1].bounds[1]
+        layers[i + 1].translate(0, delta)
+
+
 def frame_layer(
     layer: ArtLayer,
     reference: ArtLayer,

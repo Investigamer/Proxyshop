@@ -590,10 +590,14 @@ class SagaLayout (NormalLayout):
     @cached_property
     def saga_lines(self) -> list:
         # Unpack oracle text into saga lines
-        saga_lines = self.oracle_text.split("\n")[1::]
-        for i, line in enumerate(saga_lines):
-            saga_lines[i] = line.split(" \u2014 ")[1]
-        return saga_lines
+        abilities: list[dict] = []
+        for i, line in enumerate(self.oracle_text.split("\n")[1:]):
+            icons, text = line.split(" \u2014 ")
+            abilities.append({
+                "text": text,
+                "icons": icons.split(", ")
+            })
+        return abilities
 
     @cached_property
     def default_class(self) -> str:
