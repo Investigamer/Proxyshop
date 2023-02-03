@@ -61,7 +61,7 @@ class Config:
 		self.targeted_replace = self.file.getboolean('APP', 'Targeted.Replace')
 		self.render_snow = self.file.getboolean('APP', 'Render.Snow')
 		self.dev_mode = self.file.getboolean('APP', 'Dev.Mode')
-    self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
+		self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""

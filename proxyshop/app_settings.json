@@ -158,5 +158,12 @@
     "section": "APP",
     "key": "Dev.Mode",
     "disabled": true
+  },
+  {
+    "type": "numeric",
+    "title": "[b]Max Color Identity[/b]",
+    "desc": "Changes the number of color identities supported. Use only with templates that support > 2 color identities.\n[b](Default: 2)[/b]",
+    "section": "APP",
+    "key": "Color.Identity.Max"
   }
 ]
