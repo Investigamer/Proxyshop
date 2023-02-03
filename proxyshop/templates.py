@@ -565,7 +565,7 @@ class BaseTemplate:
         suffix = self.template_suffix
         if cfg.save_artist_name:
             suffix = f"{suffix} {self.layout.artist}" if suffix else self.layout.artist
-        name = f"{self.layout.name} ({suffix})" if suffix else self.layout.name
+        name = f"{self.layout.name_raw} ({suffix})" if suffix else self.layout.name_raw
 
         # Check if name already exists
         if not cfg.overwrite_duplicate:
@@ -1628,6 +1628,8 @@ class SagaTemplate (NormalTemplate):
         psd.getLayer(self.pinlines, con.layers.PINLINES_AND_SAGA_STRIPE).visible = True
 
     def rules_text_and_pt_layers(self):
+
+        # TODO: Add reminder text layer for "Read ahead" cards
 
         # Iterate through each saga stage and add line to text layers
         for line in self.layout.saga_lines:

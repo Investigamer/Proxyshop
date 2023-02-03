@@ -294,7 +294,7 @@ class BaseLayout:
 
     @cached_property
     def is_creature(self) -> bool:
-        return 'Creature' in self.type_line
+        return 'Creature' in self.type_line_raw
 
     @cached_property
     def is_land(self) -> bool:
