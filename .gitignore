@@ -172,10 +172,11 @@ cython_debug/
 /release
 # Environmental variables
 /proxyshop/__env__.py
-# All plugins that aren't MrTeferi or SilvanMTG
+# All plugins that aren't MrTeferi or SilvanMTG or davidianstyle
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG
+!/proxyshop/plugins/davidianstyle
 env.json# User generated config files
 /proxyshop/configs/*.ini
 # User generated plugin config files
