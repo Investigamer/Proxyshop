@@ -1,11 +1,10 @@
 """
 PROXYSHOP - GUI LAUNCHER
 """
+# Core imports
 import json
 import os
 import os.path as osp
-os.environ["KIVY_NO_CONSOLELOG"] = "1"
-from kivy.utils import get_color_from_hex
 import sys
 import threading
 import time
@@ -13,6 +12,20 @@ from pathlib import Path
 from time import perf_counter
 from glob import glob
 from typing import Union
+from photoshop import api as ps
+
+# Development specific imports
+development = False
+if not hasattr(sys, '_MEIPASS'):
+	try:
+		from proxyshop.__dev__ import development
+	except ImportError:
+		development = False
+if not development:
+	os.environ["KIVY_NO_CONSOLELOG"] = "1"
+
+# Kivy imports
+from kivy.utils import get_color_from_hex
 from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
@@ -24,7 +37,8 @@ from kivy.uix.scrollview import ScrollView
 from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
-from photoshop import api as ps
+
+# Proxyshop imports
 from proxyshop.__version__ import version
 from proxyshop.gui.creator import CreatorPanels
 from proxyshop.gui.dev import TestApp
@@ -112,6 +126,7 @@ class ProxyshopApp(App):
 		self.assigned_layouts = {}
 		self.result = True
 		self.temps = {}
+		self.docref = None
 
 	def select_template(self, btn: ToggleButton):
 		"""
@@ -176,10 +191,10 @@ class ProxyshopApp(App):
 		failed, files, cards, lthr, types = [], [], [], [], {}
 
 		# Select all images in art folder
-		folder = os.path.join(cwd, "art")
+		folder = osp.join(cwd, "art")
 		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg", "*.webp", "*.jpf"]
 		for ext in extensions:
-			files.extend(glob(os.path.join(folder, ext)))
+			files.extend(glob(osp.join(folder, ext)))
 
 		# Is the list empty?
 		if len(files) == 0:
@@ -265,13 +280,15 @@ class ProxyshopApp(App):
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				scryfall['lang'] = "en"
-				try: layout = layouts.layout_map[scryfall['layout']](scryfall, file)
+				try:
+					layout = layouts.layout_map[scryfall['layout']](scryfall, file)
 				except (KeyError, TypeError) as e:
 					console.update(f"Layout not supported!\n", e)
 					return
 
 			# Get our template class
-			try: template['loaded_class'] = core.get_template_class(template)
+			try:
+				template['loaded_class'] = core.get_template_class(template)
 			except Exception as e:
 				console.update(f"Template not found!\n", e)
 				return
@@ -335,7 +352,7 @@ class ProxyshopApp(App):
 		self.reset(disable_buttons=True, reset_data=True)
 
 		# Load temps and test case cards
-		with open(os.path.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+		with open(osp.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
 			cases = json.load(fp)
 
 		# Loop through each card, test all templates for that type
@@ -356,7 +373,7 @@ class ProxyshopApp(App):
 						self.reset(enable_buttons=True)
 						return
 					# Grab the template class and start the render thread
-					layout.filename = os.path.join(cwd, "proxyshop/img/test.png")
+					layout.filename = osp.join(cwd, "proxyshop/img/test.png")
 					template['loaded_class'] = core.get_template_class(template)
 					thr = threading.Thread(target=self.render, args=(template, layout))
 					if not self.start_thread(thr):
@@ -373,7 +390,7 @@ class ProxyshopApp(App):
 		self.reset(disable_buttons=True, reset_data=True)
 
 		# Load test case cards
-		with open(os.path.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+		with open(osp.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
 			cards = json.load(fp)
 
 		# Loop through our cases
@@ -385,7 +402,7 @@ class ProxyshopApp(App):
 				console.update(layout)
 				self.reset(enable_buttons=True)
 				return
-			layout.filename = os.path.join(cwd, "proxyshop/img/test.png")
+			layout.filename = osp.join(cwd, "proxyshop/img/test.png")
 			console.update(f"{card[0]} ... ", end="")
 			template['loaded_class'] = core.get_template_class(template)
 			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
@@ -473,8 +490,8 @@ class ProxyshopApp(App):
 
 	@staticmethod
 	async def open_app_settings() -> None:
-		Settings = SettingsPopup()
-		Settings.open()
+		cfg_panel = SettingsPopup()
+		cfg_panel.open()
 
 	def disable_buttons(self) -> None:
 		"""
@@ -536,7 +553,8 @@ class TemplateModule(TabbedPanel):
 
 			# Get the list of templates for this type
 			temps = templates[card_types[named_type][0]]
-			if len(temps) <= 1: return
+			if len(temps) <= 1:
+				return
 
 			# Alphabetize and push Normal to front
 			normal = temps.pop(0)
@@ -619,32 +637,33 @@ class TemplateSettingsButton(HoverButton):
 		self.background_color = get_color_from_hex("#598cc5")
 
 	async def open_settings(self):
-		Settings = SettingsPopup(self.parent.template)
-		Settings.open()
+		cfg_panel = SettingsPopup(self.parent.template)
+		cfg_panel.open()
 
 
 if __name__ == '__main__':
 	# Kivy packaging for PyInstaller
 	if hasattr(sys, '_MEIPASS'):
-		resource_add_path(os.path.join(sys._MEIPASS))
+		resource_add_path(osp.join(sys._MEIPASS))
 
 	# Update symbol library and manifest
 	try:
-		download_s3_file('manifest.json', osp.join(cwd, 'proxyshop/manifest.json'))
-		download_s3_file('symbols.json', osp.join(cwd, 'proxyshop/symbols.json'))
-		con.reload()
-	except Exception as e:
-		print(e)
+		if not development:
+			download_s3_file('manifest.json', osp.join(cwd, 'proxyshop/manifest.json'))
+			download_s3_file('symbols.json', osp.join(cwd, 'proxyshop/symbols.json'))
+			con.reload()
+	except Exception as err:
+		print(err)
 
 	# Ensure mandatory folders are created
-	Path(os.path.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(os.path.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(os.path.join(cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(os.path.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
 	Factory.register('HoverBehavior', HoverBehavior)
-	Builder.load_file(os.path.join(cwd, "proxyshop/kv/proxyshop.kv"))
+	Builder.load_file(osp.join(cwd, "proxyshop/kv/proxyshop.kv"))
 
 	# Imports that load console must be imported here
 	from proxyshop.scryfall import card_info
