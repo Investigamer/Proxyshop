@@ -7,7 +7,6 @@ from typing import Optional, Union
 
 import photoshop.api as ps
 from photoshop.api._artlayer import ArtLayer
-from photoshop.api._layerSet import LayerSet
 
 import proxyshop.helpers as psd
 from proxyshop.constants import con
@@ -114,7 +113,8 @@ def locate_symbols(input_string: str) -> dict[str: Union[str, dict]]:
                     'index': symbol_index,
                     'colors': determine_symbol_colors(symbol, len(symbol_char))
                 }])
-            else: break
+            else:
+                break
     except Exception as e:
         console.update(
             f"Encountered a symbol I don't recognize: {symbol}", e
@@ -144,7 +144,8 @@ def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: i
         while True:
             start_index = input_string.find(italics, end_index)
             end_index = start_index + len(italics)
-            if start_index < 0: break
+            if start_index < 0:
+                break
             italics_indices.append({
                 'start_index': start_index,
                 'end_index': end_index,
@@ -215,7 +216,7 @@ def determine_symbol_colors(
 
     # Nothing matching found!
     console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
-    return None
+    return
 
 
 def format_symbol(
@@ -254,7 +255,8 @@ def format_flavor_text(input_string: str) -> None:
     @param input_string: The string to insert into the active layer
     """
     # Is the active layer a text layer?
-    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer: return
+    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer:
+        return
 
     # Prepare action descriptor and reference variables
     layer_font_size = app.activeDocument.activeLayer.textItem.size
@@ -381,6 +383,14 @@ def align_formatted_text_center(action_list: ps.ActionList, start: int, end: int
     align_formatted_text(action_list, start, end, "center")
 
 
+def ensure_visible_reference(reference: ArtLayer) -> bool:
+    if reference.kind is ps.LayerKind.TextLayer:
+        if reference.textItem.contents in ("", " "):
+            reference.textItem.contents = "."
+            return True
+    return False
+
+
 def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     """
     Scales a text layer down (in 0.2 pt increments) until its right bound
@@ -388,33 +398,28 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     @param layer: The text item layer to scale.
     @param reference: Reference layer we need to avoid.
     """
-    # Ensure a proper reference layer
-    contents = None
-    if not reference: return
-    if reference.kind is ps.LayerKind.TextLayer:
-        if reference.textItem.contents in ("", " "):
-            contents = reference.textItem.contents
-            reference.textItem.contents = "."
-    elif reference.bounds == [0, 0, 0, 0]: return
+    # Ensure a valid and visible reference layer
+    if not reference or reference.bounds == [0, 0, 0, 0]:
+        return
+    ref_empty = ensure_visible_reference(reference)
 
-    # Can't find UnitValue object in python api
+    # Obtain the correct scale factor and spacing
     factor = 1
     if app.activeDocument.width != 3264:
         factor = psd.get_text_scale_factor(layer)
-    font_size = layer.textItem.size * factor
-    reference_left_bound = reference.bounds[0]
-    layer_left_bound = layer.bounds[0]
-    layer_right_bound = layer.bounds[2]
-    old_size = font_size
-    step, half_step = 0.4, 0.2
-
-    # Obtain proper spacing for this document size
     spacing = int((app.activeDocument.width / 3264) * 36)
 
+    # Can't find UnitValue object in python api
+    font_size = old_size = layer.textItem.size * factor
+    ref_left_bound = reference.bounds[0]
+    layer_left_bound = layer.bounds[0]
+    layer_right_bound = layer.bounds[2]
+    step, half_step = 0.4, 0.2
+
     # Guard against the reference's left bound being left of the layer's left bound
-    if reference_left_bound >= layer_left_bound:
+    if ref_left_bound >= layer_left_bound:
         # Step down the font till it clears the reference
-        while layer_right_bound > (reference_left_bound - spacing):  # minimum 24 px gap
+        while layer_right_bound > (ref_left_bound - spacing):  # minimum 24 px gap
             font_size -= step
             layer.textItem.size = font_size
             layer_right_bound = layer.bounds[2]
@@ -423,7 +428,7 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         font_size += half_step
         layer.textItem.size = font_size
         layer_right_bound = layer.bounds[2]
-        if layer_right_bound > (reference_left_bound - spacing):
+        if layer_right_bound > (ref_left_bound - spacing):
             font_size -= half_step
             layer.textItem.size = font_size
 
@@ -432,8 +437,8 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
             layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
 
     # Fix corrected reference layer
-    if contents:
-        reference.textItem.contents = contents
+    if ref_empty:
+        reference.textItem.contents = ''
 
 
 def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
@@ -443,33 +448,28 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     @param layer: The text item layer to scale.
     @param reference: Reference layer we need to avoid.
     """
-    # Ensure a proper reference layer
-    contents = None
-    if not reference: return
-    if reference.kind is ps.LayerKind.TextLayer:
-        if reference.textItem.contents in ("", " "):
-            contents = reference.textItem.contents
-            reference.textItem.contents = "."
-    elif reference.bounds == [0, 0, 0, 0]: return
+    # Ensure a valid and visible reference layer
+    if not reference or reference.bounds == [0, 0, 0, 0]:
+        return
+    ref_empty = ensure_visible_reference(reference)
 
-    # Can't find UnitValue object in python api
+    # Obtain the correct scale factor and spacing
     factor = 1
     if app.activeDocument.width != 3264:
         factor = psd.get_text_scale_factor(layer)
-    font_size = layer.textItem.size * factor
-    reference_left_bound = reference.bounds[0]
-    reference_right_bound = reference.bounds[2]
-    layer_left_bound = layer.bounds[0]
-    old_size = font_size
-    step, half_step = 0.4, 0.2
-
-    # Obtain proper spacing for this document size
     spacing = int((app.activeDocument.width / 3264) * 36)
 
+    # Set starting variables
+    font_size = old_size = layer.textItem.size * factor
+    ref_left_bound = reference.bounds[0]
+    ref_right_bound = reference.bounds[2]
+    layer_left_bound = layer.bounds[0]
+    step, half_step = 0.4, 0.2
+
     # Guard against the reference's left bound being left of the layer's left bound
-    if layer_left_bound >= reference_left_bound:
+    if layer_left_bound >= ref_left_bound:
         # Step down the font till it clears the reference
-        while reference_right_bound > (layer_left_bound - spacing):  # minimum 24 px gap
+        while ref_right_bound > (layer_left_bound - spacing):  # minimum 24 px gap
             font_size -= step
             layer.textItem.size = font_size
             layer_left_bound = layer.bounds[0]
@@ -478,7 +478,7 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         font_size += half_step
         layer.textItem.size = font_size
         layer_left_bound = layer.bounds[0]
-        if reference_right_bound > (layer_left_bound - spacing):
+        if ref_right_bound > (layer_left_bound - spacing):
             font_size -= half_step
             layer.textItem.size = font_size
 
@@ -487,8 +487,8 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
             layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
 
     # Fix corrected reference layer
-    if contents:
-        reference.textItem.contents = contents
+    if ref_empty:
+        reference.textItem.contents = ''
 
 
 def scale_text_to_fit_reference(
@@ -504,7 +504,8 @@ def scale_text_to_fit_reference(
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
     """
     # Establish base variables, ensure a level of spacing at the margins
-    if not ref: return
+    if not ref:
+        return
     if isinstance(ref, int) or isinstance(ref, float):
         # Only checking against fixed height
         ref_height = ref
@@ -520,7 +521,8 @@ def scale_text_to_fit_reference(
     step, half_step = 0.4, 0.2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
-    if ref_height > psd.get_text_layer_dimensions(layer)['height']: return
+    if ref_height > psd.get_text_layer_dimensions(layer)['height']:
+        return
     while ref_height < psd.get_text_layer_dimensions(layer)['height']:
         font_size -= step
         layer.textItem.size = font_size
@@ -599,7 +601,8 @@ def vertically_nudge_creature_text(
 
         # Determine how much the rules text overlaps the power/toughness by
         delta = top_reference_layer.bounds[3] - layer_copy.bounds[3]
-        if delta < 0: layer.translate(0, delta)
+        if delta < 0:
+            layer.translate(0, delta)
 
         # Clear selection, remove copy, return
         psd.clear_selection()
