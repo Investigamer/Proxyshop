@@ -553,9 +553,9 @@ class BaseTemplate:
         # Paste the file into the art
         self.active_layer = self.art_layer
         if self.art_action:
-            psd.import_art(self.art_layer, self.layout.filename)
-        else:
             psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
+        else:
+            psd.import_art(self.art_layer, self.layout.filename)
 
         # Frame the artwork
         psd.frame_layer(self.active_layer, self.art_reference_layer)

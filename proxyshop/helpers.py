@@ -11,8 +11,6 @@ from photoshop.api._layerSet import LayerSet
 
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
-from proxyshop.__console__ import console
-
 
 # QOL Definitions
 cwd = os.getcwd()
@@ -199,7 +197,20 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> ps.SolidColor:
     return color
 
 
-def solidcolor(color) -> Optional[ps.SolidColor]:
+def get_color(color: list[int]) -> ps.SolidColor:
+    """
+    Automatically get either cmyk or rgb color given list of values.
+    @param color: Array containing 3 (rgb) or 4 (cmyk) numbers between 0 and 255.
+    @return: SolidColor object.
+    """
+    if len(color) == 4:
+        return get_cmyk(*color)
+    elif len(color) == 3:
+        return get_rgb(*color)
+    raise ValueError(f"Colors can only have 3 or 4 values, I was given {len(color)}!")
+
+
+def solidcolor(color: dict[str, int]) -> Optional[ps.SolidColor]:
     """
     Takes in color dict and spits out a SolidColor object appropriate to that configuration.
     @param color: Dict of RGB or CMYK values
@@ -209,28 +220,48 @@ def solidcolor(color) -> Optional[ps.SolidColor]:
         return get_rgb(color['r'], color['g'], color['b'])
     elif 'c' in color.keys():
         return get_cmyk(color['c'], color['m'], color['y'], color['k'])
-    console.update(f"Don't know how to convert color {color} to a ps.Solidcolor!")
-    return
+    raise ValueError(f"Can't convert color '{color}' to a Solidcolor!")
 
 
-def apply_color(action_descriptor: ps.ActionDescriptor, color: ps.SolidColor) -> None:
+def apply_rgb(action: ps.ActionDescriptor, color: ps.SolidColor) -> None:
     """
-    Applies color to the specified action_descriptor
+    Apply RGB SolidColor object to action descriptor.
+    @param action: ActionDescriptor object.
+    @param color: SolidColor object matching RGB model.
     """
-    cd = ps.ActionDescriptor()
+    ad = ps.ActionDescriptor()
+    ad.putDouble(sID("red"), color.rgb.red)
+    ad.putDouble(sID("green"), color.rgb.green)
+    ad.putDouble(sID("blue"), color.rgb.blue)
+    action.putObject(sID("color"), sID("RGBColor"), ad)
+
+
+def apply_cmyk(action: ps.ActionDescriptor, color: ps.SolidColor) -> None:
+    """
+    Apply CMYK SolidColor object to action descriptor.
+    @param action: ActionDescriptor object.
+    @param color: SolidColor object matching CMYK model.
+    """
+    ad = ps.ActionDescriptor()
+    ad.putDouble(cID("Cyn "), color.cmyk.cyan)
+    ad.putDouble(cID("Mgnt"), color.cmyk.magenta)
+    ad.putDouble(cID("Ylw "), color.cmyk.yellow)
+    ad.putDouble(cID("Blck"), color.cmyk.black)
+    action.putObject(cID("Clr "), cID("CMYC"), ad)
+
+
+def apply_color(action: ps.ActionDescriptor, color: ps.SolidColor) -> None:
+    """
+    Applies color to the specified action descriptor.
+    @param action: ActionDescriptor object.
+    @param color: CMYK or RGB SolidColor object.
+    """
     if color.model == ps.ColorModel.RGBModel:
-        cd.putDouble(cID("Rd  "), color.rgb.red)
-        cd.putDouble(cID("Grn "), color.rgb.green)
-        cd.putDouble(cID("Bl  "), color.rgb.blue)
-        action_descriptor.putObject(cID("Clr "), cID("RGBC"), cd)
+        apply_rgb(action, color)
     elif color.model == ps.ColorModel.CMYKModel:
-        cd.putDouble(cID("Cyn "), color.cmyk.cyan)
-        cd.putDouble(cID("Mgnt"), color.cmyk.magenta)
-        cd.putDouble(cID("Ylw "), color.cmyk.yellow)
-        cd.putDouble(cID("Blck"), color.cmyk.black)
-        action_descriptor.putObject(cID("Clr "), cID("CMYC"), cd)
+        apply_cmyk(action, color)
     else:
-        console.update(f"Unknown color model: {color.model}")
+        raise ValueError(f"Received unsupported color object: {color}")
 
 
 """
@@ -238,7 +269,7 @@ LAYER PROPERTIES
 """
 
 
-def layer_bounds_no_effects(layer: ArtLayer) -> list[int, int, int, int]:
+def layer_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> list[int, int, int, int]:
     """
     Returns the bounds of a given layer without its effects applied.
     @param layer: A layer object
@@ -253,7 +284,7 @@ def layer_bounds_no_effects(layer: ArtLayer) -> list[int, int, int, int]:
     return [int(num) for num in bounds.replace(" px", "").split(",")]
 
 
-def get_dimensions_no_effects(layer: ArtLayer) -> dict[str: Union[float, int]]:
+def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> dict[str: Union[float, int]]:
     """
     Compute the dimensions of a layer without its effects applied.
     @param layer: A layer object
@@ -266,7 +297,7 @@ def get_dimensions_no_effects(layer: ArtLayer) -> dict[str: Union[float, int]]:
     }
 
 
-def get_layer_dimensions(layer: ArtLayer) -> dict[str: Union[float, int]]:
+def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> dict[str: Union[float, int]]:
     """
     Compute the width and height dimensions of a layer.
     @param layer: A layer object
@@ -400,13 +431,44 @@ LAYER ACTIONS
 """
 
 
+def copy_layer_mask(layer_from, layer_to):
+    desc255 = ps.ActionDescriptor()
+    ref17 = ps.ActionReference()
+    ref18 = ps.ActionReference()
+    desc255.PutClass(sID("new"), sID("channel"))
+    ref17.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    ref17.PutIdentifier(sID("layer"), layer_to.id)
+    desc255.PutReference(sID("at"), ref17)
+    ref18.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    ref18.PutIdentifier(sID("layer"), layer_from.id)
+    desc255.PutReference(sID("using"), ref18)
+    app.ExecuteAction(sID("make"), desc255, ps.DialogModes.DisplayNoDialogs)
+
+
+def duplicate_group(name: str):
+    """
+    Duplicates current active layer set without renaming contents.
+    @param name: Name to give the newly created layer set.
+    @return: The newly created layer set object.
+    """
+    desc241 = ps.ActionDescriptor()
+    ref4 = ps.ActionReference()
+    ref4.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    desc241.PutReference(sID("target"),  ref4)
+    desc241.PutString(sID("name"), name)
+    desc241.PutInteger(sID("version"),  5)
+    app.ExecuteAction(sID("duplicate"), desc241, ps.DialogModes.DisplayNoDialogs)
+    return app.activeDocument.activeLayer
+
+
 def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
     """
     Creates a new layer below the currently active layer. The layer will be visible.
     @param layer_name: Optional name for the new layer
     @return: Newly created layer object
     """
-    if layer_name is None: layer_name = "Layer"
+    if layer_name is None:
+        layer_name = "Layer"
 
     # Create new layer at top of layers
     active_layer = app.activeDocument.activeLayer
@@ -492,10 +554,12 @@ def align(
     `align_type`: "AdCV" vertical, "AdCH" horizontal
     """
     # Optionally create a selection based on given reference
-    if reference: select_layer_pixels(reference)
+    if reference:
+        select_layer_pixels(reference)
 
     # Optionally make a given layer the active layer
-    if layer: app.activeDocument.activeLayer = layer
+    if layer:
+        app.activeDocument.activeLayer = layer
 
     # Align the current layer to selection
     desc = ps.ActionDescriptor()
@@ -579,15 +643,17 @@ def frame_layer(
     ref_dim = get_layer_dimensions(reference)
 
     # Determine how much to scale the layer by such that it fits into the reference layer's bounds
-    if smallest: scale = 100 * min((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
-    else: scale = 100 * max((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
+    action = min if smallest else max
+    scale = 100 * action((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
     layer.resize(scale, scale, anchor)
 
     # Align the layer
     select_layer_bounds(reference)
     app.activeDocument.activeLayer = layer
-    if align_h: align_horizontal()
-    if align_v: align_vertical()
+    if align_h:
+        align_horizontal()
+    if align_v:
+        align_vertical()
     clear_selection()
 
 
@@ -784,6 +850,24 @@ def rasterize_layer_style(layer: ArtLayer) -> None:
     app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
+def import_art(
+    layer: ArtLayer,
+    file: str
+) -> None:
+    desc = ps.ActionDescriptor()
+    app.activeDocument.activeLayer = layer
+    desc.putPath(app.charIDToTypeID("null"), file)
+    app.executeAction(app.charIDToTypeID("Plc "), desc)
+    app.activeDocument.activeLayer.name = "Layer 1"
+
+
+def import_svg(file: str) -> ArtLayer:
+    desc = ps.ActionDescriptor()
+    desc.putPath(app.charIDToTypeID("null"), file)
+    app.executeAction(app.charIDToTypeID("Plc "), desc)
+    return app.activeDocument.activeLayer
+
+
 def paste_file(
     layer: ArtLayer,
     file: str,
@@ -798,7 +882,6 @@ def paste_file(
     @param action_args: Optional arguments to pass to the action function
     """
     # Select the correct layer, then load the file
-    prev_active_layer = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
     app.load(file)
 
@@ -811,9 +894,8 @@ def paste_file(
     app.activeDocument.selection.copy()
     app.activeDocument.close(ps.SaveOptions.DoNotSaveChanges)
 
-    # Paste the image into the specific layer, then switch back
+    # Paste the image into the specific layer
     app.activeDocument.paste()
-    app.activeDocument.activeLayer = prev_active_layer
 
 
 def paste_file_into_new_layer(file: str) -> ArtLayer:
@@ -976,9 +1058,11 @@ def open_svg(path: str, max_width: int = 500, dpi: int = 1200) -> None:
 
 def reset_document(filename: str) -> None:
     """
-    Reset all changes to the current document
+    Reset all changes to the current document.
     @param filename: Document file name
     """
+    if '/' in filename:
+        filename = filename.split('/')[-1]
     idslct = cID("slct")
     desc9 = ps.ActionDescriptor()
     idnull = cID("null")
@@ -1002,7 +1086,8 @@ def content_fill_empty_area(layer: Optional[ArtLayer] = None) -> None:
     """
     # Change active layer
     current = app.activeDocument.activeLayer
-    if layer: app.activeDocument.activeLayer = layer
+    if layer:
+        app.activeDocument.activeLayer = layer
 
     # Select pixels of active layer
     desc307 = ps.ActionDescriptor()
@@ -1012,7 +1097,8 @@ def content_fill_empty_area(layer: Optional[ArtLayer] = None) -> None:
     ref258 = ps.ActionReference()
     idChnl = cID("Chnl")
     ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
-    if layer: ref258.putIdentifier(sID("layer"), layer.id)
+    if layer:
+        ref258.putIdentifier(sID("layer"), layer.id)
     desc307.putReference(cID("T   "), ref258)
     app.executeAction(cID("setd"), desc307, NO_DIALOG)
 
@@ -1039,17 +1125,17 @@ def content_fill_empty_area(layer: Optional[ArtLayer] = None) -> None:
     app.activeDocument.activeLayer = current
 
 
-def apply_vibrant_saturation(VibValue: int, SatValue: int) -> None:
+def apply_vibrant_saturation(vibrancy: int, saturation: int) -> None:
     """
     Experimental scoot action to add vibrancy and saturation.
-    @param VibValue: Vibrancy level integer
-    @param SatValue: Saturation level integer
+    @param vibrancy: Vibrancy level integer
+    @param saturation: Saturation level integer
     """
     # dialogMode (Have dialog popup?)
     idvibrance = sID("vibrance")
     desc232 = ps.ActionDescriptor()
-    desc232.putInteger(idvibrance, VibValue)
-    desc232.putInteger(cID("Strt"), SatValue)
+    desc232.putInteger(idvibrance, vibrancy)
+    desc232.putInteger(cID("Strt"), saturation)
     app.executeAction(idvibrance, desc232, NO_DIALOG)
 
 
