@@ -205,6 +205,7 @@ class Constants:
         self.adventure_class = "adventure"
         self.leveler_class = "leveler"
         self.saga_class = "saga"
+        self.class_class = "class"
         self.miracle_class = "miracle"
         self.planeswalker_class = "planeswalker"
         self.pw_tf_front_class = "pw_tf_front"

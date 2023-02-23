@@ -31,6 +31,7 @@ card_types = {
     "Adventure": ["adventure"],
     "Leveler": ["leveler"],
     "Saga": ["saga"],
+    "Class": ["class"],
     "Miracle": ["miracle"],
     "Snow": ["snow"],
     "Planar": ["planar"]
@@ -123,11 +124,9 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
 
     # Iterate through plugin folders
     for folder in folders:
-        # Guard clauses
-        if Path(folder).stem == "__pycache__": continue
         json_file = osp.join(folder, 'template_map.json')
         py_file = osp.join(folder, 'templates.py')
-        if not osp.exists(json_file) and not osp.exists(py_file):
+        if not osp.exists(json_file) or not osp.exists(py_file):
             continue
 
         # Load json
@@ -256,7 +255,7 @@ def check_for_updates() -> dict:
     @return: Dict containing base temps and plugins temps needing updates.
     """
     # Base vars
-    updates = {}
+    updates: dict[list[dict]] = {}
 
     # Base app manifest
     with open("proxyshop/manifest.json", encoding="utf-8") as f:
@@ -267,10 +266,12 @@ def check_for_updates() -> dict:
 
         # Build update dict
         for cat, temps in data.items():
+            updates[cat] = []
             for name, temp in temps.items():
 
                 # Is the ID valid?
-                if temp['id'] in ("", None, 0): continue
+                if temp['id'] in ("", None, 0):
+                    continue
 
                 # Add important data to our temp dict
                 temp['type'] = cat
@@ -282,15 +283,13 @@ def check_for_updates() -> dict:
                 # Does this template need an update?
                 file = version_check(temp)
                 if file:
-                    if cat not in updates: updates[cat] = [file]
-                    else: updates[cat].append(file)
+                    updates[cat].append(file)
 
     # Get plugin manifests
     plugins = []
     folders = glob(os.path.join(cwd, "proxyshop\\plugins\\*\\"))
     for folder in folders:
-        if Path(folder).stem == "__pycache__": continue
-        elif 'manifest.json' in os.listdir(folder):
+        if 'manifest.json' in os.listdir(folder):
             plugins.append({
                 'name': Path(folder).stem,
                 'path': os.path.join(folder, "manifest.json")
@@ -299,8 +298,9 @@ def check_for_updates() -> dict:
     # Check the manifest of each plugin
     for plug in plugins:
         with open(plug['path'], encoding="utf-8") as f:
-            # Check for S3 compatibility
             data = json.load(f)
+
+            # Check for config headers
             s3_enabled = False
             if "__CONFIG__" in data:
                 if "S3" in data['__CONFIG__']:
@@ -309,10 +309,14 @@ def check_for_updates() -> dict:
 
             # Append to the updates dict
             for cat, temps in data.items():
+                if cat not in updates:
+                    print(f"{plug['name']} Plugin has unrecognized card type: {cat}")
+                    continue
                 for name, temp in temps.items():
 
                     # Is the ID valid?
-                    if temp['id'] in ("", None, 0): continue
+                    if 'id' not in temp or not temp['id']:
+                        continue
 
                     # Add important data to our temp dict
                     temp['type'] = cat
@@ -322,12 +326,8 @@ def check_for_updates() -> dict:
                     temp['s3'] = s3_enabled
 
                     # Does this template need an update?
-                    file = version_check(temp, plug['name'])
-                    if file:
-                        if cat not in updates:
-                            updates[cat] = [file]
-                        else:
-                            updates[cat].append(file)
+                    if file := version_check(temp, plug['name']):
+                        updates[cat].append(file)
 
     # Return dict of templates needing updates
     return updates
@@ -340,18 +340,16 @@ def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
     @param plugin: Plugin name, optional
     @return: Dict of file details if it needs and update, otherwise None
     """
-    # Get our current version
-
     # Get our basic metadata dict
     data = gdrive_metadata(temp['id'])
     if not data or 'name' not in data:
         # Gdrive couldn't locate the file
-        print(temp['name'], "couldn't be located!")
+        print(f"{temp['name']} ({temp['file']}) couldn't be located!")
         return
     plugin_path = f"{plugin}/" if plugin else ""
-    full_path = os.path.join(cwd, f"templates/{plugin_path}{temp['file']}")
-    if 'description' not in data: data['description'] = "v1.0.0"
-    elif data['description'] == "": data['description'] = "v1.0.0"
+    full_path = osp.join(cwd, f"templates/{plugin_path}{temp['file']}")
+    if 'description' not in data or not data['description']:
+        data['description'] = "v1.0.0"
     current = get_current_version(temp['id'], full_path)
 
     # Build our return
@@ -369,14 +367,8 @@ def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
         's3': temp['s3']
     }
 
-    # Yes update if file has never been downloaded
-    if not file['version_old']: return file
-
-    # No update if version is still FIRST version
-    if file['version_new'] in ("v1", "v1.0", "v1.0.0", "1", "1.0", "1.0.0", ""): return None
-
-    # Update if version doesn't match
-    if file['version_old'] != file['version_new']:
+    # Update if file never downloaded or version mismatch
+    if not file['version_old'] or file['version_old'] != file['version_new']:
         return file
     return
 
@@ -390,21 +382,19 @@ def get_current_version(file_id: str, path: str) -> Optional[str]:
     @return: The current version, or None if not on-file
     """
     # Is it logged in the tracker?
-    if file_id in con.versions:
-        version = con.versions[file_id]
-    else: version = None
+    version = con.versions[file_id] if file_id in con.versions else None
 
-    # Is the file available?
+    # Does the PSD exist?
     if os.path.exists(path):
-        if version: return version
-        else:
-            version = "v1.0.0"
-            con.versions[file_id] = version
-    else:
         if version:
-            version = None
-            del con.versions[file_id]
-        else: return None
+            return version
+        version = "v1.0.0"
+        con.versions[file_id] = version
+    else:
+        if not version:
+            return
+        version = None
+        del con.versions[file_id]
 
     # Update the tracker
     con.update_version_tracker()

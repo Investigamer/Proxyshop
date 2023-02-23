@@ -7,8 +7,7 @@ from functools import cached_property
 from typing import Optional, Callable
 
 from PIL import Image
-from photoshop.api._artlayer import ArtLayer
-from photoshop.api._core import Photoshop
+from photoshop.api.application import ArtLayer, Photoshop
 from photoshop.api._layerSet import LayerSet
 
 from proxyshop.frame_logic import format_expansion_symbol_info
@@ -36,10 +35,11 @@ class BaseTemplate:
         self.exp_sym = None
 
         # Load PSD file
-        try: self.load_template()
+        try:
+            self.load_template()
         except Exception as e:
             console.log_error(
-                "PSD not found! Make sure to download the photoshop templates!",
+                "PSD failed to load!",
                 self.layout.name,
                 self.template_file,
                 e
@@ -151,7 +151,7 @@ class BaseTemplate:
         # Set the active layer
         self.docref.activeLayer = value
 
-    @cached_property
+    @property
     def art_layer(self) -> ArtLayer:
         # The MTG art layer
         return psd.getLayer(con.default_layer)
@@ -362,8 +362,10 @@ class BaseTemplate:
             collector_layer.visible = True
             psd.getLayer("Artist", self.legal_layer).visible = False
             psd.getLayer("Set", self.legal_layer).visible = False
-            try: psd.getLayer("Pen", self.legal_layer).visible = False
-            except AttributeError: pass
+            try:
+                psd.getLayer("Pen", self.legal_layer).visible = False
+            except AttributeError:
+                pass
 
             # Get the collector layers
             collector_top = psd.getLayer(con.layers.TOP_LINE, collector_layer).textItem
@@ -534,8 +536,7 @@ class BaseTemplate:
         Opens the template's PSD file in Photoshop.
         """
         # Create our full path and load it, set our document reference
-        self.file_path = os.path.join(con.cwd, f"templates\\{self.template_file}")
-        self.app.load(self.file_path)
+        self.app.load(os.path.join(con.cwd, f"templates\\{self.template_file}"))
 
     def load_artwork(self) -> None:
         """
@@ -551,10 +552,13 @@ class BaseTemplate:
 
         # Paste the file into the art
         self.active_layer = self.art_layer
-        psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
+        if self.art_action:
+            psd.import_art(self.art_layer, self.layout.filename)
+        else:
+            psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
 
         # Frame the artwork
-        psd.frame_layer(self.art_layer, self.art_reference_layer)
+        psd.frame_layer(self.active_layer, self.art_reference_layer)
 
     def get_file_name(self) -> str:
         """
@@ -634,7 +638,7 @@ class BaseTemplate:
         """
         Reset the document, purge the cache, end await.
         """
-        psd.reset_document(os.path.basename(self.file_path))
+        psd.reset_document(self.template_file)
         self.app.purge(4)
         console.end_await()
 
@@ -810,7 +814,7 @@ class NormalTemplate (StarterTemplate):
 
     @property
     def art_reference(self) -> str:
-        # If colorless, use fullart
+        # If colorless, use "Full Art Frame"
         if self.is_colorless:
             return con.layers.FULL_ART_FRAME
         return con.layers.ART_FRAME
@@ -984,6 +988,7 @@ class NormalClassicTemplate (StarterTemplate):
         # Add the promo star
         if self.promo_star:
             psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
+
 
 """
 Templates similar to NormalTemplate but with aesthetic differences
@@ -1629,7 +1634,14 @@ class SagaTemplate (NormalTemplate):
 
     def rules_text_and_pt_layers(self):
 
-        # TODO: Add reminder text layer for "Read ahead" cards
+        # Add description text with reminder
+        self.text.append(
+            text_classes.FormattedTextArea(
+                layer=psd.getLayer("Reminder Text", self.saga_group),
+                contents=self.layout.saga_description,
+                reference=psd.getLayer("Description Reference", self.text_layers)
+            )
+        )
 
         # Iterate through each saga stage and add line to text layers
         for line in self.layout.saga_lines:
@@ -1660,10 +1672,10 @@ class SagaTemplate (NormalTemplate):
         gap = (ref_height - layer_heights) * (1 / spacing_total)
         inside_gap = (ref_height - layer_heights) * (1.5 / spacing_total)
 
-        # Space Planeswalker text evenly apart
+        # Space Saga lines evenly apart
         psd.spread_layers_over_reference(self.ability_layers, self.ref, gap, inside_gap)
 
-        # Align colons and shields to respective text layers
+        # Align icons to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
             # Skip if this is a passive ability
             icons = self.icon_layers[i]
@@ -1690,6 +1702,139 @@ class SagaTemplate (NormalTemplate):
         for i in range(len(self.ability_layers) - 1):
             divider = self.ability_divider.duplicate()
             psd.position_between_layers(divider, self.ability_layers[i], self.ability_layers[i + 1])
+
+
+class ClassTemplate (NormalTemplate):
+    """
+    Template for Class cards introduced in AFR.
+    """
+    template_file_name = "class"
+
+    def __init__(self, layout):
+        self._line_layers: list[ArtLayer] = []
+        self._stage_layers: list[LayerSet] = []
+        super().__init__(layout)
+
+    @property
+    def is_legendary(self) -> bool:
+        return False
+
+    @property
+    def is_land(self) -> bool:
+        return False
+
+    @property
+    def is_creature(self) -> bool:
+        return False
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    """
+    LAYERS
+    """
+
+    @cached_property
+    def ref(self):
+        return psd.getLayer(con.layers.TEXTBOX_REFERENCE, self.text_layers)
+
+    @cached_property
+    def class_group(self) -> LayerSet:
+        return psd.getLayerSet("Class", con.layers.TEXT_AND_ICONS)
+
+    @cached_property
+    def stage_group(self) -> LayerSet:
+        return psd.getLayerSet("Stage", self.class_group)
+
+    @property
+    def line_layers(self) -> list[ArtLayer]:
+        return self._line_layers
+
+    @line_layers.setter
+    def line_layers(self, value):
+        self._line_layers = value
+
+    @property
+    def stage_layers(self) -> list[LayerSet]:
+        return self._stage_layers
+
+    @stage_layers.setter
+    def stage_layers(self, value):
+        self._stage_layers = value
+
+    """
+    METHODS
+    """
+
+    def rules_text_and_pt_layers(self) -> None:
+
+        # Add first static line
+        level_1 = psd.getLayer(con.layers.TEXT, self.class_group)
+        self.line_layers.append(level_1)
+        self.text.append(
+            text_classes.FormattedTextField(
+                layer=level_1,
+                contents=self.layout.class_lines[0]['text']
+            )
+        )
+
+        # Add text fields for each line and class stage
+        for i, line in enumerate(self.layout.class_lines[1:]):
+            line_layer = level_1.duplicate()
+            self.active_layer = self.stage_group
+            stage = psd.duplicate_group(f"{self.stage_group.name} {i + 1}")
+            self.line_layers.append(line_layer)
+            self.stage_layers.append(stage)
+            self.text.extend([
+                text_classes.FormattedTextField(
+                    layer=line_layer,
+                    contents=line['text']
+                ),
+                text_classes.FormattedTextField(
+                    layer=psd.getLayer("Cost", stage),
+                    contents=f"{line['cost']}:"
+                ),
+                text_classes.TextField(
+                    layer=psd.getLayer("Level", stage),
+                    contents=f"Level {line['level']}"
+                )
+            ])
+        self.stage_group.visible = False
+
+    def post_text_layers(self) -> None:
+
+        # Core vars
+        spacing = 80 * self.app.activeDocument.width / 3264
+        spaces = len(self.line_layers) - 1
+        divider_height = psd.get_layer_dimensions(self.stage_layers[0])['height']
+        ref_height = psd.get_layer_dimensions(self.ref)['height']
+        spacing_total = (spaces * (spacing + divider_height)) + (spacing * 2)
+        total_height = ref_height - spacing_total
+
+        # Resize text items till they fit in the available space
+        ft.scale_text_layers_to_fit(self.line_layers, total_height)
+
+        # Get the exact gap between each layer left over
+        layer_heights = sum([psd.get_text_layer_dimensions(lyr)["height"] for lyr in self.line_layers])
+        gap = (ref_height - layer_heights) * (spacing / spacing_total)
+        inside_gap = (ref_height - layer_heights) * ((spacing + divider_height) / spacing_total)
+
+        # Space Class lines evenly apart
+        psd.spread_layers_over_reference(self.line_layers, self.ref, gap, inside_gap)
+
+        # Position divider lines
+        self.position_divider_lines()
+
+    def position_divider_lines(self):
+
+        # Position a line between each ability layer
+        for i in range(len(self.line_layers) - 1):
+            psd.position_between_layers(self.stage_layers[i], self.line_layers[i], self.line_layers[i + 1])
 
 
 """
@@ -1934,7 +2079,8 @@ class PlaneswalkerTemplate (StarterTemplate):
             line2_ref = psd.getLayer("Line 2 Reference", lines)
             line2_top.visible = True
             line2_bottom.visible = True
-        else: line2_top, line2_bottom, line2_ref = None, None, None
+        else:
+            line2_top, line2_bottom, line2_ref = None, None, None
 
         # Position needed ragged lines
         if len(self.ability_layers) > 2:

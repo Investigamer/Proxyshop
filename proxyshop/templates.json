@@ -38,6 +38,9 @@
 	"saga": {
 		"Normal": "SagaTemplate"
 	},
+	"class": {
+		"Normal": "ClassTemplate"
+	},
 	"miracle": {
 		"Normal": "MiracleTemplate"
 	},

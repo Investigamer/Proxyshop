@@ -14,6 +14,7 @@ from proxyshop.frame_logic import select_frame_layers, FrameDetails
 leveler_regex = re.compile(
     r"(.*?)\nLEVEL (\d*-\d*)\n(\d*/\d*)\n(.*?)\nLEVEL (\d*\+)\n(\d*/\d*)\n(.*?)$"
 )
+class_regex = re.compile(r"(.+?): Level (\d)\n(.+)")
 
 
 class BasicLand:
@@ -243,7 +244,8 @@ class BaseLayout:
             cc = self.mtgset['totalSetSize']
         elif 'card_count' in self.scryfall and int(self.scryfall['card_count']) >= int(self.collector_number):
             cc = self.scryfall['card_count']
-        else: return
+        else:
+            return
 
         # Ensure formatting of count
         if len(str(cc)) == 2:
@@ -294,7 +296,7 @@ class BaseLayout:
 
     @cached_property
     def is_creature(self) -> bool:
-        return 'Creature' in self.type_line_raw
+        return bool(self.power and self.toughness)
 
     @cached_property
     def is_land(self) -> bool:
@@ -350,7 +352,8 @@ class BaseLayout:
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
         if self.default_class == con.transform_front_class and not self.card['front']:
-            if "Land" in self.type_line: return con.ixalan_class
+            if "Land" in self.type_line:
+                return con.ixalan_class
             return con.transform_back_class
         elif self.default_class == con.mdfc_front_class and not self.card['front']:
             return con.mdfc_back_class
@@ -592,7 +595,7 @@ class SagaLayout (NormalLayout):
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
         for i, line in enumerate(self.oracle_text.split("\n")[1:]):
-            icons, text = line.split(" \u2014 ")
+            icons, text = line.split(" \u2014 ", 1)
             abilities.append({
                 "text": text,
                 "icons": icons.split(", ")
@@ -600,8 +603,40 @@ class SagaLayout (NormalLayout):
         return abilities
 
     @cached_property
+    def saga_description(self) -> str:
+        return self.oracle_text.split("\n")[0]
+
+    @cached_property
     def default_class(self) -> str:
         return con.saga_class
+
+
+class ClassLayout (NormalLayout):
+    """
+    Used for Class cards.
+    """
+
+    @cached_property
+    def class_lines(self):
+        # Split the lines, add first static line
+        lines = self.oracle_text.split("\n")
+        abilities: list[dict] = [{'text': lines[1], "cost": None, "level": 1}]
+
+        # Set up the dynamic lines
+        lines = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]
+        for line in lines:
+            details = class_regex.match(line)
+            abilities.append({
+                'cost': details[1],
+                'level': details[2],
+                'text': details[3]
+            })
+
+        return abilities
+
+    @cached_property
+    def default_class(self) -> str:
+        return con.class_class
 
 
 class PlanarLayout (BaseLayout):
@@ -622,6 +657,7 @@ layout_map = {
     "adventure": AdventureLayout,
     "leveler": LevelerLayout,
     "saga": SagaLayout,
+    "class": ClassLayout,
     "planar": PlanarLayout,
     "meld": MeldLayout
 }
