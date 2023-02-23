@@ -1,5 +1,5 @@
 {
-    "OLGC": "\uE687",
+    "OLGC": "",
     "MTG": "",
     "LEA": "",
     "LEB": "",
@@ -347,16 +347,16 @@
             "common-fill": "white"
         }
     ],
-    "J12": "\uE96A",
-    "J13": "\uE96A",
-    "J14": "\uE96A",
-    "J15": "\uE96A",
-    "J16": "\uE96A",
-    "J17": "\uE96A",
-    "J18": "\uE96A",
-    "J19": "\uE96A",
-    "J20": "\uE96A",
-    "P22": "\uE96A",
+    "J12": "",
+    "J13": "",
+    "J14": "",
+    "J15": "",
+    "J16": "",
+    "J17": "",
+    "J18": "",
+    "J19": "",
+    "J20": "",
+    "P22": "",
     "SS3": [
         {
             "char": "",
@@ -412,14 +412,14 @@
     "STA": "",
     "C21": [
         {
-            "char": "\uE97E",
+            "char": "",
             "fill": "white",
             "stroke": ["black", 4],
             "common-fill": "white",
             "common-stroke": ["black", 4]
         },
         {
-            "char": "\uE97E",
+            "char": "",
             "rarity": false
         }
     ],
@@ -523,10 +523,10 @@
         }
     ],
     "2X2": "",
-    "DMU": "\uE993",
+    "DMU": "",
     "DMC": [
         {
-            "char": "\uE997",
+            "char": "",
             "color": "white",
             "stroke": false,
             "common-color": "black",
@@ -534,13 +534,13 @@
             "rarity": false
         },
         {
-            "char": "\uE995",
+            "char": "",
             "stroke": false,
             "common-stroke": false,
             "common-color": "black"
         },
         {
-            "char": "\uE996",
+            "char": "",
             "stroke": false,
             "rarity": false,
             "color": "black",
@@ -549,11 +549,11 @@
             "reference": true
         }
     ],
-    "BRO": "\uE99D",
-    "BRR": "\uE9A0",
+    "BRO": "",
+    "BRR": "",
     "BRC": [
         {
-            "char": "\uE99F",
+            "char": "",
             "stroke": false,
             "common-stroke": false,
             "fill": "white",
@@ -561,7 +561,7 @@
             "reference": true
         },
         {
-            "char": "\uE99F",
+            "char": "",
             "stroke": ["white", 6],
             "common-stroke": ["white", 6],
             "rarity": false
@@ -569,7 +569,7 @@
     ],
     "40K": [
         {
-            "char": "\uE99B",
+            "char": "",
             "color": "white",
             "fill": "black",
             "stroke": false,
@@ -579,7 +579,7 @@
             "rarity": false
         },
         {
-            "char": "\uE999",
+            "char": "",
             "color": "black",
             "fill": false,
             "stroke": false,
@@ -588,7 +588,7 @@
             "common-stroke": false
         },
         {
-            "char": "\uE99A",
+            "char": "",
             "color": "black",
             "fill": false,
             "stroke": false,
@@ -599,12 +599,34 @@
             "reference": true
         }
     ],
-    "BOT": "\uE99E",
-    "J22": [
+    "BOT": "",
+    "J22": "",
+    "ONE": "",
+    "ONC": [
         {
-            "char": "",
-            "fill": "black",
-            "common-fill": "white"
+            "char": "",
+            "fill": "white",
+            "stroke": ["black", 2],
+            "common-fill": "white",
+            "common-stroke": ["black", 2]
+        },
+        {
+            "char": "",
+            "rarity": false
         }
-    ]
+    ],
+    "SCD": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": ["black", 4],
+            "common-fill": "white",
+            "common-stroke": ["black", 4]
+        },
+        {
+            "char": "",
+            "rarity": false
+        }
+    ],
+    "DMR": ""
 }
