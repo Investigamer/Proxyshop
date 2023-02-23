@@ -47,7 +47,7 @@ filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
 # Works if you have WSL enabled
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Works if you have Scoop (http://scoop.sh)
+# Works if you have Scoop (https://scoop.sh)
 scoop install poetry
 ```
 * Clone Proxyshop to a folder of your choice, referred to as the ***working directory***.
@@ -80,27 +80,22 @@ _Click questions to see answers_
 <summary>How do I change the set symbol to something else?</summary>
   
 Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards.
-Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbor character in the `config.ini` under Expansion.Symbol.
+Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbol character in the `config.ini` under Expansion.Symbol.
   
 </details>
-
 <details>
 <summary>How do I completely hide the set symbol?</summary>
   
-Open `config.ini` and set `Auto.Set.Symbol = False`, then replace the value of `Default.Symbol` with a blank space.
+In Proxyshop click Global Setting, turn off Auto Set Symbol, then for any template you want to disable expansion symbol for open it in Photoshop, change the opacity of the Expansion Symbol layer (in the Text and Icons group) to 0.
   
 </details>
-
-
 <details>
 <summary>How do I hide any photoshop layer?</summary>
   
-In the photoshop template of your choice, change the opacity to 0 on the layer you wish to hide.
+In the Photoshop template of your choice, change the opacity to 0 on the layer you wish to hide.
 You can use this method to hide anything, including set symbol and collector's info layers.
   
 </details>
-
-
 <details>
 <summary>Where is a good place to get high quality MTG art?</summary>
   
@@ -109,13 +104,17 @@ On our [discord](https://discord.gg/magicproxies) we provide a lot of resources 
 Also for mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
   
 </details>
-
-
 <details>
 <summary>The app stops when trying to enter text and Photoshop becomes unresponsive!</summary>
   
-There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
+There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurrences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
   
+</details>
+<details>
+<summary>I'm getting an error!</summary>
+
+In your proxyshop directory, look for a folder named `tmp`, inside that folder you should see `error.txt`, check the last error log in that file. If the error isn't obvious, join our Discord and feel free to ask for help in the #Proxyshop channel.
+
 </details>
 
 # Credits
