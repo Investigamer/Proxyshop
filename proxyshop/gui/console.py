@@ -139,31 +139,26 @@ class Console(BoxLayout):
         self.ids.cancel_btn.disabled = True
 
     @staticmethod
-    def log_exception(e: Union[Exception, str], log_file: str = "tmp/error.txt"):
+    def log_exception(error: Union[Exception, str], log_file: str = "tmp/error.txt"):
         """
         Log python exception.
         """
         # Is this an Exception object?
-        if hasattr(e, '__traceback__'):
+        if not hasattr(error, '__traceback__'):
+            return
 
-            # Evaluate error for developer output
-            tb = e.__traceback__
-            print_tb(tb)
+        # Print the error for dev testing
+        print_tb(error.__traceback__)
+        print(f"  Reason: {str(error)}")
 
-            # Create readable info locating the error
-            while True:
-                line = tb.tb_lineno
-                location = tb.tb_frame.f_code.co_filename
-                if tb.tb_next: tb = tb.tb_next
-                else: break
-
-            # Formatting for end user troubleshoot log
-            cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
-            e = f"[{cur_time}] Line: {line}\n{location}: {e}\n"
-
-        # Log the file
+        # Add to log file
+        cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
         with open(os.path.join(cwd, log_file), "a", encoding="utf-8") as log:
-            log.write(e)
+            log.write("============================================================================\n")
+            log.write(f"> {cur_time}\n")
+            log.write("============================================================================\n")
+            print_tb(error.__traceback__, file=log)
+            log.write(f"  Reason: {str(error)}\n")
 
     @staticmethod
     def kill_thread(thr: threading.Thread):
