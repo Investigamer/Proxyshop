@@ -352,7 +352,7 @@ class BaseLayout:
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
         if self.default_class == con.transform_front_class and not self.card['front']:
-            if "Land" in self.type_line:
+            if self.transform_icon == 'compasslanddfc':
                 return con.ixalan_class
             return con.transform_back_class
         elif self.default_class == con.mdfc_front_class and not self.card['front']:
@@ -400,7 +400,7 @@ class TransformLayout (BaseLayout):
         if 'frame_effects' in self.scryfall:
             if self.scryfall['frame_effects'][0] != "legendary":
                 return self.scryfall['frame_effects'][0]
-        return "sunmoondfc"
+        return 'land' if 'Land' in self.type_line else 'sunmoondfc'
 
     @cached_property
     def default_class(self):
@@ -452,7 +452,7 @@ class MeldLayout (NormalLayout):
         if 'frame_effects' in self.card:
             if self.card['frame_effects'][0] != "legendary":
                 return self.card['frame_effects'][0]
-        return "sunmoondfc"
+        return 'meld'
 
     @cached_property
     def default_class(self) -> str:
