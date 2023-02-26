@@ -32,8 +32,10 @@ def fix_color_pair(pair: str) -> Optional[str]:
         con.layers.UR,
         con.layers.RW
     ]
-    if pair in color_pairs: return pair
-    elif pair[::-1] in color_pairs: return pair[::-1]
+    if pair in color_pairs:
+        return pair
+    elif pair[::-1] in color_pairs:
+        return pair[::-1]
     return
 
 
@@ -81,7 +83,8 @@ def select_frame_layers(card: dict) -> FrameDetails:
                 basic_identity += basic
 
         # Land has one basic land type, still need to check pinlines (ex: Murmuring Bosk)
-        if len(basic_identity) == 1: twins = basic_identity
+        if len(basic_identity) == 1:
+            twins = basic_identity
         elif len(basic_identity) == 2:
             # Exactly two basic land types. Fix naming convention, return frame elements
             basic_identity = fix_color_pair(basic_identity)
@@ -186,7 +189,7 @@ def select_frame_layers(card: dict) -> FrameDetails:
                 # This line taps to add mana of some color
                 # Count how many colors the line can tap for, and add them all to colors_tapped
                 for color in colors:
-                    if "{"+color+"}" in line and color not in colors_tapped:
+                    if "{" + color + "}" in line and color not in colors_tapped:
                         # Add this color to colors_tapped
                         colors_tapped += color
 
@@ -230,21 +233,23 @@ def select_frame_layers(card: dict) -> FrameDetails:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost
         for color in colors:
-            if mana_cost.find("{"+color) >= 0 or mana_cost.find(color+"}") >= 0:
+            if mana_cost.find("{" + color) >= 0 or mana_cost.find(color + "}") >= 0:
                 color_identity = color_identity + color
 
     # If the color identity is exactly two colors, ensure it fits into the proper naming convention
     # e.g. "WU" instead of "UW"
-    if len(color_identity) == 2: color_identity = fix_color_pair(color_identity)
+    if len(color_identity) == 2:
+        color_identity = fix_color_pair(color_identity)
 
     # Handle Transguild Courier case - cards that explicitly state that they're all colors
-    if oracle_text.find(" is all colors.") > 0: color_identity = "WUBRG"
+    if oracle_text.find(" is all colors.") > 0:
+        color_identity = "WUBRG"
 
     # Identify if the card is a full-art colorless card, e.g. colorless
     # Assume all non-land cards with the word "Devoid" in their rules text use the BFZ colorless frame
     devoid = bool("Devoid" in oracle_text and len(color_identity) > 0)
     if (
-        len(color_identity) <= 0 and type_line.find(con.layers.ARTIFACT) < 0
+            len(color_identity) <= 0 and type_line.find(con.layers.ARTIFACT) < 0
     ) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
         # colorless-style card identified
         background = con.layers.COLORLESS
@@ -286,23 +291,34 @@ def select_frame_layers(card: dict) -> FrameDetails:
     # Select background
     if type_line.find(con.layers.ARTIFACT) >= 0:
         background = con.layers.ARTIFACT
-    elif hybrid: background = color_identity
-    elif len(color_identity) >= 2: background = con.layers.GOLD
-    else: background = color_identity
+    elif hybrid:
+        background = color_identity
+    elif len(color_identity) >= 2:
+        background = con.layers.GOLD
+    else:
+        background = color_identity
 
     # Identify if the card is a vehicle, and override the selected background if necessary
-    if type_line.find(con.layers.VEHICLE) >= 0: background = con.layers.VEHICLE
+    if type_line.find(con.layers.VEHICLE) >= 0:
+        background = con.layers.VEHICLE
 
     # Select pinlines
-    if len(color_identity) <= 0: pinlines = con.layers.ARTIFACT
-    elif len(color_identity) <= 2: pinlines = color_identity
-    else: pinlines = con.layers.GOLD
+    if len(color_identity) <= 0:
+        pinlines = con.layers.ARTIFACT
+    elif len(color_identity) <= 2:
+        pinlines = color_identity
+    else:
+        pinlines = con.layers.GOLD
 
     # Select name box
-    if len(color_identity) <= 0: twins = con.layers.ARTIFACT
-    elif len(color_identity) == 1: twins = color_identity
-    elif hybrid: twins = con.layers.LAND
-    elif len(color_identity) >= 2: twins = con.layers.GOLD
+    if len(color_identity) <= 0:
+        twins = con.layers.ARTIFACT
+    elif len(color_identity) == 1:
+        twins = color_identity
+    elif hybrid:
+        twins = con.layers.LAND
+    elif len(color_identity) >= 2:
+        twins = con.layers.GOLD
 
     # Finally, return the selected layers
     return {
@@ -333,17 +349,16 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
         }]
     if isinstance(symbol, list):
         ref = symbol[0]['char']
-        for i, lyr in enumerate(symbol):
-            if 'rarity' not in lyr: symbol[i]['rarity'] = True
-            if 'fill' not in lyr: symbol[i]['fill'] = False
-            if 'color' not in lyr: symbol[i]['color'] = False
-            if 'stroke' not in lyr: symbol[i]['stroke'] = ["black", cfg.symbol_stroke]
-            if 'common-fill' not in lyr: symbol[i]['common-fill'] = False
-            if 'common-color' not in lyr: symbol[i]['common-color'] = False
-            if 'common-stroke' not in lyr: symbol[i]['common-stroke'] = ["white", cfg.symbol_stroke]
-            if 'scale-factor' not in lyr: symbol[i]['scale-factor'] = 1
-            if 'reference' in lyr and lyr['reference']:
-                if lyr['reference']:
-                    ref = lyr['char']
+        for sym in symbol:
+            sym['rarity'] = sym.get('rarity', True)
+            sym['fill'] = sym.get('fill', False)
+            sym['color'] = sym.get('color', False)
+            sym['stroke'] = sym.get('stroke', ["black", cfg.symbol_stroke])
+            sym['common-fill'] = sym.get('common-fill', False)
+            sym['common-color'] = sym.get('common-color', False)
+            sym['common-stroke'] = sym.get('common-stroke', ["white", cfg.symbol_stroke])
+            sym['scale-factor'] = sym.get('scale-factor', 1)
+            if sym.get('reference', False):
+                ref = sym['char']
         return ref, symbol
     return
