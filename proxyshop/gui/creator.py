@@ -5,14 +5,15 @@ import os
 import threading
 from typing import Callable
 
-from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
+
 from proxyshop import core
 from proxyshop.core import TemplateDetails
+from proxyshop.settings import cfg
 
 cwd = os.getcwd()
 
@@ -58,14 +59,14 @@ class CreatorLayout(GridLayout):
         self.templates.insert(0, normal)
         super().__init__(**kwargs)
 
-    def select_template(self, spinner: Spinner):
+    def select_template(self, spinner: Spinner) -> None:
         """
         Choose which template to render with.
         @param spinner: Spinner dropdown list object.
         """
         self.selected_template = spinner.text
 
-    def disable_buttons(self):
+    def disable_buttons(self) -> None:
         """
         Disable all creator tab render buttons.
         """
@@ -73,7 +74,7 @@ class CreatorLayout(GridLayout):
         self.root.creator_pw_layout.ids.render_pw.disabled = True
         self.root.creator_saga_layout.ids.render_saga.disabled = True
 
-    def enable_buttons(self):
+    def enable_buttons(self) -> None:
         """
         Enable all creator tab render buttons.
         """
@@ -81,21 +82,44 @@ class CreatorLayout(GridLayout):
         self.root.creator_pw_layout.ids.render_pw.disabled = False
         self.root.creator_saga_layout.ids.render_saga.disabled = False
 
-    def render_custom(self, func: Callable, temp: TemplateDetails, scryfall: dict):
+    def render_custom(self, func: Callable, temp: TemplateDetails, scryfall: dict) -> None:
+        """
+        Render custom card.
+        @param func: Function to call to render the card.
+        @param temp: Template details.
+        @param scryfall: Scryfall data to build layout object.
+        """
         self.disable_buttons()
         th = threading.Thread(target=func, args=(temp, scryfall), daemon=True)
         th.start()
         th.join()
         self.enable_buttons()
 
+    @staticmethod
+    def format_scryfall_data(scryfall: dict):
+        """
+        Add any necessary unified data to scryfall.
+        @param scryfall: Scryfall data.
+        @return: Updated Scryfall data.
+        """
+        # Shared data
+        scryfall['object'] = 'card'
+        scryfall['lang'] = cfg.lang
+
+        # Is this an alternate language card?
+        if scryfall['lang'] != 'en':
+            scryfall['printed_name'] = scryfall['name']
+            scryfall['printed_text'] = scryfall['oracle_text']
+            scryfall['printed_type_line'] = scryfall['type_line']
+        return scryfall
+
 
 class CreatorNormalLayout(CreatorLayout):
-    def render(self, root: App):
+    def render(self, root):
         oracle_text = self.ids.oracle_text.text.replace("~", self.ids.name.text)
         flavor_text = self.ids.flavor_text.text.replace("~", self.ids.name.text)
         scryfall = {
             "layout": "normal",
-            "object": "card",
             "set": self.ids.set.text,
             "name": self.ids.name.text,
             "oracle_text": oracle_text,
@@ -111,12 +135,13 @@ class CreatorNormalLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
+        scryfall = self.format_scryfall_data(scryfall)
         temp = core.get_my_templates({"Normal": self.selected_template})
         self.render_custom(root.render_custom, temp['normal'], scryfall)
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
-    def render(self, root: App):
+    def render(self, root):
         rules_text = "\n".join([
             self.ids.line_1.text.replace("~", self.ids.name.text),
             self.ids.line_2.text.replace("~", self.ids.name.text),
@@ -125,26 +150,26 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
         ])
         scryfall = {
             "layout": "normal",
-            "object": "card",
             "set": self.ids.set.text,
             "name": self.ids.name.text,
+            "oracle_text": rules_text,
             "artist": self.ids.artist.text,
             "loyalty": self.ids.loyalty.text,
             "mana_cost": self.ids.mana_cost.text,
             "type_line": self.ids.type_line.text,
             "rarity": self.ids.rarity.text.lower(),
             "printed_size": self.ids.card_count.text,
-            "oracle_text": rules_text, "flavor_text": "",
             "keywords": self.ids.keywords.text.split(","),
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
+        scryfall = self.check_alternate_language(scryfall)
         temp = core.get_my_templates({"Planeswalker": self.selected_template})
         self.render_custom(root.render_custom, temp['planeswalker'], scryfall)
 
 
 class CreatorSagaLayout(CreatorLayout):
-    def render(self, root: App):
+    def render(self, root):
         text_arr = []
         num_lines = "I"
         if self.ids.line_1.text != "":
@@ -155,18 +180,14 @@ class CreatorSagaLayout(CreatorLayout):
             num_lines += "I"
         if self.ids.line_3.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_3.text.replace("~", self.ids.name.text))
-            if len(num_lines) == 3:
-                num_lines = "IV"
-            else:
-                num_lines += "I"
+            num_lines = "IV" if len(num_lines) == 3 else num_lines + "I"
         if self.ids.line_4.text != "":
             text_arr.append(f"{num_lines} — " + self.ids.line_4.text.replace("~", self.ids.name.text))
-        text_arr.insert(0, f"Empty words.")
+        text_arr.insert(0, f"(As this Saga enters and after your draw step, add a lore counter. "
+                           f"Sacrifice after {num_lines}.)")
         rules_text = "\n".join(text_arr)
         scryfall = {
             "layout": "saga",
-            "object": "card",
-            "flavor_text": "",
             "set": self.ids.set.text,
             "oracle_text": rules_text,
             "name": self.ids.name.text,
@@ -179,6 +200,7 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
+        scryfall = self.check_alternate_language(scryfall)
         temp = core.get_my_templates({"Saga": self.selected_template})
         self.render_custom(root.render_custom, temp['saga'], scryfall)
 
@@ -194,11 +216,11 @@ class InputItem(TextInput):
         self.clicked = False
         self.original = self.text
 
-    def _on_focus(self, instance, value, *largs):
+    def _on_focus(self, instance, value, *args):
         if not self.clicked:
             self.clicked = True
             self.original = self.text
-        super()._on_focus(instance, value, *largs)
+        super()._on_focus(instance, value, *args)
 
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
         """
