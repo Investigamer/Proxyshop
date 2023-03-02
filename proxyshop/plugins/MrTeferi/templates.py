@@ -214,6 +214,14 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     def twins_layer(self) -> Optional[ArtLayer]:
         return
 
+    @property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        return
+
+    @property
+    def background_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.layout.pinlines, con.layers.BACKGROUND)
+
 
 class MaleMPCTemplate (temp.NormalTemplate):
     """
