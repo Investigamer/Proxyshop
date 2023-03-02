@@ -9,6 +9,7 @@ from proxyshop.constants import con
 from proxyshop.settings import cfg
 from proxyshop import scryfall as scry
 from proxyshop.frame_logic import select_frame_layers, FrameDetails
+from proxyshop.utils import normalize_str
 
 # Regex
 leveler_regex = re.compile(
@@ -109,17 +110,21 @@ class BaseLayout:
         self._filename = value
 
     """
-    IMMUTABLES
+    GAMEPLAY ITEMS
     """
 
     @cached_property
     def card(self) -> dict:
+        # Double faced card?
         if 'card_faces' in self.scryfall:
-            if self.scryfall['card_faces'][0]['name'] == self.name_raw:
+            # First card face is the front side
+            if normalize_str(self.scryfall['card_faces'][0]['name']) == normalize_str(self.name_raw):
                 self.scryfall['card_faces'][0]['front'] = True
                 return self.scryfall['card_faces'][0]
+            # Second card face is the back side
             self.scryfall['card_faces'][1]['front'] = False
             return self.scryfall['card_faces'][1]
+        # Non-MDFC cards are always front
         self.scryfall['front'] = True
         return self.scryfall
 
@@ -181,14 +186,47 @@ class BaseLayout:
         return self.card['type_line']
 
     @cached_property
-    def collector_number(self) -> str:
-        # Ensure only numbers
-        num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
-        if len(num) == 2:
-            return f"0{num}"
-        elif len(num) == 1:
-            return f"00{num}"
-        return num
+    def power(self) -> str:
+        return self.card.get('power', None)
+
+    @cached_property
+    def toughness(self) -> str:
+        return self.card.get('toughness', None)
+
+    @cached_property
+    def color_identity(self) -> list:
+        return self.scryfall['color_identity']
+
+    @cached_property
+    def color_indicator(self) -> str:
+        return self.card.get('color_indicator', None)
+
+    @cached_property
+    def transform_icon(self) -> Optional[str]:
+        return
+
+    @cached_property
+    def loyalty(self) -> str:
+        return self.card.get('loyalty', None)
+
+    @cached_property
+    def scryfall_scan(self) -> Optional[str]:
+        if 'image_uris' in self.card:
+            if 'large' in self.card['image_uris']:
+                return self.card['image_uris']['large']
+        return
+
+    """
+    COLLECTOR INFO
+    """
+
+    @cached_property
+    def mtgset(self) -> dict:
+        return scry.set_info(self.set.lower()) or {}
+
+    @cached_property
+    def set(self) -> str:
+        return self.scryfall['set'].upper()
 
     @cached_property
     def rarity(self) -> str:
@@ -199,40 +237,10 @@ class BaseLayout:
         return self.rarity[0:1].upper()
 
     @cached_property
-    def artist(self) -> str:
-        if self.file['artist']:
-            return self.file['artist']
-        if "&" in self.card['artist']:
-            count = []
-            # John Smith & Jane Smith => John & Jane Smith
-            for w in self.card['artist'].split(" "):
-                if w in count:
-                    count.remove(w)
-                count.append(w)
-            return " ".join(count)
-        return self.card['artist']
-
-    @cached_property
-    def creator(self) -> str:
-        return self.file['creator']
-
-    @cached_property
-    def color_identity(self) -> list:
-        return self.scryfall['color_identity']
-
-    @cached_property
     def lang(self) -> str:
         if 'lang' in self.scryfall:
             return self.scryfall['lang'].upper()
         return cfg.lang.upper()
-
-    @cached_property
-    def set(self) -> str:
-        return self.scryfall['set'].upper()
-
-    @cached_property
-    def mtgset(self) -> dict:
-        return scry.set_info(self.set.lower()) or {}
 
     @cached_property
     def card_count(self) -> Optional[str]:
@@ -255,40 +263,55 @@ class BaseLayout:
         return cc
 
     @cached_property
+    def collector_number(self) -> str:
+        # Ensure only numbers
+        num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
+        if len(num) == 2:
+            return f"0{num}"
+        elif len(num) == 1:
+            return f"00{num}"
+        return num
+
+    @cached_property
+    def artist(self) -> str:
+        if self.file['artist']:
+            return self.file['artist']
+        if "&" in self.card['artist']:
+            count = []
+            # John Smith & Jane Smith => John & Jane Smith
+            for w in self.card['artist'].split(" "):
+                if w in count:
+                    count.remove(w)
+                count.append(w)
+            return " ".join(count)
+        return self.card['artist']
+
+    @cached_property
+    def collector_info_top(self) -> str:
+        if self.card_count:
+            return f"{self.collector_number}/{self.card_count} {self.rarity_letter}"
+        return f"{self.collector_number} {self.rarity_letter}"
+
+    @cached_property
+    def creator(self) -> str:
+        return self.file['creator']
+
+    @cached_property
     def symbol(self) -> str:
         # Automatic set symbol enabled?
         if cfg.auto_symbol and self.set in con.set_symbols:
-            return con.set_symbols[self.set]
+            sym = con.set_symbols[self.set]
+            # Check if this is a reference to another symbol
+            if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
+                return con.set_symbols[sym]
+            return sym
         elif cfg.auto_symbol and self.set[1:] in con.set_symbols:
-            return con.set_symbols[self.set[1:]]
+            sym = con.set_symbols[self.set[1:]]
+            # Check if this is a reference to another symbol
+            if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
+                return con.set_symbols[sym]
+            return sym
         return cfg.symbol_char
-
-    @cached_property
-    def power(self) -> str:
-        return self.card.get('power', None)
-
-    @cached_property
-    def toughness(self) -> str:
-        return self.card.get('toughness', None)
-
-    @cached_property
-    def color_indicator(self) -> str:
-        return self.card.get('color_indicator', None)
-
-    @cached_property
-    def transform_icon(self) -> Optional[str]:
-        return
-
-    @cached_property
-    def scryfall_scan(self) -> Optional[str]:
-        if 'image_uris' in self.card:
-            if 'large' in self.card['image_uris']:
-                return self.card['image_uris']['large']
-        return
-
-    @cached_property
-    def loyalty(self) -> str:
-        return self.card.get('loyalty', None)
 
     """
     BOOL
@@ -339,7 +362,7 @@ class BaseLayout:
         return self.frame['background']
 
     """
-    CARD CLASS
+    TEMPLATE CLASS
     """
 
     @cached_property
@@ -419,7 +442,7 @@ class MeldLayout (NormalLayout):
     @cached_property
     def card(self) -> dict:
         for face in self.scryfall['faces']:
-            if face['name'] == self.scryfall['name']:
+            if normalize_str(face['name']) == normalize_str(self.scryfall['name']):
                 if face['component'] == 'meld_result':
                     face['front'] = False
                     return face
