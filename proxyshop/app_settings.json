@@ -113,6 +113,13 @@
     "key": "Fill.Symbol.Background"
   },
   {
+    "type": "bool",
+    "title": "[b]Classic Symbol Rendering[/b]",
+    "desc": "Renders expansion symbols using old methodology (pre v1.5.0).\n[b](Default: False)[/b]",
+    "section": "SYMBOLS",
+    "key": "Classic.Symbol.Rendering"
+  },
+  {
     "type": "title",
     "title": "App Settings"
   },

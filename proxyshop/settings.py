@@ -53,6 +53,7 @@ class Config:
 		self.auto_symbol_size = self.file.getboolean('SYMBOLS', 'Auto.Symbol.Size')
 		self.symbol_stroke = self.file['SYMBOLS']['Symbol.Stroke.Size']
 		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
+		self.classic_expansion_symbol = self.file.getboolean('SYMBOLS', 'Classic.Symbol.Rendering')
 
 		# APP section
 		self.exit_early = self.file.getboolean('APP', 'Manual.Edit')

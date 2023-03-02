@@ -6,7 +6,7 @@ import os.path as osp
 import json
 import shutil
 from pathlib import Path
-from typing import TypedDict, Optional
+from typing import Optional
 from kivy.config import ConfigParser
 import configparser
 
