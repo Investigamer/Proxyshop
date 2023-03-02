@@ -18,7 +18,6 @@ import requests
 from proxyshop.constants import con
 
 CHUNK_SIZE = 1024 * 1024  # 1 MB
-cwd = os.getcwd()
 
 
 def get_url_from_gdrive_confirmation(contents: str) -> str:
@@ -90,7 +89,7 @@ def download_google(
     header = con.http_header.copy()
 
     # Cookies
-    cache_dir = osp.join(cwd, "tmp")
+    cache_dir = osp.join(con.cwd, "tmp")
     if not osp.exists(cache_dir):
         os.makedirs(cache_dir)
     cookies_file = osp.join(cache_dir, "cookies.json")

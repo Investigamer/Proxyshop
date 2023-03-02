@@ -80,7 +80,7 @@ def set_info(set_code: str) -> Optional[dict]:
     @return: MTG set dict or None
     """
     # Has this set been logged?
-    filepath = os.path.join(os.getcwd(), f"proxyshop/datas/SET-{set_code.upper()}.json")
+    filepath = os.path.join(con.cwd, f"proxyshop/datas/SET-{set_code.upper()}.json")
     try:
         if os.path.exists(filepath):
             with open(filepath, "r", encoding="utf-8") as f:

@@ -14,7 +14,6 @@ from typing_extensions import NotRequired
 from importlib import util, import_module
 from proxyshop import update
 from proxyshop.constants import con
-cwd = os.getcwd()
 
 # All Template types
 card_types = {
@@ -103,10 +102,10 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
     @return: Dictionary of lists containing template details.
     """
     # Plugin folders
-    folders = glob(os.path.join(cwd, "proxyshop\\plugins\\*\\"))
+    folders = glob(os.path.join(con.cwd, "proxyshop\\plugins\\*\\"))
 
     # Process the default templates.json
-    with open(os.path.join(cwd, "proxyshop\\templates.json"), encoding="utf-8") as f:
+    with open(os.path.join(con.cwd, "proxyshop\\templates.json"), encoding="utf-8") as f:
         app_json = json.load(f)
         main_json = {}
         for card_type, templates in app_json.items():
@@ -115,8 +114,8 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
             for name, class_name in templates.items():
                 main_json[card_type].append({
                     "plugin_path": None,
-                    "config_path": osp.join(cwd, f"proxyshop/configs/{class_name}.json"),
-                    "preview_path": osp.join(cwd, f"proxyshop/img/{class_name}.jpg"),
+                    "config_path": osp.join(con.cwd, f"proxyshop/configs/{class_name}.json"),
+                    "preview_path": osp.join(con.cwd, f"proxyshop/img/{class_name}.jpg"),
                     "class_name": class_name,
                     "name": name,
                     "type": named_type
@@ -178,7 +177,7 @@ def get_template_details(
 
 def get_my_templates(provided: dict[str, str]) -> dict[str, TemplateDetails]:
     """
-    Retrieve templates based on user selection
+    Retrieve templates based on user selection.
     @param provided: Provided templates to look up details for.
     @return: A dict of templates matching each layout type.
     """
@@ -277,7 +276,7 @@ def check_for_updates() -> dict:
                 temp['type'] = cat
                 temp['name'] = name
                 temp['plugin'] = None
-                temp['manifest'] = os.path.join(cwd, 'proxyshop/manifest.json')
+                temp['manifest'] = os.path.join(con.cwd, 'proxyshop/manifest.json')
                 temp['s3'] = s3_enabled
 
                 # Does this template need an update?
@@ -287,7 +286,7 @@ def check_for_updates() -> dict:
 
     # Get plugin manifests
     plugins = []
-    folders = glob(os.path.join(cwd, "proxyshop\\plugins\\*\\"))
+    folders = glob(os.path.join(con.cwd, "proxyshop\\plugins\\*\\"))
     for folder in folders:
         if 'manifest.json' in os.listdir(folder):
             plugins.append({
@@ -347,7 +346,7 @@ def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
         print(f"{temp['name']} ({temp['file']}) couldn't be located!")
         return
     plugin_path = f"{plugin}/" if plugin else ""
-    full_path = osp.join(cwd, f"templates/{plugin_path}{temp['file']}")
+    full_path = osp.join(con.cwd, f"templates/{plugin_path}{temp['file']}")
     if 'description' not in data or not data['description']:
         data['description'] = "v1.0.0"
     current = get_current_version(temp['id'], full_path)
@@ -442,7 +441,7 @@ SYSTEM FUNCTIONS
 
 
 def import_json_config(path: str) -> dict:
-    with open(os.path.join(f"{cwd}/proxyshop/plugins", path)) as f:
+    with open(os.path.join(f"{con.cwd}/proxyshop/plugins", path)) as f:
         return json.load(f)
 
 

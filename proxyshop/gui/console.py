@@ -15,11 +15,9 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
-
+from proxyshop.constants import con
 from proxyshop.gui.updater import UpdatePopup
 from proxyshop.settings import cfg, Singleton
-
-cwd = os.getcwd()
 
 
 class Console(BoxLayout):
@@ -27,7 +25,7 @@ class Console(BoxLayout):
     Main console class
     """
     __metaclass__ = Singleton
-    Builder.load_file(os.path.join(cwd, "proxyshop/kv/console.kv"))
+    Builder.load_file(os.path.join(con.cwd, "proxyshop/kv/console.kv"))
     lines = 1
 
     def __init__(self, **kwargs):
@@ -51,7 +49,8 @@ class Console(BoxLayout):
         # Add message to the output label
         output.text = f"{text}{msg}{end}"
         self.ids.viewport.scroll_y = 0
-        if e: self.log_exception(e)
+        if e:
+            self.log_exception(e)
 
     def log_error(self, msg, card, template=None, e=None):
         """
@@ -59,9 +58,8 @@ class Console(BoxLayout):
         Then prompt error request
         """
         cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
-        if template: log_text = f"{card} ({template}) [{cur_time}]\n"
-        else: log_text = f"{card} [{cur_time}]\n"
-        with open(os.path.join(cwd, "tmp/failed.txt"), "a", encoding="utf-8") as log:
+        log_text = f"{card} ({template}) [{cur_time}]\n" if template else f"{card} [{cur_time}]\n"
+        with open(os.path.join(con.cwd, "tmp/failed.txt"), "a", encoding="utf-8") as log:
             log.write(log_text)
         return self.error(msg, e)
 
@@ -73,30 +71,32 @@ class Console(BoxLayout):
         self.end_await()
 
         # Log exception if given
-        if e: self.log_exception(e)
+        if e:
+            self.log_exception(e)
 
         # Are we in dev mode?
         if cfg.dev_mode:
             return False
 
         # Color message?
-        if color: msg = f"[color=#a84747]{msg}[/color]"
+        if color:
+            msg = f"[color=#a84747]{msg}[/color]\n"
         if cfg.skip_failed:
             continue_msg = "Skipping this card!!"
 
         # Notify user
-        self.update(f"[color=#a84747]{msg}[/color]\n{continue_msg}")
+        self.update(f"{msg}{continue_msg}")
 
         # Enable buttons
         self.ids.continue_btn.disabled = False
         self.ids.cancel_btn.disabled = False
 
         # Prompt user response
-        if cfg.skip_failed: result = True
-        else: result = self.ids.console_controls.wait()
+        result = True if cfg.skip_failed else self.ids.console_controls.wait()
 
         # Cancel or don't
-        if not result: self.update("Understood! Canceling render operation.")
+        if not result:
+            self.update("Understood! Canceling render operation.")
 
         # Disable buttons
         self.ids.continue_btn.disabled = True
@@ -128,7 +128,7 @@ class Console(BoxLayout):
             self.kill_thread(thr)
             self.update("Canceling render process!")
             sys.exit()
-        else: return True
+        return True
 
     def end_await(self):
         """
@@ -153,7 +153,7 @@ class Console(BoxLayout):
 
         # Add to log file
         cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
-        with open(os.path.join(cwd, log_file), "a", encoding="utf-8") as log:
+        with open(os.path.join(con.cwd, log_file), "a", encoding="utf-8") as log:
             log.write("============================================================================\n")
             log.write(f"> {cur_time}\n")
             log.write("============================================================================\n")
@@ -168,7 +168,8 @@ class Console(BoxLayout):
         """
         thread_id = thr.ident
         res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
-        if res > 1: ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+        if res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
 
 
 class ConsoleOutput(Label):
@@ -177,8 +178,7 @@ class ConsoleOutput(Label):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if cfg.dev_mode: self.text = "Test mode enabled!\n"
-        else: self.text = "All systems go! Let's make a proxy.\n"
+        self.text = "Test mode enabled!\n" if cfg.dev_mode else "Let's make a proxy!\n"
 
 
 class ConsoleControls(BoxLayout):
@@ -203,7 +203,8 @@ class ConsoleControls(BoxLayout):
         """
         Define the response, end wait
         """
-        if confirm: self.choice = True
+        if confirm:
+            self.choice = True
         else:
             self.choice = False
             self.running = False

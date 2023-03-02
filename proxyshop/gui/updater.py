@@ -13,14 +13,12 @@ import asynckivy as ak
 from proxyshop.constants import con
 from proxyshop.core import check_for_updates, update_template
 
-cwd = os.getcwd()
-
 
 class UpdatePopup(Popup):
     """
     Popup modal for updating templates.
     """
-    Builder.load_file(os.path.join(cwd, "proxyshop/kv/updater.kv"))
+    Builder.load_file(os.path.join(con.cwd, "proxyshop/kv/updater.kv"))
     loading = True
     updates = {}
     categories = {}

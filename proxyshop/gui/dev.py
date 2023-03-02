@@ -10,17 +10,16 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 
+from proxyshop.constants import con
 from proxyshop.core import get_templates, TemplateDetails
 from proxyshop.gui.utils import HoverButton
-
-cwd = os.getcwd()
 
 
 class TestApp(BoxLayout):
     """
     Template Tester
     """
-    Builder.load_file(os.path.join(cwd, "proxyshop/kv/dev.kv"))
+    Builder.load_file(os.path.join(con.cwd, "proxyshop/kv/dev.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

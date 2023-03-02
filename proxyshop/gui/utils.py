@@ -1,11 +1,11 @@
 import os
 import random
 
+from kivy.app import App
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.button import Button
-from kivy.uix.togglebutton import ToggleButton
 from kivy.utils import get_color_from_hex
 
 """
@@ -70,8 +70,35 @@ class HoverBehavior(object):
             return
         self.border_point = pos
         self.hovered = inside
-        if inside: self.dispatch('on_enter')
-        else: self.dispatch('on_leave')
+        if inside:
+            self.dispatch('on_enter')
+        else:
+            self.dispatch('on_leave')
+
+    """
+    BLANK METHODS - Overwritten by Extend Class, e.g. Button
+    """
+
+    def dispatch(self, action):
+        return
+
+    @staticmethod
+    def collide_point(point: float):
+        if point:
+            return True
+        return False
+
+    @staticmethod
+    def to_widget(point: list):
+        return point
+
+    @staticmethod
+    def get_root_window():
+        return App.root_window
+
+    @staticmethod
+    def register_event_type(event: str):
+        return
 
 
 class HoverButton(Button, HoverBehavior):

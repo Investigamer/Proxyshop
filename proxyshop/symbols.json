@@ -1064,9 +1064,9 @@
         {
             "char": "",
             "fill": "white",
-            "stroke": ["black", 2],
+            "stroke": ["black", 3],
             "common-fill": "white",
-            "common-stroke": ["black", 2]
+            "common-stroke": ["white", 3]
         },
         {
             "char": "",

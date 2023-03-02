@@ -11,11 +11,9 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
 
-from proxyshop import core
-from proxyshop.core import TemplateDetails
+from proxyshop.constants import con
+from proxyshop.core import TemplateDetails, get_templates, get_my_templates
 from proxyshop.settings import cfg
-
-cwd = os.getcwd()
 
 """
 DISPLAY ELEMENTS
@@ -23,7 +21,7 @@ DISPLAY ELEMENTS
 
 
 class CreatorPanels(TabbedPanel):
-    Builder.load_file(os.path.join(cwd, "proxyshop/kv/creator.kv"))
+    Builder.load_file(os.path.join(con.cwd, "proxyshop/kv/creator.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -52,7 +50,7 @@ class CreatorLayout(GridLayout):
         self.selected_template = "Normal"
 
         # Get our templates alphabetical
-        temps = core.get_templates()[card_type]
+        temps = get_templates()[card_type]
         temps = [temp['name'] for temp in temps]
         normal = temps.pop(0)
         self.templates = sorted(temps)
@@ -136,7 +134,7 @@ class CreatorNormalLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         scryfall = self.format_scryfall_data(scryfall)
-        temp = core.get_my_templates({"Normal": self.selected_template})
+        temp = get_my_templates({"Normal": self.selected_template})
         self.render_custom(root.render_custom, temp['normal'], scryfall)
 
 
@@ -164,7 +162,7 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         scryfall = self.check_alternate_language(scryfall)
-        temp = core.get_my_templates({"Planeswalker": self.selected_template})
+        temp = get_my_templates({"Planeswalker": self.selected_template})
         self.render_custom(root.render_custom, temp['planeswalker'], scryfall)
 
 
@@ -201,7 +199,7 @@ class CreatorSagaLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
         scryfall = self.check_alternate_language(scryfall)
-        temp = core.get_my_templates({"Saga": self.selected_template})
+        temp = get_my_templates({"Saga": self.selected_template})
         self.render_custom(root.render_custom, temp['saga'], scryfall)
 
 

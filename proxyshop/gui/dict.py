@@ -15,4 +15,5 @@ class GUIResources:
         self.template_btn: dict[str, [str, ToggleButton]] = {k: {} for k in card_types}
         self.template_btn_cfg: dict[str, [str, Button]] = {k: {} for k in card_types}
 
+
 GUI = GUIResources()

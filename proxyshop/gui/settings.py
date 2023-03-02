@@ -1,7 +1,6 @@
 """
 KIVY SETTINGS POPUPS
 """
-import os
 import os.path as osp
 import json
 import shutil
@@ -22,8 +21,7 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 from proxyshop.core import TemplateDetails
-
-cwd = os.getcwd()
+from proxyshop.constants import con
 
 
 """
@@ -144,11 +142,11 @@ class SettingsPopup(ModalView):
 
     @property
     def app_ini(self) -> str:
-        return osp.join(cwd, "config.ini")
+        return osp.join(con.cwd, "config.ini")
 
     @property
     def app_json(self) -> str:
-        return osp.join(cwd, "proxyshop/app_settings.json")
+        return osp.join(con.cwd, "proxyshop/app_settings.json")
 
     def __init__(self, template: Optional[TemplateDetails] = None, **kwargs):
         super().__init__(**kwargs)

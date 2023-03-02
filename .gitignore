@@ -153,19 +153,33 @@ cython_debug/
 # VSCode
 .vscode/
 
-# Specific to this project
+# SPECIFIC TO THIS PROJECT
+# Art input folder
 /art
+# Render output folder
 /out
+# Temporary logging directory
 /tmp
+# PSD templates directory
 /templates
+# Testing scripts
 test.py
 tester.py
+# User generated data files
 /proxyshop/datas/
+# User specific version tracker
 /proxyshop/version_tracker.json
+# Generated new release
 /release
+# Environmental variables
 /proxyshop/__env__.py
+# All plugins that aren't MrTeferi or SilvanMTG
 /proxyshop/plugins/*
 !/proxyshop/plugins/MrTeferi
 !/proxyshop/plugins/SilvanMTG
+# User generated config files
 /proxyshop/configs/*.ini
+# User generated plugin config files
 /proxyshop/plugins/*/configs/*.ini
+# Test generated symbol images
+/proxyshop/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]

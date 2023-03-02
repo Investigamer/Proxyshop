@@ -14,7 +14,6 @@ from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
 
 # QOL Definitions
-cwd = os.getcwd()
 app = ps.Application()
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
@@ -1091,7 +1090,6 @@ def apply_fx_fill(action: ps.ActionDescriptor, **kw) -> None:
     Adds a solid color overlay to layer effects action.
     @param action: Pending layer effects action descriptor.
     @param kw: Optional keywords governing overlay behavior.
-    @return:
     """
     pass
 
@@ -1178,39 +1176,42 @@ def run_action(action_set: str, action: str) -> None:
     app.ExecuteAction(sID("play"), desc310, NO_DIALOG)
 
 
-def save_document_png(file_name: str) -> None:
+def save_document_png(file_name: str, directory='out') -> None:
     """
     Save the current document to /out/ as a PNG.
     @param file_name: Name of the output file.
+    @param directory: Directory to save the file.
     """
     png_options = ps.PNGSaveOptions()
     png_options.compression = 3
     app.activeDocument.saveAs(
-        file_path=os.path.join(cwd, f"out/{file_name}.png"),
+        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.png"),
         options=png_options, asCopy=True
     )
 
 
-def save_document_jpeg(file_name: str) -> None:
+def save_document_jpeg(file_name: str, directory='out') -> None:
     """
     Save the current document to /out/ as a JPEG.
     @param file_name: Name of the output file.
+    @param directory: Directory to save the file.
     """
     jpeg_options = ps.JPEGSaveOptions(quality=12)
     jpeg_options.scans = 3
     app.activeDocument.saveAs(
-        file_path=os.path.join(cwd, f"out/{file_name}.jpg"),
+        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.jpg"),
         options=jpeg_options, asCopy=True
     )
 
 
-def save_document_psd(file_name: str) -> None:
+def save_document_psd(file_name: str, directory='out') -> None:
     """
     Save the current document to /out/ as PSD.
     @param file_name: Name of the output file.
+    @param directory: Directory to save the file.
     """
     app.activeDocument.saveAs(
-        file_path=os.path.join(cwd, f"out/{file_name}.psd"),
+        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.psd"),
         options=ps.PhotoshopSaveOptions(),
         asCopy=True
     )

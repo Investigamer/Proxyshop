@@ -62,7 +62,6 @@ Config.write()
 # Core vars
 card_types = core.card_types
 templates = core.get_templates()
-cwd = os.getcwd()
 
 
 """
@@ -135,7 +134,7 @@ class ProxyshopApp(App):
 		# Set the preview image
 		btn.parent.image.source = btn.parent.preview if (
 			osp.exists(btn.parent.preview)
-		) else osp.join(cwd, "proxyshop/img/NotFound.jpg")
+		) else osp.join(con.cwd, "proxyshop/img/NotFound.jpg")
 
 		# Select the template
 		card_type = btn.parent.type
@@ -191,7 +190,7 @@ class ProxyshopApp(App):
 		failed, files, cards, lthr, types = [], [], [], [], {}
 
 		# Select all images in art folder
-		folder = osp.join(cwd, "art")
+		folder = osp.join(con.cwd, "art")
 		extensions = ["*.png", "*.jpg", "*.tif", "*.jpeg", "*.webp", "*.jpf"]
 		for ext in extensions:
 			files.extend(glob(osp.join(folder, ext)))
@@ -352,7 +351,7 @@ class ProxyshopApp(App):
 		self.reset(disable_buttons=True, reset_data=True)
 
 		# Load temps and test case cards
-		with open(osp.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+		with open(osp.join(con.cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
 			cases = json.load(fp)
 
 		# Loop through each card, test all templates for that type
@@ -373,7 +372,7 @@ class ProxyshopApp(App):
 						self.reset(enable_buttons=True)
 						return
 					# Grab the template class and start the render thread
-					layout.filename = osp.join(cwd, "proxyshop/img/test.png")
+					layout.filename = osp.join(con.cwd, "proxyshop/img/test.png")
 					template['loaded_class'] = core.get_template_class(template)
 					thr = threading.Thread(target=self.render, args=(template, layout))
 					if not self.start_thread(thr):
@@ -390,7 +389,7 @@ class ProxyshopApp(App):
 		self.reset(disable_buttons=True, reset_data=True)
 
 		# Load test case cards
-		with open(osp.join(cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
+		with open(osp.join(con.cwd, "proxyshop/tests.json"), encoding="utf-8") as fp:
 			cards = json.load(fp)
 
 		# Loop through our cases
@@ -402,7 +401,7 @@ class ProxyshopApp(App):
 				console.update(layout)
 				self.reset(enable_buttons=True)
 				return
-			layout.filename = osp.join(cwd, "proxyshop/img/test.png")
+			layout.filename = osp.join(con.cwd, "proxyshop/img/test.png")
 			console.update(f"{card[0]} ... ", end="")
 			template['loaded_class'] = core.get_template_class(template)
 			thr = threading.Thread(target=self.render, args=(template, layout), daemon=True)
@@ -568,7 +567,7 @@ class TemplateModule(TabbedPanel):
 			scroll_box.add_widget(TemplateList(temps, preview=container.ids.preview_image))
 			container.ids.preview_image.source = temps[0]['preview_path'] if (
 				osp.exists(temps[0]['preview_path'])
-			) else osp.join(cwd, 'proxyshop/img/NotFound.jpg')
+			) else osp.join(con.cwd, 'proxyshop/img/NotFound.jpg')
 			container.ids.template_view_container.add_widget(scroll_box)
 			tab.content = container
 			self.add_widget(tab)
@@ -649,21 +648,21 @@ if __name__ == '__main__':
 	# Update symbol library and manifest
 	try:
 		if not development:
-			download_s3_file('manifest.json', osp.join(cwd, 'proxyshop/manifest.json'))
-			download_s3_file('symbols.json', osp.join(cwd, 'proxyshop/symbols.json'))
+			download_s3_file('manifest.json', osp.join(con.cwd, 'proxyshop/manifest.json'))
+			download_s3_file('symbols.json', osp.join(con.cwd, 'proxyshop/symbols.json'))
 			con.reload()
 	except Exception as err:
 		print(err)
 
 	# Ensure mandatory folders are created
-	Path(osp.join(cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(osp.join(cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(osp.join(cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
-	Path(osp.join(cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(con.cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(con.cwd, "tmp")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(con.cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
+	Path(osp.join(con.cwd, "proxyshop/datas")).mkdir(mode=511, parents=True, exist_ok=True)
 
 	# Launch the app
 	Factory.register('HoverBehavior', HoverBehavior)
-	Builder.load_file(osp.join(cwd, "proxyshop/kv/proxyshop.kv"))
+	Builder.load_file(osp.join(con.cwd, "proxyshop/kv/proxyshop.kv"))
 
 	# Imports that load console must be imported here
 	from proxyshop.scryfall import card_info

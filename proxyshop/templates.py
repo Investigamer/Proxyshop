@@ -628,7 +628,7 @@ class BaseTemplate:
             dims = psd.get_layer_dimensions(self.art_reference_layer)
             if (dims['width'] * 1.2) < dims['height']:
                 # Use fullart test image
-                self.layout.filename = os.path.join(os.getcwd(), "proxyshop/img/test-fa.png")
+                self.layout.filename = os.path.join(con.cwd, "proxyshop/img/test-fa.png")
 
         # Paste the file into the art
         self.active_layer = self.art_layer

@@ -5,9 +5,8 @@ import configparser
 import os
 from typing import Optional
 
+from proxyshop.constants import con
 from proxyshop.core import TemplateDetails
-
-cwd = os.getcwd()
 
 
 # For object permanence
@@ -88,7 +87,7 @@ class Config:
 			del self.file
 
 		# Choose the file
-		conf = os.path.join(cwd, "config.ini")
+		conf = os.path.join(con.cwd, "config.ini")
 		if template and os.path.exists(template['config_path'].replace('json', 'ini')):
 			conf = template['config_path'].replace('json', 'ini')
 
@@ -98,6 +97,7 @@ class Config:
 		with open(conf, encoding="utf-8") as f:
 			self.file.read_file(f)
 		self.update_definitions()
+
 
 # Global settings object
 cfg = Config()
