@@ -5,10 +5,11 @@ from typing import Optional, Union
 import os
 
 import photoshop.api as ps
-from photoshop.api import PhotoshopPythonAPIError
+from photoshop.api import PhotoshopPythonAPIError, SolidColor
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
+from proxyshop.constants import con
 from proxyshop.scryfall import card_scan
 from proxyshop.settings import cfg
 
@@ -197,17 +198,39 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> ps.SolidColor:
     return color
 
 
-def get_color(color: list[int]) -> ps.SolidColor:
+def get_color(color: Union[list[int], str, dict]) -> ps.SolidColor:
     """
-    Automatically get either cmyk or rgb color given list of values.
-    @param color: Array containing 3 (rgb) or 4 (cmyk) numbers between 0 and 255.
+    Automatically get either cmyk or rgb color given a range of
+    @param color: Array containing 3 (RGB) or 4 (CMYK) numbers between 0 and 255, or the name of a known color.
     @return: SolidColor object.
     """
-    if len(color) == 4:
-        return get_cmyk(*color)
-    elif len(color) == 3:
-        return get_rgb(*color)
-    raise ValueError(f"Colors can only have 3 or 4 values, I was given {len(color)}!")
+    try:
+        if isinstance(color, SolidColor):
+            # Solid color given
+            return color
+        if isinstance(color, dict):
+            # Color dictionary
+            if 'r' in color.keys():
+                # RGB
+                return get_rgb(color['r'], color['g'], color['b'])
+            elif 'c' in color.keys():
+                # CMYK
+                return get_cmyk(color['c'], color['m'], color['y'], color['k'])
+        if isinstance(color, str):
+            # Named color
+            if color in con.colors:
+                return get_color(con.colors[color])
+        if isinstance(color, list):
+            # List notation
+            if len(color) == 3:
+                # RGB
+                return get_rgb(*color)
+            elif len(color) == 4:
+                # CMYK
+                return get_cmyk(*color)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid color notation given: {color}")
+    raise ValueError(f"Unrecognized color notation given: {color}")
 
 
 def solidcolor(color: dict[str, int]) -> Optional[ps.SolidColor]:
@@ -909,6 +932,171 @@ def paste_file_into_new_layer(file: str) -> ArtLayer:
 
 
 """
+LAYER EFFECTS
+"""
+
+
+def add_color_to_gradient(
+    action_list: ps.ActionList,
+    color: ps.SolidColor,
+    location: int,
+    midpoint: int
+) -> None:
+    """
+
+    @param action_list: Action list to add this color to.
+    @param color: SolidColor object
+    @param location: Location of the color along the track.
+    @param midpoint: Percentage midpoint between this color and the next.
+    @return:
+    """
+    action = ps.ActionDescriptor()
+    apply_color(action, color)
+    action.PutEnumerated(sID("type"), sID("colorStopType"), sID("userStop"))
+    action.PutInteger(sID("location"), location)
+    action.PutInteger(sID("midpoint"), midpoint)
+    action_list.PutObject(sID("colorStop"), action)
+
+
+def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[dict]) -> None:
+    """
+    Apply multiple layer effects to a layer.
+    @param layer: Layer or Layer Set object.
+    @param effects: List of effects to apply.
+    """
+    # Set up the main action
+    app.activeDocument.activeLayer = layer
+    main_action = ps.ActionDescriptor()
+    fx_action = ps.ActionDescriptor()
+    main_ref = ps.ActionReference()
+    main_ref.PutProperty(sID("property"), sID("layerEffects"))
+    main_ref.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    main_action.PutReference(sID("target"), main_ref)
+
+    # Add each action from fx dictionary
+    for fx in effects:
+        if fx['type'] == 'stroke':
+            apply_fx_stroke(fx_action, **fx)
+        elif fx['type'] == 'gradient':
+            apply_fx_gradient(fx_action, **fx)
+        elif fx['type'] == 'drop-shadow':
+            apply_fx_drop_shadow(fx_action, **fx)
+
+    # Apply all fx actions
+    main_action.PutObject(sID("to"), sID("layerEffects"), fx_action)
+    app.ExecuteAction(sID("set"), main_action, ps.DialogModes.DisplayNoDialogs)
+
+
+def apply_fx_stroke(action: ps.ActionDescriptor, **kw) -> None:
+    """
+    Adds stroke effect to layer effects action.
+    @param action: Pending layer effects action descriptor.
+    @param kw: Optional keywords governing stroke behavior.
+    """
+    d = ps.ActionDescriptor()
+    if kw.get("style") == 'in':
+        stroke_style = 'insetFrame'
+    elif kw.get("style") == 'center':
+        stroke_style = 'centeredFrame'
+    else:
+        stroke_style = 'outsetFrame'
+    d.PutEnumerated(sID("style"), sID("frameStyle"), sID(stroke_style))
+    d.PutEnumerated(sID("paintType"), sID("frameFill"), sID("solidColor"))
+    d.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
+    d.PutUnitDouble(sID("opacity"), sID("percentUnit"), int(kw.get('opacity', 100)))
+    d.PutUnitDouble(sID("size"), sID("pixelsUnit"), int(kw.get('weight', 6)))
+    apply_color(d, get_color(kw.get('color', [0, 0, 0])))
+    d.PutBoolean(sID("overprint"), False)
+    action.PutObject(sID("frameFX"), sID("frameFX"), d)
+
+
+def apply_fx_drop_shadow(action: ps.ActionDescriptor, **kw) -> None:
+    """
+    Adds drop shadow effect to layer effects action.
+    @param action: Pending layer effects action descriptor.
+    @param kw: Optional keywords governing drop shadow behavior.
+    """
+    d1 = ps.ActionDescriptor()
+    d2 = ps.ActionDescriptor()
+    d_color = ps.ActionDescriptor()
+    d1.PutEnumerated(sID("mode"), sID("blendMode"), sID("multiply"))
+    d_color.PutDouble(sID("red"), 0.000000)
+    d_color.PutDouble(sID("grain"), 0.000000)
+    d_color.PutDouble(sID("blue"), 0.000000)
+    d1.PutObject(sID("color"), sID("RGBColor"), d_color)
+    d1.PutUnitDouble(sID("opacity"), sID("percentUnit"), float(kw.get('opacity', 100.000000)))
+    d1.PutBoolean(sID("useGlobalAngle"), False)
+    d1.PutUnitDouble(sID("localLightingAngle"), sID("angleUnit"), float(kw.get('rotation', 45.000000)))
+    d1.PutUnitDouble(sID("distance"), sID("pixelsUnit"), float(kw.get('distance', 10.000000)))
+    d1.PutUnitDouble(sID("chokeMatte"), sID("pixelsUnit"), float(kw.get('spread', 0.000000)))
+    d1.PutUnitDouble(sID("blur"), sID("pixelsUnit"), float(kw.get('size', 0.000000)))
+    d1.PutUnitDouble(sID("noise"), sID("percentUnit"), 0.000000)
+    d1.PutBoolean(sID("antiAlias"), False)
+    d2.PutString(sID("name"), "Linear")
+    d1.PutObject(sID("transferSpec"), sID("shapeCurveType"), d2)
+    d1.PutBoolean(sID("layerConceals"), True)
+    action.PutObject(sID("dropShadow"), sID("dropShadow"), d1)
+
+
+def apply_fx_gradient(action: ps.ActionDescriptor, **kw) -> None:
+    """
+    Adds gradient effect to layer effects action.
+    @param action: Pending layer effects action descriptor.
+    @param kw: Optional keywords governing gradient behavior.
+    """
+    d1 = ps.ActionDescriptor()
+    d2 = ps.ActionDescriptor()
+    d3 = ps.ActionDescriptor()
+    d4 = ps.ActionDescriptor()
+    d5 = ps.ActionDescriptor()
+    color_list = ps.ActionList()
+    transparency_list = ps.ActionList()
+    d1.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
+    d1.PutUnitDouble(sID("opacity"), sID("percentUnit"),  int(kw.get('opacity', 100)))
+    d2.PutEnumerated(sID("gradientForm"), sID("gradientForm"), sID("customStops"))
+    d2.PutDouble(sID("interfaceIconFrameDimmed"),  int(kw.get('size', 4096)))
+    for c in kw.get('colors', []):
+        add_color_to_gradient(
+            color_list,
+            get_color(c.get('color', [0, 0, 0])),
+            int(c.get('location', 0)),
+            int(c.get('midpoint', 50))
+        )
+    d2.PutList(sID("colors"),  color_list)
+    d3.PutUnitDouble(sID("opacity"), sID("percentUnit"),  100)
+    d3.PutInteger(sID("location"),  0)
+    d3.PutInteger(sID("midpoint"),  50)
+    transparency_list.PutObject(sID("transferSpec"),  d3)
+    d4.PutUnitDouble(sID("opacity"), sID("percentUnit"),  100)
+    d4.PutInteger(sID("location"),  int(kw.get('size', 4096)))
+    d4.PutInteger(sID("midpoint"),  50)
+    transparency_list.PutObject(sID("transferSpec"),  d4)
+    d2.PutList(sID("transparency"),  transparency_list)
+    d1.PutObject(sID("gradient"), sID("gradientClassEvent"),  d2)
+    d1.PutUnitDouble(sID("angle"), sID("angleUnit"), int(kw.get('rotation', 45)))
+    d1.PutEnumerated(sID("type"), sID("gradientType"), sID("linear"))
+    d1.PutBoolean(sID("reverse"), False)
+    d1.PutBoolean(sID("dither"), False)
+    d1.PutEnumerated(cID("gs99"), sID("gradientInterpolationMethodType"), sID("classic"))
+    d1.PutBoolean(sID("align"), True)
+    d1.PutUnitDouble(sID("scale"), sID("percentUnit"), int(kw.get('scale', 70)))
+    d5.PutUnitDouble(sID("horizontal"), sID("percentUnit"),  0)
+    d5.PutUnitDouble(sID("vertical"), sID("percentUnit"),  0)
+    d1.PutObject(sID("offset"), sID("paint"),  d5)
+    action.PutObject(sID("gradientFill"), sID("gradientFill"),  d1)
+
+
+def apply_fx_fill(action: ps.ActionDescriptor, **kw) -> None:
+    """
+    Adds a solid color overlay to layer effects action.
+    @param action: Pending layer effects action descriptor.
+    @param kw: Optional keywords governing overlay behavior.
+    @return:
+    """
+    pass
+
+
+"""
 TEXT LAYER ACTIONS
 """
 
@@ -1197,6 +1385,22 @@ PROXYSHOP UTILITIES
 """
 
 
+def insert_scryfall_scan(image_url: str) -> Optional[ArtLayer]:
+    """
+    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
+    Returns the new layer.
+    """
+    scryfall_scan = card_scan(image_url)
+    if scryfall_scan:
+        return paste_file_into_new_layer(scryfall_scan)
+    return
+
+
+"""
+EXPANSION SYMBOL
+"""
+
+
 def fill_expansion_symbol(reference: ArtLayer, color: ps.SolidColor = rgb_black()) -> ArtLayer:
     """
     Give the symbol a background for open space symbols (i.e. M10)
@@ -1205,8 +1409,8 @@ def fill_expansion_symbol(reference: ArtLayer, color: ps.SolidColor = rgb_black(
     """
     # Magic Wand contiguous outside symbol
     coords = ps.ActionDescriptor()
-    coords.putUnitDouble(cID("Hrzn"), cID("#Pxl"), 100)
-    coords.putUnitDouble(cID("Vrtc"), cID("#Pxl"), 100)
+    coords.putUnitDouble(cID("Hrzn"), cID("#Pxl"), 5)
+    coords.putUnitDouble(cID("Vrtc"), cID("#Pxl"), 5)
     click1 = ps.ActionDescriptor()
     ref1 = ps.ActionReference()
     ref1.putProperty(cID("Chnl"), cID("fsel"))
@@ -1224,7 +1428,6 @@ def fill_expansion_symbol(reference: ArtLayer, color: ps.SolidColor = rgb_black(
     layer = app.activeDocument.artLayers.add()
     layer.name = "Expansion Mask"
     layer.blendMode = ps.BlendMode.NormalBlend
-    layer.visible = True
     layer.moveAfter(reference)
 
     # Fill selection with stroke color
@@ -1241,12 +1444,232 @@ def fill_expansion_symbol(reference: ArtLayer, color: ps.SolidColor = rgb_black(
     return layer
 
 
-def insert_scryfall_scan(image_url: str) -> Optional[ArtLayer]:
+def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Optional[tuple[str, list]]:
     """
-    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
-    Returns the new layer.
+    Takes in set code and returns information needed to build the expansion symbol.
+    @param symbol: Symbol chosen by layout object.
+    @param rarity: Rarity of the symbol.
+    @return: List of dicts containing information about this symbol.
     """
-    scryfall_scan = card_scan(image_url)
-    if scryfall_scan:
-        return paste_file_into_new_layer(scryfall_scan)
+    # Ref not defined unless explicit
+    ref = None
+    symbols = []
+    if isinstance(symbol, str):
+        # Symbol as a string only
+        symbol = {
+            'char': symbol,
+            'scale': 1,
+            'stroke': format_symbol_fx_stroke([
+                # Stroke outline action
+                'white' if rarity == con.rarity_common else 'black',
+                cfg.symbol_stroke
+            ])
+        }
+        if cfg.fill_symbol:
+            # Background fill action
+            symbol['fill'] = get_color(
+                'white' if rarity == con.rarity_common else 'black'
+            )
+        if rarity != con.rarity_common:
+            # Gradient overlay action
+            symbol['rarity'] = True
+            symbol['gradient'] = format_symbol_fx_gradient(rarity)
+        symbols.append(symbol)
+    elif isinstance(symbol, dict):
+        # Single layered symbol
+        symbols.append(format_expansion_symbol_dict(symbol, rarity))
+    elif isinstance(symbol, list):
+        # Multilayered symbol
+        for sym in symbol:
+            symbols.append(format_expansion_symbol_dict(sym, rarity))
+            if sym.get('reference', False):
+                ref = sym['char']
+    else:
+        # Unsupported data type, return default symbol
+        return process_expansion_symbol_info(con.set_symbols['MTG'], rarity)
+    return ref or symbols[0]['char'], symbols
+
+
+def format_expansion_symbol_dict(sym: dict, rarity: str) -> dict:
+    # Required attributes
+    symbol: dict = {
+        'char': sym['char'],
+        'rarity': sym.get('rarity', True)
+    }
+
+    # Scale attribute [Optional]
+    if any(isinstance(sym.get('scale'), t) for t in [int, float]):
+        symbol['scale'] = sym['scale']
+
+    # Drop shadow attribute [Optional]
+    if sym.get('drop-shadow'):
+        symbol['drop-shadow'] = format_symbol_fx_drop_shadow(sym.get('drop-shadow'))
+
+    # Uncommon only attributes
+    if rarity != con.rarity_common:
+        if 'stroke' not in sym or sym['stroke']:
+            # Stroke definition - Optional, must be explicitly disabled
+            symbol['stroke'] = format_symbol_fx_stroke(
+                sym.get('stroke', ['black', cfg.symbol_stroke])
+            )
+        if sym.get('color'):
+            # Color definition - Optional
+            symbol['color'] = get_color(sym['color'])
+        if sym.get('fill'):
+            # Background fill definition - Optional
+            symbol['fill'] = format_symbol_fx_fill(sym['fill'], rarity) if sym['fill'] != 'rarity' else 'rarity'
+        if sym.get('rarity', True) or sym.get('fill') == 'rarity':
+            # Generate gradient FX by default
+            gradient = format_symbol_fx_gradient(
+                rarity,
+                sym.get('gradient')
+            )
+            if gradient:
+                # Add only if its needed
+                symbol['gradient'] = gradient
+                symbol['rarity'] = sym.get('rarity', True)
+        return symbol
+
+    # Common only attributes
+    if 'common-stroke' not in sym or sym['common-stroke']:
+        # Stroke definition - Optional, must be explicitly disabled
+        symbol['stroke'] = format_symbol_fx_stroke(
+            sym.get('common-stroke', ['white', cfg.symbol_stroke])
+        )
+    if sym.get('common-color'):
+        # Color definition [Optional]
+        symbol['color'] = get_color(sym.get('common-color', 'black'))
+    if sym.get('common-fill'):
+        # Background fill definition [Optional]
+        symbol['fill'] = get_color(sym.get('common-fill', 'white'))
+    return symbol
+
+
+def format_symbol_fx_fill(fx: Union[str, list, dict], rarity: str) -> SolidColor:
+    """
+    Format background fill effect info.
+    @param fx: Background fill details.
+    @param rarity: Card rarity.
+    @return: Formatted background fill details.
+    """
+    if isinstance(fx, dict):
+        if rarity[0] in fx:
+            return get_color(fx[rarity[0]])
+        return get_color(list(fx.values())[0])
+    return get_color(fx)
+
+
+def format_symbol_fx_stroke(fx: Union[bool, list, dict]) -> Optional[dict]:
+    """
+    Produces a correct dictionary for layer effects type: stroke.
+    @param fx: The stroke definition we were given by the user.
+    @return: Formatted stroke definition for this effect.
+    """
+    if isinstance(fx, dict):
+        return {
+            'type': 'stroke',
+            'weight': fx.get('weight') or fx.get('size', cfg.symbol_stroke),
+            'color': get_color(fx.get('color', [0, 0, 0])),
+            'opacity': fx.get('opacity', 100),
+            'style': fx.get('style', 'out')
+        }
+    if isinstance(fx, list):
+        return {
+            'type': 'stroke',
+            'weight': fx[1],
+            'color': get_color(con.colors[fx[0]]),
+            'opacity': 100,
+            'style': 'out'
+        }
     return
+
+
+def format_symbol_fx_drop_shadow(fx: Union[bool, dict]) -> Optional[dict]:
+    """
+    Produces a correct dictionary for layer effects type: drop-shadow.
+    @param fx: The drop shadow definition we were given by the user.
+    @return: Formatted drop shadow definition for this effect.
+    """
+    if isinstance(fx, bool) and fx:
+        return {
+            'type': 'drop-shadow',
+            'opacity': 100,
+            'rotation': 45,
+            'distance': 10,
+            'spread': 0,
+            'size': 0,
+        }
+    if isinstance(fx, dict):
+        return {
+            'type': 'drop-shadow',
+            'opacity': fx.get('opacity', 100),
+            'rotation': fx.get('rotation', 45),
+            'distance': fx.get('distance', 10),
+            'spread': fx.get('spread', 0),
+            'size': fx.get('size', 0),
+        }
+    return
+
+
+def format_symbol_fx_gradient(rarity: str, gradient: Optional[dict] = None) -> Optional[dict]:
+    """
+    Produces a correct dictionary for layer effects type: gradient overlay.
+    @param rarity: The rarity of this symbol.
+    @param gradient: Gradient map to overwrite default gradient map.
+    @return: Formatted gradient definition for this effect.
+    """
+    # Load and update gradient map if needed
+    color_map = con.rarity_gradients.copy()
+    gradient = {} if not isinstance(gradient, dict) else gradient
+    rarities = gradient.get('colors')
+    if isinstance(rarities, dict):
+        # Validate gradient definitions
+        for key, colors in rarities.items():
+            if not isinstance(colors, list) or not colors:
+                # None value is acceptable
+                if not colors:
+                    rarities[key] = None
+                    continue
+                # Must be a list
+                print('Encountered unsupported gradient format for this symbol!')
+                rarities[key] = color_map.get(key, color_map['u'])
+                continue
+            for i, color in enumerate(colors):
+                if not isinstance(color, dict) or not color:
+                    # Must be dict
+                    print('Encountered unsupported gradient format for this symbol!')
+                    rarities[key] = color_map.get(key, color_map['u'])
+                    continue
+                # Support some colors by name
+                color['color'] = get_color(color.get('color'))
+                color.setdefault('location', 2048)
+                color.setdefault('midpoint',  50)
+                # Validate types
+                if (
+                    not isinstance(color['color'], SolidColor)
+                    or not isinstance(color['location'], int)
+                    or not isinstance(color['midpoint'], int)
+                ):
+                    # Invalid data types given
+                    print('Encountered unsupported gradient format for this symbol!')
+                    rarities[key] = color_map.get(key, color_map['u'])
+                    continue
+        color_map.update(rarities)
+
+    # Return None if no colors given
+    gradient_colors = color_map[rarity[0]]
+    if not gradient_colors:
+        return
+
+    # Process the new gradient map colors into SolidColor objects
+    for color in gradient_colors:
+        color['color'] = get_color(color['color'])
+
+    # Create new definition
+    return {
+        'type': 'gradient',
+        'size': gradient.get('size', 4096),
+        'scale': gradient.get('scale', 70),
+        'rotation': gradient.get('rotation', 45),
+        'colors': gradient_colors
+    }

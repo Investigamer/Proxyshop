@@ -61,14 +61,14 @@ def select_frame_layers(card: dict) -> FrameDetails:
         con.layers.GREEN
     ]
     basic_colors = {
-        "Plains": con.layers.WHITE,
-        "Island": con.layers.BLUE,
-        "Swamp": con.layers.BLACK,
-        "Mountain": con.layers.RED,
-        "Forest": con.layers.GREEN
+        'Plains': con.layers.WHITE,
+        'Island': con.layers.BLUE,
+        'Swamp': con.layers.BLACK,
+        'Mountain': con.layers.RED,
+        'Forest': con.layers.GREEN
     }
-    hybrid_symbols = ["W/U", "U/B", "B/R", "R/G", "G/W", "W/B", "B/G", "G/U", "U/R", "R/W"]
-    twins = colors_tapped = color_identity = basic_identity = ""
+    hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R', 'R/W']
+    twins = colors_tapped = color_identity = basic_identity = ''
 
     """
     Handle Land cards
@@ -96,11 +96,11 @@ def select_frame_layers(card: dict) -> FrameDetails:
             }
 
         # Iterate over rules text lines
-        basic_identity = ""
-        for line in oracle_text.split("\n"):
+        basic_identity = ''
+        for line in oracle_text.split('\n'):
             # Identify if the card is a fetchland
-            if "search your library" in line.lower():
-                if "cycling" not in line.lower():
+            if 'search your library' in line.lower():
+                if 'cycling' not in line.lower():
                     # Fetchland of some kind, find basic land types
                     for key, basic in basic_colors.items():
                         if key in line:
@@ -135,7 +135,7 @@ def select_frame_layers(card: dict) -> FrameDetails:
                     }
                 elif line.find(con.layers.LAND.lower()) >= 0:
                     # Assume we get here when the land fetches for any basic
-                    if "tapped" not in line or "untap" in line:
+                    if 'tapped' not in line or 'untap' in line:
                         # Gold fetchland
                         return {
                             'background': con.layers.LAND,
@@ -152,19 +152,19 @@ def select_frame_layers(card: dict) -> FrameDetails:
                     }
 
             # Check if the line adds one mana of any color
-            if "add" in line.lower() and "mana" in line:
+            if 'add' in line.lower() and 'mana' in line:
                 if (
-                    "color " in line
-                    or "colors " in line
-                    or "color." in line
-                    or "colors." in line
-                    or "any type" in line
+                    'color ' in line
+                    or 'colors ' in line
+                    or 'color.' in line
+                    or 'colors.' in line
+                    or 'any type' in line
                 ):
                     # Identified an ability of a potentially gold land
                     # If the ability doesn't include the phrases "enters the battlefield", "Remove a charge
                     # counter", and "luck counter", and doesn't include the word "Sacrifice", then it's
                     # considered a gold land
-                    phrases = ["enters the battlefield", "Remove a charge counter", "Sacrifice", "luck counter"]
+                    phrases = ['enters the battlefield', 'Remove a charge counter', 'Sacrifice', 'luck counter']
                     if not any(x in line for x in phrases):
                         # This is a gold land - use gold twins and pinlines
                         return {
@@ -175,7 +175,7 @@ def select_frame_layers(card: dict) -> FrameDetails:
                         }
 
             # Check if the line makes all lands X type, ex: Urborg
-            if "Each land is a " in line:
+            if 'Each land is a ' in line:
                 for k, v in basic_colors.items():
                     if k in line:
                         return {
@@ -185,27 +185,27 @@ def select_frame_layers(card: dict) -> FrameDetails:
                         }
 
             # Count how many colors of mana the card can explicitly tap to add
-            if line.find("{T}") < line.find(":") and "add " in line.lower():
+            if line.find('{T}') < line.find(':') and 'add ' in line.lower():
                 # This line taps to add mana of some color
                 # Count how many colors the line can tap for, and add them all to colors_tapped
                 for color in colors:
-                    if "{" + color + "}" in line and color not in colors_tapped:
+                    if '{' + color + '}' in line and color not in colors_tapped:
                         # Add this color to colors_tapped
                         colors_tapped += color
 
         # Evaluate colors_tapped and make decisions from here
         if len(colors_tapped) == 1:
             pinlines = colors_tapped
-            twins = colors_tapped if twins == "" else twins
+            twins = colors_tapped if twins == '' else twins
         elif len(colors_tapped) == 2:
             pinlines = fix_color_pair(colors_tapped)
-            twins = con.layers.LAND if twins == "" else twins
+            twins = con.layers.LAND if twins == '' else twins
         elif len(colors_tapped) > 2:
             pinlines = con.layers.GOLD
-            twins = con.layers.GOLD if twins == "" else twins
+            twins = con.layers.GOLD if twins == '' else twins
         else:
             pinlines = con.layers.LAND
-            twins = con.layers.LAND if twins == "" else twins
+            twins = con.layers.LAND if twins == '' else twins
 
         # Final return statement
         return {
@@ -221,36 +221,36 @@ def select_frame_layers(card: dict) -> FrameDetails:
     """
 
     # Card with no mana cost
-    if mana_cost == "" or (mana_cost == "{0}" and con.layers.ARTIFACT not in type_line):
+    if mana_cost == '' or (mana_cost == '{0}' and con.layers.ARTIFACT not in type_line):
         # If `color_indicator` is defined for this card, use that as the colour identity
         # Otherwise, use `color_identity` as the color identity
-        color_identity = ""
+        color_identity = ''
         if color_indicator:
-            color_identity = "".join(color_indicator)
+            color_identity = ''.join(color_indicator)
         elif color_identity_array:
-            color_identity = "".join(color_identity_array)
+            color_identity = ''.join(color_identity_array)
     else:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost
         for color in colors:
-            if mana_cost.find("{" + color) >= 0 or mana_cost.find(color + "}") >= 0:
+            if mana_cost.find('{' + color) >= 0 or mana_cost.find(color + '}') >= 0:
                 color_identity = color_identity + color
 
     # If the color identity is exactly two colors, ensure it fits into the proper naming convention
-    # e.g. "WU" instead of "UW"
+    # e.g. 'WU' instead of 'UW'
     if len(color_identity) == 2:
         color_identity = fix_color_pair(color_identity)
 
     # Handle Transguild Courier case - cards that explicitly state that they're all colors
-    if oracle_text.find(" is all colors.") > 0:
-        color_identity = "WUBRG"
+    if oracle_text.find(' is all colors.') > 0:
+        color_identity = 'WUBRG'
 
     # Identify if the card is a full-art colorless card, e.g. colorless
     # Assume all non-land cards with the word "Devoid" in their rules text use the BFZ colorless frame
-    devoid = bool("Devoid" in oracle_text and len(color_identity) > 0)
+    devoid = bool('Devoid' in oracle_text and len(color_identity) > 0)
     if (
             len(color_identity) <= 0 and type_line.find(con.layers.ARTIFACT) < 0
-    ) or devoid or (mana_cost == "" and type_line.find("Eldrazi") >= 0):
+    ) or devoid or (mana_cost == '' and type_line.find('Eldrazi') >= 0):
         # colorless-style card identified
         background = con.layers.COLORLESS
         pinlines = con.layers.COLORLESS
@@ -285,7 +285,7 @@ def select_frame_layers(card: dict) -> FrameDetails:
                 hybrid = True
                 break
         # Hybrid blank mana cost cards like Asmo
-        if mana_cost == "" and not mdfc:
+        if mana_cost == '' and not mdfc:
             hybrid = True
 
     # Select background
@@ -329,6 +329,11 @@ def select_frame_layers(card: dict) -> FrameDetails:
     }
 
 
+"""
+EXPANSION SYMBOLS
+"""
+
+
 def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str, list]]:
     """
     Takes in set code and returns information needed to build the expansion symbol.
@@ -339,12 +344,12 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
         return symbol, [{
             'char': symbol,
             'rarity': True,
-            'fill': "black" if cfg.fill_symbol else False,
+            'fill': 'black' if cfg.fill_symbol else False,
             'color': False,
-            'stroke': ["black", cfg.symbol_stroke],
-            'common-fill': "white" if cfg.fill_symbol else False,
+            'stroke': ['black', cfg.symbol_stroke],
+            'common-fill': 'white' if cfg.fill_symbol else False,
             'common-color': False,
-            'common-stroke': ["white", cfg.symbol_stroke],
+            'common-stroke': ['white', cfg.symbol_stroke],
             'scale-factor': 1
         }]
     if isinstance(symbol, list):
@@ -353,10 +358,10 @@ def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str
             sym['rarity'] = sym.get('rarity', True)
             sym['fill'] = sym.get('fill', False)
             sym['color'] = sym.get('color', False)
-            sym['stroke'] = sym.get('stroke', ["black", cfg.symbol_stroke])
+            sym['stroke'] = sym.get('stroke', ['black', cfg.symbol_stroke])
             sym['common-fill'] = sym.get('common-fill', False)
             sym['common-color'] = sym.get('common-color', False)
-            sym['common-stroke'] = sym.get('common-stroke', ["white", cfg.symbol_stroke])
+            sym['common-stroke'] = sym.get('common-stroke', ['white', cfg.symbol_stroke])
             sym['scale-factor'] = sym.get('scale-factor', 1)
             if sym.get('reference', False):
                 ref = sym['char']

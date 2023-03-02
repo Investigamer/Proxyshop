@@ -358,8 +358,8 @@ class BaseTemplate:
         if all([self.layout.collector_number, self.layout.rarity, cfg.real_collector]):
 
             # Reveal collector group, hide old layers
-            collector_layer = psd.getLayerSet(con.layers.COLLECTOR, con.layers.LEGAL)
-            collector_layer.visible = True
+            collector_group = psd.getLayerSet(con.layers.COLLECTOR, con.layers.LEGAL)
+            collector_group.visible = True
             psd.getLayer("Artist", self.legal_layer).visible = False
             psd.getLayer("Set", self.legal_layer).visible = False
             try:
@@ -368,20 +368,15 @@ class BaseTemplate:
                 pass
 
             # Get the collector layers
-            collector_top = psd.getLayer(con.layers.TOP_LINE, collector_layer).textItem
-            collector_bottom = psd.getLayer(con.layers.BOTTOM_LINE, collector_layer)
+            collector_top = psd.getLayer(con.layers.TOP_LINE, collector_group).textItem
+            collector_bottom = psd.getLayer(con.layers.BOTTOM_LINE, collector_group)
 
             # Fill in language if needed
             if self.layout.lang != "en":
                 psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
 
             # Apply the collector info
-            if self.layout.card_count:
-                collector_top.contents = \
-                    f"{self.layout.collector_number}/{self.layout.card_count} {self.layout.rarity_letter}"
-            else:
-                collector_top.contents = \
-                    f"{self.layout.collector_number} {self.layout.rarity_letter}"
+            collector_top.contents = self.layout.collector_info_top
             psd.replace_text(collector_bottom, "SET", self.layout.set)
             psd.replace_text(collector_bottom, "Artist", self.layout.artist)
 
@@ -400,15 +395,100 @@ class BaseTemplate:
             psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
         # Generate the expansion symbol
-        self.create_expansion_symbol()
+        if cfg.classic_expansion_symbol:
+            self.create_expansion_symbol_classic()
+        else:
+            self.create_expansion_symbol()
 
     @property
     def expansion_symbol_anchor(self) -> ps.AnchorPosition:
         return ps.AnchorPosition.MiddleRight
 
-    def create_expansion_symbol(self, centered=False) -> None:
+    def create_expansion_symbol(self, centered: bool = False) -> None:
         """
         Builds the expansion symbol
+        @param centered: Center the symbol within its reference.
+        """
+        # Starting symbol, reference, and rarity layers
+        symbol_layer = psd.getLayer(con.layers.EXPANSION_SYMBOL, self.text_layers)
+        ref_layer = psd.getLayer(con.layers.EXPANSION_REFERENCE, self.text_layers)
+        psd.clear_layer_style(symbol_layer)
+        current_layer = symbol_layer
+
+        # Put everything in a group
+        group = self.app.activeDocument.layerSets.add()
+        group.move(current_layer, ps.ElementPlacement.PlaceAfter)
+        symbol_layer.move(group, ps.ElementPlacement.PlaceInside)
+
+        # Set the starting character and format our layer array
+        if self.layout.rarity not in ['common', 'uncommon', 'rare', 'mythic']:
+            self.layout.rarity = 'mythic'
+        symbol_layer.textItem.contents, symbols = psd.process_expansion_symbol_info(
+            self.layout.symbol, self.layout.rarity.lower()
+        )
+
+        # Size to fit reference?
+        if cfg.auto_symbol_size:
+            psd.frame_layer(symbol_layer, ref_layer, self.expansion_symbol_anchor, True, centered)
+
+        # Create each symbol layer
+        for i, lay in enumerate(symbols):
+            # Establish new current layer
+            current_layer = symbol_layer.duplicate(current_layer, ps.ElementPlacement.PlaceAfter)
+            current_layer.textItem.contents = lay['char']
+            self.active_layer = current_layer
+            layer_fx = []
+            fill_layer = None
+
+            # Change font color
+            if 'color' in lay:
+                current_layer.textItem.color = lay['color']
+
+            # Stroke fx
+            if 'stroke' in lay:
+                layer_fx.append(lay['stroke'])
+
+            # Rarity gradient overlay fx
+            if lay.get('rarity') and 'gradient' in lay:
+                layer_fx.append(lay['gradient'])
+
+            # Drop shadow fx
+            if 'drop-shadow' in lay:
+                layer_fx.append(lay['drop-shadow'])
+
+            # Apply layer FX
+            if layer_fx:
+                psd.apply_fx(current_layer, layer_fx)
+
+            # Rarity background fill
+            if lay.get('fill') == 'rarity' and 'gradient' in lay:
+                # Apply fill before rarity
+                psd.rasterize_layer_style(current_layer)
+                fill_layer = psd.fill_expansion_symbol(current_layer, psd.rgb_black())
+                psd.apply_fx(fill_layer, [lay['gradient']])
+            elif 'fill' in lay:
+                psd.rasterize_layer_style(current_layer)
+                fill_layer = psd.fill_expansion_symbol(current_layer, lay['fill'])
+
+            # Merge if there is a filled layer
+            if fill_layer:
+                current_layer = psd.merge_layers([current_layer, fill_layer])
+
+            # Scale factor
+            if 'scale' in lay:
+                current_layer.resize(lay['scale']*100, lay['scale']*100, ps.AnchorPosition.MiddleRight)
+
+        # Merge all
+        symbol_layer.move(group, ps.ElementPlacement.PlaceBefore)
+        symbol_layer.name = "Expansion Symbol Old"
+        symbol_layer.opacity = 0
+        self.expansion_symbol = group.merge()
+        self.expansion_symbol.name = "Expansion Symbol"
+
+    def create_expansion_symbol_classic(self, centered: bool = False) -> None:
+        """
+        Builds the expansion symbol
+        NOTE: Will be deprecated in the future!
         @param centered: Center the symbol within its reference.
         """
         # Colors to use for given settings

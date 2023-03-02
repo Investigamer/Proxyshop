@@ -3,6 +3,7 @@ GLOBAL CONSTANTS
 Keep all global variables here.
 """
 import os
+from os import path as osp
 import json
 from dataclasses import dataclass
 try:
@@ -300,9 +301,73 @@ class Constants:
             "Snow-Covered Forest"
         ]
 
+        # Color reference dictionary
+        self.colors = {
+            'black': [0, 0, 0],
+            'white': [255, 255, 255]
+        }
+
+        # Rarity gradient dictionary
+        self.rarity_gradients = {
+            'c': None,
+            'u': [
+                {
+                    "color": [98, 110, 119],
+                    "location": 0,
+                    "midpoint": 50
+                },
+                {
+                    "color": [199, 225, 241],
+                    "location": 2048,
+                    "midpoint": 50
+                },
+                {
+                    "color": [98, 110, 119],
+                    "location": 4096,
+                    "midpoint": 50
+                }
+            ],
+            'r': [
+                {
+                    "color": [146, 116, 67],
+                    "location": 0,
+                    "midpoint": 50
+                },
+                {
+                    "color": [213, 180, 109],
+                    "location": 2048,
+                    "midpoint": 50
+                },
+                {
+                    "color": [146, 116, 67],
+                    "location": 4096,
+                    "midpoint": 50
+                }
+            ],
+            'm': [
+                {
+                    "color": [192, 55, 38],
+                    "location": 0,
+                    "midpoint": 50
+                },
+                {
+                    "color": [245, 149, 29],
+                    "location": 2048,
+                    "midpoint": 50
+                },
+                {
+                    "color": [192, 55, 38],
+                    "location": 4096,
+                    "midpoint": 50
+                }
+            ]
+        }
+
         # Import set symbol library
-        with open(os.path.join(self.cwd, "proxyshop/symbols.json"), "r", encoding="utf-8-sig") as js:
+        with open(osp.join(self.cwd, "proxyshop/symbols.json"), "r", encoding="utf-8-sig") as js:
             self.set_symbols = json.load(js)
+        with open(osp.join(self.cwd, "proxyshop/custom_symbols.json"), "r", encoding="utf-8-sig") as js:
+            self.set_symbols.update(json.load(js))
 
         # Font names
         self.font_rules_text = "PlantinMTPro-Regular"
