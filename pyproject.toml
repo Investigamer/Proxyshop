@@ -26,7 +26,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.commitizen]
-version = "1.4.0"
+version = "1.5.0"
 changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true

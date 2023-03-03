@@ -1,3 +1,32 @@
+## v1.5.0 (2023-03-02)
+
+### Feat
+
+- **expansion-symbol**: New layer effects helpers implemented, Expansion Symbol now rendered using these effects
+- **helpers**: Import art directly into the document, add new helper utilities
+- **templates**: New template type: Class
+
+### Fix
+
+- **ixalan**: Ixalan now renders without an error at create_expansion_symbol()
+- **layouts**: Transform front sides now work when name is lowercase
+- **layouts**: Added support for meld transform icon, added support for non-Ixalan back face lands
+- **symbols**: Add support for ONE, ONC, DMR, and SCD
+- **console**: Improve error logging dramatically
+- **fonts**: Updated keyrune font to latest
+- **layouts**: Patch a bug that causes alternate language to not identify creatures
+
+### Refactor
+
+- **helpers**: Deprecated solidcolor(), Added new helpers
+- **layouts**: BaseLayout > NormalLayout, made BasicLandLayout extend to NormalLayout
+- **cwd**: Use con.cwd to find the current directory across Proxyshop, always use root directory of project
+- **DoubleFeature**: Explicit definitions for layer groups
+- **creator**: Added scryfall formatting step to custom creator which in the future will help keep data in-line with what is expected for the layout object
+- **symbols**: Allow use of old Expansion Symbol rendering, pending potential future deprecation
+- **frame_logic**: Improved formatting and refactored
+- **format_text**: Code readability improvements
+
 ## v1.4.0 (2023-01-30)
 
 ### Feat
