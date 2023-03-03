@@ -639,11 +639,13 @@ def unlock_layer(layer: Union[ArtLayer, LayerSet]) -> None:
     lock_layer(layer, "protectNone")
 
 
-def select_layer_bounds(layer: ArtLayer = app.activeDocument.activeLayer):
+def select_layer_bounds(layer: ArtLayer = None):
     """
     Select the bounding box of a given layer.
     @param layer: Layer to select the pixels of. Uses active layer if not provided.
     """
+    if not layer:
+        layer = app.activeDocument.activeLayer
     left = layer.bounds[0]
     top = layer.bounds[1]
     right = layer.bounds[2]
@@ -914,18 +916,21 @@ def apply_stroke(
     app.executeAction(cID("setd"), desc608, NO_DIALOG)
 
 
-def clear_layer_style(layer: ArtLayer) -> None:
+def clear_layer_style(layer: Union[ArtLayer, LayerSet]) -> None:
     """
     Removes all layer style effects.
     @param layer: Layer object
     """
     current = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
-    desc1600 = ps.ActionDescriptor()
-    ref126 = ps.ActionReference()
-    ref126.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
-    desc1600.PutReference(sID("target"), ref126)
-    app.ExecuteAction(sID("disableLayerStyle"), desc1600, NO_DIALOG)
+    try:
+        desc1600 = ps.ActionDescriptor()
+        ref126 = ps.ActionReference()
+        ref126.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+        desc1600.PutReference(sID("target"), ref126)
+        app.ExecuteAction(sID("disableLayerStyle"), desc1600, NO_DIALOG)
+    except Exception as e:
+        print(e, f'\nLayer "{layer.name}" has no effects!')
     app.activeDocument.activeLayer = current
 
 

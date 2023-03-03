@@ -7,7 +7,8 @@
         ["Takenuma, Abandoned Mire", "Legendary B Land"],
         ["Drossforge Bridge", "Dual Land"],
         ["Arcane Lighthouse", "Colorless Land"],
-        ["Ancient Ziggurat", "Gold Land"]
+        ["Ancient Ziggurat", "Gold Land"],
+        ["Ghost Ark", "Vehicle"]
     ],
     "transform_front": [
         ["Docent of Perfection", "Creature"]

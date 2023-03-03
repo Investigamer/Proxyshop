@@ -27,6 +27,7 @@ files = [
     {'src': os.path.join(PS, 'tests.json'), 'dst': os.path.join(DIST_PS, 'tests.json')},
     {'src': os.path.join(PS, 'manifest.json'), 'dst': os.path.join(DIST_PS, 'manifest.json')},
     {'src': os.path.join(PS, 'symbols.json'), 'dst': os.path.join(DIST_PS, 'symbols.json')},
+    {'src': os.path.join(PS, 'custom_symbols.json'), 'dst': os.path.join(DIST_PS, 'custom_symbols.json')},
     {'src': os.path.join(PS, 'templates.json'), 'dst': os.path.join(DIST_PS, 'templates.json')},
     {'src': os.path.join(PS, 'app_settings.json'), 'dst': os.path.join(DIST_PS, 'app_settings.json')},
 ]

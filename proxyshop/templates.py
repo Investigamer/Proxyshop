@@ -1329,6 +1329,10 @@ class IxalanTemplate (NormalTemplate):
         # Since transform icon is present, need to disable name_shifted
         return False
 
+    @property
+    def expansion_symbol_anchor(self) -> ps.AnchorPosition:
+        return ps.AnchorPosition.MiddleCenter
+
     def basic_text_layers(self):
 
         # Add to text layers
@@ -1348,6 +1352,9 @@ class IxalanTemplate (NormalTemplate):
 
     def create_expansion_symbol(self, centered=False):
         super().create_expansion_symbol(True)
+
+    def create_expansion_symbol_classic(self, centered: bool = False):
+        super().create_expansion_symbol_classic(True)
 
 
 class MDFCBackTemplate (NormalTemplate):
