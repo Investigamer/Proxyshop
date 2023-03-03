@@ -273,9 +273,9 @@ class ProxyshopApp(App):
 				'creator': None
 			}
 
-			# If basic, manually call the BasicLand layout OBJ
+			# If basic, manually call the BasicLandLayout class
 			if scryfall['name'] in con.basic_land_names:
-				layout = layouts.BasicLand(file)
+				layout = layouts.BasicLandLayout(file)
 			else:
 				# Instantiate layout OBJ, unpack scryfall json and store relevant data as attributes
 				scryfall['lang'] = "en"
@@ -303,7 +303,7 @@ class ProxyshopApp(App):
 
 	def assign_layout(
 			self, filename: Union[Path, str], index: int = 0
-	) -> Union[str, layouts.BasicLand, layouts.NormalLayout]:
+	) -> Union[str, layouts.BasicLandLayout, layouts.NormalLayout]:
 		"""
 		Assign layout object to a card.
 		@param filename: String including card name, plus optionally:
@@ -317,8 +317,8 @@ class ProxyshopApp(App):
 
 		# Instantiate basic land and return it
 		if card['name'] in con.basic_land_names:
-			# If basic, manually call the BasicLand layout OBJ
-			self.assigned_layouts[index] = layouts.BasicLand(card)
+			# If basic, manually call the BasicLandLayout class
+			self.assigned_layouts[index] = layouts.BasicLandLayout(card)
 			if not cfg.dev_mode:
 				console.update(
 					f"[color=#59d461]SUCCESS:[/color] {str(self.assigned_layouts[index])}"

@@ -640,7 +640,7 @@ class PlanarLayout (NormalLayout):
         return con.planar_class
 
 
-class BasicLand (NormalLayout):
+class BasicLandLayout (NormalLayout):
     """
     No special data entry, just a basic land
     """
