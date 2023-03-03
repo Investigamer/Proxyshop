@@ -1,8 +1,13 @@
+"""
+EXPANSION SYMBOL TESTING
+"""
+# Change to root directory
 import os
+os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
+
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
-
 import photoshop.api as ps
 
 from proxyshop.constants import con
@@ -216,7 +221,7 @@ RUN TEST HERE
 
 # Open the document
 app = ps.Application()
-app.open(os.path.join(os.getcwd(), 'expansion_symbol_test.psd'))
+app.open(os.path.join(con.cwd, 'proxyshop/tests/expansion_symbol_test.psd'))
 
 # TEST ONE SYMBOL
 test_target_symbol('ONC', rarities=['common', 'uncommon', 'rare', 'mythic'])

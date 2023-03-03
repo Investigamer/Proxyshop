@@ -175,7 +175,7 @@ class Constants:
     def load_values(self):
 
         # Current working directory
-        self.cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        self.cwd = os.getcwd()
 
         # Import version tracker
         if not os.path.exists(os.path.join(self.cwd, "proxyshop/version_tracker.json")):
