@@ -303,7 +303,7 @@ class ProxyshopApp(App):
 
 	def assign_layout(
 			self, filename: Union[Path, str], index: int = 0
-	) -> Union[str, layouts.BasicLand, layouts.BaseLayout]:
+	) -> Union[str, layouts.BasicLand, layouts.NormalLayout]:
 		"""
 		Assign layout object to a card.
 		@param filename: String including card name, plus optionally:

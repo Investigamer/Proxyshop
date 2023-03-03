@@ -153,17 +153,28 @@
   },
   {
     "type": "bool",
-    "title": "[b]Render Snow Cards with Snow Template[/b]",
-    "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Render.Snow"
-  },
-  {
-    "type": "bool",
     "title": "[b]Development Testing Mode[/b]",
     "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually.[/b]",
     "section": "APP",
     "key": "Dev.Mode",
     "disabled": true
+  },
+  {
+    "type": "title",
+    "title": "Special Template Settings"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Snow Cards with Snow Template[/b]",
+    "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
+    "section": "TEMPLATES",
+    "key": "Render.Snow"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Miracle Cards with Miracle Template[/b]",
+    "desc": "When enabled, miracle cards will be rendered using Miracle template type.\n[b](Default: False)[/b]",
+    "section": "TEMPLATES",
+    "key": "Render.Miracle"
   }
 ]

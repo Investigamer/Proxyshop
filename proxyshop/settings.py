@@ -59,8 +59,11 @@ class Config:
 		self.skip_failed = self.file.getboolean('APP', 'Skip.Failed')
 		self.scry_ascending = self.file.getboolean('APP', 'Scryfall.Ascending')
 		self.targeted_replace = self.file.getboolean('APP', 'Targeted.Replace')
-		self.render_snow = self.file.getboolean('APP', 'Render.Snow')
 		self.dev_mode = self.file.getboolean('APP', 'Dev.Mode')
+
+		# TEMPLATES section
+		self.render_snow = self.file.getboolean('TEMPLATES', 'Render.Snow')
+		self.render_miracle = self.file.getboolean('TEMPLATES', 'Render.Miracle')
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""

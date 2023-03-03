@@ -186,6 +186,7 @@ class BaseTemplate:
             with Image.open(self.layout.filename) as image:
                 width, height = image.size
             if height > (width * 1.2):
+                # Use "Full Art" frame if available
                 fa_frame = psd.getLayer(con.layers.FULL_ART_FRAME)
                 if fa_frame:
                     return fa_frame
@@ -357,15 +358,13 @@ class BaseTemplate:
         # Use realistic collector information?
         if all([self.layout.collector_number, self.layout.rarity, cfg.real_collector]):
 
-            # Reveal collector group, hide old layers
+            # Reveal collector group, hide classic layers
             collector_group = psd.getLayerSet(con.layers.COLLECTOR, con.layers.LEGAL)
             collector_group.visible = True
             psd.getLayer("Artist", self.legal_layer).visible = False
             psd.getLayer("Set", self.legal_layer).visible = False
-            try:
-                psd.getLayer("Pen", self.legal_layer).visible = False
-            except AttributeError:
-                pass
+            if pen_layer := psd.getLayer("Pen", self.legal_layer):
+                pen_layer.visible = False
 
             # Get the collector layers
             collector_top = psd.getLayer(con.layers.TOP_LINE, collector_group).textItem

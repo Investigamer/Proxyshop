@@ -18,70 +18,7 @@ leveler_regex = re.compile(
 class_regex = re.compile(r"(.+?): Level (\d)\n(.+)")
 
 
-class BasicLand:
-    """
-    No special data entry, just a basic land
-    """
-    def __init__(self, file):
-        # Mandatory vars
-        self.name = file['name']
-        self.card_class = con.basic_class
-        self.collector_number = None
-        self.card_count = None
-        self.lang = cfg.lang.upper()
-        self.rarity = "common"
-
-        # Optional vars
-        self.artist = file['artist'] or "Unknown"
-        self.set = file['set'].upper() or "MTG"
-        self.creator = file['creator']
-        self.filename = file['filename']
-
-        # Automatic set symbol enabled?
-        self.symbol = cfg.symbol_char
-        if cfg.auto_symbol:
-            if self.set in con.set_symbols:
-                self.symbol = con.set_symbols[self.set]
-            elif len(self.set) > 3 and self.set[0:1] == "P":
-                self.symbol = con.set_symbols[self.set[1:]]
-
-    def __str__(self):
-        return f"{self.name} [{self.set}]"
-
-    @property
-    def is_creature(self):
-        return False
-
-    @property
-    def is_land(self):
-        return True
-
-    @property
-    def is_nyx(self):
-        return False
-
-    @property
-    def is_companion(self):
-        return False
-
-    @property
-    def is_legendary(self):
-        return False
-
-    """
-    SETTABLE
-    """
-
-    @property
-    def filename(self) -> str:
-        return self._filename
-
-    @filename.setter
-    def filename(self, value):
-        self._filename = value
-
-
-class BaseLayout:
+class NormalLayout:
     """
     Defines unified properties for all cards.
     """
@@ -264,17 +201,21 @@ class BaseLayout:
 
     @cached_property
     def collector_number(self) -> str:
-        # Ensure only numbers
-        num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
-        if len(num) == 2:
-            return f"0{num}"
-        elif len(num) == 1:
-            return f"00{num}"
-        return num
+        # Ensure number exists
+        if self.scryfall.get('collector_number'):
+            # Return number as a 3+ letter string
+            num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
+            if len(num) == 2:
+                return f"0{num}"
+            elif len(num) == 1:
+                return f"00{num}"
+            return num
+        return '000'
 
     @cached_property
     def artist(self) -> str:
-        if self.file['artist']:
+        # Custom artist given?
+        if self.file.get('artist'):
             return self.file['artist']
         if "&" in self.card['artist']:
             count = []
@@ -366,47 +307,46 @@ class BaseLayout:
     """
 
     @cached_property
-    def default_class(self) -> Optional[str]:
-        return
-
-    @cached_property
     def card_class(self) -> Optional[str]:
         """
         Set the card's class (finer grained than layout). Used when selecting a template.
         """
-        if self.default_class == con.transform_front_class and not self.card['front']:
-            if self.transform_icon == 'compasslanddfc':
-                return con.ixalan_class
-            return con.transform_back_class
-        elif self.default_class == con.mdfc_front_class and not self.card['front']:
-            return con.mdfc_back_class
-        elif self.default_class == con.normal_class and "Planeswalker" in self.card['type_line']:
+        if "Planeswalker" in self.card['type_line']:
             return con.planeswalker_class
         elif "Mutate" in self.keywords:
             return con.mutate_class
-        elif "Miracle" in self.frame_effects:
+        elif "Miracle" in self.frame_effects and cfg.render_miracle:
             return con.miracle_class
         elif "Prototype" in self.keywords:
             return con.prototype_class
         elif "Snow" in self.card['type_line'] and cfg.render_snow:
             # frame_effects doesn't contain "snow" for pre-KHM snow cards
             return con.snow_class
-        return self.default_class
-
-
-class NormalLayout (BaseLayout):
-    """
-    Use this as Superclass for most regular layouts
-    """
-
-    @cached_property
-    def default_class(self) -> str:
         return con.normal_class
 
 
-class TransformLayout (BaseLayout):
+class TransformLayout (NormalLayout):
     """
     Used for transform cards
+    """
+
+    @cached_property
+    def card_class(self):
+        # Planeswalker transform
+        if 'Planeswalker' in self.card['type_line']:
+            if self.card['front']:
+                return con.pw_tf_front_class
+            return con.pw_tf_back_class
+        # Normal transform
+        if not self.card['front']:
+            # Is back face an Ixalan land?
+            if self.transform_icon == 'compasslanddfc':
+                return con.ixalan_class
+            return con.transform_back_class
+        return con.transform_front_class
+
+    """
+    Overwrite Properties
     """
 
     @cached_property
@@ -425,18 +365,26 @@ class TransformLayout (BaseLayout):
                 return self.scryfall['frame_effects'][0]
         return 'land' if 'Land' in self.type_line else 'sunmoondfc'
 
-    @cached_property
-    def default_class(self):
-        if 'Planeswalker' in self.card['type_line']:
-            if self.card['front']:
-                return con.pw_tf_front_class
-            return con.pw_tf_back_class
-        return con.transform_front_class
-
 
 class MeldLayout (NormalLayout):
     """
     Used for Meld cards
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        # Planeswalker transform
+        if 'Planeswalker' in self.card['type_line']:
+            if self.card['front']:
+                return con.pw_tf_front_class
+            return con.pw_tf_back_class
+        # Normal transform
+        if self.card['front']:
+            return con.transform_front_class
+        return con.transform_back_class
+
+    """
+    Overwrite Properties
     """
 
     @cached_property
@@ -477,14 +425,26 @@ class MeldLayout (NormalLayout):
                 return self.card['frame_effects'][0]
         return 'meld'
 
-    @cached_property
-    def default_class(self) -> str:
-        return con.transform_front_class
 
-
-class ModalDoubleFacedLayout (BaseLayout):
+class ModalDoubleFacedLayout (NormalLayout):
     """
     Used for Modal Double Faced cards
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        # Planeswalker MDFC
+        if 'Planeswalker' in self.type_line:
+            if self.card['front']:
+                return con.pw_mdfc_front_class
+            return con.pw_mdfc_back_class
+        # Normal MDFC
+        if self.card['front']:
+            return con.mdfc_front_class
+        return con.mdfc_back_class
+
+    """
+    Overwrite Properties
     """
 
     @cached_property
@@ -536,18 +496,18 @@ class ModalDoubleFacedLayout (BaseLayout):
     def transform_icon(self) -> str:
         return "modal_dfc"
 
-    @cached_property
-    def default_class(self) -> str:
-        if 'Planeswalker' in self.type_line:
-            if not self.card['front']:
-                return con.pw_mdfc_back_class
-            return con.pw_mdfc_front_class
-        return con.mdfc_front_class
 
-
-class AdventureLayout (BaseLayout):
+class AdventureLayout (NormalLayout):
     """
     Used for Adventure cards
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.adventure_class
+
+    """
+    Unique Properties
     """
 
     @cached_property
@@ -559,14 +519,18 @@ class AdventureLayout (BaseLayout):
             'oracle_text': self.scryfall['card_faces'][1]['oracle_text']
         }
 
-    @cached_property
-    def default_class(self) -> str:
-        return con.adventure_class
-
 
 class LevelerLayout (NormalLayout):
     """
     Used for Leveler cards
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.leveler_class
+
+    """
+    Unique Properties
     """
 
     @cached_property
@@ -603,14 +567,18 @@ class LevelerLayout (NormalLayout):
     def levels_z_plus_text(self) -> str:
         return self.leveler_match[7]
 
-    @cached_property
-    def default_class(self) -> str:
-        return con.leveler_class
-
 
 class SagaLayout (NormalLayout):
     """
     Used for Saga cards
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.saga_class
+
+    """
+    Unique Properties
     """
 
     @cached_property
@@ -629,14 +597,18 @@ class SagaLayout (NormalLayout):
     def saga_description(self) -> str:
         return self.oracle_text.split("\n")[0]
 
-    @cached_property
-    def default_class(self) -> str:
-        return con.saga_class
-
 
 class ClassLayout (NormalLayout):
     """
     Used for Class cards.
+    """
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.class_class
+
+    """
+    Unique Properties
     """
 
     @cached_property
@@ -657,19 +629,81 @@ class ClassLayout (NormalLayout):
 
         return abilities
 
-    @cached_property
-    def default_class(self) -> str:
-        return con.class_class
 
-
-class PlanarLayout (BaseLayout):
+class PlanarLayout (NormalLayout):
     """
     Used for Planar cards
     """
 
     @cached_property
-    def default_class(self) -> str:
+    def card_class(self) -> str:
         return con.planar_class
+
+
+class BasicLand (NormalLayout):
+    """
+    No special data entry, just a basic land
+    """
+    def __init__(self, file):
+        # Imitate Scryfall data
+        scryfall = {
+            'name': file['name'],
+            'artist': file['artist'] or "Unknown",
+            'set': file['set'].upper() or "MTG",
+            'rarity': 'common',
+            'collector_number': None,
+            'printed_count': None
+        }
+        super().__init__(scryfall, file)
+
+    @property
+    def card_class(self) -> str:
+        # Always use basic land
+        return con.basic_class
+
+    """
+    COLLECTOR
+    """
+
+    @property
+    def mtgset(self):
+        return {}
+
+    """
+    BOOL
+    """
+
+    @property
+    def is_creature(self):
+        return False
+
+    @property
+    def is_land(self):
+        return True
+
+    @property
+    def is_nyx(self):
+        return False
+
+    @property
+    def is_companion(self):
+        return False
+
+    @property
+    def is_legendary(self):
+        return False
+
+    """
+    SETTABLE
+    """
+
+    @property
+    def filename(self) -> str:
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = value
 
 
 # LAYOUT MAP

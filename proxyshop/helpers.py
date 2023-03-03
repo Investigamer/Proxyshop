@@ -84,8 +84,8 @@ def getLayer(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = Non
         for layer in layer_set.layers:
             if layer.name == name:
                 return layer
-    except (PhotoshopPythonAPIError, AttributeError) as e:
-        print(e)
+    except (PhotoshopPythonAPIError, AttributeError, TypeError):
+        print(f'\nLayer "{name}" could not be found!')
     return
 
 
@@ -119,8 +119,8 @@ def getLayerSet(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = 
             return group.layerSets.getByName(name)
         # Look through entire document
         return app.activeDocument.layerSets.getByName(name)
-    except (PhotoshopPythonAPIError, AttributeError) as e:
-        print(e)
+    except (PhotoshopPythonAPIError, AttributeError, TypeError):
+        print(f'\nLayerSet "{name}" could not be found!')
     return
 
 
