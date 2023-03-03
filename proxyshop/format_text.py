@@ -37,28 +37,28 @@ class SymbolMapper:
         Load SolidColor objects using data from the constants object.
         """
         # Symbol colors outer
-        self.clr_c = psd.solidcolor(con.clr_c)
-        self.clr_w = psd.solidcolor(con.clr_w)
-        self.clr_u = psd.solidcolor(con.clr_u)
-        self.clr_b = psd.solidcolor(con.clr_b)
-        self.clr_bh = psd.solidcolor(con.clr_bh)
-        self.clr_r = psd.solidcolor(con.clr_r)
-        self.clr_g = psd.solidcolor(con.clr_g)
+        self.clr_c = psd.get_color(con.clr_c)
+        self.clr_w = psd.get_color(con.clr_w)
+        self.clr_u = psd.get_color(con.clr_u)
+        self.clr_b = psd.get_color(con.clr_b)
+        self.clr_bh = psd.get_color(con.clr_bh)
+        self.clr_r = psd.get_color(con.clr_r)
+        self.clr_g = psd.get_color(con.clr_g)
 
         # Symbol colors inner
-        self.clri_c = psd.solidcolor(con.clri_c)
-        self.clri_w = psd.solidcolor(con.clri_w)
-        self.clri_u = psd.solidcolor(con.clri_u)
-        self.clri_b = psd.solidcolor(con.clri_b)
-        self.clri_bh = psd.solidcolor(con.clri_bh)
-        self.clri_r = psd.solidcolor(con.clri_r)
-        self.clri_g = psd.solidcolor(con.clri_g)
+        self.clri_c = psd.get_color(con.clri_c)
+        self.clri_w = psd.get_color(con.clri_w)
+        self.clri_u = psd.get_color(con.clri_u)
+        self.clri_b = psd.get_color(con.clri_b)
+        self.clri_bh = psd.get_color(con.clri_bh)
+        self.clri_r = psd.get_color(con.clri_r)
+        self.clri_g = psd.get_color(con.clri_g)
 
         # Primary inner color (black default)
-        self.clr_primary = psd.solidcolor(con.clr_primary)
+        self.clr_primary = psd.get_color(con.clr_primary)
 
         # Secondary inner color (white default)
-        self.clr_secondary = psd.solidcolor(con.clr_secondary)
+        self.clr_secondary = psd.get_color(con.clr_secondary)
 
         # Symbol map for regular mana symbols
         self.color_map = {

@@ -232,19 +232,6 @@ def get_color(color: Union[list[int], str, dict]) -> ps.SolidColor:
     raise ValueError(f"Unrecognized color notation given: {color}")
 
 
-def solidcolor(color: dict[str, int]) -> Optional[ps.SolidColor]:
-    """
-    Takes in color dict and spits out a SolidColor object appropriate to that configuration.
-    @param color: Dict of RGB or CMYK values
-    @return: SolidColor object or None
-    """
-    if 'r' in color.keys():
-        return get_rgb(color['r'], color['g'], color['b'])
-    elif 'c' in color.keys():
-        return get_cmyk(color['c'], color['m'], color['y'], color['k'])
-    raise ValueError(f"Can't convert color '{color}' to a Solidcolor!")
-
-
 def apply_rgb(action: ps.ActionDescriptor, color: ps.SolidColor) -> None:
     """
     Apply RGB SolidColor object to action descriptor.
@@ -453,7 +440,115 @@ LAYER ACTIONS
 """
 
 
-def copy_layer_mask(layer_from, layer_to):
+def select_layer(
+    layer: Union[ArtLayer, LayerSet],
+    add: bool = False,
+    make_visible: bool = False
+):
+    """
+    Select a layer (make active) and optionally force it to be visible.
+    @param layer: Layer to select.
+    @param add: Add to existing selection.
+    @param make_visible: Make the layer visible if not currently visible?
+                         Doesn't work with adding layers to selection.
+    """
+    desc1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref1.PutIdentifier(sID("layer"), layer.id)
+    desc1.PutReference(sID("target"), ref1)
+    # Add to currently selected layers?
+    if add:
+        desc1.PutEnumerated(
+            sID('selectionModifier'),
+            sID('selectionModifierType'),
+            sID('addToSelection')
+        )
+    # Force visible?
+    desc1.PutBoolean(sID("makeVisible"), make_visible)
+    app.executeAction(sID('select'), desc1, ps.DialogModes.DisplayNoDialogs)
+
+
+def select_layers(layers: list[ArtLayer, LayerSet]):
+    """
+    Makes a list of layers active (selected) in the layer panel.
+    @param layers: List of layers or layer sets.
+    """
+    # Select none, then add all layers to selection
+    select_no_layers()
+    for lay in layers:
+        select_layer(lay, add=True)
+
+
+def select_no_layers() -> None:
+    """
+    Deselect all layers.
+    """
+    selectNone = ps.ActionDescriptor()
+    ref = ps.ActionReference()
+    ref.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    selectNone.putReference(cID("null"), ref)
+    app.executeAction(sID("selectNoLayers"), selectNone, NO_DIALOG)
+
+
+def merge_layers(layers: list[ArtLayer] = None, name: Optional[str] = None) -> ArtLayer:
+    """
+    Merge a set of layers together.
+    @param layers: Layers to be merged, uses active if not provided.
+    @param name: Name of the newly created layer.
+    @return: Returns the merged layer.
+    """
+    # Select none, then select entire list
+    if layers:
+        select_layers(layers)
+
+    # Merge layers and return result
+    app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
+    if name:
+        app.activeDocument.activeLayer.name = name
+    return app.activeDocument.activeLayer
+
+
+def group_layers(
+    name: Optional[str] = "New Group",
+    layers: Optional[list[Union[ArtLayer, LayerSet]]] = None,
+) -> LayerSet:
+    """
+    Groups the selected layers.
+    @param name: Name of the new group.
+    @param layers: Layers to group, will use active if not provided.
+    @return: The newly created group.
+    """
+    # Select layers if given
+    if layers:
+        select_layers(layers)
+
+    # Group the layers
+    desc1 = ps.ActionDescriptor()
+    ref1 = ps.ActionReference()
+    ref2 = ps.ActionReference()
+    ref1.putClass(sID("layerSection"))
+    desc1.putReference(sID('null'), ref1)
+    ref2.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
+    desc1.putReference(cID('From'), ref2)
+    desc2 = ps.ActionDescriptor()
+    desc2.putString(cID('Nm  '), name)
+    desc1.putObject(cID('Usng'), sID("layerSection"), desc2)
+    desc1.putInteger(sID("layerSectionStart"), 0)
+    desc1.putInteger(sID("layerSectionEnd"), 1)
+    desc1.putString(cID('Nm  '), name)
+    app.executeAction(cID('Mk  '), desc1, ps.DialogModes.DisplayNoDialogs)
+    return app.activeDocument.activeLayer
+
+
+def copy_layer_mask(
+    layer_from: Union[ArtLayer, LayerSet],
+    layer_to: Union[ArtLayer, LayerSet]
+) -> None:
+    """
+    Copies layer mask from one layer to another.
+    @param layer_from: Layer to copy from.
+    @param layer_to: Layer to copy to.
+    """
     desc255 = ps.ActionDescriptor()
     ref17 = ps.ActionReference()
     ref18 = ps.ActionReference()
@@ -506,10 +601,23 @@ def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
     return layer
 
 
-def lock_layer(layer: ArtLayer, protection: str = "protectAll") -> None:
+def smart_layer(layer: Union[ArtLayer, LayerSet] = None) -> ArtLayer:
+    """
+    Makes the active layer or layer set a smart layer.
+    Optionally make a given layer active first.
+    @param layer: [Optional] Layer to make active.
+    @return: Newly created smart layer.
+    """
+    if layer:
+        app.activeDocument.activeLayer = layer
+    app.ExecuteAction(sID("newPlacedLayer"), None, ps.DialogModes.DisplayNoDialogs)
+    return app.activeDocument.activeLayer
+
+
+def lock_layer(layer: Union[ArtLayer, LayerSet], protection: str = "protectAll") -> None:
     """
     Locks the given layer.
-    @param layer: A layer object
+    @param layer: The layer to lock.
     @param protection: protectAll to lock, protectNone to unlock
     """
     desc819 = ps.ActionDescriptor()
@@ -523,18 +631,18 @@ def lock_layer(layer: ArtLayer, protection: str = "protectAll") -> None:
     app.executeAction(sID("applyLocking"), desc819, NO_DIALOG)
 
 
-def unlock_layer(layer: ArtLayer) -> None:
+def unlock_layer(layer: Union[ArtLayer, LayerSet]) -> None:
     """
     Unlocks the given layer.
-    @param layer: A layer object
+    @param layer: The layer to unlock.
     """
     lock_layer(layer, "protectNone")
 
 
-def select_layer_bounds(layer: ArtLayer):
+def select_layer_bounds(layer: ArtLayer = app.activeDocument.activeLayer):
     """
     Select the bounding box of a given layer.
-    @param layer: Layer to select the pixels of.
+    @param layer: Layer to select the pixels of. Uses active layer if not provided.
     """
     left = layer.bounds[0]
     top = layer.bounds[1]
@@ -551,6 +659,7 @@ def select_layer_bounds(layer: ArtLayer):
 def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
     """
     Select pixels of the active layer.
+    @param layer: Layer to select. Uses active layer if not provided.
     """
     idChnl = cID("Chnl")
     des1 = ps.ActionDescriptor()
@@ -567,13 +676,15 @@ def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
 
 def align(
     align_type: str = "AdCH",
-    layer: Optional[ArtLayer] = None,
-    reference: Optional[ArtLayer] = None
+    layer: Optional[Union[ArtLayer, LayerSet]] = None,
+    reference: Optional[Union[ArtLayer, LayerSet]] = None
 ) -> None:
     """
     Align the currently active layer to current selection, vertically or horizontally.
     Used with align_vertical() or align_horizontal().
-    `align_type`: "AdCV" vertical, "AdCH" horizontal
+    @param align_type: "AdCV" vertical, "AdCH" horizontal.
+    @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
+    @param reference: Reference to align the layer within. Uses current selection if not provided.
     """
     # Optionally create a selection based on given reference
     if reference:
@@ -592,18 +703,28 @@ def align(
     app.executeAction(cID("Algn"), desc, NO_DIALOG)
 
 
-def align_vertical(layer: Optional[ArtLayer] = None, ref: Optional[ArtLayer] = None) -> None:
+def align_vertical(
+    layer: Optional[Union[ArtLayer, LayerSet]] = None,
+    reference: Optional[ArtLayer] = None
+) -> None:
     """
     Align the currently active layer vertically with respect to the current selection.
+    @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
+    @param reference: Reference to align the layer within. Uses current selection if not provided.
     """
-    align("AdCV", layer, ref)
+    align("AdCV", layer, reference)
 
 
-def align_horizontal(layer: Optional[ArtLayer] = None, ref: Optional[ArtLayer] = None) -> None:
+def align_horizontal(
+        layer: Optional[Union[ArtLayer, LayerSet]] = None,
+        reference: Optional[Union[ArtLayer, LayerSet]] = None
+) -> None:
     """
     Align the currently active layer horizontally with respect to the current selection.
+    @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
+    @param reference: Reference to align the layer within. Uses current selection if not provided.
     """
-    align("AdCH", layer, ref)
+    align("AdCH", layer, reference)
 
 
 def position_between_layers(
@@ -633,6 +754,13 @@ def spread_layers_over_reference(
     gap: Union[int, float],
     inside_gap: Union[int, float, None] = None
 ) -> None:
+    """
+    Spread layers apart across a reference layer.
+    @param layers: List of ArtLayers or LayerSets.
+    @param ref: Reference used as the maximum height boundary for all layers given.
+    @param gap: Gap between the top of the reference and the first layer.
+    @param inside_gap: Gap between each layer, uses gap instead of not provided.
+    """
     # Position the top layer relative to the reference
     delta = (ref.bounds[1] + gap) - layers[0].bounds[1]
     layers[0].translate(0, delta)
@@ -642,6 +770,11 @@ def spread_layers_over_reference(
 
 
 def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, float]) -> None:
+    """
+    Position list of layers apart using a given gap.
+    @param layers: List of ArtLayers or LayerSets.
+    @param gap: Gap in pixels.
+    """
     # Position each layer relative to the one above it
     for i in range((len(layers) - 1)):
         delta = (layers[i].bounds[3] + gap) - layers[i + 1].bounds[1]
@@ -737,69 +870,6 @@ def disable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
     set_layer_mask(layer, False)
 
 
-def select_no_layers() -> None:
-    """
-    Deselect all layers.
-    """
-    idselectNoLayers = sID("selectNoLayers")
-    descSelectNoLayers = ps.ActionDescriptor()
-    idnull = cID("null")
-    ref = ps.ActionReference()
-    idLyr = cID("Lyr ")
-    idOrdn = cID("Ordn")
-    idTrgt = cID("Trgt")
-    ref.putEnumerated(idLyr, idOrdn, idTrgt)
-    descSelectNoLayers.putReference(idnull, ref)
-    app.executeAction(idselectNoLayers, descSelectNoLayers, NO_DIALOG)
-
-
-def select_layer(layer: ArtLayer) -> None:
-    """
-    Select a layer
-    """
-    desc = ps.ActionDescriptor()
-    ref = ps.ActionReference()
-    ref.putIdentifier(sID("layer"), layer.id)
-    desc.putReference(sID("target"), ref)
-    desc.putEnumerated(
-        sID("selectionModifier"),
-        sID("selectionModifierType"),
-        sID("addToSelection")
-    )
-    app.ExecuteAction(sID("select"), desc, NO_DIALOG)
-
-
-def merge_layers(layers: list[ArtLayer]) -> ArtLayer:
-    """
-    Merge a set of layers together.
-    @param layers: Layer objects to be merged.
-    @return: Returns the merged layer.
-    """
-    # Select none, then select entire list
-    select_no_layers()
-    for layer in layers:
-        select_layer(layer)
-
-    # Merge layers and return result
-    app.ExecuteAction(sID("mergeLayersNew"), ps.ActionDescriptor(), NO_DIALOG)
-    return app.activeDocument.activeLayer
-
-
-def group_layers(layers: list[Union[ArtLayer, LayerSet]], name: Optional[str] = None) -> LayerSet:
-    """
-    Add list of layers to a new group.
-    @param layers: List of ArtLayer or LayerSet objects.
-    @param name: Name of the new group
-    @return: Newly created group
-    """
-    group = app.activeDocument.layerSets.add()
-    if name:
-        group.name = name
-    for layer in layers:
-        layer.move(group, ps.ElementPlacement.PlaceInside)
-    return group
-
-
 def leaf_layers() -> list[ArtLayer]:
     """
     Utility function to iterate over leaf layers in a document
@@ -872,10 +942,12 @@ def rasterize_layer_style(layer: ArtLayer) -> None:
     app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
-def import_art(
-    layer: ArtLayer,
-    file: str
-) -> None:
+def import_art(layer: ArtLayer, file: str) -> None:
+    """
+    Imports an art file into the active layer.
+    @param layer: Layer to make active and receive image.
+    @param file: Image file to import.
+    """
     desc = ps.ActionDescriptor()
     app.activeDocument.activeLayer = layer
     desc.putPath(app.charIDToTypeID("null"), file)
@@ -883,10 +955,26 @@ def import_art(
     app.activeDocument.activeLayer.name = "Layer 1"
 
 
-def import_svg(file: str) -> ArtLayer:
+def import_svg(
+    file: str,
+    ref: Union[ArtLayer, LayerSet] = None,
+    placement: Optional[ps.ElementPlacement] = None
+) -> ArtLayer:
+    """
+    Imports an SVG image, then moves it if needed.
+    @param file: SVG file to import.
+    @param ref: Reference used to move layer.
+    @param placement: Placement based on the reference.
+    @return: New layer containing SVG.
+    """
+    # Import the art
     desc = ps.ActionDescriptor()
     desc.putPath(app.charIDToTypeID("null"), file)
     app.executeAction(app.charIDToTypeID("Plc "), desc)
+
+    # Position the layer if needed
+    if ref and placement:
+        app.activeDocument.activeLayer.move(ref, placement)
     return app.activeDocument.activeLayer
 
 

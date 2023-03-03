@@ -162,9 +162,8 @@ cython_debug/
 /tmp
 # PSD templates directory
 /templates
-# Testing scripts
-test.py
-tester.py
+# For personal testing
+/testing.py
 # User generated data files
 /proxyshop/datas/
 # User specific version tracker
