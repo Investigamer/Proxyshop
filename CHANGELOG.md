@@ -1,3 +1,5 @@
+## Unreleased
+
 ## v1.5.0 (2023-03-02)
 
 ### Feat
@@ -61,7 +63,7 @@
 - **symbols**: Add missing symbols to library
 - **config**: Reformat config for Kivy settings panel
 - **text_layers.py**: Refactored classic quote alignment
-- **gui**: Separate GUI elements into modules
+- **gui**: Seperate GUI elements into modules
 
 ## v1.3.0 (2023-01-06)
 
@@ -71,11 +73,8 @@
 
 ### Refactor
 
+- **__env__**: Moved environment variables to py file
 - **gui.py**: Removed unnecessary newline
 - **templates.py**: Added app reference to BaseTemplate as property
 - **main.py**: Added proper version tracking, refactored console output
 - **constants**: Update HTTP header used for requests
-
-## Legacy Releases (Prior to v1.3.0)
-
-- **See [GitHub Releases](https://github.com/MrTeferi/MTG-Proxyshop/releases) for changes prior to v1.3.0**
