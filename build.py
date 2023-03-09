@@ -8,14 +8,20 @@ from pathlib import Path
 from shutil import copy2, copytree, rmtree, move
 import PyInstaller.__main__
 
-from proxyshop.__version__ import version
+from src.__version__ import version
 
 # Folder definitions
 CWD = os.getcwd()
-PS = os.path.join(os.getcwd(), 'proxyshop')
 DIST = os.path.join(CWD, 'dist')
-DIST_PS = os.path.join(os.getcwd(), 'dist/proxyshop')
-DIST_PS_PLUGINS = os.path.join(DIST_PS, 'plugins')
+
+SRC = os.path.join(CWD, 'src')
+DIST_SRC = os.path.join(DIST, 'src')
+
+DATA = os.path.join(SRC, 'data')
+DIST_DATA = os.path.join(DIST_SRC, 'data')
+
+PLUGINS = os.path.join(CWD, 'plugins')
+DIST_PLUGINS = os.path.join(DIST, 'plugins')
 
 # All individual files that need to be copied upon pyinstaller completion
 files = [
@@ -24,12 +30,11 @@ files = [
     {'src': os.path.join(CWD, 'LICENSE'), 'dst': os.path.join(DIST, 'LICENSE')},
     {'src': os.path.join(CWD, 'README.md'), 'dst': os.path.join(DIST, 'README.md')},
     # --- PROXYSHOP DIRECTORY
-    {'src': os.path.join(PS, 'tests.json'), 'dst': os.path.join(DIST_PS, 'tests.json')},
-    {'src': os.path.join(PS, 'manifest.json'), 'dst': os.path.join(DIST_PS, 'manifest.json')},
-    {'src': os.path.join(PS, 'symbols.json'), 'dst': os.path.join(DIST_PS, 'symbols.json')},
-    {'src': os.path.join(PS, 'custom_symbols.json'), 'dst': os.path.join(DIST_PS, 'custom_symbols.json')},
-    {'src': os.path.join(PS, 'templates.json'), 'dst': os.path.join(DIST_PS, 'templates.json')},
-    {'src': os.path.join(PS, 'app_settings.json'), 'dst': os.path.join(DIST_PS, 'app_settings.json')},
+    {'src': os.path.join(DATA, 'tests.json'), 'dst': os.path.join(DIST_DATA, 'tests.json')},
+    {'src': os.path.join(DATA, 'manifest.json'), 'dst': os.path.join(DIST_DATA, 'manifest.json')},
+    {'src': os.path.join(DATA, 'symbols.json'), 'dst': os.path.join(DIST_DATA, 'symbols.json')},
+    {'src': os.path.join(DATA, 'templates.json'), 'dst': os.path.join(DIST_DATA, 'templates.json')},
+    {'src': os.path.join(DATA, 'app_settings.json'), 'dst': os.path.join(DIST_DATA, 'app_settings.json')},
 ]
 
 # Folders that need to be copied
@@ -37,19 +42,19 @@ folders = [
     # --- WORKING DIRECTORY
     {'src': os.path.join(CWD, "fonts"), 'dst': os.path.join(DIST, 'fonts')},
     # --- PROXYSHOP DIRECTORY
-    {'src': os.path.join(PS, "kv"), 'dst': os.path.join(DIST_PS, 'kv')},
-    {'src': os.path.join(PS, "img"), 'dst': os.path.join(DIST_PS, 'img')},
-    {'src': os.path.join(PS, "configs"), 'dst': os.path.join(DIST_PS, 'configs')},
+    {'src': os.path.join(SRC, "kv"), 'dst': os.path.join(DIST_SRC, 'kv')},
+    {'src': os.path.join(SRC, "img"), 'dst': os.path.join(DIST_SRC, 'img')},
+    {'src': os.path.join(SRC, "configs"), 'dst': os.path.join(DIST_SRC, 'configs')},
     # --- PLUGINS DIRECTORY
-    {'src': os.path.join(PS, "plugins/MrTeferi"), 'dst': os.path.join(DIST_PS_PLUGINS, 'MrTeferi')},
-    {'src': os.path.join(PS, "plugins/SilvanMTG"), 'dst': os.path.join(DIST_PS_PLUGINS, 'SilvanMTG')},
+    {'src': os.path.join(PLUGINS, "MrTeferi"), 'dst': os.path.join(DIST_PLUGINS, 'MrTeferi')},
+    {'src': os.path.join(PLUGINS, "SilvanMTG"), 'dst': os.path.join(DIST_PLUGINS, 'SilvanMTG')},
 ]
 
 # Directories containing ini files
 cfg_dirs = [
-    os.path.join(DIST_PS, 'configs'),
-    os.path.join(DIST_PS_PLUGINS, 'MrTeferi/configs'),
-    os.path.join(DIST_PS_PLUGINS, 'SilvanMTG/configs')
+    os.path.join(DIST_SRC, 'configs'),
+    os.path.join(DIST_PLUGINS, 'MrTeferi/configs'),
+    os.path.join(DIST_PLUGINS, 'SilvanMTG/configs')
 ]
 
 
@@ -58,11 +63,15 @@ def clear_build_files(clear_dist=True):
     Clean out all PYCACHE files and Pyinstaller files
     """
     os.system("pyclean -v .")
-    try: rmtree(os.path.join(os.getcwd(), 'build'))
-    except Exception as e: print(e)
+    try:
+        rmtree(os.path.join(os.getcwd(), 'build'))
+    except Exception as e:
+        print(e)
     if clear_dist:
-        try: rmtree(os.path.join(os.getcwd(), 'dist'))
-        except Exception as e: print(e)
+        try:
+            rmtree(os.path.join(os.getcwd(), 'dist'))
+        except Exception as e:
+            print(e)
 
 
 def make_dirs():
@@ -71,10 +80,10 @@ def make_dirs():
     """
     # Ensure folders exist
     Path(DIST).mkdir(mode=511, parents=True, exist_ok=True)
-    Path(DIST_PS).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(DIST_DATA).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(DIST_PLUGINS).mkdir(mode=511, parents=True, exist_ok=True)
     Path(os.path.join(DIST, "art")).mkdir(mode=511, parents=True, exist_ok=True)
     Path(os.path.join(DIST, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
-    Path(DIST_PS_PLUGINS).mkdir(mode=511, parents=True, exist_ok=True)
 
 
 def move_data():
@@ -83,11 +92,13 @@ def move_data():
     """
     # Transfer our necessary files
     print("Transferring data files...")
-    for f in files: copy2(f['src'], f['dst'])
+    for f in files:
+        copy2(f['src'], f['dst'])
 
     # Transfer our necessary folders
     print("Transferring data folders...")
-    for f in folders: copytree(f['src'], f['dst'])
+    for f in folders:
+        copytree(f['src'], f['dst'])
 
 
 def remove_ini_files():

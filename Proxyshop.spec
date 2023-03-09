@@ -8,8 +8,8 @@ a = Analysis(['..\\Proxyshop\main.py'],
              binaries=[],
              datas=[],
              hiddenimports=[
-                'proxyshop.templates',
-                'proxyshop.gui',
+                'src.templates',
+                'src.gui',
                 'kivy',
                 'svglib.svglib',
                 'reportlab.graphics',
@@ -28,7 +28,7 @@ pyz = PYZ(a.pure, a.zipped_data,
 
 a.datas += [
     ('fonts/Beleren Small Caps.ttf', 'fonts/Beleren Small Caps.ttf', 'DATA'),
-    ('proxyshop/img/proxyshop.png', 'proxyshop/img/proxyshop.png', 'DATA')
+    ('src/img/proxyshop.png', 'src/img/proxyshop.png', 'DATA')
 ]
 
 exe = EXE(pyz,
@@ -47,4 +47,4 @@ exe = EXE(pyz,
           disable_windowed_traceback=False,
           target_arch=None,
           codesign_identity=None,
-          icon='proxyshop/img/favicon.ico')
+          icon='src/img/favicon.ico')

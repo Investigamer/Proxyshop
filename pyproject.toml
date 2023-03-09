@@ -31,5 +31,5 @@ changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
-    "proxyshop/__version__.py"
+    "src/__version__.py"
 ]
