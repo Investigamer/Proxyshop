@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="143pt"
+   height="200pt"
+   viewBox="0 0 143 200"
+   version="1.1"
+   id="svg15"
+   sodipodi:docname="T.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs19" />
+  <sodipodi:namedview
+     id="namedview17"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="pt"
+     showgrid="false"
+     inkscape:zoom="2.6963"
+     inkscape:cx="95.318"
+     inkscape:cy="133.15"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g13" />
+  <g
+     id="g13">
+    <polygon
+       fill="url(#radialGradient856)"
+       points="10,190 10,9 134,9 134,190 "
+       id="polygon2" />
+    <radialGradient
+       cx="0"
+       cy="0"
+       r="1"
+       fx="0"
+       fy="0"
+       id="radialGradient856"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(71.5,0,0,-71.5,71.5,100)"
+       spreadMethod="pad">
+      <stop
+         style="stop-color:#bf99c3"
+         offset="0"
+         id="stop4" />
+      <stop
+         style="stop-color:#7b5190"
+         offset="0.7"
+         id="stop6" />
+      <stop
+         style="stop-color:#612c75"
+         offset="1"
+         id="stop8" />
+    </radialGradient>
+    <path
+       d="M 0,0 H 143 V 200 H 0 V 0 m 10,9 c -0.01,13.24 0.02,26.47 -0.02,39.71 0.45,-0.11 1.34,-0.33 1.78,-0.44 12.67,2.13 25.44,4.57 38.35,3.91 2.75,-0.56 4.7,-2.76 6.87,-4.36 7.95,-6.49 18.76,-8.39 28.76,-7.23 9.38,1 18.87,5.23 24.52,13.01 6.55,8.48 7.33,20.2 4.63,30.25 -3.32,10.17 -13.57,14.94 -21.71,20.65 6.65,12.61 15.44,23.85 24.1,35.1 2.6,3.14 4.11,7.25 7.5,9.67 2.86,1.37 6.14,1.34 9.22,1.92 C 134,103.79 134,56.4 134,9 92.67,9 51.33,9 10,9 m 54.52,42.7 c -4.02,1.04 -7.59,3.99 -9.07,7.92 -1.81,4.54 -1.41,9.55 -1.45,14.35 0.03,5.63 -0.5,11.63 2.21,16.8 2.59,5.09 8.26,7.74 13.73,8.34 7.41,1.17 15.75,-0.48 21.02,-6.16 5.05,-4.78 6.29,-12.27 5.47,-18.92 C 95.84,66.58 92.27,59.19 86.07,54.85 79.8,50.67 71.71,50.19 64.52,51.7 M 10,52.87 c 0,45.71 0,91.42 0,137.13 41.33,0 82.67,0 124,0 0,-11.25 0,-22.5 0,-33.75 -7,0 -14,0 -21,0 -1.53,-0.1 -3.27,0.33 -4.53,-0.78 -6.16,-3.9 -9.7,-10.51 -13.61,-16.43 -5.92,-8.91 -11.72,-17.99 -18.89,-25.97 -5.04,-5.78 -12.74,-8.72 -20.33,-8.64 -1.15,6.77 -0.82,13.68 -0.88,20.52 0.17,6.94 -0.83,13.92 0.1,20.83 0.29,2.55 1.93,4.99 4.55,5.54 6.97,1.79 14.24,0.43 21.34,1.01 2.33,0.82 1.57,4.11 0.45,5.7 -6.42,0.16 -12.77,-0.93 -19.17,-1.29 -11.65,0.1 -23.34,-0.51 -34.92,1.04 -3.67,0 -7.65,1.62 -11.13,0.1 -0.24,-0.78 -0.72,-2.34 -0.96,-3.11 5.37,-3.95 12.57,-1.48 18.62,-3.2 3.13,-3.66 2.68,-8.96 3.27,-13.46 C 37.14,123.06 36.93,108.01 37,92.97 37.19,82.76 36.39,72.51 34.32,62.51 33.7,60.21 33.24,57.15 30.55,56.4 23.89,54.21 16.6,55.32 10,52.87 Z"
+       id="path11"
+       style="fill:#ffffff;fill-opacity:1" />
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="basic" id="Layer_1" x="0px" y="0px" width="223px" height="300px">
+  <g>
+    <polygon fill="#ffffff" points="-0.041,143.772 113.541,300 223.041,151.196 109.5,0  "/>
+    <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="27.002" y1="117.5127" x2="197.7993" y2="179.6779">
+      <stop style="stop-color:#612c75" offset="0"/>
+      <stop style="stop-color:#7b5190" offset="0.3"/>
+      <stop style="stop-color:#bf99c3" offset="0.5"/>
+      <stop style="stop-color:#7b5190" offset="0.7"/>
+      <stop style="stop-color:#612c75" offset="1"/>
+    </linearGradient>
+    <path fill="url(#SVGID_1_)" d="M105.705,202.419v-70.607l-37.199,41.037l-49.328-19.054l95.395,126.697l91.146-122.573   l-41.779-15.178L105.705,202.419z M19.096,139.236l41.779,15.177l58.07-59.306v70.648l37.406-41.449l49.285,19.095L110.242,16.704   L19.096,139.236z"/>
+  </g>
+</svg>

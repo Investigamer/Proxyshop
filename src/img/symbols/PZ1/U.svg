@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="svg2" x="0px" y="0px" width="294.537px" height="330.701px">
+  <path d="M147.269,0L13.058,77.506l25.219,7.322c46.592,13.526,74.13,38.349,101.502,62.977l7.49,6.74l7.49-6.74  c27.372-24.628,54.91-49.45,101.502-62.977l25.219-7.322L147.269,0z M0,91.661v26.198v131.642l9.353,1.564  c43.629,7.292,75.282,31.795,106.606,61.619l18.924,18.017V171.948l-9.32-1.586c-46.922-7.99-71.452-26.983-106.624-60.6L0,91.661z   M294.537,91.661l-18.938,18.102c-35.172,33.616-59.702,52.609-106.624,60.6l-9.32,1.586v158.753l18.924-18.017  c31.324-29.824,62.978-54.327,106.606-61.619l9.353-1.564V91.661z"/>
+  <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="257.1448" y1="183.9475" x2="54.9807" y2="-18.2166">
+    <stop offset="0.2" style="stop-color:#536e78"/>
+    <stop offset="0.5" style="stop-color:#d9eaf3"/>
+    <stop offset="0.8" style="stop-color:#536e78"/>
+  </linearGradient>
+  <path fill="url(#SVGID_1_)" d="M147.269,12.933L41.4,74.072c49.02,14.232,78.5,40.78,105.869,65.406  c27.369-24.626,56.85-51.174,105.869-65.406L147.269,12.933z"/>
+  <linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="184.1819" y1="211.2161" x2="-30.6105" y2="211.2161">
+    <stop offset="0.2" style="stop-color:#536e78"/>
+    <stop offset="0.5" style="stop-color:#d9eaf3"/>
+    <stop offset="0.8" style="stop-color:#536e78"/>
+  </linearGradient>
+  <path fill="url(#SVGID_2_)" d="M11.2,117.86v122.159c46.806,7.823,80.641,34.239,112.482,64.555v-123.17  C74.376,173.007,46.786,151.873,11.2,117.86z"/>
+  <linearGradient id="SVGID_3_" gradientUnits="userSpaceOnUse" x1="590.4768" y1="-47.6023" x2="462.7709" y2="173.5907" gradientTransform="matrix(0.8 0 0 -0.8 -189.9775 268.9294)">
+    <stop offset="0.2" style="stop-color:#536e78"/>
+    <stop offset="0.5" style="stop-color:#d9eaf3"/>
+    <stop offset="0.8" style="stop-color:#536e78"/>
+  </linearGradient>
+  <path fill="url(#SVGID_3_)" d="M283.337,117.86c-35.586,34.014-63.176,55.147-112.482,63.544v123.17  c31.842-30.315,65.677-56.731,112.482-64.555V117.86z"/>
+</svg>

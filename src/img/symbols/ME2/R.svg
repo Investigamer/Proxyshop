@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600" height="547.44525">
+  <linearGradient x1="0" y1="0" x2="1" y2="0" id="linearGradient476" gradientUnits="userSpaceOnUse" gradientTransform="matrix(40.109695,-13.032425,-13.032425,-40.109695,199.5874,260.8457)" spreadMethod="pad">
+    <stop style="stop-color:#8b723c" offset="0"/>
+    <stop style="stop-color:#d2bb7b" offset="0.3"/>
+    <stop style="stop-color:#ebd491" offset="0.5"/>
+    <stop style="stop-color:#d2bb7b" offset="0.7"/>
+    <stop style="stop-color:#8b723c" offset="1"/>
+  </linearGradient>
+  <linearGradient x1="0" y1="0" x2="1" y2="0" id="linearGradient2995" xlink:href="#linearGradient476" gradientUnits="userSpaceOnUse" gradientTransform="matrix(40.109695,-13.032425,-13.032425,-40.109695,199.5874,260.8457)" spreadMethod="pad"/>
+  <linearGradient x1="0" y1="0" x2="1" y2="0" id="linearGradient2998" xlink:href="#linearGradient476" gradientUnits="userSpaceOnUse" gradientTransform="matrix(548.94656,178.36348,-178.36348,548.94656,45.730839,228.78148)" spreadMethod="pad"/>
+  <path d="m 561.55566,212.7646 c -8.92336,0 -21.74727,2.24453 -37.04836,6.63778 C 521.72901,97.93796 422.08029,0 299.97263,0 177.91971,0 78.270985,97.93796 75.492701,219.40238 60.205292,215.00913 47.312956,212.7646 38.444343,212.7646 l -38.444343,0 0,334.68066 600,0 0,-334.68066 -38.44434,0 z"/>
+  <path d="m 113.86861,224.58942 c 0,2.83303 0.0547,5.66606 0.16424,8.44434 l 0,0 c 44.21989,18.39416 96.50091,49.18796 136.64233,91.73814 l 0,0 c 18.66789,19.77646 35.1323,39.51186 49.29745,59.0146 l 0,0 c 14.16514,-19.50274 30.62956,-39.23814 49.35219,-59.0146 l 0,0 c 40.14142,-42.55018 92.42244,-73.34398 136.64233,-91.73814 l 0,0 c 0.10949,-2.77828 0.16424,-5.61131 0.16424,-8.44434 l 0,0 c 0,-102.81022 -83.34854,-186.15876 -186.15876,-186.15876 l 0,0 c -102.81022,0 -186.10402,83.34854 -186.10402,186.15876 m 263.36223,126.54197 c -40.15511,42.55018 -63.57208,78.58577 -77.25821,105.36953 l 0,0 C 286.34124,429.71716 262.86953,393.68157 222.7281,351.13139 l 0,0 C 158.34854,282.90603 62.285584,251.26369 38.444343,251.26369 l 0,0 0,257.73723 523.111317,0 0,-257.73723 c -23.89599,0 -119.9042,31.64234 -184.32482,99.8677" style="fill:url(#linearGradient2998)"/>
+</svg>

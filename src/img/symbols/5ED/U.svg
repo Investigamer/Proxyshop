@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="600" height="517.92493">
+  <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="radialGradient586" gradientUnits="userSpaceOnUse" gradientTransform="matrix(19.172806,0,0,-19.172806,218.38379,259.30273)" spreadMethod="pad">
+    <stop style="stop-color:#d9eaf3" offset="0"/>
+    <stop style="stop-color:#99aebc" offset="0.7"/>
+    <stop style="stop-color:#536e78" offset="1"/>
+  </radialGradient>
+  <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="radialGradient2995" xlink:href="#radialGradient586" gradientUnits="userSpaceOnUse" gradientTransform="matrix(19.172806,0,0,-19.172806,218.38379,259.30273)" spreadMethod="pad"/>
+  <radialGradient cx="0" cy="0" r="1" fx="0" fy="0" id="radialGradient2998" xlink:href="#radialGradient586" gradientUnits="userSpaceOnUse" gradientTransform="matrix(245.187,0,0,245.187,299.98452,258.94033)" spreadMethod="pad"/>
+  <path d="m 260.25406,129.8393 43.41617,110.38834 45.55182,-110.38834 -88.96799,0 z m 314.1694,388.0856 -548.84692,0 0,-131.32274 157.30849,0 L 73.43024,129.92882 0,129.92882 0,0 l 600,0 0,129.92882 -75.18223,0 -107.40867,258.01611 157.01436,0 0,129.97997 z"/>
+  <path d="m 303.06918,313.70903 87.216,-211.35172 -170.3909,0 83.1749,211.35172 z m -250.02344,100.36233 171.43953,0 -132.92126,-311.61174 -64.09481,0 0,-75.02878 545.04881,0 0,75.02878 -66.03862,0 -130.2741,312.9673 170.73618,0 0,74.97762 -493.89573,0 0,-76.33318 z" style="fill:#536e78"/>
+  <path d="m 35.11659,35.11659 0,59.64449 56.44742,0 5.03857,0 2.00776,4.65493 132.92127,311.6629 4.55262,10.69099 -11.59896,0 -163.74099,0 0,60.9361 478.5626,0 0,-59.59333 -163.10159,0 -11.49665,0 4.39916,-10.63984 130.28689,-313.00567 1.94382,-4.70608 5.14088,0 58.35287,0 0,-59.64449 -529.71567,0 z m 260.80395,281.39307 -83.21326,-211.35172 -4.10504,-10.48638 11.29204,0 170.3909,0 11.49665,0 -4.39916,10.63984 -87.216,211.35172 -7.25095,17.63502 -6.99518,-17.78848 z" style="fill:url(#radialGradient2998)"/>
+</svg>

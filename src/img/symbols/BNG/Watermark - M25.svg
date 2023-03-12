@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   width="517.22266"
+   height="500"
+   viewBox="0 0 517.22264 500"
+   sodipodi:docname="Watermark - M25.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs15" />
+  <sodipodi:namedview
+     id="namedview13"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="0.69121829"
+     inkscape:cx="116.46104"
+     inkscape:cy="153.35242"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1" />
+  <path
+     d="M 175.7184,0 C 172.83796,53.878737 172.16475,107.31603 132.80965,154.26403 95.750086,99.67897 48.735867,93.940149 0,93.631136 43.570924,123.71582 122.71153,184.74602 42.853571,343.29209 c 11.70941,51.41767 43.052223,91.44597 83.985499,118.17565 38.57152,26.45377 84.63663,38.81432 130.53619,38.52738 0.2428,0 0.48559,0 0.73943,0 45.95474,0.2759 92.08606,-12.10671 130.6907,-38.63774 C 429.66141,434.6277 460.938,394.64354 472.63638,343.29209 392.76738,184.74602 473.65171,123.71582 517.22263,93.631136 468.48676,93.940149 419.7509,99.67897 382.70237,154.26403 343.35831,107.31603 342.66303,53.878737 339.77154,0 c -19.61133,26.939368 -70.44407,138.95682 -22.51385,208.29727 40.92224,59.20922 5.5181,123.03158 -58.3484,125.5368 l -1.16983,0.0552 -1.14777,-0.0552 C 192.72519,331.32885 157.31002,267.50649 198.23226,208.29727 246.16248,138.95682 195.32973,26.939368 175.7184,0 Z"
+     id="path2"
+     style="stroke-width:11.0362" />
+</svg>

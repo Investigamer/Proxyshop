@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="143pt"
+   height="200pt"
+   viewBox="0 0 143 200"
+   version="1.1"
+   id="svg18"
+   sodipodi:docname="T.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs22" />
+  <sodipodi:namedview
+     id="namedview20"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="pt"
+     showgrid="false"
+     inkscape:zoom="2.6963"
+     inkscape:cx="95.318"
+     inkscape:cy="133.15"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g16" />
+  <g
+     id="g16">
+    <polygon
+       fill="url(#radialGradient856)"
+       points="10,190 10,9 134,9 134,190 "
+       id="polygon2" />
+    <radialGradient
+       cx="0"
+       cy="0"
+       r="1"
+       fx="0"
+       fy="0"
+       id="radialGradient856"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(71.5,0,0,-71.5,71.5,100)"
+       spreadMethod="pad">
+      <stop
+         style="stop-color:#bf99c3"
+         offset="0"
+         id="stop4" />
+      <stop
+         style="stop-color:#7b5190"
+         offset="0.7"
+         id="stop6" />
+      <stop
+         style="stop-color:#612c75"
+         offset="1"
+         id="stop8" />
+    </radialGradient>
+    <radialGradient
+       cx="0"
+       cy="0"
+       r="1"
+       fx="0"
+       fy="0"
+       id="radialGradient3009"
+       xlink:href="#radialGradient856"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(17.571,0,0,-17.571,747.36,483.68)"
+       spreadMethod="pad" />
+    <path
+       d="M 0,0 H 143 V 200 H 0 V 0 m 10,9 c 0,60.33 0,120.67 0,181 41.33,0 82.67,0 124,0 0,-60.33 0,-120.67 0,-181 C 92.67,9 51.33,9 10,9 Z"
+       id="path12"
+       style="fill:#ffffff;fill-opacity:1" />
+    <path
+       d="m 83.446,33.673 c 2.133,-0.501 4.705,-0.752 7.718,-0.752 7.775,0 14.826,2.133 21.166,6.399 6.33,4.267 9.94,9.128 10.82,14.582 0.88,5.456 1.32,9.062 1.32,10.819 0,8.027 -3.08,14.864 -9.22,20.51 -7.28,5.019 -11.8,8.154 -13.55,9.406 9.28,1.757 16.9,6.333 22.86,13.733 5.96,7.41 8.94,14.81 8.94,22.21 0,6.89 -1.22,13.2 -3.67,18.91 -2.45,5.7 -6.55,9.69 -12.32,11.94 -5.78,2.26 -10.79,3.77 -15.06,4.52 -4.262,0.75 -8.526,1.13 -12.791,1.13 -5.393,0 -10.286,-0.41 -14.676,-1.22 -4.391,-0.82 -9.817,-2.07 -16.276,-3.77 -6.46,-1.69 -12.387,-2.54 -17.781,-2.54 l -6.586,0.38 -17.123,3.01 c -0.501,-0.38 -0.941,-0.85 -1.318,-1.41 -0.377,-0.57 -0.565,-1.22 -0.565,-1.98 0,-0.5 0.377,-1.06 1.131,-1.69 l 22.015,-6.21 c 0.502,-0.37 0.878,-2.22 1.128,-5.55 0.251,-3.32 0.376,-7.75 0.377,-13.27 0,-11.79 -0.44,-25.21 -1.318,-40.26 C 37.788,77.518 36.816,67.326 35.75,61.993 34.684,56.661 30.042,53.431 21.825,52.303 13.608,51.176 9.4998,49.921 9.4998,48.539 c 0,-0.876 0.4076,-1.848 1.2232,-2.914 0.815,-1.066 1.851,-1.599 3.106,-1.599 3.89,0.877 7.841,1.754 11.855,2.633 4.014,0.878 7.777,1.318 11.292,1.318 8.15,0 15.33,-1.788 21.541,-5.364 6.211,-3.575 14.521,-6.555 24.929,-8.94 z M 57.86,94.637 c 0,9.153 -0.06,16.713 -0.19,22.673 -0.126,5.96 -0.253,11.63 -0.379,17.03 0,5.52 0.252,9.66 0.755,12.42 0.504,2.76 1.633,5.24 3.388,7.43 1.755,2.2 4.514,3.8 8.277,4.8 3.763,1 7.967,1.5 12.61,1.5 8.154,0 14.52,-1.13 19.099,-3.38 4.58,-2.26 7.9,-5.99 9.97,-11.2 2.07,-5.2 3.1,-12.2 3.1,-20.98 0,-7.9 -3.76,-14.18 -11.28,-18.81 C 93.922,102.1 84.702,98.09 75.545,94.074 81.942,92.945 87.9,90.53 93.42,86.831 c 5.52,-3.7 8.28,-9.189 8.28,-16.466 v -3.198 c 0,-6.523 -2.226,-12.011 -6.68,-16.463 -4.454,-4.452 -10.194,-6.678 -17.218,-6.678 l -4.324,0.373 c -6.523,0.881 -10.82,3.861 -12.891,8.941 -2.071,5.08 -3.106,12.135 -3.106,21.165 0,2.259 0.06,5.646 0.189,10.161 0.126,4.515 0.19,7.839 0.19,9.971 z"
+       id="path14"
+       style="fill:#ffffff;fill-opacity:1" />
+  </g>
+</svg>

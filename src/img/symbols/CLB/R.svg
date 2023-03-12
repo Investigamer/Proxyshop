@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 15.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   width="354.91"
+   height="485"
+   viewBox="0 0 354.91 485"
+   enable-background="new 0 0 375 500"
+   xml:space="preserve"
+   sodipodi:docname="R.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs44" /><sodipodi:namedview
+   id="namedview42"
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1.0"
+   inkscape:pageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   showgrid="false"
+   inkscape:zoom="1.438"
+   inkscape:cx="178.03"
+   inkscape:cy="242.7"
+   inkscape:window-width="1920"
+   inkscape:window-height="986"
+   inkscape:window-x="-11"
+   inkscape:window-y="-11"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Layer_1" />
+<g
+   id="g39"
+   transform="translate(-9.766,-7.079)">
+	<path
+   d="m 187.22,56.432 c 43.3,0 59.06,-49.353 59.06,-49.353 l 118.39,93.201 c 0,0 -7.54,178.82 -7.77,185.49 -0.56,15.72 -7.1,30.47 -11.28,40.74 -15.11,36.94 -72.24,116.75 -148.23,165.57 H 177.05 C 101.06,443.26 43.93,363.45 28.83,326.51 24.634,316.24 18.093,301.49 17.543,285.77 17.306,279.09 9.766,100.28 9.766,100.28 L 128.15,7.079 c 0,0 15.76,49.353 59.07,49.353 z"
+   id="path2" />
+	
+		<linearGradient
+   id="SVGID_1_"
+   gradientUnits="userSpaceOnUse"
+   x1="26.257"
+   y1="247.09"
+   x2="348.17"
+   y2="247.09"
+   gradientTransform="matrix(1,0,0,-1,0,501)">
+		<stop
+   offset="0"
+   style="stop-color:#8D742F"
+   id="stop4" />
+		<stop
+   offset="0.0286"
+   style="stop-color:#927934"
+   id="stop6" />
+		<stop
+   offset="0.1967"
+   style="stop-color:#AA914B"
+   id="stop8" />
+		<stop
+   offset="0.3"
+   style="stop-color:#B39A54"
+   id="stop10" />
+		<stop
+   offset="0.3145"
+   style="stop-color:#B9A059"
+   id="stop12" />
+		<stop
+   offset="0.3681"
+   style="stop-color:#CAB068"
+   id="stop14" />
+		<stop
+   offset="0.4268"
+   style="stop-color:#D4BA71"
+   id="stop16" />
+		<stop
+   offset="0.5"
+   style="stop-color:#D7BD74"
+   id="stop18" />
+		<stop
+   offset="0.5732"
+   style="stop-color:#D4BA71"
+   id="stop20" />
+		<stop
+   offset="0.6319"
+   style="stop-color:#CAB068"
+   id="stop22" />
+		<stop
+   offset="0.6855"
+   style="stop-color:#B9A059"
+   id="stop24" />
+		<stop
+   offset="0.7"
+   style="stop-color:#B39A54"
+   id="stop26" />
+		<stop
+   offset="0.8033"
+   style="stop-color:#AA914B"
+   id="stop28" />
+		<stop
+   offset="0.9714"
+   style="stop-color:#927934"
+   id="stop30" />
+		<stop
+   offset="1"
+   style="stop-color:#8D742F"
+   id="stop32" />
+	</linearGradient>
+	<path
+   fill="url(#SVGID_1_)"
+   d="M 181.83,476.5 C 94.47,417.26 43.611,329.91 40.619,312.56 c -1.995,-11.57 -1.199,-21.75 2.396,-30.53 8.374,26.33 24.728,56.25 49.063,89.76 26.042,34.72 51.882,59.11 77.542,73.14 h 35.2 c 25.64,-14.03 51.49,-38.41 77.54,-73.14 24.33,-33.51 40.69,-63.43 49.06,-89.76 v 0 c 3.58,8.78 4.39,18.96 2.39,30.53 -2.99,17.35 -53.85,104.7 -141.21,163.94 z m 5.39,-397.912 -14.96,44.282 -52.66,31.11 -46.671,-11.96 32.311,37.1 v 62.23 l -32.311,37.1 47.271,-12.58 51.46,31.72 15.56,49.06 15.56,-49.06 51.46,-31.72 47.27,12.58 -32.32,-37.1 v -62.23 l 32.32,-37.1 -46.68,11.96 -52.65,-31.11 z M 26.257,127.06 c 37.517,50.94 39.847,96.61 6.991,137 l -1.009,1.22 z m 321.913,0 -5.99,138.21 -1,-1.22 C 308.33,223.67 310.66,178 348.17,127.06 Z M 174.05,430.42 C 117.41,391.34 76.917,336.48 52.587,265.87 84.183,222.04 76.676,169.21 30.075,107.39 l -1.425,-1.87 93.95,-74.2 c 13.42,27.65 34.67,41.215 63.73,40.704 h 0.89 0.88 c 29.07,0.512 50.31,-13.053 63.74,-40.704 l 93.95,74.2 -1.42,1.87 c -46.61,61.82 -54.11,114.65 -22.52,158.48 -24.34,70.61 -64.82,125.47 -121.47,164.55 z"
+   id="path35"
+   style="fill:url(#SVGID_1_)" />
+	<polygon
+   fill="#ffffff"
+   points="187.22,134.84 250.64,173.13 250.64,246.73 187.22,285.62 123.79,246.73 123.79,173.13 "
+   id="polygon37" />
+</g>
+</svg>
