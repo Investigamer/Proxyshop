@@ -61,6 +61,7 @@ class Config:
 		self.targeted_replace = self.file.getboolean('APP', 'Targeted.Replace')
 		self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
 		self.dev_mode = self.file.getboolean('APP', 'Dev.Mode')
+		self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
 
 		# TEMPLATES section
 		self.render_snow = self.file.getboolean('TEMPLATES', 'Render.Snow')
