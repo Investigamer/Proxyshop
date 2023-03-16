@@ -387,7 +387,7 @@
     "BFZ": "",
     "EXP": "",
     "C15": "",
-    "PZ1": "",
+    "PZ1": "MTG",
     "OGW": "",
     "DDQ": "",
     "W16": [
@@ -784,9 +784,13 @@
         {
             "char": "",
             "fill": "white",
-            "stroke": ["black", 6],
+            "stroke": ["black", 4],
             "common-fill": "white",
-            "common-stroke": ["white", 6]
+            "common-stroke": ["white", 4],
+            "gradient": {
+                "rotation": 0,
+                "scale": 100
+            }
         },
         {
             "char": "",
