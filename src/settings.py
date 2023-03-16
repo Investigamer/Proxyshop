@@ -92,15 +92,18 @@ class Config:
 		if hasattr(self, 'file'):
 			del self.file
 
-		# Choose the file
-		conf = os.path.join(con.cwd, "config.ini")
-		if template and os.path.exists(template['config_path'].replace('json', 'ini')) and not self.dev_mode:
-			conf = template['config_path'].replace('json', 'ini')
+		# Check if we're using a template ini file
+		template_ini = template['config_path'].replace('json', 'ini').replace('Back', 'Front') if template else None
+		template_json = template['config_path'].replace('Back', 'Front') if template else None
+		if template_ini and os.path.exists(template_ini) and not self.dev_mode:
+			conf = template_ini
+		else:
+			conf = os.path.join(con.cwd, "config.ini")
 
 		# Validate the ini file's contents
 		verify_config_fields(conf, con.path_config_json)
-		if template and os.path.exists(template['config_path'].replace('json', 'ini')):
-			verify_config_fields(conf, template['config_path'])
+		if template_ini and os.path.exists(template_ini) and not self.dev_mode:
+			verify_config_fields(conf, template_json)
 
 		# Load necessary file
 		self.file = ConfigParser(allow_no_value=True)
