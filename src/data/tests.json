@@ -36,8 +36,14 @@
         ["Guul Draz Assassin", "Creature - 2"]
     ],
     "saga": [
-        ["Time of Ice", "Mono"],
-        ["Battle of Frost and Fire", "Dual - 3"]
+        ["Time of Ice", "Mono Color"],
+        ["Battle of Frost and Fire", "Dual Color"],
+        ["The Elder Dragon War", "Read Ahead"],
+        ["The Restoration of Eiganjo", "Transform"]
+    ],
+    "class": [
+        ["Wizard Class", "Mono Color"],
+        ["Rogue Class", "Dual Color"]
     ],
     "miracle": [
         ["Terminus", "Noncreature Mono"],
