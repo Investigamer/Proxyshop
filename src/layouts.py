@@ -24,12 +24,17 @@ class NormalLayout:
     """
     def __init__(self, scryfall: dict, file: dict):
 
-        # Scryfall data
+        # settable properties
         self.file = file
         self.scryfall = scryfall
-
-        # Settable properties
         self.filename = self.file['filename']
+        self._template_path = ''
+
+        # Cache mtgset early
+        if self.mtgset:
+            print(f"{self.name}: Valid set data has been generated.")
+        else:
+            print(f"{self.name}: No set data was available.")
 
     def __str__(self):
         return "{} [{}]".format(self.name, self.set)
@@ -45,6 +50,14 @@ class NormalLayout:
     @filename.setter
     def filename(self, value):
         self._filename = value
+
+    @property
+    def template_path(self) -> str:
+        return self._template_path
+
+    @template_path.setter
+    def template_path(self, value: str):
+        self._template_path = value
 
     """
     GAMEPLAY ITEMS
@@ -64,14 +77,6 @@ class NormalLayout:
         # Non-MDFC cards are always front
         self.scryfall['front'] = True
         return self.scryfall
-
-    @cached_property
-    def other_face(self) -> dict:
-        if 'card_faces' in self.scryfall:
-            if self.scryfall['card_faces'][0]['name'] == self.name_raw:
-                return self.scryfall['card_faces'][1]
-            return self.scryfall['card_faces'][0]
-        return {}
 
     @cached_property
     def frame_effects(self) -> list:
@@ -139,10 +144,6 @@ class NormalLayout:
         return self.card.get('color_indicator', None)
 
     @cached_property
-    def transform_icon(self) -> Optional[str]:
-        return
-
-    @cached_property
     def loyalty(self) -> str:
         return self.card.get('loyalty', None)
 
@@ -159,14 +160,20 @@ class NormalLayout:
 
     @cached_property
     def mtgset(self) -> dict:
-        return scry.get_mtg_set(self.set.lower()) or {}
+        return scry.get_mtg_set(self.set) or {}
 
     @cached_property
     def set(self) -> str:
         return self.scryfall['set'].upper()
 
     @cached_property
-    def rarity(self) -> str:
+    def rarity(self):
+        if self.rarity_raw not in ['common', 'uncommon', 'rare', 'mythic']:
+            return 'mythic'
+        return self.rarity_raw
+
+    @cached_property
+    def rarity_raw(self) -> str:
         return self.scryfall['rarity']
 
     @cached_property
@@ -181,23 +188,22 @@ class NormalLayout:
 
     @cached_property
     def card_count(self) -> Optional[str]:
-        if 'printed_size' in self.scryfall and int(self.scryfall['printed_size']) >= int(self.collector_number):
-            cc = self.scryfall['printed_size']
-        elif 'baseSetSize' in self.mtgset and int(self.mtgset['baseSetSize']) >= int(self.collector_number):
-            cc = self.mtgset['baseSetSize']
-        elif 'totalSetSize' in self.mtgset and int(self.mtgset['totalSetSize']) >= int(self.collector_number):
-            cc = self.mtgset['totalSetSize']
-        elif 'card_count' in self.scryfall and int(self.scryfall['card_count']) >= int(self.collector_number):
-            cc = self.scryfall['card_count']
-        else:
+        # Get the lowest number
+        least = min(
+            int(self.mtgset.get('printed_size', 999999)),
+            int(self.mtgset.get('baseSetSize', 999999)),
+            int(self.mtgset.get('totalSetSize', 999999)),
+            int(self.mtgset.get('card_count', 999999))
+        )
+        if least < int(self.collector_number):
             return
 
         # Ensure formatting of count
-        if len(str(cc)) == 2:
-            return f"0{cc}"
-        elif len(str(cc)) == 1:
-            return f"00{cc}"
-        return cc
+        if len(str(least)) == 2:
+            return f"0{least}"
+        elif len(str(least)) == 1:
+            return f"00{least}"
+        return str(least)
 
     @cached_property
     def collector_number(self) -> str:
@@ -240,19 +246,23 @@ class NormalLayout:
     @cached_property
     def symbol(self) -> str:
         # Automatic set symbol enabled?
-        if cfg.auto_symbol and self.set in con.set_symbols:
+        if not cfg.symbol_force_default and self.set in con.set_symbols:
             sym = con.set_symbols[self.set]
             # Check if this is a reference to another symbol
             if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
                 return con.set_symbols[sym]
             return sym
-        elif cfg.auto_symbol and self.set[1:] in con.set_symbols:
+        elif not cfg.symbol_force_default and self.set[1:] in con.set_symbols:
             sym = con.set_symbols[self.set[1:]]
             # Check if this is a reference to another symbol
             if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
                 return con.set_symbols[sym]
             return sym
-        return cfg.symbol_char
+        return con.set_symbols.get(cfg.symbol_default, con.set_symbols['MTG'])
+
+    @cached_property
+    def watermark(self) -> str:
+        return self.card.get('watermark')
 
     """
     BOOL
@@ -282,6 +292,14 @@ class NormalLayout:
     def is_colorless(self) -> bool:
         return self.frame['is_colorless']
 
+    @cached_property
+    def is_transform(self) -> bool:
+        return False
+
+    @cached_property
+    def is_mdfc(self) -> bool:
+        return False
+
     """
     FRAME PROPERTIES
     """
@@ -301,6 +319,63 @@ class NormalLayout:
     @cached_property
     def background(self) -> str:
         return self.frame['background']
+
+    """
+    DOUBLE FACE PROPERTIES
+    """
+
+    @cached_property
+    def other_face(self) -> dict:
+        if 'card_faces' in self.scryfall:
+            if self.scryfall['card_faces'][0]['name'] == self.name_raw:
+                return self.scryfall['card_faces'][1]
+            return self.scryfall['card_faces'][0]
+        return {}
+
+    @cached_property
+    def other_face_twins(self) -> Optional[str]:
+        if self.other_face:
+            return select_frame_layers(self.other_face)['twins']
+        return
+
+    @cached_property
+    def transform_icon(self) -> Optional[str]:
+        return
+
+    @cached_property
+    def other_face_power(self) -> Optional[str]:
+        return self.other_face.get('power', None)
+
+    @cached_property
+    def other_face_toughness(self) -> Optional[str]:
+        return self.other_face.get('toughness', None)
+
+    @cached_property
+    def other_face_left(self) -> Optional[str]:
+        if not self.other_face:
+            return
+        if self.lang != "EN" and 'printed_type_line' in self.other_face:
+            return self.other_face['printed_type_line'].split(" ")[-1]
+        return self.other_face['type_line'].split(" ")[-1]
+
+    @cached_property
+    def other_face_right(self) -> Optional[str]:
+        # Has another face?
+        if not self.other_face:
+            return
+
+        # Other face is not a land
+        if 'Land' not in self.other_face['type_line']:
+            return self.other_face.get('mana_cost')
+
+        # Other face is a land, find the mana tap ability
+        other_face_oracle_text_split = self.other_face.get('oracle_text', '').split("\n")
+        if len(other_face_oracle_text_split) > 1:
+            # Find what color mana this land adds
+            for line in other_face_oracle_text_split:
+                if line[0:3] == "{T}":
+                    return line.split(".")[0] + "."
+        return self.other_face.get('oracle_text', '')
 
     """
     TEMPLATE CLASS
@@ -349,16 +424,16 @@ class TransformLayout (NormalLayout):
         return con.transform_front_class
 
     """
-    Overwrite Properties
+    BOOL PROPERTIES
     """
 
     @cached_property
-    def other_face_power(self) -> Optional[str]:
-        return self.other_face.get('power', None)
+    def is_transform(self) -> bool:
+        return True
 
-    @cached_property
-    def other_face_toughness(self) -> Optional[str]:
-        return self.other_face.get('toughness', None)
+    """
+    OVERWRITE
+    """
 
     @cached_property
     def transform_icon(self) -> str:
@@ -369,7 +444,7 @@ class TransformLayout (NormalLayout):
         return 'land' if 'Land' in self.type_line_raw else 'sunmoondfc'
 
     """
-    Saga Properties
+    SAGA
     """
 
     @cached_property
@@ -413,7 +488,15 @@ class MeldLayout (NormalLayout):
         return con.transform_back_class
 
     """
-    Overwrite Properties
+    BOOL PROPERTIES
+    """
+
+    @cached_property
+    def is_transform(self) -> bool:
+        return True
+
+    """
+    OVERWRITE
     """
 
     @cached_property
@@ -432,19 +515,7 @@ class MeldLayout (NormalLayout):
             for face in self.scryfall['faces']:
                 if face['component'] == 'meld_result':
                     return face
-        return
-
-    @cached_property
-    def other_face_power(self) -> Optional[str]:
-        if self.other_face:
-            return self.other_face['power']
-        return
-
-    @cached_property
-    def other_face_toughness(self) -> Optional[str]:
-        if self.other_face:
-            return self.other_face['toughness']
-        return
+        return {}
 
     @cached_property
     def transform_icon(self) -> str:
@@ -473,7 +544,15 @@ class ModalDoubleFacedLayout (NormalLayout):
         return con.mdfc_back_class
 
     """
-    Overwrite Properties
+    BOOL PROPERTIES
+    """
+
+    @cached_property
+    def is_mdfc(self) -> bool:
+        return True
+
+    """
+    OVERWRITE
     """
 
     @cached_property
@@ -492,34 +571,6 @@ class ModalDoubleFacedLayout (NormalLayout):
 
         # Planeswalker?
         return text.replace("\u2212", "-") if 'Planeswalker' in self.type_line_raw else text
-
-    @cached_property
-    def other_face_twins(self) -> str:
-        return select_frame_layers(self.other_face)['twins']
-
-    @cached_property
-    def other_face_left(self) -> str:
-        if self.lang != "EN" and 'printed_type_line' in self.other_face:
-            return self.other_face['printed_type_line'].split(" ")[-1]
-        return self.other_face['type_line'].split(" ")[-1]
-
-    @cached_property
-    def other_face_right(self) -> str:
-        # Opposite card land info
-        if 'Land' in self.other_face['type_line']:
-            # other face is a land - right MDFC banner text should say what color of mana the land taps for
-            other_face_oracle_text_split = self.other_face['oracle_text'].split("\n")
-            other_face_mana_text = self.other_face['oracle_text']
-            if len(other_face_oracle_text_split) > 1:
-                # iterate over rules text lines until the line that adds mana is identified
-                for i in other_face_oracle_text_split:
-                    if i[0:3] == "{T}":
-                        other_face_mana_text = i
-                        break
-
-            # Truncate anything in the mana text after the first sentence
-            return other_face_mana_text.split(".")[0] + "."
-        return self.other_face['mana_cost']
 
     @cached_property
     def transform_icon(self) -> str:
