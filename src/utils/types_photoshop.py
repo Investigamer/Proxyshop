@@ -2,7 +2,9 @@
 Types for Photoshop Actions
 """
 from typing import TypedDict, Literal, Union
+
 from photoshop.api import SolidColor
+from typing_extensions import NotRequired
 
 """
 LAYER EFFECTS
@@ -14,9 +16,9 @@ class EffectStroke(TypedDict):
     Layer Effect - Stroke
     """
     type: Literal['stroke']
-    weight: int
+    weight: NotRequired[int]
     color: SolidColor
-    opacity: int
+    opacity: NotRequired[int]
     style: Literal[
         'in', 'insetFrame',
         'out', 'outsetFrame',
@@ -29,11 +31,11 @@ class EffectDropShadow(TypedDict):
     Layer Effect - Drop Shadow
     """
     type: Literal['drop-shadow']
-    opacity: int
-    rotation: int
-    distance: int
-    spread: int
-    size: int
+    opacity: NotRequired[int]
+    rotation: NotRequired[int]
+    distance: NotRequired[int]
+    spread: NotRequired[int]
+    size: NotRequired[int]
 
 
 class EffectGradientColor(TypedDict):
@@ -41,8 +43,8 @@ class EffectGradientColor(TypedDict):
     An individual color within a Gradient Layer Effect.
     """
     color: SolidColor
-    location: int
-    midpoint: int
+    location: NotRequired[int]
+    midpoint: NotRequired[int]
 
 
 class EffectGradientOverlay(TypedDict):
@@ -50,10 +52,10 @@ class EffectGradientOverlay(TypedDict):
     Layer Effect - Drop Shadow
     """
     type: Literal['gradient-overlay']
-    size: int
-    scale: int
-    rotation: int
-    opacity: int
+    size: NotRequired[int]
+    scale: NotRequired[int]
+    rotation: NotRequired[int]
+    opacity: NotRequired[int]
     colors: list[EffectGradientColor]
 
 
@@ -62,7 +64,7 @@ class EffectColorOverlay(TypedDict):
     Layer Effect - Color Overlay
     """
     type: Literal['color-overlay']
-    opacity: int
+    opacity: NotRequired[int]
     color: SolidColor
 
 
