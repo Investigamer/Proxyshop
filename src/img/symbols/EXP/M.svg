@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="basic" id="Layer_1" x="0px" y="0px" width="181px" height="300px">
+  <g>
+    <g>
+      <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="42.2168" y1="85.1313" x2="173.721" y2="170.5312">
+        <stop style="stop-color:#bf331c" offset="0"/>
+        <stop style="stop-color:#d3641c" offset="0.3"/>
+        <stop style="stop-color:#f6b91d" offset="0.5"/>
+        <stop style="stop-color:#d3641c" offset="0.7"/>
+        <stop style="stop-color:#bf331c" offset="1"/>
+      </linearGradient>
+      <polygon fill="url(#SVGID_1_)" points="10.52,170.741 90.724,10.438 174.02,170.072 89.474,217.973   "/>
+      <path d="M90.813,20.876l76.873,147.325l-78.146,44.275l-72.801-43.55L90.813,20.876 M90.635,0L4.3,172.556l85.109,50.913    l90.944-51.526L90.635,0L90.635,0z"/>
+    </g>
+    <g>
+      <linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="17.0146" y1="191.2095" x2="148.5238" y2="276.6125">
+        <stop style="stop-color:#bf331c" offset="0"/>
+        <stop style="stop-color:#d3641c" offset="0.3"/>
+        <stop style="stop-color:#f6b91d" offset="0.5"/>
+        <stop style="stop-color:#d3641c" offset="0.7"/>
+        <stop style="stop-color:#bf331c" offset="1"/>
+      </linearGradient>
+      <polygon fill="url(#SVGID_2_)" points="40.81,295.25 8.892,203.718 89.635,250.653 171.598,203.01 136.421,295.25   "/>
+      <path d="M162.374,213.866L133.148,290.5H44.184l-26.58-76.223l67.257,39.096l4.774,2.775l4.774-2.775L162.374,213.866     M180.821,192.154l-91.187,53.005l-89.456-52L37.436,300h102.258L180.821,192.154L180.821,192.154z"/>
+    </g>
+  </g>
+</svg>

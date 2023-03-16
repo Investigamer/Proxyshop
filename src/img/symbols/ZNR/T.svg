@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   width="359.37091"
+   height="403.01108"
+   viewBox="0 0 359.3709 403.01108"
+   id="svg22"
+   sodipodi:docname="T.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs26" />
+  <sodipodi:namedview
+     id="namedview24"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="1.7841"
+     inkscape:cx="179.93"
+     inkscape:cy="201.23"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g20" />
+  <linearGradient
+     id="linearGradient2260">
+    <stop
+       offset="0.1"
+       style="stop-color:#612c75"
+       id="stop2" />
+    <stop
+       offset="0.3"
+       style="stop-color:#7b5190"
+       id="stop4" />
+    <stop
+       offset="0.5"
+       style="stop-color:#bf99c3"
+       id="stop6" />
+    <stop
+       offset="0.7"
+       style="stop-color:#7b5190"
+       id="stop8" />
+    <stop
+       offset="0.9"
+       style="stop-color:#612c75"
+       id="stop10" />
+  </linearGradient>
+  <linearGradient
+     xlink:href="#linearGradient2260"
+     id="linearGradient915"
+     x1="-8.2782097"
+     y1="199.21233"
+     x2="367.64822"
+     y2="199.21233"
+     gradientUnits="userSpaceOnUse" />
+  <g
+     id="g20">
+    <path
+       d="M 104.26,0 4.3022,89.449 53.664,145.2 21.123,173.56 51.444,216.45 0,264.75 l 90.209,95.84 37.301,-33.36 52.17,75.78 52.31,-75.78 37.35,33.36 90.03,-95.84 -51.44,-48.3 30.32,-42.89 L 305.71,145.2 355.07,89.449 255.12,0 205.59,56.005 179.69,33.038 153.78,56.005 Z"
+       id="path14"
+       style="fill:#ffffff;fill-opacity:1" />
+    <path
+       d="m 255.9,22.8 77.03,67.891 -39.66,44.929 -76.85,-68.57 z m -152.43,0 39.48,44.25 L 66.1,135.62 26.444,90.691 Z m 76.21,31.906 132.79,118.264 -84.08,10.64 -48.71,-43.87 -48.7,43.87 -84.085,-10.64 z M 312.97,180.33 179.68,375.62 46.395,180.33 l 83.005,9.69 50.28,73.38 50.29,-73.38 z m -14.75,49.76 38.1,35.22 -68.36,73.94 -27.59,-25.11 z m -237.073,0 L 119,314.14 91.413,339.25 23.049,265.31 Z"
+       style="fill:url(#linearGradient915)"
+       id="path16" />
+    <path
+       d="m 179.69,159.8 -31.57,29.35 31.56,46.07 31.53,-46.07 z"
+       style="fill:#ffffff"
+       id="path18" />
+  </g>
+</svg>

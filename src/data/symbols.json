@@ -1,0 +1,1112 @@
+{
+    "OLGC": "",
+    "MTG": "",
+    "LEA": "",
+    "LEB": "",
+    "2ED": "",
+    "ARN": "",
+    "ATQ": "",
+    "3ED": "",
+    "LEG": "",
+    "DRK": "",
+    "FEM": "",
+    "4ED": "",
+    "ICE": "",
+    "CHR": "",
+    "HML": "",
+    "ALL": "",
+    "MIR": "",
+    "VIS": "",
+    "5ED": "",
+    "POR": "",
+    "WTH": "",
+    "TMP": "",
+    "STH": "",
+    "EXO": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "P02": "",
+    "UGL": "",
+    "USG": "",
+    "ATH": "",
+    "ULG": "",
+    "6ED": "",
+    "PTK": "",
+    "UDS": "",
+    "S99": "",
+    "MMQ": "",
+    "BRB": "",
+    "NEM": "",
+    "S00": "",
+    "PCY": "",
+    "INV": "",
+    "BTD": "",
+    "PLS": "",
+    "7ED": "",
+    "APC": "",
+    "ODY": "",
+    "DKM": "",
+    "TOR": "",
+    "JUD": "",
+    "ONS": "",
+    "LGN": "",
+    "SCG": "",
+    "8ED": "",
+    "MRD": "",
+    "DST": "",
+    "5DN": "",
+    "CHK": "",
+    "UNH": "",
+    "BOK": "",
+    "SOK": "",
+    "9ED": "",
+    "RAV": "",
+    "GPT": "",
+    "DIS": "",
+    "CSP": "",
+    "TSP": "",
+    "PLC": "",
+    "FUT": "",
+    "10E": "",
+    "LRW": "",
+    "EVG": "",
+    "MOR": "",
+    "SHM": "",
+    "EVE": "",
+    "DRB": "",
+    "ME2": "",
+    "ALA": "",
+    "DD2": "",
+    "CON": "",
+    "DDC": "",
+    "ARB": "",
+    "M10": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V09": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white",
+            "stroke": false,
+            "common-stroke": false
+        },
+        {
+            "char": "",
+            "rarity": false
+        }
+    ],
+    "HOP": "",
+    "ME3": "",
+    "ZEN": "",
+    "DDD": "",
+    "H09": "",
+    "WWK": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DDE": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "ROE": "",
+    "DPA": "",
+    "ARC": "",
+    "M11": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V10": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 0
+            }
+        }
+    ],
+    "DDF": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "SOM": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "TD0": [
+        {
+            "char": "",
+            "gradient": {
+                "rotation": 0,
+                "scale": 80,
+                "colors": {
+                    "u": [
+                        {
+                            "color": [199, 225, 241],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [98, 110, 119],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [98, 110, 119],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ],
+                    "r": [
+                        {
+                            "color": [213, 180, 109],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [146, 116, 67],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [146, 116, 67],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ],
+                    "m": [
+                        {
+                            "color": [245, 149, 29],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [192, 55, 38],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [192, 55, 38],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "PD2": "",
+    "ME4": "",
+    "MBS": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DDG": "",
+    "NPH": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "CMD": "",
+    "M12": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V11": "",
+    "DDH": "",
+    "ISD": "",
+    "PD3": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DKA": "",
+    "DDI": "",
+    "AVR": "",
+    "PC2": "",
+    "M13": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V12": "",
+    "DDJ": "",
+    "RTR": "",
+    "CM1": "",
+    "TD2": "",
+    "GTC": "",
+    "DDK": "",
+    "DGM": "",
+    "MMA": "",
+    "M14": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V13": [
+        {
+            "char": "",
+            "scale": 0.95,
+            "fill": "black",
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 15
+            }
+        },
+        {
+            "char": "",
+            "scale": 0.95,
+            "rarity": false,
+            "stroke": false,
+            "common-stroke": false,
+            "drop-shadow": {
+                "distance": 16
+            }
+        }
+    ],
+    "DDL": "",
+    "THS": "",
+    "C13": "",
+    "BNG": "",
+    "DDM": "",
+    "JOU": "",
+    "MD1": "",
+    "CNS": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "VMA": "",
+    "M15": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V14": "",
+    "DDN": "",
+    "KTK": "",
+    "C14": "",
+    "FRF": "",
+    "DDO": "",
+    "DTK": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "TPR": "",
+    "MM2": "",
+    "ORI": "",
+    "V15": "",
+    "DDP": "",
+    "BFZ": "",
+    "EXP": "",
+    "C15": "",
+    "PZ1": "MTG",
+    "OGW": "",
+    "DDQ": "",
+    "W16": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "SOI": "",
+    "EMA": "",
+    "EMN": "",
+    "V16": "",
+    "CN2": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DDR": "",
+    "KLD": "",
+    "MPS": "",
+    "PZ2": "",
+    "C16": "",
+    "PCA": "",
+    "AER": "",
+    "MM3": "",
+    "DDS": "",
+    "W17": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "AKH": "",
+    "MP2": "",
+    "CMA": "",
+    "E01": "",
+    "HOU": "",
+    "C17": "",
+    "XLN": "",
+    "DDT": "",
+    "IMA": "",
+    "E02": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "V17": [
+        {
+            "char": "",
+            "fill": "rarity",
+            "common-fill": "white",
+            "rarity": false,
+            "stroke": false
+        }
+    ],
+    "UST": "",
+    "RIX": "",
+    "A25": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DDU": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DOM": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "black",
+            "common-color": "white",
+            "common-stroke": ["black", 6]
+        }
+    ],
+    "CM2": [
+        {
+            "char": "",
+            "fill": "white",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
+    "BBD": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "SS1": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "GS1": [
+        {
+            "char": "",
+            "fill": "rarity",
+            "common-fill": "white",
+            "common-color": "black",
+            "stroke": false,
+            "common-stroke": false,
+            "rarity": false
+        }
+    ],
+    "M19": [
+        {
+            "char": "",
+            "fill": "black",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
+    "C18": "",
+    "GRN": "",
+    "GNT": [
+        {
+            "char": "",
+            "fill": "rarity",
+            "common-fill": "black",
+            "stroke": false,
+            "common-stroke": false,
+            "common-color": "white",
+            "rarity": false
+        }
+    ],
+    "UMA": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 135,
+                "scale": 100,
+                "colors": {
+                    "u": [
+                        {
+                            "color": [98, 110, 119],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [98, 110, 119],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [98, 110, 119],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ],
+                    "r": [
+                        {
+                            "color": [146, 116, 67],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [146, 116, 67],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [146, 116, 67],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ],
+                    "m": [
+                        {
+                            "color": [192, 55, 38],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 1024,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [192, 55, 38],
+                            "location": 2048,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 3072,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [192, 55, 38],
+                            "location": 4096,
+                            "midpoint": 50
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "MED": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "RNA": "",
+    "WAR": "",
+    "MH1": "",
+    "SS2": [
+        {
+            "char": "",
+            "fill": "rarity",
+            "common-fill": "black",
+            "stroke": false,
+            "common-stroke": false,
+            "common-color": "white",
+            "rarity": false
+        }
+    ],
+    "M20": [
+        {
+            "char": "",
+            "fill": "black",
+            "color": false,
+            "common-fill": "white",
+            "common-color": false
+        }
+    ],
+    "C19": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": ["black", 4],
+            "common-fill": "white",
+            "common-stroke": ["black", 4]
+        },
+        {
+            "reference": true,
+            "char": "",
+            "fill": false,
+            "common-fill": false
+        }
+
+    ],
+    "ELD": "",
+    "GN2": "",
+    "THB": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "UND": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "IKO": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "C20": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
+    "J12": "SLD",
+    "J13": "SLD",
+    "J14": "SLD",
+    "J15": "SLD",
+    "J16": "SLD",
+    "J17": "SLD",
+    "J18": "SLD",
+    "J19": "SLD",
+    "J20": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "P22": "J20",
+    "P23": "J20",
+    "SS3": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "M21": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "JMP": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "2XM": "",
+    "AKR": "",
+    "ZNR": "",
+    "ZNE": "",
+    "ZNC": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
+    "KLR": "",
+    "CMR": "",
+    "CMC": "",
+    "CC1": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "KHM": "",
+    "KHC": "",
+    "TSR": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "STX": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "STA": "",
+    "C21": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": ["black", 4],
+            "common-fill": "white",
+            "common-stroke": ["white", 4],
+            "gradient": {
+                "rotation": 0,
+                "scale": 100
+            }
+        },
+        {
+            "char": "",
+            "rarity": false
+        }
+    ],
+    "MH2": "",
+    "AFR": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "AFC": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "SLD": "",
+    "SLX": "SLD",
+    "SLC": "SLD",
+    "SLU": "SLD",
+    "OVNT": "SLD",
+    "J21": "",
+    "MID": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false
+        },
+        {
+            "char": "",
+            "rarity": false,
+            "stroke": ["black", 4],
+            "common-stroke": ["black", 6],
+            "common-color": "white"
+        }
+    ],
+    "MIC": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "DCI": "",
+    "VOW": "",
+    "VOC": [
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white"
+        }
+    ],
+    "NEO": "",
+    "NEC": "",
+    "UNF": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white",
+            "gradient": {
+                "scale": 120,
+                "rotation": 30
+            }
+        }
+    ],
+    "Y22": [
+        {
+            "char": "\uE989",
+            "fill": "black",
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 25,
+                "scale": 60,
+                "colors": {
+                    "u": [
+                        {
+                            "color": [98, 110, 119],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ],
+                    "r": [
+                        {
+                            "color": [146, 116, 67],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ],
+                    "m": [
+                        {
+                            "color": [192, 55, 38],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "CC2": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "HED": "",
+    "SNC": [
+        {
+            "char": "",
+            "gradient": {
+                "rotation": 0,
+                "scale": 100
+            }
+        }
+    ],
+    "NCC": [
+        {
+            "char": "",
+            "rarity": false,
+            "color": "white",
+            "stroke": ["black", 6],
+            "common-color": "white",
+            "common-stroke": ["black", 6]
+        },
+        {
+            "char": "",
+            "reference": true
+        }
+    ],
+    "CLB": [
+        {
+            "char": "",
+            "rarity": false,
+            "color": "white",
+            "stroke": false,
+            "common-color": "white",
+            "common-stroke": ["black", 3]
+        },
+        {
+            "char": "",
+            "fill": "white",
+            "common-fill": "white",
+            "reference": true
+        }
+    ],
+    "2X2": "",
+    "DMU": "",
+    "DMC": [
+        {
+            "char": "",
+            "color": "white",
+            "stroke": false,
+            "common-color": "black",
+            "common-stroke": false,
+            "rarity": false
+        },
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "common-color": "black"
+        },
+        {
+            "char": "",
+            "stroke": false,
+            "rarity": false,
+            "color": "black",
+            "common-color": "white",
+            "common-stroke": false,
+            "reference": true
+        }
+    ],
+    "BRO": "",
+    "BRR": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": {
+                "u": [98, 110, 119],
+                "r": [146, 116, 67],
+                "m": [192, 55, 38]
+            },
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 135
+            }
+        },
+        {
+            "char": "",
+            "stroke": ["white", 6],
+            "rarity": false,
+            "fill": false,
+            "common-fill": false,
+            "reference": true
+        }
+    ],
+    "BRC": [
+        {
+            "char": "",
+            "stroke": false,
+            "common-stroke": false,
+            "fill": "white",
+            "common-fill": "white",
+            "reference": true
+        },
+        {
+            "char": "",
+            "stroke": ["white", 6],
+            "common-stroke": ["white", 6],
+            "rarity": false
+        }
+    ],
+    "40K": [
+        {
+            "char": "",
+            "color": "white",
+            "fill": "black",
+            "stroke": false,
+            "common-color": "black",
+            "common-fill": "white",
+            "common-stroke": false,
+            "rarity": false
+        },
+        {
+            "char": "",
+            "color": "black",
+            "fill": false,
+            "stroke": false,
+            "common-color": "black",
+            "common-fill": false,
+            "common-stroke": false,
+            "gradient": {
+                "rotation": 0,
+                "scale": 90
+            }
+        },
+        {
+            "char": "",
+            "color": "black",
+            "fill": false,
+            "stroke": false,
+            "common-color": "white",
+            "common-fill": false,
+            "common-stroke": false,
+            "rarity": false,
+            "reference": true
+        }
+    ],
+    "BOT": "",
+    "J22": "",
+    "ONE": "",
+    "ONC": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": ["black", 3],
+            "common-fill": "white",
+            "common-stroke": ["white", 3]
+        },
+        {
+            "char": "",
+            "rarity": false
+        }
+    ],
+    "SCD": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": {
+                "color": "black",
+                "weight": 4,
+                "style": "in"
+            },
+            "common-fill": "white",
+            "common-stroke": {
+                "color": "black",
+                "weight": 4,
+                "style": "in"
+            }
+        },
+        {
+            "char": "",
+            "rarity": false,
+            "stroke": {
+                "color": "black",
+                "weight": 4,
+                "style": "center"
+            },
+            "common-stroke": {
+                "color": "black",
+                "weight": 4,
+                "style": "center"
+            }
+        }
+    ],
+    "DMR": ""
+}

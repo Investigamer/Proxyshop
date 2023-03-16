@@ -159,26 +159,28 @@ cython_debug/
 # Render output folder
 /out
 # Temporary logging directory
-/tmp
+/logs
 # PSD templates directory
 /templates
 # For personal testing
 /testing.py
 # User generated data files
-/proxyshop/datas/
+/src/data/sets/
 # User specific version tracker
-/proxyshop/version_tracker.json
+/src/data/version_tracker.json
 # Generated new release
 /release
 # Environmental variables
-/proxyshop/__env__.py
+/src/__env__.py
 # All plugins that aren't MrTeferi or SilvanMTG
-/proxyshop/plugins/*
-!/proxyshop/plugins/MrTeferi
-!/proxyshop/plugins/SilvanMTG
+/plugins/*
+!/plugins/MrTeferi
+!/plugins/SilvanMTG
+# All plugin templates
+/plugins/*/templates/*
 # User generated config files
-/proxyshop/configs/*.ini
+/src/configs/*.ini
 # User generated plugin config files
-/proxyshop/plugins/*/configs/*.ini
+/plugins/*/configs/*.ini
 # Test generated symbol images
-/proxyshop/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]
+/src/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]

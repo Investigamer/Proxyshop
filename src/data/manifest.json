@@ -1,0 +1,183 @@
+{
+    "__CONFIG__": {
+        "S3": true
+    },
+    "Normal": {
+        "Normal": {
+            "file": "normal.psd",
+            "id": "1JNOzvuzcX3HayKJG34d_vs8KnG7GrHU1"
+        },
+        "Classic": {
+            "file": "normal-classic.psd",
+            "id": "1XqoqfopB-euMNkZ461n5Z9Z0h0zq0tw1"
+        },
+        "Fullart": {
+            "file": "normal-fullart.psd",
+            "id": "15KLVbd9U5klYUNu6ULG0q2xcAavUoV5y"
+        },
+        "Extended": {
+            "file": "normal-extended.psd",
+            "id": "1pROEod7I37syF7lFLP3j9DP4PTgcE-bc"
+        },
+        "Invention": {
+            "file": "masterpiece.psd",
+            "id": "1mijGQdeavb_JUyTmxEEYToJER4KrBDQe"
+        },
+        "Stargazing": {
+            "file": "stargazing.psd",
+            "id": "12xhxqIVeHnaBrGURrxwmFAsfUS4t0rO9"
+        },
+        "Expedition": {
+            "file": "znrexp.psd",
+            "id": "1d40Xy5KrmC1OZf-8AfkU7DSlKnPrWr2y"
+        },
+        "Womens Day": {
+            "file": "womensday.psd",
+            "id": "1Wld2GJu9w9NX77gFzHeLseELeaCaDfqE"
+        },
+        "Miracle": {
+            "file": "miracle.psd",
+            "id": "10LdT7M46ek7Kkz3Cnj19_wtGGZi6f4se"
+        },
+        "Snow": {
+            "file": "snow.psd",
+            "id": "1KTvgxYg0wS8YuLDoVjt37-0HaEMhZKvH"
+        },
+        "Universes Beyond": {
+            "file": "universes-beyond.psd",
+            "id": "1wdn4NELA5N-25zq4DcumiNfMdY9H2ojd"
+        }
+    },
+    "Transform": {
+        "Normal Front": {
+            "file": "tf-front.psd",
+            "id": "1F44D7_CKrXLAV4yzTi_HLO9bsUAgDzgX"
+        },
+        "Normal Back": {
+            "file": "tf-back.psd",
+            "id": "1QCwNqHRphAcFLw1RDf_rUwef_jRxKA9Q"
+        }
+    },
+    "MDFC": {
+        "Normal Front": {
+            "file": "mdfc-front.psd",
+            "id": "1qND_rcc2FuV3mXDb1Sh9qZ2fNG_PEdqP"
+        },
+        "Normal Back": {
+            "file": "mdfc-back.psd",
+            "id": "1LePVD7a9tZRmxIEFL2V1g6K29AvRErQ_"
+        }
+    },
+    "Ixalan": {
+        "Normal": {
+            "file": "ixalan.psd",
+            "id": "1fUzdplOAzejAcd32w7rR2LZDb2Qc-sbV"
+        }
+    },
+    "Mutate": {
+        "Normal": {
+            "file": "mutate.psd",
+            "id": "1HSR4-p1Vc536MplMMonPiL5lehM-cSGo"
+        }
+    },
+    "Prototype": {
+        "Normal": {
+            "file": "prototype.psd",
+            "id": "1Pss6HUhxIpuC2TdQ-PR5rU0Fa9BZzjQ7"
+        }
+    },
+    "Adventure": {
+        "Normal": {
+            "file": "adventure.psd",
+            "id": "1ju9-bJVeYoZLpP2-Y2xoA71xnCd2H5SG"
+        }
+    },
+    "Leveler": {
+        "Normal": {
+            "file": "leveler.psd",
+            "id": "1LvR7HtFFvelR4rZ9vaXxB5SWN0XnFWMg"
+        }
+    },
+    "Saga": {
+        "Normal": {
+            "file": "saga.psd",
+            "id": "1TvkJtYxUOuI1RJm3mTEgbTuHyAo3296f"
+        }
+    },
+    "Class": {
+        "Normal": {
+            "file": "class.psd",
+            "id": "1_SAy2-L4wzb_VVUWNenmNPDwCVSTcRPw"
+        }
+    },
+    "Planeswalker": {
+        "Normal": {
+            "file": "pw.psd",
+            "id": "1uo5U1pF718KBjwcpqoG4EdZn0bW6v5-s"
+        },
+        "Extended": {
+            "file": "pw-extended.psd",
+            "id": "1wdYl1Osh3gH61YxnlwogYzwTfrl5fObZ"
+        }
+    },
+    "Planeswalker TF": {
+        "Normal Front": {
+            "file": "pw-tf-front.psd",
+            "id": "1lE7W7N1N23kzRHB9QJ9JbFrxL6lgbfHk"
+        },
+        "Normal Back": {
+            "file": "pw-tf-back.psd",
+            "id": "1uynDELGeS6O8b9kpV_REug2TMdpoPFBp"
+        },
+        "Extended Front": {
+            "file": "pw-tf-front-extended.psd",
+            "id": "1hnZF7p9QFIQdqDQ0M70Aprq1nd2VgvbI"
+        },
+        "Extended Back": {
+            "file": "pw-tf-back-extended.psd",
+            "id": "1E12RHvaOqxgztcIPyh-KT_-DhfksiRUQ"
+        }
+    },
+    "Planeswalker MDFC Front": {
+        "Normal Front": {
+            "file": "pw-mdfc-front.psd",
+            "id": "1ikAvX-w3gAVdVaGvushmNIIQ0PDL7Kc9"
+        },
+        "Normal Back": {
+            "file": "pw-mdfc-back.psd",
+            "id": "1w6mHJlLT5XoMpRZkVu_6GjugsQGeuMGA"
+        },
+        "Extended Front": {
+            "file": "pw-mdfc-front-extended.psd",
+            "id": "1CJ-dqm8-MORpx8heqwI9KeYmviv8JugE"
+        },
+        "Extended Back": {
+            "file": "pw-mdfc-back-extended.psd",
+            "id": "1l7RCA7hGikzl1xC5XKmzl0vkBBCED3Ea"
+        }
+    },
+    "Basic Land": {
+        "Normal": {
+            "file": "basic.psd",
+            "id": "1mxkLM9Y_ubwnzpebIpYVAVOFArGezVFj"
+        },
+        "Classic": {
+            "file": "basic-classic.psd",
+            "id": "10e7c4-ar_w0cv11-7KcFoq6MGXYb8N9x"
+        },
+        "Theros": {
+            "file": "basic-theros.psd",
+            "id": "1HnoctB_iWvQawkEYjGwfupdAK3qhVdDO"
+        },
+        "Unstable": {
+            "file": "basic-unstable.psd",
+            "id": "141JNEiPJEG2FVMosUuNSamwQ_AMGphY7"
+        }
+    },
+    "Planar": {
+        "Normal": {
+            "file": "planar.psd",
+            "id": "12AMv1vsaG0WGHYa1MgQoDLynnQzhR3DU"
+        }
+    }
+}

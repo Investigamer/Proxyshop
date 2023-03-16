@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   width="477.92"
+   height="500"
+   sodipodi:docname="U.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs18">
+    <linearGradient
+       id="rect3355_4_"
+       gradientUnits="userSpaceOnUse"
+       x1="32.256"
+       y1="75.053"
+       x2="32.256"
+       y2="25.054"
+       gradientTransform="matrix(10,0,0,-10,-83.599,750.54)">
+      <stop
+         offset="0.1"
+         style="stop-color:#536e78"
+         id="stop4" />
+      <stop
+         offset="0.5"
+         style="stop-color:#d9eaf3"
+         id="stop6" />
+      <stop
+         offset="0.9"
+         style="stop-color:#536e78"
+         id="stop8" />
+    </linearGradient>
+  </defs>
+  <sodipodi:namedview
+     id="namedview16"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="15.64"
+     inkscape:cx="23.881"
+     inkscape:cy="25"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1" />
+  <path
+     d="M 102.21,0 63.13,53.08 60.03,94.96 82.71,135.19 18.57,193.7 0,296.79 101.93,245.63 180.76,109.45 107.72,77.96 Z m 273.5,0 -5.51,77.95 -73.04,31.49 78.83,136.18 101.93,51.16 -18.57,-103.09 -64.14,-58.51 22.68,-40.23 -3.1,-41.88 z m -136.75,54.78 -99.59,172.06 99.59,-50 99.59,50 z m 0,147.76 -102.12,51.27 102.12,232.51 102.12,-232.51 z M 116.27,264.15 10.6,317.19 219.86,500 Z m 245.38,0 L 258.06,500 467.32,317.2 Z"
+     id="path2"
+     style="stroke-width:10" />
+  <path
+     fill="url(#rect3355_4_)"
+     d="M 91.64,36.5 75.94,57.82 73.41,91.98 99.27,137.86 30.7,200.41 17.57,273.3 92.54,235.66 162.01,115.66 95.2,86.84 Z m 294.64,0 -3.56,50.34 -66.81,28.82 69.47,120 74.97,37.64 -13.13,-72.89 -68.57,-62.55 25.86,-45.88 -2.52,-34.16 z M 238.96,80.98 172.72,195.4 238.96,162.15 305.2,195.4 Z m 0,136.25 -85.09,42.71 85.09,193.74 85.09,-193.74 z m -129.15,64.85 -75.87,38.09 150.25,131.25 z m 258.3,0 -74.38,169.34 150.25,-131.25 z"
+     id="path11"
+     style="fill:url(#rect3355_4_);stroke-width:10" />
+</svg>

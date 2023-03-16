@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   viewBox="0 0 1024 973.82"
+   id="svg19"
+   sodipodi:docname="T.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview21"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="0.73833"
+     inkscape:cx="511.97"
+     inkscape:cy="486.23"
+     inkscape:window-width="1920"
+     inkscape:window-height="986"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg19" />
+  <defs
+     id="defs13">
+    <linearGradient
+       id="a"
+       x1="36.28"
+       x2="468.38"
+       y1="34.42"
+       y2="445.51"
+       gradientTransform="scale(2.0291)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         stop-color="#612c75"
+         offset="0"
+         id="stop2" />
+      <stop
+         stop-color="#7b5190"
+         offset=".25"
+         id="stop4" />
+      <stop
+         stop-color="#bf99c3"
+         offset=".5"
+         id="stop6" />
+      <stop
+         stop-color="#7b5190"
+         offset=".75"
+         id="stop8" />
+      <stop
+         stop-color="#612c75"
+         offset="1"
+         id="stop10" />
+    </linearGradient>
+  </defs>
+  <path
+     d="M 663.43,0.20879 360.77,0 291.66,186.03 93.498,194.52 0,482.23 155.5,605.32 102.39,795.97 347.16,973.82 512.1,864.31 677.05,973.82 921.79,795.97 868.69,605.32 1024,482.23 930.7,194.53 732.52,186.03 Z"
+     stroke-width="23.025"
+     id="path15"
+     style="fill:#ffffff;fill-opacity:1" />
+  <path
+     d="m612.4 736.38 337.98-269.95-65.98-203.7-129.36-6.11 16.3 218.23-151.86-404.84-214.33-0.169-45.58 121.3 212.49 52.05-431.92 19.46-66.525 203.84 101.04 80.55 115.13-186.37-114.67 417.06 173.29 126.25 107.93-71.3-141.77-167 361.3 238.14 173.51-125.97-34.44-124.75z"
+     fill="url(#a)"
+     stroke-width="23.026"
+     id="path17" />
+</svg>

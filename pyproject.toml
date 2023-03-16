@@ -14,12 +14,13 @@ asynckivy = "^0.5.4"
 Pillow = "^9.4.0"
 pyclean = "^2.2.0"
 kivy = {extras = ["base", "media"], version = "^2.1.0"}
+typing-extensions = "^4.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 mypy = "^0.991"
 commitizen = "^2.39.1"
-pyinstaller = "^5.7.0"
+setuptools = "^67.6.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,5 +32,5 @@ changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
-    "proxyshop/__version__.py"
+    "src/__version__.py"
 ]
