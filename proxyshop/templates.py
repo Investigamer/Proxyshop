@@ -1090,7 +1090,6 @@ class NormalFullartTemplate (NormalTemplate):
     template_file_name = "normal-fullart"
     template_suffix = "Fullart"
 
-
 class WomensDayTemplate (NormalTemplate):
     """
     The showcase template first used on the Women's Day Secret Lair. Doesn't have any background layers, needs a

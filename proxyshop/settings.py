@@ -59,12 +59,13 @@ class Config:
 		self.skip_failed = self.file.getboolean('APP', 'Skip.Failed')
 		self.scry_ascending = self.file.getboolean('APP', 'Scryfall.Ascending')
 		self.targeted_replace = self.file.getboolean('APP', 'Targeted.Replace')
+		self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
 		self.dev_mode = self.file.getboolean('APP', 'Dev.Mode')
+		self.color_identity_max = int(self.file['APP']['Color.Identity.Max'])
 
 		# TEMPLATES section
 		self.render_snow = self.file.getboolean('TEMPLATES', 'Render.Snow')
 		self.render_miracle = self.file.getboolean('TEMPLATES', 'Render.Miracle')
-
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""
 		Check if the setting exists and return it. Default will be returned if missing.

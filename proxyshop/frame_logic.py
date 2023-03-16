@@ -38,6 +38,83 @@ def fix_color_pair(pair: str) -> Optional[str]:
         return pair[::-1]
     return
 
+def fix_color_triple(triple):
+    """
+    * Utility function to standardize ordering of color triples, ie. "BUR" becomes "UBR"
+    """
+    color_triples = [
+        con.layers.GWU,
+        con.layers.WUB,
+        con.layers.UBR,
+        con.layers.BRG,
+        con.layers.RGW,
+        con.layers.WBG,
+        con.layers.URW,
+        con.layers.BGU,
+        con.layers.RWB,
+        con.layers.GUR
+    ]
+
+    # Return the triple if it's already in the correct order
+    if triple in color_triples: return triple
+    # Make sure we have exactly 3 colors
+    elif len(triple) == 3:
+        # Start with full list
+        filtered_triples = color_triples
+        # Search letter by letter to narrow down to the correct triple
+        for letter in triple:
+            filtered_triples = list(filter(lambda x: letter in x, filtered_triples))
+
+        # We should be left with exactly 1 match
+        if len(filtered_triples) == 1 and filtered_triples[0] in color_triples:
+            return filtered_triples[0]
+        else:
+            return None
+    # No match
+    else:
+        return None
+
+def fix_color_quadrouple(quadrouple):
+    """
+    * Utility function to standardize ordering of color quadrouples, ie. "GRBU" becomes "UBRG"
+    """
+    color_quadrouples = [
+        con.layers.WUBR,
+        con.layers.UBRG,
+        con.layers.BRGW,
+        con.layers.RGWU,
+        con.layers.GWUB
+    ]
+
+    # Return the quadrouple if it's already in the correct order
+    if quadrouple in color_quadrouples: return quadrouple
+    # Make sure we have exactly 4 colors
+    elif len(quadrouple) == 4:
+        # Start with full list
+        filtered_quadrouples = color_quadrouples
+        # Search letter by letter to narrow down to the correct quadrouple
+        for letter in quadrouple:
+            filtered_quadrouples = list(filter(lambda x: letter in x, filtered_quadrouples))
+
+        # We should be left with exactly 1 match
+        if len(filtered_quadrouples) == 1 and filtered_quadrouples[0] in color_quadrouples:
+            return filtered_quadrouples[0]
+        else:
+            return None
+    # No match
+    else:
+        return None
+
+def fix_color_quintouple(quintouple):
+    """
+    * Utility function to standardize ordering of color quintouples, ie. "GRBUW" becomes "WUBRG"
+    """
+    # Make sure we have exactly 5 colors (WUBRG)
+    if len(quintouple) == 5:
+        return con.layers.WUBRG
+    # No match
+    else:
+        return None
 
 def select_frame_layers(card: dict) -> FrameDetails:
     """
@@ -88,6 +165,39 @@ def select_frame_layers(card: dict) -> FrameDetails:
         elif len(basic_identity) == 2:
             # Exactly two basic land types. Fix naming convention, return frame elements
             basic_identity = fix_color_pair(basic_identity)
+            return {
+                'background': con.layers.LAND,
+                'pinlines': basic_identity,
+                'twins': con.layers.LAND,
+                'is_colorless': False
+            }
+        elif len(basic_identity) == 3 and len(basic_identity) <= cfg.color_identity_max:
+            # Exactly three basic land types (ie. IKO/SNC Triomes, Shard/Wedge tap lands)
+            # To use this, you must set Color.Identity.Max = 3 in config.ini 
+            # Default = 2 since most templates only support 2-color frames
+            basic_identity = fix_color_triple(basic_identity)
+            return {
+                'background': con.layers.LAND,
+                'pinlines': basic_identity,
+                'twins': con.layers.LAND,
+                'is_colorless': False
+            }
+        elif len(basic_identity) == 4 and len(basic_identity) <= cfg.color_identity_max:
+            # Exactly four basic land types
+            # To use this, you must set Color.Identity.Max = 4 in config.ini 
+            # Default = 2 since most templates only support 2-color frames
+            basic_identity = fix_color_quadrouple(basic_identity)
+            return {
+                'background': con.layers.LAND,
+                'pinlines': basic_identity,
+                'twins': con.layers.LAND,
+                'is_colorless': False
+            }
+        elif len(basic_identity) == 5 and len(basic_identity) <= cfg.color_identity_max:
+            # Exactly five basic land types
+            # To use this, you must set Color.Identity.Max = 5 in config.ini 
+            # Default = 2 since most templates only support 2-color frames
+            basic_identity = fix_color_quintouple(basic_identity)
             return {
                 'background': con.layers.LAND,
                 'pinlines': basic_identity,
@@ -237,9 +347,17 @@ def select_frame_layers(card: dict) -> FrameDetails:
                 color_identity = color_identity + color
 
     # If the color identity is exactly two colors, ensure it fits into the proper naming convention
-    # e.g. 'WU' instead of 'UW'
-    if len(color_identity) == 2:
-        color_identity = fix_color_pair(color_identity)
+    # e.g. "WU" instead of "UW"
+    if len(color_identity) == 2: color_identity = fix_color_pair(color_identity)
+
+    # If the color identity is exactly three colors and the template can support three color frames, ensure it fits into the proper naming convention
+    if len(color_identity) == 3 and len(color_identity) <= cfg.color_identity_max: color_identity = fix_color_triple(color_identity)
+
+    # If the color identity is exactly four colors and the template can support four color frames, ensure it fits into the proper naming convention
+    if len(color_identity) == 4 and len(color_identity) <= cfg.color_identity_max: color_identity = fix_color_quadrouple(color_identity)
+
+    # If the color identity is exactly five colors and the template can support five color frames, ensure it fits into the proper naming convention
+    if len(color_identity) == 5 and len(color_identity) <= cfg.color_identity_max: color_identity = fix_color_quintouple(color_identity)
 
     # Handle Transguild Courier case - cards that explicitly state that they're all colors
     if oracle_text.find(' is all colors.') > 0:
@@ -291,24 +409,20 @@ def select_frame_layers(card: dict) -> FrameDetails:
     # Select background
     if type_line.find(con.layers.ARTIFACT) >= 0:
         background = con.layers.ARTIFACT
-    elif hybrid:
-        background = color_identity
-    elif len(color_identity) >= 2:
-        background = con.layers.GOLD
-    else:
-        background = color_identity
+    elif hybrid: background = color_identity
+    elif len(color_identity) == 3 and len(color_identity) <= cfg.color_identity_max: background = color_identity
+    elif len(color_identity) >= 2: background = con.layers.GOLD
+    else: background = color_identity
 
     # Identify if the card is a vehicle, and override the selected background if necessary
     if type_line.find(con.layers.VEHICLE) >= 0:
         background = con.layers.VEHICLE
 
     # Select pinlines
-    if len(color_identity) <= 0:
-        pinlines = con.layers.ARTIFACT
-    elif len(color_identity) <= 2:
-        pinlines = color_identity
-    else:
-        pinlines = con.layers.GOLD
+    if len(color_identity) <= 0: pinlines = con.layers.ARTIFACT
+    elif len(color_identity) <= 2: pinlines = color_identity
+    elif len(color_identity) >= 3 and len(color_identity) <= cfg.color_identity_max: pinlines = color_identity
+    else: pinlines = con.layers.GOLD
 
     # Select name box
     if len(color_identity) <= 0:
