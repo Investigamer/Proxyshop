@@ -52,7 +52,7 @@ def get_card_search(
     name: str,
     set_code: Optional[str] = None,
     language: Optional[str] = None
-) -> Union[dict, Exception]:
+) -> Union[dict, Exception, None]:
     """
     Get card using cards/search scryfall API.
     @param name: Name of the card, ex: Damnation
@@ -86,11 +86,76 @@ def get_card_search(
     return err
 
 
+def get_mtg_set_mtgjson(set_code: str) -> dict:
+    """
+    Grab available set data from MTG Json.
+    @param set_code: The set to look for, ex: MH2
+    @return: MTGJson set dict or empty dict.
+    """
+    err = None
+    for i in range(3):
+        try:
+            # Grab from MTG JSON
+            source = requests.get(
+                f"https://mtgjson.com/api/v5/{set_code.upper()}.json",
+                headers=con.http_header
+            ).text
+            j = json.loads(source)['data']
+
+            # Minimize data stored
+            j.pop('cards', None)
+            j.pop('tokens', None)
+            j.pop('booster', None)
+            j.pop('sealedProduct', None)
+
+            # Return data if valid
+            return j if j.get('name') else {}
+        except Exception as e:
+            # Remote disconnected / invalid data
+            err = e
+        # Scryfall rate limit, 3 Retries
+        # https://scryfall.com/docs/api
+        time.sleep(0.05)
+    # Remote disconnected
+    console.log_exception(err)
+    return {}
+
+
+def get_mtg_set_scryfall(set_code: str) -> dict:
+    """
+    Grab available set data from MTG Json.
+    @param set_code: The set to look for, ex: MH2
+    @return: Scryfall set dict or empty dict.
+    """
+    err = None
+    for i in range(3):
+        try:
+            # Grab from MTG JSON
+            source = requests.get(
+                f"https://api.scryfall.com/sets/{set_code.upper()}",
+                headers=con.http_header
+            ).text
+            j = json.loads(source)
+
+            # Return data if valid
+            j['scryfall'] = True
+            return j if j.get('name') else {}
+        except Exception as e:
+            # Remote disconnected / invalid data
+            err = e
+        # Scryfall rate limit, 3 Retries
+        # https://scryfall.com/docs/api
+        time.sleep(0.05)
+    # Remote disconnected
+    console.log_exception(err)
+    return {}
+
+
 def get_mtg_set(set_code: str) -> Optional[dict]:
     """
-    Search scryfall for a set
+    Grab available set data.
     @param set_code: The set to look for, ex: MH2
-    @return: MTG set dict or None
+    @return: MTG set dict or empty dict.
     """
     # Has this set been logged?
     filepath = os.path.join(con.path_data_sets, f"SET-{set_code.upper()}.json")
@@ -98,27 +163,27 @@ def get_mtg_set(set_code: str) -> Optional[dict]:
         if os.path.exists(filepath):
             with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
-                return loaded
+                # Load if it has Scryfall data
+                if loaded.get('scryfall'):
+                    return loaded
     except Exception as e:
+        # Object couldn't be loaded
         console.log_exception(e)
-    err = None
-    url = f"https://mtgjson.com/api/v5/{set_code.upper()}.json"
 
-    # Try up to 5 times
-    for i in range(5):
-        try:
-            source = requests.get(url, headers=con.http_header).text
-            j = json.loads(source)['data']
-            j.pop('cards')
+    # Get set data
+    data_scry = get_mtg_set_scryfall(set_code)
+    data_mtg = get_mtg_set_mtgjson(set_code)
+    try:
+        # Save the data if both lookups were valid, or 'printed_size' is present
+        data_scry.update(data_mtg)
+        if (data_mtg and data_scry) or 'printed_size' in data_scry:
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(j, f, sort_keys=True, ensure_ascii=False)
-            return j
-        except Exception as e:
-            # Remote disconnected
-            err = e
-        time.sleep(float(i/5))
-    console.log_exception(err)
-    return
+                json.dump(data_scry, f, sort_keys=True, ensure_ascii=False)
+        return data_scry
+    except Exception as e:
+        # Invalid data
+        console.log_exception(e)
+    return {}
 
 
 def card_scan(img_url: str) -> Optional[str]:
@@ -174,6 +239,8 @@ def check_playable_card(card_json: dict) -> bool:
 def process_scryfall_data(card_json: dict) -> dict:
     """
     Process any additional required data before sending it to the layout object.
+    @param card_json: Unprocessed scryfall data.
+    @return: Processed scryfall data.
     """
     # Lookup faces for Meld card
     if card_json['layout'] == "meld":
