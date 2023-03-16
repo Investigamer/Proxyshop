@@ -32,25 +32,6 @@ app.preferences.typeUnits = Units.Points
 
 
 """
-SYSTEM FUNCTIONS
-"""
-
-
-def check_fonts(fonts: list) -> list:
-    """
-    Check if given fonts exist in users Photoshop Application.
-    @return: Array of missing fonts or None
-    """
-    missing = []
-    for f in fonts:
-        try:
-            assert isinstance(app.fonts.getByName(f).name, str)
-        except AssertionError:
-            missing.append(f)
-    return missing
-
-
-"""
 UTILITY FUNCTIONS
 """
 
@@ -588,12 +569,9 @@ def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
     @param layer_name: Optional name for the new layer
     @return: Newly created layer object
     """
-    if layer_name is None:
-        layer_name = "Layer"
-
     # Create new layer at top of layers
     active_layer = app.activeDocument.activeLayer
-    layer = app.activeDocument.artLayers.add(layer_name="Layer")
+    layer = app.activeDocument.artLayers.add(layer_name=layer_name or "Layer")
 
     # Name it & set blend mode to normal
     layer.blendMode = BlendMode.NormalBlend
@@ -846,6 +824,66 @@ def disable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
     set_layer_mask(layer, False)
 
 
+def set_fx_visibility(layer: Optional[Union[ArtLayer, LayerSet]], visible: bool = True) -> None:
+    """
+    Shows or hides the layer effects on a given layer.
+    @param layer: ArtLayer or LayerSet, use active if not provided.
+    @param visible: Make visible if True, otherwise hide.
+    """
+    if not layer:
+        layer = app.activeDocument.activeLayer
+    else:
+        app.activeDocument.activeLayer = layer
+
+    # Change visibility
+    desc = ActionDescriptor()
+    action_list = ActionList()
+    ref = ActionReference()
+    ref.putClass(sID("layerEffects"))
+    ref.putIdentifier(sID("layer"), layer.id)
+    action_list.putReference(ref)
+    desc.putList(sID("target"),  action_list)
+    app.executeAction(sID("show" if visible else "hide"), desc, NO_DIALOG)
+
+
+def enable_layer_fx(layer: Optional[Union[ArtLayer, LayerSet]]) -> None:
+    """
+    Passthrough function for `change_fx_visibility` to enable effects on layer.
+    @param layer: ArtLayer or LayerSet, will use active if not provided.
+    """
+    set_fx_visibility(layer, True)
+
+
+def disable_layer_fx(layer: Optional[Union[ArtLayer, LayerSet]]) -> None:
+    """
+    Passthrough function for `change_fx_visibility` to enable effects on layer.
+    @param layer: ArtLayer or LayerSet, will use active if not provided.
+    """
+    set_fx_visibility(layer, False)
+
+
+def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]]) -> None:
+    """
+    Sets the fill opacity of a given layer.
+    @param opacity: Fill opacity to set.
+    @param layer: ArtLayer or LayerSet object.
+    """
+    # Set the active layer
+    if layer:
+        app.activeDocument.activeLayer = layer
+
+    # Set the layer's fill opacity
+    d = ActionDescriptor()
+    ref = ActionReference()
+    d1 = ActionDescriptor()
+    ref.PutEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    d.PutReference(sID("target"),  ref)
+    d1.PutUnitDouble(sID("fillOpacity"), sID("percentUnit"), opacity)
+    d.PutObject(sID("to"), sID("layer"),  d1)
+    app.ExecuteAction(sID("set"), d, NO_DIALOG)
+
+
+
 def get_leaf_layers(group: Optional[LayerSet] = None) -> list[ArtLayer]:
     """
     Utility function to generate a list of leaf layers in a LayerSet or document.
@@ -1029,6 +1067,8 @@ def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> N
             apply_fx_drop_shadow(fx_action, fx)
         elif fx['type'] == 'gradient-overlay':
             apply_fx_gradient_overlay(fx_action, fx)
+        elif fx['type'] == 'color-overlay':
+            apply_fx_color_overlay(fx_action, fx)
 
     # Apply all fx actions
     main_action.putObject(sID("to"), sID("layerEffects"), fx_action)
@@ -1136,7 +1176,11 @@ def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> 
     @param action: Pending layer effects action descriptor.
     @param fx: Color Overlay effect properties.
     """
-    pass
+    d = ActionDescriptor()
+    d.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
+    apply_color(d, fx.get('color', rgb_black()))
+    d.PutUnitDouble(sID("opacity"), sID("percentUnit"), 100.000000)
+    action.PutObject(sID("solidFill"), sID("solidFill"), d)
 
 
 """
@@ -1486,11 +1530,6 @@ def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Opti
                 cfg.symbol_stroke
             ])
         }
-        if cfg.fill_symbol:
-            # Background fill action
-            symbol['fill'] = get_color(
-                'white' if rarity == con.rarity_common else 'black'
-            )
         if rarity != con.rarity_common:
             # Gradient overlay action
             symbol['rarity'] = True
@@ -1546,7 +1585,7 @@ def format_expansion_symbol_dict(sym: dict, rarity: str) -> dict:
                 sym.get('gradient')
             )
             # Only enable if rarity fill not enabled
-            symbol['rarity'] = sym.get('rarity', bool(symbol['fill'] != 'rarity'))
+            symbol['rarity'] = sym.get('rarity', bool(symbol.get('fill') != 'rarity'))
         return symbol
 
     # Common only attributes
