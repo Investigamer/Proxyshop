@@ -20,10 +20,6 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
     template_file_name = "extended"
     template_suffix = "Extended"
 
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
-
     @property
     def background_layer(self) -> Optional[ArtLayer]:
         # Background
@@ -39,11 +35,15 @@ class SilvanExtendedTemplate (temp.NormalTemplate):
         # Content aware fill
         psd.content_fill_empty_area(self.art_layer)
 
+    def enable_crown(self) -> None:
+        super().enable_crown()
+        psd.enable_mask(self.background_layer.parent)
+
     def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
         super().enable_hollow_crown()
 
-        shadows = psd.getLayer("Shadows Light", "Shadows")
-        if shadows:
+        # Mask shadows overlaying hollow crown
+        if shadows := psd.getLayer("Shadows Light", "Shadows"):
             psd.enable_mask(shadows)
 
 
@@ -59,10 +59,6 @@ class SilvanMDFCBackTemplate (temp.MDFCBackTemplate):
     template_file_name = "extended-mdfc-back"
     dfc_layer_group = con.layers.MDFC_BACK
     template_suffix = "Extended"
-
-    def __init__(self, layout):
-        cfg.remove_reminder = True
-        super().__init__(layout)
 
     def load_artwork(self):
         super().load_artwork()
