@@ -9,13 +9,16 @@
 		"Expedition": "ExpeditionTemplate",
 		"Womens Day": "WomensDayTemplate",
 		"Miracle": "MiracleTemplate",
-		"Snow": "SnowTemplate"
+		"Snow": "SnowTemplate",
+		"Universes Beyond": "UniversesBeyondTemplate"
 	},
 	"transform_front": {
-		"Normal": "TransformFrontTemplate"
+		"Normal": "TransformFrontTemplate",
+		"Universes Beyond": "UniversesBeyondTemplate"
 	},
 	"transform_back": {
-		"Normal": "TransformBackTemplate"
+		"Normal": "TransformBackTemplate",
+		"Universes Beyond": "UniversesBeyondTemplate"
 	},
 	"mdfc_front": {
 		"Normal": "MDFCFrontTemplate"
