@@ -1,6 +1,8 @@
 """
 Pencil Sketchify Action Module
 """
+from typing import Union
+
 from src.__console__ import console
 import photoshop.api as ps
 app = ps.Application()
@@ -14,12 +16,12 @@ HELPERS
 """
 
 
-def new_layer(id):
+def new_layer(index: int):
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putClass(cID('Lyr '))
 	desc1.putReference(cID('null'), ref1)
-	desc1.putInteger(cID('LyrI'), id)
+	desc1.putInteger(cID('LyrI'), index)
 	app.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 
@@ -36,18 +38,16 @@ def select_bg():
 
 
 def reset_colors():
-	"""
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putProperty(cID('Clr '), cID('Clrs'))
 	desc1.putReference(cID('null'), ref1)
 	app.executeAction(cID('Rset'), desc1, dialog_mode)
-	"""
-	pass
 
 
-def move_layer(pos, id):
-	if isinstance(id, int): id = [id]
+def move_layer(pos, index: Union[int, list[int]]):
+	if isinstance(index, int):
+		index = [index]
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
@@ -58,13 +58,13 @@ def move_layer(pos, id):
 	desc1.putBoolean(cID('Adjs'), False)
 	desc1.putInteger(cID('Vrsn'), 5)
 	list1 = ps.ActionList()
-	for i in id:
+	for i in index:
 		list1.putInteger(i)
 	desc1.putList(cID('LyrI'), list1)
 	app.executeAction(cID('move'), desc1, dialog_mode)
 
 
-def set_opacity(opacity):
+def set_opacity(opacity: float):
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
@@ -75,19 +75,19 @@ def set_opacity(opacity):
 	app.executeAction(cID('setd'), desc1, dialog_mode)
 
 
-def select_layer(name, id):
+def select_layer(name: str, index: int):
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putName(cID('Lyr '), name)
 	desc1.putReference(cID('null'), ref1)
 	desc1.putBoolean(cID('MkVs'), False)
 	list1 = ps.ActionList()
-	list1.putInteger(id)
+	list1.putInteger(index)
 	desc1.putList(cID('LyrI'), list1)
 	app.executeAction(cID('slct'), desc1, dialog_mode)
 
 
-def select_layers(name, layers):
+def select_layers(name: str, layers: list[int]):
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putName(cID('Lyr '), name)
@@ -118,8 +118,10 @@ def hide_layer(name=None):
 	desc1 = ps.ActionDescriptor()
 	list1 = ps.ActionList()
 	ref1 = ps.ActionReference()
-	if name: ref1.putName(cID('Lyr '), name)
-	else: ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
+	if name:
+		ref1.putName(cID('Lyr '), name)
+	else:
+		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 	list1.putReference(ref1)
 	desc1.putList(cID('null'), list1)
 	app.executeAction(cID('Hd  '), desc1, dialog_mode)
@@ -129,8 +131,10 @@ def show_layer(name=None):
 	desc1 = ps.ActionDescriptor()
 	list1 = ps.ActionList()
 	ref1 = ps.ActionReference()
-	if name: ref1.putName(cID('Lyr '), name)
-	else: ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
+	if name:
+		ref1.putName(cID('Lyr '), name)
+	else:
+		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 	list1.putReference(ref1)
 	desc1.putList(cID('null'), list1)
 	app.executeAction(cID('Shw '), desc1, dialog_mode)
@@ -162,6 +166,24 @@ def blend(key):
 	desc2.putEnumerated(cID('Md  '), cID('BlnM'), sID(key))
 	desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 	app.executeAction(cID('setd'), desc1, dialog_mode)
+
+
+"""
+FILTERS
+"""
+
+
+def filter_photocopy(detail: int = 2, darken: int = 5):
+	"""
+	Apply photocopy filter.
+	@param detail: Level of detail.
+	@param darken: Darkness amount.
+	"""
+	desc1 = ps.ActionDescriptor()
+	desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('Phtc'))
+	desc1.putInteger(sID('detail '), detail)
+	desc1.putInteger(sID('darken'), darken)
+	app.executeAction(1195730531, desc1, dialog_mode)
 
 
 # Utility commands
@@ -218,11 +240,7 @@ def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_edi
 	reset_colors()
 
 	# Filter Gallery - Photocopy
-	desc1 = ps.ActionDescriptor()
-	desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('Phtc'))
-	desc1.putInteger(cID('Dtl '), 2)
-	desc1.putInteger(cID('Drkn'), 5)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	filter_photocopy(detail=2, darken=5)
 
 	# Set - Blending Multiply
 	blend_multiply()
@@ -243,12 +261,12 @@ def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_edi
 	desc1 = ps.ActionDescriptor()
 	list1 = ps.ActionList()
 	desc2 = ps.ActionDescriptor()
+	desc3 = ps.ActionDescriptor()
 	desc2.putEnumerated(cID('GEfk'), cID('GEft'), cID('AccE'))
 	desc2.putInteger(cID('EdgW'), 3)
 	desc2.putInteger(cID('EdgB'), 20)
 	desc2.putInteger(cID('Smth'), 15)
 	list1.putObject(cID('GEfc'), desc2)
-	desc3 = ps.ActionDescriptor()
 	desc3.putEnumerated(cID('GEfk'), cID('GEft'), cID('Phtc'))
 	desc3.putInteger(cID('Dtl '), 1)
 	desc3.putInteger(cID('Drkn'), 49)
@@ -665,11 +683,7 @@ def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_edi
 	reset_colors()
 
 	# Filter Gallery - Photocopy
-	desc1 = ps.ActionDescriptor()
-	desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('Phtc'))
-	desc1.putInteger(cID('Dtl '), 2)
-	desc1.putInteger(cID('Drkn'), 5)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	filter_photocopy(detail=2, darken=5)
 
 	# Set
 	blend_multiply()
