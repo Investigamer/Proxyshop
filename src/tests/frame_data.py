@@ -10,13 +10,13 @@ from os import path as osp
 os.chdir(osp.abspath(osp.join(os.getcwd(), '..', '..')))
 
 # Run headless
-from proxyshop.constants import con
+from src.constants import con
 con.headless = True
 
 # Additional imports
-from proxyshop.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
-from proxyshop.layouts import NormalLayout
-from proxyshop.scryfall import card_info
+from src.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
+from src.layouts import NormalLayout
+from src.scryfall import card_info
 
 # TODO: Implement actual pytest assertions
 test_cases = {

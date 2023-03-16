@@ -3,11 +3,17 @@ EXPANSION SYMBOL TESTING
 """
 # Change to root directory
 import os
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
+
+from src.utils.enums_photoshop import Alignment
+
+# Use this to force a working directory if IDE doesn't support it
+# os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
+from photoshop.api._layerSet import LayerSet
+from photoshop.api.application import ArtLayer
 import photoshop.api as ps
 
 from src.constants import con
@@ -39,19 +45,19 @@ class TestLayout:
     @cached_property
     def symbol(self) -> str:
         # Automatic set symbol enabled?
-        if cfg.auto_symbol and self.set in con.set_symbols:
+        if not cfg.symbol_force_default and self.set in con.set_symbols:
             sym = con.set_symbols[self.set]
             # Check if this is a reference to another symbol
             if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
                 return con.set_symbols[sym]
             return sym
-        elif cfg.auto_symbol and self.set[1:] in con.set_symbols:
+        elif not cfg.symbol_force_default and self.set[1:] in con.set_symbols:
             sym = con.set_symbols[self.set[1:]]
             # Check if this is a reference to another symbol
             if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
                 return con.set_symbols[sym]
             return sym
-        return cfg.symbol_char
+        return con.set_symbols.get(cfg.symbol_default, con.set_symbols['MTG'])
 
 
 class TestTemplate:
@@ -63,7 +69,7 @@ class TestTemplate:
     def __init__(self, layout: TestLayout):
         self.layout = layout
         self._expansion_symbol = psd.getLayer('Expansion Symbol', self.text_layers)
-        self.create_expansion_symbol()
+        self.expansion_symbol()
 
     @cached_property
     def app(self):
@@ -73,76 +79,88 @@ class TestTemplate:
     def text_layers(self):
         return psd.getLayerSet('Text')
 
+    """
+    EXPANSION SYMBOL PROPERTIES
+    """
+
+    @property
+    def expansion_symbol_anchor(self) -> ps.AnchorPosition:
+        return ps.AnchorPosition.MiddleRight
+
+    @property
+    def expansion_symbol_alignments(self) -> list[Alignment]:
+        return [Alignment.CenterVertical, Alignment.CenterHorizontal]
+
     @cached_property
-    def expansion_symbol_anchor(self):
-        return ps.AnchorPosition.MiddleCenter
+    def expansion_reference_layer(self):
+        # Expansion symbol reference layer
+        return psd.getLayer(con.layers.EXPANSION_REFERENCE, self.text_layers)
 
-    @property
-    def active_layer(self):
-        return self.app.activeDocument.activeLayer
+    @cached_property
+    def expansion_symbol_layer(self) -> Optional[ArtLayer]:
+        # Expansion symbol layer
+        return psd.getLayer(con.layers.EXPANSION_SYMBOL, self.text_layers)
 
-    @active_layer.setter
-    def active_layer(self, value):
-        self.app.activeDocument.activeLayer = value
-
-    @property
-    def expansion_symbol(self):
-        return self._expansion_symbol
-
-    @expansion_symbol.setter
-    def expansion_symbol(self, value):
-        self._expansion_symbol = value
-
-    def create_expansion_symbol(self, centered: bool = False) -> None:
+    def expansion_symbol(self) -> None:
         """
-        Builds the expansion symbol
-        @param centered: Center the symbol within its reference.
+        Builds the user's preferred type of expansion symbol.
         """
-        # Starting symbol, reference, and rarity layers
-        symbol_layer = psd.getLayer(con.layers.EXPANSION_SYMBOL, self.text_layers)
-        ref_layer = psd.getLayer(con.layers.EXPANSION_REFERENCE, self.text_layers)
-        psd.clear_layer_style(symbol_layer)
-        current_layer = symbol_layer
+        if cfg.symbol_mode not in ['default', 'classic', 'svg']:
+            self.expansion_symbol_layer.textItem.contents = ''
+            return
 
-        # Put everything in a group
+        # Create a group for generated layers, clear style
         group = self.app.activeDocument.layerSets.add()
-        group.move(current_layer, ps.ElementPlacement.PlaceAfter)
-        symbol_layer.move(group, ps.ElementPlacement.PlaceInside)
+        group.move(self.expansion_symbol_layer, ps.ElementPlacement.PlaceAfter)
+        psd.clear_layer_style(self.expansion_symbol_layer)
+        self.create_expansion_symbol(group)
 
+        # Merge and refresh cache
+        group.merge().name = "Expansion Symbol"
+        self.expansion_symbol_layer.name = "Expansion Symbol Old"
+        self.expansion_symbol_layer.opacity = 0
+
+    def create_expansion_symbol(self, group: LayerSet) -> None:
+        """
+        Builds the expansion symbol using the newer layer effects methodology.
+        @param group: The LayerSet to add generated layers to.
+        """
         # Set the starting character and format our layer array
-        if self.layout.rarity not in ['common', 'uncommon', 'rare', 'mythic']:
-            self.layout.rarity = 'mythic'
-        symbol_layer.textItem.contents, symbols = psd.process_expansion_symbol_info(
+        self.expansion_symbol_layer.textItem.contents, symbols = psd.process_expansion_symbol_info(
             self.layout.symbol, self.layout.rarity.lower()
         )
 
-        # Size to fit reference?
-        if cfg.auto_symbol_size:
-            psd.frame_layer(symbol_layer, ref_layer, self.expansion_symbol_anchor, True, centered)
+        # Size to fit reference
+        psd.frame_layer(
+            self.expansion_symbol_layer,
+            self.expansion_reference_layer,
+            smallest=True,
+            anchor=self.expansion_symbol_anchor,
+            alignments=self.expansion_symbol_alignments
+        )
 
         # Create each symbol layer
         for i, lay in enumerate(symbols):
             # Establish new current layer
-            current_layer = symbol_layer.duplicate(current_layer, ps.ElementPlacement.PlaceAfter)
+            current_layer = self.expansion_symbol_layer.duplicate(group, ps.ElementPlacement.PlaceAtEnd)
             current_layer.textItem.contents = lay['char']
             self.active_layer = current_layer
-            layer_fx = []
-            fill_layer = None
+            layer_fx, fill_layer = [], None
 
             # Change font color
-            if 'color' in lay:
+            if lay.get('color'):
                 current_layer.textItem.color = lay['color']
 
             # Stroke fx
-            if 'stroke' in lay:
+            if lay.get('stroke'):
                 layer_fx.append(lay['stroke'])
 
             # Rarity gradient overlay fx
-            if lay.get('rarity') and 'gradient' in lay:
+            if lay.get('rarity') and lay.get('gradient'):
                 layer_fx.append(lay['gradient'])
 
             # Drop shadow fx
-            if 'drop-shadow' in lay:
+            if lay.get('drop-shadow'):
                 layer_fx.append(lay['drop-shadow'])
 
             # Apply layer FX
@@ -150,12 +168,12 @@ class TestTemplate:
                 psd.apply_fx(current_layer, layer_fx)
 
             # Rarity background fill
-            if lay.get('fill') == 'rarity' and 'gradient' in lay:
+            if lay.get('fill') == 'rarity' and lay.get('gradient'):
                 # Apply fill before rarity
                 psd.rasterize_layer_style(current_layer)
                 fill_layer = psd.fill_expansion_symbol(current_layer, psd.rgb_black())
                 psd.apply_fx(fill_layer, [lay['gradient']])
-            elif 'fill' in lay:
+            elif lay.get('fill'):
                 psd.rasterize_layer_style(current_layer)
                 fill_layer = psd.fill_expansion_symbol(current_layer, lay['fill'])
 
@@ -164,18 +182,11 @@ class TestTemplate:
                 current_layer = psd.merge_layers([current_layer, fill_layer])
 
             # Scale factor
-            if 'scale' in lay:
-                current_layer.resize(lay['scale'] * 100, lay['scale'] * 100, ps.AnchorPosition.MiddleRight)
-
-        # Merge all
-        symbol_layer.move(group, ps.ElementPlacement.PlaceBefore)
-        symbol_layer.name = "Expansion Symbol Old"
-        symbol_layer.opacity = 0
-        self.expansion_symbol = group.merge()
-        self.expansion_symbol.name = "Expansion Symbol"
+            if lay.get('scale'):
+                current_layer.resize(lay['scale'] * 100, lay['scale'] * 100, self.expansion_symbol_anchor)
 
 
-def test_symbol(code: str, rarity: str, directory='proxyshop/tests/symbols'):
+def test_symbol(code: str, rarity: str, directory='src/tests/symbols'):
     print(code, rarity.title())
     TestTemplate(TestLayout(code, rarity.lower()))
     psd.save_document_jpeg(f"{code}-{rarity[0].lower()}", directory=directory)

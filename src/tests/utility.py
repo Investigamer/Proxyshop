@@ -4,6 +4,8 @@ For contributors and plugin development.
 """
 # CORE MODULES
 import os
+
+os.chdir(os.path.abspath(os.path.join(os.getcwd())))
 import colorama
 from colorama import Fore
 from operator import itemgetter
@@ -11,39 +13,14 @@ from time import perf_counter
 from typing import Optional, Union, Callable
 
 import photoshop.api as ps
-from photoshop.api._artlayer import ArtLayer
 
 from src.constants import con
-
 con.headless = True
 import src.helpers as psd
 
 app = ps.Application()
 cID = app.charIDToTypeID
 sID = app.stringIDToTypeID
-
-
-"""
-CURRENTLY IN DEVELOPMENT
-"""
-
-
-def place_watermark(ref: ArtLayer, name: str = "GU") -> ArtLayer:
-    """
-    Places an SVG watermark.
-    @param ref: Reference used to frame the watermark.
-    @param name: Name to give the new watermark layer.
-    @return: New watermark player.
-    """
-    wm = psd.import_svg(os.path.join(con.path_img, f"watermarks/{name}.svg"))
-    psd.align_vertical(wm, ref)
-    psd.align_horizontal(wm, ref)
-    app.activeDocument.activeLayer.opacity = 50
-    psd.frame_layer(wm, ref, smallest=True)
-    wm.resize(80, 80, ps.AnchorPosition.MiddleCenter)
-    wm.move(psd.getLayerSet("Pinlines & Textbox"), ps.ElementPlacement.PlaceBefore)
-    wm.blendMode = ps.BlendMode.ColorBurn
-    return wm
 
 
 """
@@ -176,22 +153,3 @@ def test_execution_time(
         print(f"Results check: {Fore.GREEN+'SUCCESS' if final[0]['value'] == final[1]['value'] else Fore.RED+'FAILED'}")
         print(final[0]['value'])
         print(final[1]['value'])
-
-
-"""
-REQUESTS TESTING
-"""
-
-"""
-code = 'xln'
-number = '96'
-lang = 'fr'
-res = requests.get(
-    url=f'https://api.scryfall.com/cards/{code}/{number}/{lang}',
-    params={
-        'pretty': True
-    }
-)
-print(res.url)
-print(res.json())
-"""
