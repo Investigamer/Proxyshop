@@ -1,4 +1,31 @@
-## Unreleased
+## v1.6.0 (2023-03-16)
+
+### Feat
+
+- **settings**: New Setting: Template Border, default is black. Other options are white, silver and gold
+- **template**: New Template: Universes Beyond, used in crossover sets like WH40K, Transformers, etc
+- **expansion_symbol**: Rewrite expansion symbol settings to allow 4 distinct modes, including SVG
+- **watermarks**: Add support for optional Watermark generation
+- **fonts**: New font utility functions: register_font(), unregister_font(), get_all_fonts(), check_fonts()
+- **helpers**: New helper functions: set_fx_visibility(), enable_layer_fx(), disable_layer_fx(), set_fill_opacity(), apply_fx_color_overlay()
+- **files**: Restructure directory structure, allow self contained plugins
+
+### Fix
+
+- **settings**: Back face to MDFC/Transform now uses the same ini as front face
+- **console**: Add missing newline
+- **symbols**: Updated some expansion symbols
+- **kivy**: Replace unused MPlantin font with PlantinMTPRo
+- **scryfall**: Improved MTG Set data caching to fix inconsistencies with collector information
+- **sketch**: Fix bug causing some pencil sketch filters to fail
+- **constants**: Fix cwd not working properly in executable version
+
+### Refactor
+
+- **tests**: Update tests for directory restructure and expansion symbol rewrite
+- **layouts**: Improve handling of card_count, pre-cache set data, reorganize properties pertaining to all double faced cards
+- **SilvanMTG**: Remove default configurations for cfg.remove_reminder
+- **types_photoshop**: Specify NotRequired for some values
 
 ## v1.5.0 (2023-03-02)
 
