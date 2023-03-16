@@ -335,36 +335,52 @@ EXPANSION SYMBOLS
 """
 
 
-def format_expansion_symbol_info(symbol: Union[str, list]) -> Optional[tuple[str, list]]:
+def format_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Optional[tuple[str, list]]:
     """
     Takes in set code and returns information needed to build the expansion symbol.
     @param symbol: Symbol chosen by layout object.
+    @param rarity: Rarity of the symbol.
     @return: List of dicts containing information about this symbol.
     """
+    rare = bool(rarity != con.rarity_common)
     if isinstance(symbol, str):
         return symbol, [{
             'char': symbol,
-            'rarity': True,
-            'fill': 'black' if cfg.fill_symbol else False,
-            'color': False,
-            'stroke': ['black', cfg.symbol_stroke],
-            'common-fill': 'white' if cfg.fill_symbol else False,
-            'common-color': False,
-            'common-stroke': ['white', cfg.symbol_stroke],
-            'scale-factor': 1
+            'rarity': rare,
+            'stroke': ['black', cfg.symbol_stroke] if rare else ['white', cfg.symbol_stroke],
+            'scale': 1
+        }]
+    if isinstance(symbol, dict):
+        ref = symbol.get('char', 'X')
+        return ref, [{
+            'char': ref,
+            'rarity': bool(symbol.get('rarity', True) and rare),
+            'fill': symbol.get('fill', False) if rare else symbol.get('common-fill', False),
+            'color': symbol.get('color', False) if rare else symbol.get('common-color', False),
+            'stroke': symbol.get(
+                'stroke', ['black', cfg.symbol_stroke]
+            ) if rare else symbol.get(
+                'common-stroke', ['white', cfg.symbol_stroke]
+            ),
+            'scale': symbol.get('scale', 1)
         }]
     if isinstance(symbol, list):
-        ref = symbol[0]['char']
+        ref = symbol[0].get('char', 'X')
+        syms = []
         for sym in symbol:
-            sym['rarity'] = sym.get('rarity', True)
-            sym['fill'] = sym.get('fill', False)
-            sym['color'] = sym.get('color', False)
-            sym['stroke'] = sym.get('stroke', ['black', cfg.symbol_stroke])
-            sym['common-fill'] = sym.get('common-fill', False)
-            sym['common-color'] = sym.get('common-color', False)
-            sym['common-stroke'] = sym.get('common-stroke', ['white', cfg.symbol_stroke])
-            sym['scale-factor'] = sym.get('scale-factor', 1)
+            syms.append({
+                'char': sym.get('char', 'X'),
+                'rarity': bool(sym.get('rarity', True) and rare),
+                'fill': sym.get('fill', False) if rare else sym.get('common-fill', False),
+                'color': sym.get('color', False) if rare else sym.get('common-color', False),
+                'stroke': sym.get(
+                    'stroke', ['black', cfg.symbol_stroke]
+                ) if rare else sym.get(
+                    'common-stroke', ['white', cfg.symbol_stroke]
+                ),
+                'scale': sym.get('scale', 1)
+            })
             if sym.get('reference', False):
-                ref = sym['char']
-        return ref, symbol
+                sym.get('char', 'X')
+        return ref, syms
     return

@@ -48,12 +48,13 @@ class Config:
 		self.flavor_divider = self.file.getboolean('TEXT', 'Flavor.Divider')
 
 		# SYMBOLS section
-		self.symbol_char = self.file['SYMBOLS']['Default.Symbol']
-		self.auto_symbol = self.file.getboolean('SYMBOLS', 'Auto.Set.Symbol')
-		self.auto_symbol_size = self.file.getboolean('SYMBOLS', 'Auto.Symbol.Size')
+		self.symbol_mode = self.file['SYMBOLS']['Symbol.Mode']
+		self.symbol_default = self.file['SYMBOLS']['Default.Symbol']
+		self.symbol_force_default = self.file.getboolean('SYMBOLS', 'Force.Default.Symbol')
 		self.symbol_stroke = self.file['SYMBOLS']['Symbol.Stroke.Size']
-		self.fill_symbol = self.file.getboolean('SYMBOLS', 'Fill.Symbol.Background')
-		self.classic_expansion_symbol = self.file.getboolean('SYMBOLS', 'Classic.Symbol.Rendering')
+
+		# WATERMARKS section
+		self.enable_watermark = self.file.getboolean('WATERMARK', 'Enable.Watermark')
 
 		# APP section
 		self.exit_early = self.file.getboolean('APP', 'Manual.Edit')
@@ -93,7 +94,7 @@ class Config:
 
 		# Choose the file
 		conf = os.path.join(con.cwd, "config.ini")
-		if template and os.path.exists(template['config_path'].replace('json', 'ini')):
+		if template and os.path.exists(template['config_path'].replace('json', 'ini')) and not self.dev_mode:
 			conf = template['config_path'].replace('json', 'ini')
 
 		# Validate the ini file's contents

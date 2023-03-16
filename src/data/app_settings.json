@@ -86,52 +86,48 @@
     "title": "Expansion Symbol"
   },
   {
+    "type": "options",
+    "title": "[b]Symbol Render Mode[/b]",
+    "desc": "Default: Renders using Keyrune + layer effects.\nClassic: Renders using Keyrune + gradient layers.\nSVG: Renders using SVGs sourced from CCGHQ.\nNone: Completely disables expansion symbol.\n[b](Default: 'default')[/b]",
+    "section": "SYMBOLS",
+    "key": "Symbol.Mode",
+    "options": ["default", "classic", "svg", "none"],
+    "default": "default"
+  },
+  {
     "type": "string",
     "title": "[b]Default Expansion Symbol[/b]",
-    "desc": "Symbol character used in lieu of an automatically generated one.\nCopy the symbol from here: http://keyrune.andrewgioia.com/cheatsheet.html\n[b]This setting must be changed manually.[/b]",
+    "desc": "Symbol used when an automatic symbol couldn't be found.\nEnter an appropriate Magic the Gathering set code.\nList of Keyrune symbols and setcode: https://keyrune.andrewgioia.com/cheatsheet.html\n[b](Default: MTG)[/b]",
     "section": "SYMBOLS",
     "key": "Default.Symbol",
-    "disabled": true,
-    "default": ""
+    "default": "MTG"
   },
   {
     "type": "bool",
-    "title": "[b]Automatically Generate Expansion Symbol[/b]",
-    "desc": "Generates an accurate looking expansion symbol.\n[b](Default: True)[/b]",
+    "title": "[b]Force Default Expansion Symbol[/b]",
+    "desc": "Forces Proxyshop to always used the Default Expansion Symbol chosen above.\n[b](Default: False)[/b]",
     "section": "SYMBOLS",
-    "key": "Auto.Set.Symbol",
-    "default": 1
-  },
-  {
-    "type": "bool",
-    "title": "[b]Automatically Position Expansion Symbol[/b]",
-    "desc": "Sizes and positions the expansion symbol to fit the type bar.\n[b](Default: True)[/b]",
-    "section": "SYMBOLS",
-    "key": "Auto.Symbol.Size",
-    "default": 1
+    "key": "Force.Default.Symbol",
+    "default": 0
   },
   {
     "type": "numeric",
-    "title": "[b]Expansion Symbol Outline Size[/b]",
+    "title": "[b]Default Expansion Symbol Outline[/b]",
     "desc": "Changes the thickness of the expansion symbol outline when not fully automated.\n[b](Default: 6)[/b]",
     "section": "SYMBOLS",
     "key": "Symbol.Stroke.Size",
     "default": 6
   },
   {
-    "type": "bool",
-    "title": "[b]Fill Expansion Symbol Background[/b]",
-    "desc": "Fills empty space in expansion symbol. This feature is mostly deprecated now.\n[b](Default: False)[/b]",
-    "section": "SYMBOLS",
-    "key": "Fill.Symbol.Background",
-    "default": 0
+    "type": "title",
+    "title": "Watermarks"
   },
   {
     "type": "bool",
-    "title": "[b]Classic Symbol Rendering[/b]",
-    "desc": "Renders expansion symbols using old methodology (pre v1.5.0).\n[b](Default: False)[/b]",
-    "section": "SYMBOLS",
-    "key": "Classic.Symbol.Rendering",
+    "title": "[b]Enable Watermark[/b]",
+    "desc": "Automatically generate watermark when detected and supported.\n[b](Default: False)[/b]",
+    "section": "WATERMARK",
+    "key": "Enable.Watermark",
     "default": 0
   },
   {
