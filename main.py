@@ -274,7 +274,7 @@ class ProxyshopApp(App):
 			proceed = console.error(
 				"\n---- [b]I can't render the following cards[/b] ----\n"
 				"{}".format("\n".join(self.assigned_layouts['failed'].copy())),
-				continue_msg="---- [b]Would you still like to proceed?[/b] ----"
+				continue_msg="\n---- [b]Would you still like to proceed?[/b] ----"
 			)
 			# Cancel the operation
 			if not proceed:
