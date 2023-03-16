@@ -310,7 +310,9 @@ class Constants:
         # Color reference dictionary
         self.colors = {
             'black': [0, 0, 0],
-            'white': [255, 255, 255]
+            'white': [255, 255, 255],
+            'silver': [167, 177, 186],
+            'gold': [166, 135, 75]
         }
 
         # Rarity gradient dictionary

@@ -883,7 +883,6 @@ def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]])
     app.ExecuteAction(sID("set"), d, NO_DIALOG)
 
 
-
 def get_leaf_layers(group: Optional[LayerSet] = None) -> list[ArtLayer]:
     """
     Utility function to generate a list of leaf layers in a LayerSet or document.

@@ -312,9 +312,9 @@ class ColorshiftedTemplate (temp.NormalTemplate):
 
         # White brush and artist for black border
         if self.layout.pinlines[0:1] == "B" and len(self.pinlines) < 3:
-            psd.getLayer("Artist", self.legal_layer).textItem.color = psd.rgb_white()
-            psd.getLayer("Brush B", self.legal_layer).visible = False
-            psd.getLayer("Brush W", self.legal_layer).visible = True
+            psd.getLayer("Artist", self.legal_group).textItem.color = psd.rgb_white()
+            psd.getLayer("Brush B", self.legal_group).visible = False
+            psd.getLayer("Brush W", self.legal_group).visible = True
 
         super().enable_frame_layers()
 
@@ -338,7 +338,7 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
 
     def collector_info(self):
         # Collector info only has artist
-        psd.replace_text(psd.getLayer(con.layers.ARTIST, self.legal_layer), "Artist", self.layout.artist)
+        psd.replace_text(psd.getLayer(con.layers.ARTIST, self.legal_group), "Artist", self.layout.artist)
 
     def load_artwork(self):
         super().load_artwork()

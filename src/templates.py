@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import Optional, Callable
 
 from PIL import Image
+from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api.application import ArtLayer, Photoshop
 from photoshop.api._layerSet import LayerSet
 from photoshop import api as ps
@@ -195,6 +196,10 @@ class BaseTemplate:
                 # Use "Full Art" frame if available
                 return psd.getLayer(con.layers.FULL_ART_FRAME) or layer
         return layer
+
+    @cached_property
+    def border_color(self) -> str:
+        return cfg.get_setting('TEMPLATES', 'Border.Color', default='black', is_bool=False)
 
     """
     LIST OF FORMATTED TEXT OBJECTS
@@ -438,6 +443,9 @@ class BaseTemplate:
         # Layers we need
         set_layer = psd.getLayer("Set", self.legal_group)
         artist_layer = psd.getLayer(con.layers.ARTIST, self.legal_group)
+        if self.border_color != 'black':
+            set_layer.textItem.color = psd.rgb_black()
+            artist_layer.textItem.color = psd.rgb_black()
 
         # Fill in language if needed
         if self.layout.lang != "en":
@@ -462,6 +470,9 @@ class BaseTemplate:
         # Get the collector layers
         collector_top = psd.getLayer(con.layers.TOP_LINE, collector_group).textItem
         collector_bottom = psd.getLayer(con.layers.BOTTOM_LINE, collector_group)
+        if self.border_color != 'black':
+            collector_top.color = psd.rgb_black()
+            collector_bottom.textItem.color = psd.rgb_black()
 
         # Fill in language if needed
         if self.layout.lang != "en":
@@ -845,6 +856,22 @@ class BaseTemplate:
         self.reset()
         return result
 
+    def color_border(self) -> None:
+        """
+        Color this card's border based on given setting.
+        """
+        # Change to a recognized color that isn't the default
+        if self.border_color != 'black' and self.border_color in con.colors:
+            try:
+                self.collector_info_authentic()
+                border = self.docref.layers.getByName('Border')
+                psd.apply_fx(border, [{
+                    'type': 'color-overlay',
+                    'color': psd.get_color(self.border_color)
+                }])
+            except PhotoshopPythonAPIError:
+                pass
+
     """
     HOOKS
     """
@@ -903,6 +930,7 @@ class BaseTemplate:
         # Enable the layers we need
         try:
             self.enable_frame_layers()
+            self.color_border()
         except Exception as e:
             return self.raise_error("Enabling layers failed!", e)
 

@@ -180,6 +180,15 @@
     "title": "Special Template Settings"
   },
   {
+    "type": "options",
+    "title": "[b]Border Color[/b]",
+    "desc": "Choose the color of the card border used across templates.\nWill work on most templates, but considered experimental.\n[b](Default: 'black')[/b]",
+    "section": "TEMPLATES",
+    "key": "Border.Color",
+    "options": ["black", "white", "silver", "gold"],
+    "default": "black"
+  },
+  {
     "type": "bool",
     "title": "[b]Render Snow Cards with Snow Template[/b]",
     "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",

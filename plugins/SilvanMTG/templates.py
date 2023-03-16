@@ -7,7 +7,6 @@ from photoshop.api._artlayer import ArtLayer
 
 import src.templates as temp
 from src.constants import con
-from src.settings import cfg
 import src.helpers as psd
 import photoshop.api as ps
 app = ps.Application()
