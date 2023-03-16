@@ -369,6 +369,23 @@ class Constants:
             ]
         }
 
+        # Watermark colors
+        self.watermark_colors = {
+            'W': [183, 157, 88],
+            'U': [140, 172, 197],
+            'B': [94, 94, 94],
+            'R': [198, 109, 57],
+            'G': [89, 140, 82],
+            'Gold': [202, 179, 77],
+            'Land': [94, 84, 72],
+            'Artifact': [100, 125, 134],
+            'Colorless': [100, 125, 134]
+        }
+
+        # Import watermark library
+        with open(osp.join(self.path_data, 'watermarks.json'), "r", encoding="utf-8-sig") as js:
+            self.watermarks = json.load(js)
+
         # Import set symbol library
         with open(osp.join(self.path_data, "symbols.json"), "r", encoding="utf-8-sig") as js:
             self.set_symbols = json.load(js)
