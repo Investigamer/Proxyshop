@@ -348,8 +348,8 @@ def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
         # Gdrive couldn't locate the file
         print(f"{temp['name']} ({temp['file']}) couldn't be located!")
         return
-    plugin_path = f"{plugin}/" if plugin else ""
-    full_path = osp.join(con.path_plugins, f"{plugin_path}templates/{temp['file']}")
+    plugin_path = f"plugins/{plugin}/" if plugin else ""
+    full_path = osp.join(con.cwd, f"{plugin_path}templates/{temp['file']}")
     if 'description' not in data or not data['description']:
         data['description'] = "v1.0.0"
     current = get_current_version(temp['id'], full_path)

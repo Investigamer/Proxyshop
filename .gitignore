@@ -184,3 +184,4 @@ cython_debug/
 /plugins/*/configs/*.ini
 # Test generated symbol images
 /src/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]
+*.psd
