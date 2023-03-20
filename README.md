@@ -1,5 +1,5 @@
 # Proxyshop
-Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
+Proxyshop is a Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
 If you need help with this app, join our discord: https://discord.gg/magicproxies
 
 <p align="center">
@@ -15,10 +15,10 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
 # Requirements
-  * Windows (currently incompatible with Mac/Linux)
   * Photoshop (2015-2023 Tested)
-  * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W)
-  * The following fonts, included in fonts folder:
+  * Windows (currently incompatible with Mac/Linux)
+  * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
+  * The following fonts (included with the app, in the `fonts` folder):
     * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, Plantin MT Pro (Regular, Italics, Bold)
     * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Keep Keyrune updated for expansion symbols)
     * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium) and [Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium)
@@ -26,7 +26,7 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
 
 # Setup and Usage Guide (GUI Release)
 * Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
-* Install the fonts included in the fonts folder, please note that Keyrune font is updated with each new MTG set, here's the [latest version](https://github.com/andrewgioia/keyrune/raw/master/fonts/keyrune.ttf).
+* Install the fonts included in the `fonts` folder, please note that Keyrune font is updated with each new MTG set, here's the [latest version](https://github.com/andrewgioia/keyrune/raw/master/fonts/keyrune.ttf).
 * Launch `Proxyshop.exe`. Click "Update". Proxyshop will load templates available to download, grab what you want. You can also download the templates manually from the above Google Drive link and place them in the `templates` folder.
 * Lets look at how Proxyshop is structured:
   * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which allows you to render your own custom cards.
@@ -79,21 +79,29 @@ _Click questions to see answers_
 <details>
 <summary>How do I change the set symbol to something else?</summary>
   
-Head over to https://keyrune.andrewgioia.com/cheatsheet.html - you can use any of these symbols for the set symbol for your cards.
-Copy the text of the symbol you want on the cheatsheet, then replace the expansion symbol character in the `config.ini` under Expansion.Symbol.
+For default and classic symbol modes, Head over to https://keyrune.andrewgioia.com/cheatsheet.html, you can use any of these symbols for the set symbol for your cards.
+Copy the SET CODE of the symbol you want, for example SOI (Shadows Over Innistrad), it'll be the code after "ss-". Then enter this code on the "Default Symbol" setting.
+Then enable "Force Default Symbol" to always use this symbol. If you'd like to customize the look of this symbol, you need to add it to `src/data/custom_symbols.json`.
+Look at how symbols are defined in `src/data/symbols.json` for guidance.
+
+For SVG symbol mode, change Default Symbol to a 2-4 letter code of your choice, and enable "Force Default Symbol". Head over to `src/img/symbols` and create a folder named 
+according to that code, or if you just want to use an existing symbol you can keep it the way it is. If making a custom symbol, add the SVG files to the folder you 
+created, named according to the first letter of rarity (in caps). That symbol will now be used for future renders.
   
 </details>
 <details>
 <summary>How do I completely hide the set symbol?</summary>
   
-In Proxyshop click Global Setting, turn off Auto Set Symbol, then for any template you want to disable expansion symbol for open it in Photoshop, change the opacity of the Expansion Symbol layer (in the Text and Icons group) to 0.
+In Proxyshop global settings (or settings for a given template) change Symbol Rendering to None. This disables the expansion symbol.
   
 </details>
 <details>
 <summary>How do I hide any photoshop layer?</summary>
   
 In the Photoshop template of your choice, change the opacity to 0 on the layer you wish to hide.
-You can use this method to hide anything, including set symbol and collector's info layers.
+You can use this method to hide anything. This is safer than just disabling the layer because layers
+may be forcibly enabled and disabled by the app, its also safer than deleting the layer because this
+may cause errors on some templates.
   
 </details>
 <details>
@@ -107,15 +115,48 @@ Also for mass downloading art, view my other project: [MTG Art Downloader](https
 <details>
 <summary>The app stops when trying to enter text and Photoshop becomes unresponsive!</summary>
   
-There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where Photoshop crashes when trying to enter too much text into a text box, it has been fixed for most occurrences but can still very occasionally happen. The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes, and report the card that failed on our discord so we can investigate.
+There is a known [bug](https://github.com/MrTeferi/MTG-Proxyshop/issues/9) where Photoshop crashes when trying to enter too much text into a text box, it should be fixed but could theoretically happen on newer/plugin templates that don't make the text box big enough.
+The best way to fix this is open the template in Photoshop, and expand the bottom edge of the Rules text boxes (creature and noncreature).
   
 </details>
 <details>
-<summary>I'm getting an error!</summary>
+<summary>ERROR: Photoshop is busy / The RPC server is not responding!</summary>
 
-In your proxyshop directory, look for a folder named `tmp`, inside that folder you should see `error.txt`, check the last error log in that file. If the error isn't obvious, join our Discord and feel free to ask for help in the #Proxyshop channel.
+This is one of the more rare but obnoxious errors that can happen on some systems. We don't know definitively what causes it, but it can
+usually be fixed. Try these options in order until something works:
+- Close Photoshop and Proxyshop, then run both Photoshop and Proxyshop as Administrator, try rendering something.
+- Close both of them, then hold ALT + CTRL + SHIFT while launching Photoshop, then launch Proxyshop, try again.
+- Restart your computer, then start both and try again.
+- If you have any particularly over-defensive antivirus software running that may be interfering with Proxyshop 
+connecting to Photoshop, such as Avast, Norton, etc, close your antivirus software, relaunch both, and try again.
+- If you have installed two versions of Photoshop, have a really outdated version of Photoshop, or think your installation of Photoshop
+could be damaged, corrupted, or otherwise messed up in some way, you might have to uninstall all versions of Photoshop from Windows 
+completely and reinstall the latest version of Photoshop you have available. Generally, Proxyshop works best with the newest version of 
+Photoshop, because Photoshop has improved substantially over the years.
+- If all of these fail to fix the issue, please join our Discord (linked at the top) and provide the error log from `logs/error.txt` in
+your Proxyshop directory, so we can help find the cause.
 
 </details>
+<details>
+<summary>I'm getting some other error!</summary>
+
+In your proxyshop directory, look for a folder named `logs`, inside that folder you should see `error.txt`, check the last error log in that file. If the error isn't obvious, join our Discord and feel free to ask for help in the #Proxyshop channel.
+
+</details>
+
+# Who is this app for?
+Proxyshop is for generating extremely high quality MTG Card images in an efficient and automated way. Proxyshop is optimally built
+for this goal, it takes in art images that you provide, looks up the card data from Scryfall, and generates an accurate render of that
+card. if you want to generate a lot of card images without painstakingly building them from scratch every time, this is the 
+app for you.
+
+Proxyshop is **NOT** Card Conjurer. You are not going to be able to mix and match parts of each template, and change every little aspect
+of the card on a nice and neat interface. It is possible to make these kind of customizations, but you will have to enable the manual 
+editing setting and change these appearances in Photoshop, or better yet create your own templates for this app using Photoshop. 
+This app **REQUIRES** Photoshop to work, and Photoshop is used to build the card. Knowledge of Photoshop is not required to use the 
+app, but if you go into it expecting "Card Conjurer" levels of customization, you'll most likely need to get really comfortable 
+with Photoshop. We have guides and resources to help you along the way, I just don't want anyone expecting the app to serve one 
+purpose, when in reality it serves a different purpose. If you understand this reality, read on to learn how to set it up! :)
 
 # Credits
 * Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop
