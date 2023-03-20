@@ -147,7 +147,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
 # Who is this app for?
 Proxyshop is for generating extremely high quality MTG Card images in an efficient and automated way. Proxyshop is optimally built
 for this goal, it takes in art images that you provide, looks up the card data from Scryfall, and generates an accurate render of that
-card. if you want to generate a lot of card images without painstakingly building them from scratch every time, this is the 
+card. If you want to generate a lot of card images without painstakingly building them from scratch every time, this is the 
 app for you.
 
 Proxyshop is **NOT** Card Conjurer. You are not going to be able to mix and match parts of each template, and change every little aspect
@@ -155,8 +155,7 @@ of the card on a nice and neat interface. It is possible to make these kind of c
 editing setting and change these appearances in Photoshop, or better yet create your own templates for this app using Photoshop. 
 This app **REQUIRES** Photoshop to work, and Photoshop is used to build the card. Knowledge of Photoshop is not required to use the 
 app, but if you go into it expecting "Card Conjurer" levels of customization, you'll most likely need to get really comfortable 
-with Photoshop. We have guides and resources to help you along the way, I just don't want anyone expecting the app to serve one 
-purpose, when in reality it serves a different purpose. If you understand this reality, read on to learn how to set it up! :)
+with Photoshop. We have guides and resources to help you along the way, if you decide to go all-in!
 
 # Credits
 * Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop
