@@ -504,18 +504,23 @@ class TransformLayout (NormalLayout):
     """
 
     @cached_property
-    def saga_lines(self) -> list:
+    def saga_lines(self) -> list[dict]:
         # Not a saga?
         if 'Saga' not in self.type_line_raw:
             return []
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
         for i, line in enumerate(self.oracle_text.split("\n")[1:]):
-            icons, text = line.split(" \u2014 ", 1)
-            abilities.append({
-                "text": text,
-                "icons": icons.split(", ")
-            })
+            # Check if this is a full ability line
+            if " \u2014 " in line:
+                icons, text = line.split(" \u2014 ", 1)
+                abilities.append({
+                    "text": text,
+                    "icons": icons.split(", ")
+                })
+                continue
+            # Add to the previous line
+            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
         return abilities
 
     @cached_property
@@ -748,7 +753,7 @@ class ClassLayout (NormalLayout):
     """
 
     @cached_property
-    def class_lines(self):
+    def class_lines(self) -> list[dict]:
         # Split the lines, add first static line
         lines = self.oracle_text.split("\n")
         abilities: list[dict] = [{'text': lines[1], "cost": None, "level": 1}]
@@ -756,13 +761,17 @@ class ClassLayout (NormalLayout):
         # Set up the dynamic lines
         lines = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]
         for line in lines:
+            # Try to match this line to a class ability
             details = class_regex.match(line)
-            abilities.append({
-                'cost': details[1],
-                'level': details[2],
-                'text': details[3]
-            })
-
+            if details and len(details.groups()) >= 3:
+                abilities.append({
+                    'cost': details[1],
+                    'level': details[2],
+                    'text': details[3]
+                })
+                continue
+            # Otherwise add line to the previous ability
+            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
         return abilities
 
 
