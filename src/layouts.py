@@ -70,12 +70,15 @@ class NormalLayout:
     """
     def __init__(self, scryfall: dict, file: dict, **kwargs):
 
-        # settable properties
+        # Establish core properties
         self._file = file
         self._scryfall = scryfall
-        self._set_data = get_set_data(self.set) or {}
         self._filename = file['filename']
         self._template_file = ''
+
+        # Cache set data
+        if not hasattr(self, '_set_data'):
+            self._set_data = get_set_data(self.set) or {}
 
     def __str__(self):
         return f"{self.name} [{self.set}] {{{self.collector_number}}}"
@@ -790,9 +793,12 @@ class BasicLandLayout (NormalLayout):
     No special data entry, just a basic land
     """
     def __init__(self, scryfall: dict,  file: dict, **kwargs):
-        # Add artist to Scryfall data
+        # Add artist and creator to Scryfall data
         scryfall['artist'] = file['artist'] or 'Unknown'
         scryfall['creator'] = file['creator'] or None
+
+        # Assign empty set data
+        self._set_data = {}
         super().__init__(scryfall, file, **kwargs)
 
     @property

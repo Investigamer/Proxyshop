@@ -123,7 +123,7 @@ class ProxyshopApp(App):
 
 		# Data
 		self._templates_selected = {}
-		self._result = True
+		self._result = False
 		self._docref = None
 
 	"""
@@ -341,6 +341,10 @@ class ProxyshopApp(App):
 				# Loop through cards to test
 				failures = []
 				console.update(f"{template['class_name']} ... ", end="")
+				# Is this template installed?
+				if not osp.isfile(template['template_path']):
+					console.update(msg_warn(f"SKIPPED (Template not installed)"))
+					continue
 				for card in cards:
 					# Assign a layout to this card
 					layout = assign_layout(card[0])
@@ -380,8 +384,14 @@ class ProxyshopApp(App):
 		with open(osp.join(con.cwd, "src/data/tests.json"), encoding="utf-8") as fp:
 			cards = json.load(fp)
 
-		# Loop through our cases
+		# Is this template installed?
 		console.update(msg_success(f"\n---- {template['class_name']} ----"))
+		if not osp.isfile(template['template_path']):
+			console.update(msg_warn("SKIPPED (Template not installed)"))
+			self.reset(enable_buttons=True)
+			return
+
+		# Render each test case
 		for card in cards[card_type]:
 			# Get the layout object
 			layout = assign_layout(card[0])
@@ -461,6 +471,7 @@ class ProxyshopApp(App):
 		"""
 		Reset app config state to default.
 		"""
+		self.result = False
 		if reload_config:
 			cfg.load()
 		if reload_constants:
