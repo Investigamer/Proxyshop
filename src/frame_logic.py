@@ -7,6 +7,33 @@ from src.constants import con
 from src.settings import cfg
 
 
+"""
+REUSABLE VARS
+"""
+
+colors = [
+    con.layers.WHITE,
+    con.layers.BLUE,
+    con.layers.BLACK,
+    con.layers.RED,
+    con.layers.GREEN
+]
+basic_colors = {
+    'Plains': con.layers.WHITE,
+    'Island': con.layers.BLUE,
+    'Swamp': con.layers.BLACK,
+    'Mountain': con.layers.RED,
+    'Forest': con.layers.GREEN
+}
+mono_symbols = ['{W}', '{U}', '{B}', '{R}', '{G}']
+hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R', 'R/W']
+
+
+"""
+TYPES
+"""
+
+
 class FrameDetails(TypedDict):
     is_colorless: bool
     background: Optional[str]
@@ -53,21 +80,6 @@ def select_frame_layers(card: dict) -> FrameDetails:
         card['color_indicator'] if 'color_indicator' in card else [],
         card['object'] == 'card_face'
     ]
-    colors = [
-        con.layers.WHITE,
-        con.layers.BLUE,
-        con.layers.BLACK,
-        con.layers.RED,
-        con.layers.GREEN
-    ]
-    basic_colors = {
-        'Plains': con.layers.WHITE,
-        'Island': con.layers.BLUE,
-        'Swamp': con.layers.BLACK,
-        'Mountain': con.layers.RED,
-        'Forest': con.layers.GREEN
-    }
-    hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R', 'R/W']
     twins = colors_tapped = color_identity = basic_identity = ''
 
     """
@@ -223,9 +235,8 @@ def select_frame_layers(card: dict) -> FrameDetails:
 
     # Card with no mana cost
     if mana_cost == '' or (mana_cost == '{0}' and con.layers.ARTIFACT not in type_line):
-        # If `color_indicator` is defined for this card, use that as the colour identity
-        # Otherwise, use `color_identity` as the color identity
-        color_identity = ''
+        # If `color_indicator` is defined for this card, use that as the color identity
+        # Otherwise, use `color_identity_array`
         if color_indicator:
             color_identity = ''.join(color_indicator)
         elif color_identity_array:
@@ -233,9 +244,7 @@ def select_frame_layers(card: dict) -> FrameDetails:
     else:
         # The card has a non-empty mana cost
         # Loop over each color of mana, and add it to the color identity if it's in the mana cost
-        for color in colors:
-            if mana_cost.find('{' + color) >= 0 or mana_cost.find(color + '}') >= 0:
-                color_identity = color_identity + color
+        color_identity = get_mana_cost_colors(mana_cost)
 
     # If the color identity is exactly two colors, ensure it fits into the proper naming convention
     # e.g. 'WU' instead of 'UW'
@@ -277,12 +286,12 @@ def select_frame_layers(card: dict) -> FrameDetails:
             'is_colorless': True,
         }
 
-    # Identify if the card is a two-color hybrid card
+    # Identify if the card is a two-color hybrid card with only hybrid mana
     hybrid = False
-    if len(color_identity) == 2:
+    if len(color_identity) == 2 and not any([symbol in mana_cost for symbol in mono_symbols]):
         for hybrid_symbol in hybrid_symbols:
-            if mana_cost.find(hybrid_symbol) >= 0:
-                # The card is two colors and has a hybrid symbol in its mana cost
+            if hybrid_symbol in mana_cost:
+                # Two color card with only hybrid symbols
                 hybrid = True
                 break
         # Hybrid blank mana cost cards like Asmo
@@ -290,35 +299,42 @@ def select_frame_layers(card: dict) -> FrameDetails:
             hybrid = True
 
     # Select background
-    if type_line.find(con.layers.ARTIFACT) >= 0:
+    if con.layers.VEHICLE in type_line:
+        # Vehicle card
+        background = con.layers.VEHICLE
+    elif con.layers.ARTIFACT in type_line:
+        # Artifact card
         background = con.layers.ARTIFACT
-    elif hybrid:
-        background = color_identity
-    elif len(color_identity) >= 2:
+    elif len(color_identity) >= 2 and not hybrid:
+        # 2+ color card not Hybrid
         background = con.layers.GOLD
     else:
+        # All others
         background = color_identity
 
-    # Identify if the card is a vehicle, and override the selected background if necessary
-    if type_line.find(con.layers.VEHICLE) >= 0:
-        background = con.layers.VEHICLE
-
     # Select pinlines
-    if len(color_identity) <= 0:
+    if len(color_identity) == 0:
+        # No colors
         pinlines = con.layers.ARTIFACT
     elif len(color_identity) <= 2:
+        # 1-2 colors
         pinlines = color_identity
     else:
+        # 3+ colors
         pinlines = con.layers.GOLD
 
     # Select name box
-    if len(color_identity) <= 0:
+    if len(color_identity) == 0:
+        # No colors
         twins = con.layers.ARTIFACT
     elif len(color_identity) == 1:
+        # 1 color
         twins = color_identity
     elif hybrid:
+        # Hybrid
         twins = con.layers.LAND
     elif len(color_identity) >= 2:
+        # 2+ colors
         twins = con.layers.GOLD
 
     # Finally, return the selected layers
@@ -328,6 +344,20 @@ def select_frame_layers(card: dict) -> FrameDetails:
         'twins': twins,
         'is_colorless': False,
     }
+
+
+def get_mana_cost_colors(cost: str) -> str:
+    """
+    Get a list of colors from the mana cost of a card.
+    @param cost: Mana cost string, ex: {1}{W}{U}{B}{R}{G}
+    @return: List of colors that matched.
+    """
+    # Guard clause, no valid mana
+    if not cost:
+        return ''
+    color_list = [color for color in colors if color in cost]
+    return ''.join(color_list)
+
 
 
 """
