@@ -235,7 +235,7 @@ app = ps.Application()
 app.open(os.path.join(con.path_tests, 'expansion_symbol_test.psd'))
 
 # TEST ONE SYMBOL
-test_target_symbol('ONC', rarities=['common', 'uncommon', 'rare', 'mythic'])
+test_target_symbol('MOC', rarities=['common', 'uncommon', 'rare', 'mythic'])
 
 # TEST LAST X SYMBOLS
 # big_symbol_test(4)
