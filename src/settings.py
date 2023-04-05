@@ -66,6 +66,7 @@ class Config:
 
 		# TEMPLATES settings
 		self.exit_early = self.file.getboolean('BASE.TEMPLATES', 'Manual.Edit')
+		self.import_scryfall_scan = self.file.getboolean('BASE.TEMPLATES', 'Import.Scryfall.Scan')
 		self.border_color = self.file['BASE.TEMPLATES']['Border.Color']
 		self.render_snow = self.file.getboolean('BASE.TEMPLATES', 'Render.Snow')
 		self.render_miracle = self.file.getboolean('BASE.TEMPLATES', 'Render.Miracle')

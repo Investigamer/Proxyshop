@@ -82,7 +82,7 @@ _Click questions to see answers_
 For default and classic symbol modes, Head over to https://keyrune.andrewgioia.com/cheatsheet.html, you can use any of these symbols for the set symbol for your cards.
 Copy the SET CODE of the symbol you want, for example SOI (Shadows Over Innistrad), it'll be the code after "ss-". Then enter this code on the "Default Symbol" setting.
 Then enable "Force Default Symbol" to always use this symbol. If you'd like to customize the look of this symbol, you need to add it to `src/data/custom_symbols.json`.
-Look at how symbols are defined in `src/data/symbols.json` for guidance.
+Look at how symbols are defined in `src/data/expansion_symbols.json` for guidance.
 
 For SVG symbol mode, change Default Symbol to a 2-4 letter code of your choice, and enable "Force Default Symbol". Head over to `src/img/symbols` and create a folder named 
 according to that code, or if you just want to use an existing symbol you can keep it the way it is. If making a custom symbol, add the SVG files to the folder you 

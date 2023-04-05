@@ -6,7 +6,7 @@
   {
     "type": "options",
     "title": "[b]Language[/b]",
-    "desc": "A scryfall supported language code to look for alternate language text.\nPhyrexian is not supported at this time.\n[b](Default: en)[/b]",
+    "desc": "A scryfall supported language code to look for alternate language text. Phyrexian is not supported at this time.\n[b](Default: en)[/b]",
     "section": "BASE.TEXT",
     "key": "Language",
     "options": ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"],
@@ -60,7 +60,7 @@
   {
     "type": "string",
     "title": "[b]Default Expansion Symbol[/b]",
-    "desc": "Symbol used when an automatic symbol couldn't be found.\nEnter an appropriate Magic the Gathering set code.\nList of Keyrune symbols and setcode: https://keyrune.andrewgioia.com/cheatsheet.html\n[b](Default: MTG)[/b]",
+    "desc": "Symbol used when an automatic symbol couldn't be found. Enter an appropriate Magic the Gathering set code.\nList of Keyrune symbols and setcode: https://keyrune.andrewgioia.com/cheatsheet.html\n[b](Default: MTG)[/b]",
     "section": "BASE.SYMBOLS",
     "key": "Default.Symbol",
     "default": "MTG"
@@ -102,9 +102,17 @@
     "default": 0
   },
   {
+    "type": "bool",
+    "title": "[b]Import Scryfall Scan[/b]",
+    "desc": "Will import the scryfall scan of each card into the document for reference. Useful for ensuring card accuracy when making manual changes.\n[b](Default: False)[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Import.Scryfall.Scan",
+    "default": 0
+  },
+  {
     "type": "options",
     "title": "[b]Border Color[/b]",
-    "desc": "Choose the color of the card border used across templates.\nWill work on most templates, but considered experimental.\n[b](Default: 'black')[/b]",
+    "desc": "Choose the color of the card border used across templates. Will work on most templates, but considered experimental.\n[b](Default: 'black')[/b]",
     "section": "BASE.TEMPLATES",
     "key": "Border.Color",
     "options": ["black", "white", "silver", "gold"],

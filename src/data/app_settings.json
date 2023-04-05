@@ -51,7 +51,7 @@
   {
     "type": "bool",
     "title": "[b]Targeted Text Replacement[/b]",
-    "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop.\nTry disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
+    "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop. Try disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
     "section": "APP.RENDER",
     "key": "Targeted.Replace",
     "default": 1

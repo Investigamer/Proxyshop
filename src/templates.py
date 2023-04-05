@@ -21,6 +21,7 @@ from src.settings import cfg
 import src.helpers as psd
 from src.__console__ import console
 from src.utils.enums_photoshop import Alignment
+from src.utils.scryfall import card_scan
 
 
 class BaseTemplate:
@@ -784,21 +785,37 @@ class BaseTemplate:
         return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", name)
 
     def paste_scryfall_scan(
-        self, reference_layer: ArtLayer, rotate: bool = False, visible: bool = True
+        self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
     ) -> Optional[ArtLayer]:
         """
         Downloads the card's scryfall scan, pastes it into the document next to the active layer,
-        and frames it to fill the given reference layer. Can optionally rotate the layer by 90 degrees
-        (useful for planar cards).
+        and frames it to fill the given reference layer.
+        @param reference_layer: Reference to frame the scan within.
+        @param rotate: Will rotate the card horizontally if True, useful for Planar cards.
+        @param visible: Whether to leave the layer visible or hide it.
         """
-        layer = psd.insert_scryfall_scan(self.layout.scryfall_scan)
-        if layer:
+        # Check for a valid reference layer
+        if not reference_layer:
+            reference_layer = psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME)
+
+        # Try to grab the scan from Scryfall
+        scryfall_scan = card_scan(self.layout.scryfall_scan)
+        if not scryfall_scan:
+            return
+
+        # Try to paste the scan into a new layer
+        if layer := psd.import_art_into_new_layer(scryfall_scan, "Scryfall Reference"):
+            # Should we rotate the layer?
             if rotate:
                 layer.rotate(90)
+            # Frame the layer and position it above the art layer
             psd.frame_layer(layer, reference_layer)
+            layer.move(self.art_layer, ps.ElementPlacement.PlaceBefore)
+            # Should we hide the layer?
             if not visible:
                 layer.visible = False
-        return layer
+            return layer
+        return
 
     def basic_text_layers(self) -> None:
         """
@@ -898,6 +915,14 @@ class BaseTemplate:
             self.load_artwork()
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
+
+        # Load in Scryfall scan and frame it
+        try:
+            if cfg.import_scryfall_scan:
+                self.paste_scryfall_scan()
+        except Exception as e:
+            console.log_exception(e)
+            console.update("Couldn't import Scryfall scan, continuing without it!")
 
         # Add collector info
         try:
@@ -2109,10 +2134,6 @@ class SagaTemplate (NormalTemplate):
     def enable_frame_layers(self):
         super().enable_frame_layers()
 
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TWINS)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
-
         # Saga stripe
         psd.getLayer(self.pinlines, con.layers.PINLINES_AND_SAGA_STRIPE).visible = True
 
@@ -2497,10 +2518,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         super().basic_text_layers()
 
     def enable_frame_layers(self):
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TEXTBOX, self.group)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
-        self.active_layer = self.art_layer
 
         # Enable twins, pinlines, background, color indicator
         if self.twins_layer:
@@ -2815,11 +2832,11 @@ class PlanarTemplate (StarterTemplate):
                 ),
             ])
 
-    def enable_frame_layers(self):
-
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TEXTBOX)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), True)
+    def paste_scryfall_scan(
+            self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
+    ) -> Optional[ArtLayer]:
+        # Rotate the scan
+        return super().paste_scryfall_scan(reference_layer, True, visible)
 
 
 """
