@@ -6,6 +6,7 @@ from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.utils import get_color_from_hex
@@ -128,20 +129,20 @@ class HoverButton(Button, HoverBehavior):
         When hovering
         """
         if not self.disabled:
-            Window.set_system_cursor('hand')
-            self.org_text = self.text
             self.org_color = self.background_color
-            self.text = random.choice(self.options)
+            if len(self.options) > 0:
+                self.org_text = self.text
+                self.text = random.choice(self.options)
             self.background_color = get_color_from_hex(self.hover_color)
 
     def on_leave(self):
         """
         When leave
         """
-        if self.org_text:
-            Window.set_system_cursor('arrow')
-            self.text = self.org_text
+        if self.org_color:
             self.background_color = self.org_color
+            if len(self.options) > 0:
+                self.text = self.org_text
 
 
 """
@@ -151,9 +152,9 @@ RESOURCES
 
 class GUIResources:
     def __init__(self):
-        self.template_row: dict[str, [str, BoxLayout]] = {k: {} for k in card_types}
-        self.template_btn: dict[str, [str, ToggleButton]] = {k: {} for k in card_types}
-        self.template_btn_cfg: dict[str, [str, Button]] = {k: {} for k in card_types}
+        self.template_row: dict[str, dict[str, BoxLayout]] = {k: {} for k in card_types}
+        self.template_btn: dict[str, dict[str, ToggleButton]] = {k: {} for k in card_types}
+        self.template_btn_cfg: dict[str, dict[str, Button]] = {k: {} for k in card_types}
 
 
 GUI = GUIResources()

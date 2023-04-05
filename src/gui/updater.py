@@ -2,6 +2,7 @@
 UPDATER FUNCTIONALITY
 """
 import os
+from typing import Optional
 
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
@@ -12,7 +13,9 @@ import asynckivy as ak
 
 from src.constants import con
 from src.core import check_for_updates, update_template
+from src.gui.utils import GUI
 from src.utils.strings import msg_success, msg_error
+from src.utils.types_templates import TemplateUpdate
 
 
 class UpdatePopup(Popup):
@@ -20,14 +23,14 @@ class UpdatePopup(Popup):
     Popup modal for updating templates.
     """
     Builder.load_file(os.path.join(con.cwd, "src/kv/updater.kv"))
+    updates: dict[str, list[TemplateUpdate]] = {}
     loading = True
-    updates = {}
     categories = {}
     entries = {}
 
     def check_for_updates(self):
         """
-        Runs the check_for_updates core function, then lists needed updates.
+        Runs the check_for_updates core function and fills the update dictionary.
         """
         self.updates = check_for_updates()
 
@@ -57,7 +60,8 @@ class UpdatePopup(Popup):
         # Remove loading text
         if len(self.updates) == 0:
             self.ids.loading_text.text = " [i]No updates found![/i]"
-        else: self.ids.loading_text.text = " [i]Updates Available[/i]"
+        else:
+            self.ids.loading_text.text = " [i]Updates Available[/i]"
 
 
 class UpdateEntry(BoxLayout):
@@ -65,10 +69,17 @@ class UpdateEntry(BoxLayout):
         plugin = f" [size=18]({temp['plugin']})[/size]" if temp.get('plugin') else ""
         self.bg_color = bg_color
         self.name = f"{temp['type']} - {temp['name']}{plugin}"
-        self.status = msg_success(temp['version_new'])
-        self.data = temp
+        self.status = msg_success(temp['version'])
+        self.data: TemplateUpdate = temp
         self.root = parent
         super().__init__(**kwargs)
+
+    @property
+    def template_row(self) -> Optional[BoxLayout]:
+        if rows_type := GUI.template_row.get(self.data['type']):
+            if isinstance(rows_type, dict) and rows_type.get(self.data['name_base']):
+                return rows_type.get(self.data['name_base'])
+        return
 
     async def download_update(self, download: BoxLayout) -> None:
         self.progress = UpdateProgress(self.data['size'])
@@ -83,13 +94,15 @@ class UpdateEntry(BoxLayout):
         await ak.sleep(.5)
         if result:
             self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
+            if self.template_row:
+                self.template_row.parent.reload_template_rows()
         else:
             download.clear_widgets()
             download.add_widget(Label(text=msg_error("FAILED"), markup=True))
 
     async def mark_updated(self):
         self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
-        con.versions[self.data['id']] = self.data['version_new']
+        con.versions[self.data['id']] = self.data['version']
         con.update_version_tracker()
 
     def update_progress(self, tran: int, total: int) -> None:
