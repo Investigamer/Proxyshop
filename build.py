@@ -31,11 +31,11 @@ files = [
     {'src': os.path.join(CWD, 'README.md'), 'dst': os.path.join(DIST, 'README.md')},
     # --- PROXYSHOP DIRECTORY
     {'src': os.path.join(DATA, 'tests.json'), 'dst': os.path.join(DIST_DATA, 'tests.json')},
-    {'src': os.path.join(DATA, 'manifest.json'), 'dst': os.path.join(DIST_DATA, 'manifest.json')},
-    {'src': os.path.join(DATA, 'symbols.json'), 'dst': os.path.join(DIST_DATA, 'symbols.json')},
-    {'src': os.path.join(DATA, 'templates.json'), 'dst': os.path.join(DIST_DATA, 'templates.json')},
+    {'src': os.path.join(DATA, 'app_manifest.json'), 'dst': os.path.join(DIST_DATA, 'app_manifest.json')},
+    {'src': os.path.join(DATA, 'expansion_symbols.json'), 'dst': os.path.join(DIST_DATA, 'expansion_symbols.json')},
     {'src': os.path.join(DATA, 'watermarks.json'), 'dst': os.path.join(DIST_DATA, 'watermarks.json')},
     {'src': os.path.join(DATA, 'app_settings.json'), 'dst': os.path.join(DIST_DATA, 'app_settings.json')},
+    {'src': os.path.join(DATA, 'base_settings.json'), 'dst': os.path.join(DIST_DATA, 'base_settings.json')},
 ]
 
 # Folders that need to be copied
