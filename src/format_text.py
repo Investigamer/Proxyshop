@@ -587,14 +587,14 @@ def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer):
 
 def check_for_text_overlap(
     text_layer: ArtLayer,
-    top_reference: ArtLayer,
-    adj_reference: ArtLayer
+    adj_reference: ArtLayer,
+    top_reference: ArtLayer
 ) -> Union[int, float]:
     """
     Check if text layer overlaps another layer.
     @param text_layer: Text layer to check.
-    @param top_reference: Box marking where the text is cleared.
     @param adj_reference: Box marking where the text is overlapping.
+    @param top_reference: Box marking where the text is cleared.
     @return: How much the layer must be moved to compensate.
     """
     layer_copy = text_layer.duplicate()
