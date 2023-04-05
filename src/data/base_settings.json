@@ -1,0 +1,137 @@
+[
+  {
+    "type": "title",
+    "title": "Text Options"
+  },
+  {
+    "type": "options",
+    "title": "[b]Language[/b]",
+    "desc": "A scryfall supported language code to look for alternate language text.\nPhyrexian is not supported at this time.\n[b](Default: en)[/b]",
+    "section": "BASE.TEXT",
+    "key": "Language",
+    "options": ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"],
+    "default": "en"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Enable Flavor Divider[/b]",
+    "desc": "Adds flavor divider to rendered card when appropriate.\n[b](Default: True)[/b]",
+    "section": "BASE.TEXT",
+    "key": "Flavor.Divider",
+    "default": 1
+  },
+  {
+    "type": "bool",
+    "title": "[b]Remove Flavor Text[/b]",
+    "desc": "Renders cards without flavor text.\n[b](Default: False)[/b]",
+    "section": "BASE.TEXT",
+    "key": "No.Flavor.Text",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Remove Reminder Text[/b]",
+    "desc": "Renders cards without reminder text.\n[b](Default: False)[/b]",
+    "section": "BASE.TEXT",
+    "key": "No.Reminder.Text",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Realistic Collector Info[/b]",
+    "desc": "Disabling this will limit collector info to set code and artist only.\n[b](Default: True)[/b]",
+    "section": "BASE.TEXT",
+    "key": "True.Collector.Info",
+    "default": 1
+  },
+  {
+    "type": "title",
+    "title": "Symbols and Watermarks"
+  },
+  {
+    "type": "options",
+    "title": "[b]Symbol Render Mode[/b]",
+    "desc": "Default: Renders using Keyrune + layer effects.\nClassic: Renders using Keyrune + gradient layers.\nSVG: Renders using SVGs sourced from CCGHQ.\nNone: Completely disables expansion symbol.\n[b](Default: 'default')[/b]",
+    "section": "BASE.SYMBOLS",
+    "key": "Symbol.Mode",
+    "options": ["default", "classic", "svg", "none"],
+    "default": "default"
+  },
+  {
+    "type": "string",
+    "title": "[b]Default Expansion Symbol[/b]",
+    "desc": "Symbol used when an automatic symbol couldn't be found.\nEnter an appropriate Magic the Gathering set code.\nList of Keyrune symbols and setcode: https://keyrune.andrewgioia.com/cheatsheet.html\n[b](Default: MTG)[/b]",
+    "section": "BASE.SYMBOLS",
+    "key": "Default.Symbol",
+    "default": "MTG"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Force Default Expansion Symbol[/b]",
+    "desc": "Forces Proxyshop to always used the Default Expansion Symbol chosen above.\n[b](Default: False)[/b]",
+    "section": "BASE.SYMBOLS",
+    "key": "Force.Default.Symbol",
+    "default": 0
+  },
+  {
+    "type": "numeric",
+    "title": "[b]Default Expansion Symbol Outline[/b]",
+    "desc": "Changes the thickness of the expansion symbol outline when not fully automated.\n[b](Default: 6)[/b]",
+    "section": "BASE.SYMBOLS",
+    "key": "Symbol.Stroke.Size",
+    "default": 6
+  },
+  {
+    "type": "bool",
+    "title": "[b]Enable Watermark[/b]",
+    "desc": "Automatically generate watermark when detected and supported.\n[b](Default: False)[/b]",
+    "section": "BASE.SYMBOLS",
+    "key": "Enable.Watermark",
+    "default": 0
+  },
+  {
+    "type": "title",
+    "title": "Template Options"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Manual Editing Mode[/b]",
+    "desc": "Pause the render process before saving to allow for manual edits.\n[b](Default: False)[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Manual.Edit",
+    "default": 0
+  },
+  {
+    "type": "options",
+    "title": "[b]Border Color[/b]",
+    "desc": "Choose the color of the card border used across templates.\nWill work on most templates, but considered experimental.\n[b](Default: 'black')[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Border.Color",
+    "options": ["black", "white", "silver", "gold"],
+    "default": "black"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Snow Cards with Snow Template[/b]",
+    "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Render.Snow",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Miracle Cards with Miracle Template[/b]",
+    "desc": "When enabled, miracle cards will be rendered using Miracle template type.\n[b](Default: False)[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Render.Miracle",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Basic Land Cards with Basic Land Template[/b]",
+    "desc": "When disabled, Basic Land cards will be rendered using Normal template type.\n[b](Default: True)[/b]",
+    "section": "BASE.TEMPLATES",
+    "key": "Render.Basic",
+    "default": 1
+  }
+]
