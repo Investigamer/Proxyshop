@@ -40,7 +40,7 @@ class BaseTemplate:
         try:
             self.load_template()
         except Exception as e:
-            self.raise_error("PSD template failed to load!", e)
+            self.raise_error("PSD template failed to load!", e, document=False)
 
         # Remove flavor or reminder text
         if cfg.remove_flavor:
@@ -850,26 +850,29 @@ class BaseTemplate:
         """
         pass
 
-    def reset(self) -> None:
+    def reset(self, document: bool = True) -> None:
         """
         Reset the document, purge the cache, end await.
+        @param document: Whether the document is currently open.
         """
-        psd.reset_document()
-        self.app.purge(4)
+        if document:
+            psd.reset_document()
+            self.app.purge(4)
         console.end_await()
 
-    def raise_error(self, message: str, error: Exception) -> bool:
+    def raise_error(self, message: str, error: Exception, document: bool = True) -> bool:
         """
         Raise an error on the console display.
         @param message: Message to be displayed
         @param error: Exception object
+        @param document: Whether the document is currently open.
         @return:
         """
         result = console.log_error(
             f"{message}\nCheck [b]/logs/error.txt[/b] for details.",
             self.layout.name, self.layout.template_file, error
         )
-        self.reset()
+        self.reset(document)
         return result
 
     def color_border(self) -> None:
@@ -2543,11 +2546,21 @@ class PlaneswalkerTemplate (StarterTemplate):
         ft.scale_text_layers_to_fit(self.ability_layers, total_height)
 
         # Space Planeswalker text evenly apart
-        psd.spread_layers_over_reference(self.ability_layers, self.textbox_reference, spacing)
+        uniform_gap = True if len(self.ability_layers) < 3 else False
+        psd.spread_layers_over_reference(
+            self.ability_layers,
+            self.textbox_reference,
+            spacing if not uniform_gap else None
+        )
 
         # Check the top reference of loyalty badge
         ft.vertically_nudge_pw_text(
-            self.ability_layers, spacing, self.textbox_reference, self.adj_ref, self.top_ref
+            self.ability_layers,
+            self.textbox_reference,
+            self.adj_ref,
+            self.top_ref,
+            spacing,
+            uniform_gap=uniform_gap
         )
 
         # Align colons and shields to respective text layers

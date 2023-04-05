@@ -733,7 +733,7 @@ def position_between_layers(
 def spread_layers_over_reference(
     layers: list[ArtLayer],
     ref: ArtLayer,
-    gap: Union[int, float],
+    gap: Optional[Union[int, float]] = None,
     inside_gap: Union[int, float, None] = None,
     outside_matching: bool = True
 ) -> None:
@@ -741,22 +741,34 @@ def spread_layers_over_reference(
     Spread layers apart across a reference layer.
     @param layers: List of ArtLayers or LayerSets.
     @param ref: Reference used as the maximum height boundary for all layers given.
-    @param gap: Gap between the top of the reference and the first layer.
-    @param inside_gap: Gap between each layer, uses gap instead of not provided.
-    @param outside_matching: Gap at the top and bottom matches.
+    @param gap: Gap between the top of the reference and the first layer, or between all layers if not provided.
+    @param inside_gap: Gap between each layer, calculated using leftover space if not provided.
+    @param outside_matching: If enabled, will enforce top and bottom gap to match.
     """
+    # Calculate outside gap if not provided
+    outside_gap = gap
+    if not gap:
+        total_space = get_layer_dimensions(ref)['height'] - sum(
+            [get_text_layer_dimensions(layer)['height'] for layer in layers]
+        )
+        outside_gap = total_space / (len(layers) + 1)
+
     # Position the top layer relative to the reference
-    delta = (ref.bounds[1] + gap) - layers[0].bounds[1]
+    delta = (ref.bounds[1] + outside_gap) - layers[0].bounds[1]
     layers[0].translate(0, delta)
 
     # Calculate inside gap if not provided
-    if not inside_gap:
+    if gap and not inside_gap:
+        # Calculate the inside gap
         ignored = 2 if outside_matching else 1
         spaces = len(layers) - 1 if outside_matching else len(layers)
         total_space = get_layer_dimensions(ref)['height'] - sum(
             [get_text_layer_dimensions(layer)['height'] for layer in layers]
         )
         inside_gap = (total_space - (ignored * gap)) / spaces
+    elif not gap:
+        # Use the outside gap uniformly
+        inside_gap = outside_gap
 
     # Position the bottom layers relative to the top
     space_layers_apart(layers, inside_gap)
