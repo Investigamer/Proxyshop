@@ -634,10 +634,11 @@ def vertically_nudge_creature_text(
 
 def vertically_nudge_pw_text(
     text_layers: list[ArtLayer],
-    space: Union[int, float],
     ref: ArtLayer,
     adj_reference: Optional[ArtLayer],
-    top_reference: Optional[ArtLayer]
+    top_reference: Optional[ArtLayer],
+    space: Union[int, float],
+    uniform_gap: bool = False
 ) -> None:
     """
     Shift or resize planeswalker text to prevent overlap with the loyalty shield.
@@ -659,7 +660,10 @@ def vertically_nudge_pw_text(
     total_space = ref_height - sum(
         [psd.get_text_layer_dimensions(layer)['height'] for layer in text_layers]
     )
-    inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
+    if not uniform_gap:
+        inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
+    else:
+        inside_gap = total_space / (len(layers) + 1)
     leftover = (inside_gap - space) * movable
 
     # Does the layer overlap with the loyalty box?
@@ -687,10 +691,10 @@ def vertically_nudge_pw_text(
         lyr.textItem.leading = font_size - 0.2
 
     # Space apart planeswalker text evenly
-    psd.spread_layers_over_reference(text_layers, ref, space, outside_matching=False)
+    psd.spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
 
     # Check for another iteration
-    vertically_nudge_pw_text(text_layers, space, ref, adj_reference, top_reference)
+    vertically_nudge_pw_text(text_layers, ref, adj_reference, top_reference, space, uniform_gap)
 
 
 """
