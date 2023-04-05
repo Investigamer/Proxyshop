@@ -2,7 +2,7 @@
 Proxyshop is a Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
 If you need help with this app, join our discord: https://discord.gg/magicproxies
 
-<p align="center">
+<div style="text-align: center;">
   <a href="https://discord.gg/magicproxies">
     <img alt="Discord" src="https://img.shields.io/discord/889831317066358815?label=Discord&style=plastic">
   </a>
@@ -10,7 +10,7 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
   <img alt="GitHub" src="https://img.shields.io/github/license/MrTeferi/MTG-Proxyshop?color=1082C2&style=plastic">
   <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CC 2015--2023-informational?style=plastic">
   <img alt="Python" src="https://img.shields.io/badge/python-3.7%2B-yellow?style=plastic">
-</p>
+</div>
 
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
@@ -20,15 +20,15 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
   * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
   * The following fonts (included with the app, in the `fonts` folder):
     * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, Plantin MT Pro (Regular, Italics, Bold)
-    * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Keep Keyrune updated for expansion symbols)
+    * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Only use the Keyrune font provided in this project)
     * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium) and [Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium)
     * Chilli's custom Magic symbols font: NDPMTG
 
 # Setup and Usage Guide (GUI Release)
 * Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
-* Install the fonts included in the `fonts` folder, please note that Keyrune font is updated with each new MTG set, here's the [latest version](https://github.com/andrewgioia/keyrune/raw/master/fonts/keyrune.ttf).
+* Install the fonts included in the `fonts` folder, please note that some fonts change in future releases, mainly the Keyrune font. When upgrading to a new Proxyshop version, make sure to uninstall Keyrune and install the version included in the release.
 * Launch `Proxyshop.exe`. Click "Update". Proxyshop will load templates available to download, grab what you want. You can also download the templates manually from the above Google Drive link and place them in the `templates` folder.
-* Lets look at how Proxyshop is structured:
+* Let's look at how Proxyshop is structured:
   * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which allows you to render your own custom cards.
   * The next set of tabs are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Womens Day" for normal cards, "Silvan Extended" for MDFC, "Extended" for Planeswalker cards.
   * The Global Settings button will bring up settings to change for the entire app, clicking the Settings button next to a specific template will change the settings for that template explicitly. Please note after clicking this, the settings of that template become decoupled from the Global Settings and will need to be changed here from now on.
@@ -100,7 +100,7 @@ In Proxyshop global settings (or settings for a given template) change Symbol Re
   
 In the Photoshop template of your choice, change the opacity to 0 on the layer you wish to hide.
 You can use this method to hide anything. This is safer than just disabling the layer because layers
-may be forcibly enabled and disabled by the app, its also safer than deleting the layer because this
+may be forcibly enabled and disabled by the app, it's also safer than deleting the layer because this
 may cause errors on some templates.
   
 </details>
@@ -128,7 +128,7 @@ usually be fixed. Try these options in order until something works:
 - Close both of them, then hold ALT + CTRL + SHIFT while launching Photoshop, then launch Proxyshop, try again.
 - Restart your computer, then start both and try again.
 - If you have any particularly over-defensive antivirus software running that may be interfering with Proxyshop 
-connecting to Photoshop, such as Avast, Norton, etc, close your antivirus software, relaunch both, and try again.
+connecting to Photoshop, such as Avast, Norton, etc. close your antivirus software, relaunch both, and try again.
 - If you have installed two versions of Photoshop, have a really outdated version of Photoshop, or think your installation of Photoshop
 could be damaged, corrupted, or otherwise messed up in some way, you might have to uninstall all versions of Photoshop from Windows 
 completely and reinstall the latest version of Photoshop you have available. Generally, Proxyshop works best with the newest version of 
