@@ -1,3 +1,30 @@
+## v1.7.0 (2023-04-06)
+
+### Feat
+
+- **settings**: Importing scryfall art for reference is now a toggle setting, has been removed from individual templates in favor of a base template function that can be modified by child classes
+- **gui**: Settings for each template can now be cleared to defaults with a helpful button, templates will now be disabled unless the PSD file is installed, the updater will enable the template after a download is complete
+- **scryfall**: Rewrote Scryfall data collection completely to use efficient rate limiting and error handling as well as improved caching and overall execution time of this step
+- **settings**: Seperate core system settings from the base template settings which can be overwritten for each template
+
+### Fix
+
+- **classic**: Fixed promo star setting on classic templates
+- **creature**: Fix mistake in creature vertically nudge text function
+- **dev_mode**: Skip uninstalled templates during dev mode testing
+- **planeswalker**: Update Planeswalker logic to enforce uniform spacing for 2 ability Planeswalkers
+- **layouts**: Fixed a bug affecting Saga and Class cards that have multiline abilities
+- **frame_logic**: Fixed frame logic for ca1rds like Maelstrome Muse and Ajani, Sleeper Agent and added both to our test cases
+- **creator**: Custom Creator now works for Planeswalker and Saga cards again
+- **updater**: Fix templates downloading to incorrect folder
+
+### Refactor
+
+- **planeswalker**: Adjust vertically nudge text function
+- **helpers**: Updated getLayer(), getLayerSet(), spread_layers_over_reference(), and art importing functionality
+- **format_text**: Added new text function check_for_text_overlap() and refactored the vertical nudge functions for Creature and Planeswalker cards
+- **data**: Update project toml, fonts,  and expansion symbol data
+
 ## v1.6.0 (2023-03-16)
 
 ### Feat
