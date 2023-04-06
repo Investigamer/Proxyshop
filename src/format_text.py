@@ -667,7 +667,7 @@ def vertically_nudge_pw_text(
     leftover = (inside_gap - space) * movable
 
     # Does the layer overlap with the loyalty box?
-    delta = check_for_text_overlap(bottom, top_reference, adj_reference)
+    delta = check_for_text_overlap(bottom, adj_reference, top_reference)
     if delta > 0:
         return
 
