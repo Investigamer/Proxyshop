@@ -497,7 +497,7 @@ def scale_text_to_fit_reference(
     spacing: Optional[int] = None
 ) -> None:
     """
-    Resize a given text layer's contents (in 0.25 pt increments) until it fits inside a specified reference layer.
+    Resize a given text layer's contents (in 0.2 pt increments) until it fits inside a specified reference layer.
     The resulting text layer will have equal font and lead sizes.
     @param layer: Text layer to scale.
     @param ref: Reference layer the text should fit inside.
@@ -545,6 +545,10 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
     half_step = 0.20
     total_layer_height = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in text_layers])
 
+    # Skip if the size is already fine
+    if total_layer_height <= ref_height:
+        return
+
     # Compare height of all 3 elements vs total reference height
     while total_layer_height > ref_height:
         total_layer_height = 0
@@ -581,6 +585,33 @@ def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer):
     layer.translate(0, bound_delta + height_delta / 2)
 
 
+def check_for_text_overlap(
+    text_layer: ArtLayer,
+    adj_reference: ArtLayer,
+    top_reference: ArtLayer
+) -> Union[int, float]:
+    """
+    Check if text layer overlaps another layer.
+    @param text_layer: Text layer to check.
+    @param adj_reference: Box marking where the text is overlapping.
+    @param top_reference: Box marking where the text is cleared.
+    @return: How much the layer must be moved to compensate.
+    """
+    layer_copy = text_layer.duplicate()
+    layer_copy.rasterize(ps.RasterizeType.TextContents)
+    app.activeDocument.activeLayer = layer_copy
+    psd.select_layer_pixels(adj_reference)
+    app.activeDocument.selection.invert()
+    app.activeDocument.selection.clear()
+    app.activeDocument.selection.deselect()
+
+    # Determine how much the rules text overlaps loyalty box
+    dif = top_reference.bounds[3] - layer_copy.bounds[3]
+    layer_copy.delete()
+    psd.clear_selection()
+    return dif
+
+
 def vertically_nudge_creature_text(
     layer: ArtLayer,
     reference_layer: ArtLayer,
@@ -590,33 +621,24 @@ def vertically_nudge_creature_text(
     Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
     determined by the given reference layers.
     """
-    # Does the layer needs to be nudged?
+    # Is the layer even close?
     if layer.bounds[2] >= reference_layer.bounds[0]:
-        layer_copy = layer.duplicate(app.activeDocument, ps.ElementPlacement.PlaceInside)
-        layer_copy.rasterize(ps.RasterizeType.TextContents)
-        app.activeDocument.activeLayer = layer_copy
-        psd.select_layer_pixels(reference_layer)
-        app.activeDocument.selection.invert()
-        app.activeDocument.selection.clear()
-
-        # Determine how much the rules text overlaps the power/toughness by
-        delta = top_reference_layer.bounds[3] - layer_copy.bounds[3]
+        # does the layer overlap?
+        delta = check_for_text_overlap(layer, reference_layer, top_reference_layer)
         if delta < 0:
             layer.translate(0, delta)
 
         # Clear selection, remove copy, return
-        psd.clear_selection()
-        layer_copy.remove()
         return delta
 
 
 def vertically_nudge_pw_text(
     text_layers: list[ArtLayer],
-    space: Union[int, float],
-    layer_gap: Union[int, float],
     ref: ArtLayer,
     adj_reference: Optional[ArtLayer],
-    top_reference: Optional[ArtLayer]
+    top_reference: Optional[ArtLayer],
+    space: Union[int, float],
+    uniform_gap: bool = False
 ) -> None:
     """
     Shift or resize planeswalker text to prevent overlap with the loyalty shield.
@@ -625,60 +647,54 @@ def vertically_nudge_pw_text(
     if not adj_reference or not top_reference:
         return
 
-    # Layer to check for overlap
-    lyrs = text_layers.copy()
-    bottom = lyrs[-1]
-    movable = len(lyrs) + 1
-    leftover = (layer_gap - space) * movable
+    # Layer references
+    layers = text_layers.copy()
+    bottom = layers[-1]
+    movable = len(layers)-1
+
+    # Additional references
     ref_height = psd.get_layer_dimensions(ref)['height']
     font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
 
+    # Calculate inside gap
+    total_space = ref_height - sum(
+        [psd.get_text_layer_dimensions(layer)['height'] for layer in text_layers]
+    )
+    if not uniform_gap:
+        inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
+    else:
+        inside_gap = total_space / (len(layers) + 1)
+    leftover = (inside_gap - space) * movable
+
     # Does the layer overlap with the loyalty box?
-    if bottom.bounds[2] >= adj_reference.bounds[0]:
-        layer_copy = bottom.duplicate()
-        layer_copy.rasterize(ps.RasterizeType.TextContents)
-        app.activeDocument.activeLayer = layer_copy
-        psd.select_layer_pixels(adj_reference)
-        app.activeDocument.selection.invert()
-        app.activeDocument.selection.clear()
-        app.activeDocument.selection.deselect()
+    delta = check_for_text_overlap(bottom, adj_reference, top_reference)
+    if delta > 0:
+        return
 
-        # Determine how much the rules text overlaps loyalty box
-        dif = top_reference.bounds[3] - layer_copy.bounds[3]
-        layer_copy.delete()
-        if dif > 0:
-            return
+    # Calculate the total distance needing to be covered
+    total_move = 0
+    layers.pop(0)
+    for n, lyr in enumerate(layers):
+        total_move += math.fabs(delta) * ((len(layers) - n)/len(layers))
 
-        # Calculate the total distance needing to be covered
-        total_move = 0
-        lyrs.pop(0)
-        for n, lyr in enumerate(lyrs):
-            total_move += math.fabs(dif) * ((len(lyrs) - n)/len(lyrs))
+    # Text layers can just be shifted upwards
+    if total_move < leftover:
+        layers.reverse()
+        for n, lyr in enumerate(layers):
+            move_y = delta * ((len(layers) - n)/len(layers))
+            lyr.translate(0, move_y)
+        return
 
-        if total_move < leftover:
-            # Text layers can just be shifted upward
-            lyrs.reverse()
-            for n, lyr in enumerate(lyrs):
-                move_y = dif * ((len(lyrs) - n)/len(lyrs))
-                lyr.translate(0, move_y)
-            return
+    # Layer gap would be too small, need to resize text then shift upward
+    for lyr in text_layers:
+        lyr.textItem.size = font_size - 0.2
+        lyr.textItem.leading = font_size - 0.2
 
-        # Layer gap would be too small, need to resize text then shift upward
-        total_h = 0
-        font_size -= 0.2
-        for lyr in text_layers:
-            lyr.textItem.size = font_size
-            lyr.textItem.leading = font_size
-            total_h += psd.get_text_layer_dimensions(lyr)["height"]
+    # Space apart planeswalker text evenly
+    psd.spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
 
-        # Get the exact spacing left over
-        new_gap = (ref_height - total_h) / movable
-
-        # Space apart planeswalker text evenly
-        psd.spread_layers_over_reference(text_layers, ref, new_gap)
-
-        # Check for another iteration
-        vertically_nudge_pw_text(text_layers, space, new_gap, ref, adj_reference, top_reference)
+    # Check for another iteration
+    vertically_nudge_pw_text(text_layers, ref, adj_reference, top_reference, space, uniform_gap)
 
 
 """

@@ -704,6 +704,20 @@
             "common-fill": "white"
         }
     ],
+    "JGP": "",
+    "G99": "\uE607",
+    "G00": "",
+    "G01": "",
+    "G02": "",
+    "G03": "",
+    "G04": "",
+    "G05": "",
+    "G06": "",
+    "G07": "",
+    "G08": "",
+    "G09": "",
+    "G10": "",
+    "G11": "",
     "J12": "SLD",
     "J13": "SLD",
     "J14": "SLD",
@@ -719,6 +733,7 @@
             "common-fill": "white"
         }
     ],
+    "PJ21": "J20",
     "P22": "J20",
     "P23": "J20",
     "SS3": [
@@ -958,7 +973,13 @@
         }
     ],
     "2X2": "",
-    "DMU": "",
+    "DMU": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
     "DMC": [
         {
             "char": "",
@@ -1066,15 +1087,45 @@
     "ONE": "",
     "ONC": [
         {
-            "char": "",
+            "char": "\uEA60",
             "fill": "white",
-            "stroke": ["black", 3],
             "common-fill": "white",
-            "common-stroke": ["white", 3]
+            "stroke": {
+                "color": "black",
+                "weight": 3,
+                "style": "in"
+            },
+            "common-stroke": {
+                "color": "white",
+                "weight": 6,
+                "style": "out"
+            },
+            "reference": true
         },
         {
-            "char": "",
-            "rarity": false
+            "char": "\uEA61",
+            "rarity": false,
+            "stroke": false,
+            "common-stroke": {
+                "color": "white",
+                "weight": 6,
+                "style": "outside"
+            }
+        },
+        {
+            "char": "\uE9A8",
+            "rarity": false,
+            "stroke": {
+                "color": "black",
+                "weight": 6,
+                "style": "center"
+            },
+            "common-stroke": {
+                "color": "white",
+                "weight": 6,
+                "style": "center"
+            },
+            "reference": true
         }
     ],
     "SCD": [
@@ -1108,5 +1159,37 @@
             }
         }
     ],
-    "DMR": ""
+    "DMR": "",
+    "MOM": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white"
+        }
+    ],
+    "MOC": [
+        {
+            "char": "\uEA63",
+            "color": "white",
+            "common-color": "white",
+            "stroke": ["black", 6],
+            "common-stroke": ["black", 6],
+            "rarity": false
+        },
+        {
+            "char": "\uEA62",
+            "fill": "black",
+            "common-fill": "black",
+            "gradient": {
+                "rotation": 0
+            }
+        },
+        {
+            "char": "\uE9A9",
+            "fill": "black",
+            "common-fill": "white",
+            "reference": true,
+            "rarity": false
+        }
+    ]
 }

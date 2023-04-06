@@ -21,13 +21,13 @@ from src.settings import cfg
 import src.helpers as psd
 from src.__console__ import console
 from src.utils.enums_photoshop import Alignment
+from src.utils.scryfall import card_scan
 
 
 class BaseTemplate:
     """
     Set up variables for things which are common to all templates, extend this at bare minimum.
     """
-    template_file_name = ""
     template_suffix = ""
 
     def __init__(self, layout: CardLayout):
@@ -40,12 +40,7 @@ class BaseTemplate:
         try:
             self.load_template()
         except Exception as e:
-            console.log_error(
-                "PSD failed to load!",
-                self.layout.name,
-                self.template_file,
-                e
-            )
+            self.raise_error("PSD template failed to load!", e, document=False)
 
         # Remove flavor or reminder text
         if cfg.remove_flavor:
@@ -139,13 +134,6 @@ class BaseTemplate:
         return ps.Application()
 
     @cached_property
-    def template_file(self) -> str:
-        # Add extension if missing
-        if self.template_file_name[-4:] not in (".psd", ".psb"):
-            return f"{self.template_file_name}.psd"
-        return self.template_file_name
-
-    @cached_property
     def docref(self):
         # The current template document
         return self.app.activeDocument
@@ -199,7 +187,12 @@ class BaseTemplate:
 
     @cached_property
     def border_color(self) -> str:
-        return cfg.get_setting('TEMPLATES', 'Border.Color', default='black', is_bool=False)
+        # Ensure a valid border color based on config setting and Border availability
+        if not cfg.border_color or cfg.border_color not in con.colors:
+            return 'black'
+        if self.border_group:
+            return cfg.border_color
+        return 'black'
 
     """
     LIST OF FORMATTED TEXT OBJECTS
@@ -227,7 +220,11 @@ class BaseTemplate:
     @cached_property
     def border_group(self) -> Optional[LayerSet]:
         # Border group
-        return self.docref.layerSets.getByName(con.layers.BORDER)
+        if group := psd.getLayerSet(con.layers.BORDER):
+            return group
+        if layer := psd.getLayer(con.layers.BORDER):
+            return layer
+        return None
 
     @cached_property
     def text_layers(self) -> Optional[LayerSet]:
@@ -362,6 +359,7 @@ class BaseTemplate:
 
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
+        # Transform Icon
         return psd.getLayer(self.layout.transform_icon, self.dfc_group)
 
     @cached_property
@@ -658,7 +656,9 @@ class BaseTemplate:
         @param group: The LayerSet to add generated layers to.
         """
         # Check if the SVG exists
-        svg_path = osp.join(con.path_img, f'symbols/{self.layout.set}/{self.layout.rarity.upper()[0]}.svg')
+        expansion = cfg.symbol_default if cfg.symbol_force_default else self.layout.set
+        expansion = f"{expansion}F" if expansion.lower() == 'con' else expansion  # Conflux case
+        svg_path = osp.join(con.path_img, f'symbols/{expansion}/{self.layout.rarity.upper()[0]}.svg')
         if not osp.exists(svg_path):
             self.create_expansion_symbol(group)
 
@@ -736,7 +736,7 @@ class BaseTemplate:
         Opens the template's PSD file in Photoshop.
         """
         # Create our full path and load it, set our document reference
-        self.app.load(osp.join(self.layout.template_path, f"{self.template_file}"))
+        self.app.load(self.layout.template_file)
 
     def load_artwork(self) -> None:
         """
@@ -782,24 +782,40 @@ class BaseTemplate:
                     name = name.replace(f'({suffix})', f'({suffix} 1)')
                 else:
                     name = name.replace(f'{num - 1})', f'{num})')
-        return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "-", name)
+        return re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "", name)
 
     def paste_scryfall_scan(
-        self, reference_layer: ArtLayer, rotate: bool = False, visible: bool = True
+        self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
     ) -> Optional[ArtLayer]:
         """
         Downloads the card's scryfall scan, pastes it into the document next to the active layer,
-        and frames it to fill the given reference layer. Can optionally rotate the layer by 90 degrees
-        (useful for planar cards).
+        and frames it to fill the given reference layer.
+        @param reference_layer: Reference to frame the scan within.
+        @param rotate: Will rotate the card horizontally if True, useful for Planar cards.
+        @param visible: Whether to leave the layer visible or hide it.
         """
-        layer = psd.insert_scryfall_scan(self.layout.scryfall_scan)
-        if layer:
+        # Check for a valid reference layer
+        if not reference_layer:
+            reference_layer = psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME)
+
+        # Try to grab the scan from Scryfall
+        scryfall_scan = card_scan(self.layout.scryfall_scan)
+        if not scryfall_scan:
+            return
+
+        # Try to paste the scan into a new layer
+        if layer := psd.import_art_into_new_layer(scryfall_scan, "Scryfall Reference"):
+            # Should we rotate the layer?
             if rotate:
                 layer.rotate(90)
+            # Frame the layer and position it above the art layer
             psd.frame_layer(layer, reference_layer)
+            layer.move(self.art_layer, ps.ElementPlacement.PlaceBefore)
+            # Should we hide the layer?
             if not visible:
                 layer.visible = False
-        return layer
+            return layer
+        return
 
     def basic_text_layers(self) -> None:
         """
@@ -834,26 +850,29 @@ class BaseTemplate:
         """
         pass
 
-    def reset(self) -> None:
+    def reset(self, document: bool = True) -> None:
         """
         Reset the document, purge the cache, end await.
+        @param document: Whether the document is currently open.
         """
-        psd.reset_document()
-        self.app.purge(4)
+        if document:
+            psd.reset_document()
+            self.app.purge(4)
         console.end_await()
 
-    def raise_error(self, message: str, error: Exception) -> bool:
+    def raise_error(self, message: str, error: Exception, document: bool = True) -> bool:
         """
         Raise an error on the console display.
         @param message: Message to be displayed
         @param error: Exception object
+        @param document: Whether the document is currently open.
         @return:
         """
         result = console.log_error(
-            f"{message}\nCheck [b]/tmp/error.txt[/b] for details.",
-            self.layout.name, self.template_file, error
+            f"{message}\nCheck [b]/logs/error.txt[/b] for details.",
+            self.layout.name, self.layout.template_file, error
         )
-        self.reset()
+        self.reset(document)
         return result
 
     def color_border(self) -> None:
@@ -861,9 +880,8 @@ class BaseTemplate:
         Color this card's border based on given setting.
         """
         # Change to a recognized color that isn't the default
-        if self.border_color != 'black' and self.border_color in con.colors:
+        if self.border_color != 'black' and self.border_group:
             try:
-                self.collector_info_authentic()
                 border = self.docref.layers.getByName('Border')
                 psd.apply_fx(border, [{
                     'type': 'color-overlay',
@@ -900,6 +918,14 @@ class BaseTemplate:
             self.load_artwork()
         except Exception as e:
             return self.raise_error("Unable to load artwork!", e)
+
+        # Load in Scryfall scan and frame it
+        try:
+            if cfg.import_scryfall_scan:
+                self.paste_scryfall_scan()
+        except Exception as e:
+            console.log_exception(e)
+            console.update("Couldn't import Scryfall scan, continuing without it!")
 
         # Add collector info
         try:
@@ -960,7 +986,6 @@ class BaseTemplate:
         # Manual edit step?
         if cfg.exit_early and not cfg.dev_mode:
             console.wait("Manual editing enabled!\nWhen you're ready to save, click continue...")
-            console.update("Saving document...\n")
 
         # Save the document
         try:
@@ -1065,7 +1090,6 @@ class NormalTemplate (StarterTemplate):
     Normal M15-style template.
     Extend this for most normal card templates that have typical MTG card layer setups.
     """
-    template_file_name = "normal"
 
     @property
     def art_reference(self) -> str:
@@ -1143,8 +1167,8 @@ class NormalTemplate (StarterTemplate):
         Enable the Legendary crown
         """
         self.crown_layer.visible = True
-        psd.getLayer(con.layers.NORMAL_BORDER, con.layers.BORDER).visible = False
-        psd.getLayer(con.layers.LEGENDARY_BORDER, con.layers.BORDER).visible = True
+        psd.getLayer(con.layers.NORMAL_BORDER, self.border_group).visible = False
+        psd.getLayer(con.layers.LEGENDARY_BORDER, self.border_group).visible = True
 
         # Nyx/Companion: Enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
         if self.is_nyx or self.is_companion:
@@ -1170,7 +1194,6 @@ class NormalClassicTemplate (StarterTemplate):
     """
     A template for 7th Edition frame. Lacks many of the Normal Template features.
     """
-    template_file_name = "normal-classic"
 
     def __init__(self, layout: CardLayout):
         cfg.real_collector = False
@@ -1245,6 +1268,30 @@ class NormalClassicTemplate (StarterTemplate):
         if self.promo_star:
             psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
+    def collector_info(self) -> None:
+        """
+        Doesn't support authentic collector info.
+        """
+        # Ignore this step if legal layer not present
+        if not self.legal_group:
+            return
+
+        # If creator is specified add the text
+        if self.layout.creator and self.text_layer_creator:
+            self.text_layer_creator.textItem.contents = self.layout.creator
+
+        # Layers we need
+        set_layer = psd.getLayer("Set", self.legal_group)
+        artist_layer = psd.getLayer(con.layers.ARTIST, self.legal_group)
+
+        # Fill in language if needed
+        if self.layout.lang != "en":
+            psd.replace_text(set_layer, "EN", self.layout.lang.upper())
+
+        # Fill set info / artist info
+        set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
+        psd.replace_text(artist_layer, "Artist", self.layout.artist)
+
 
 """
 Templates similar to NormalTemplate but with aesthetic differences
@@ -1259,7 +1306,6 @@ class UniversesBeyondTemplate (NormalTemplate):
     an alternative way to build a highly complex template which can work for multiple card types.
     Credit to Kyle of Card Conjurer, WarpDandy, and MrTeferi.
     """
-    template_file_name = "universes-beyond"
     template_suffix = "Universes Beyond"
 
     @property
@@ -1407,19 +1453,19 @@ class UniversesBeyondTemplate (NormalTemplate):
         Make any changes that are required by Transform cards.
         """
         # Enable transform icon
-        psd.getLayer('Circle', self.text_layers).visible = True
+        psd.getLayerSet('Circle', self.text_layers).visible = True
         self.transform_icon.visible = True
 
         # Add transform mask to Textbox
         if self.is_front:
             # Use TF Front mask, TF Front/Transform shapes
-            psd.copy_layer_mask(psd.getLayer('TF Front Mask', self.pinlines_group), self.pinlines_group)
-            psd.getLayer('TF Front', self.pinlines_shape_group).visible = True
-            psd.getLayer('TF Front', self.textbox_shape_group).visible = True
-            psd.getLayer('Transform', self.twins_shape_group).visible = True
-            psd.getLayer('Normal', self.pinlines_shape_group).visible = False
-            psd.getLayer('Normal', self.textbox_shape_group).visible = False
-            psd.getLayer('Normal', self.twins_shape_group).visible = False
+            psd.copy_layer_mask(self.pinlines_group.layers.getByName('TF Front Mask'), self.pinlines_group)
+            self.pinlines_shape_group.layers.getByName('TF Front').visible = True
+            self.textbox_shape_group.layers.getByName('TF Front').visible = True
+            self.twins_shape_group.layers.getByName('Transform').visible = True
+            self.pinlines_shape_group.layers.getByName('Normal').visible = False
+            self.textbox_shape_group.layers.getByName('Normal').visible = False
+            self.twins_shape_group.layers.getByName('Normal').visible = False
 
             # Add flipside PT if needed
             if self.other_face_is_creature:
@@ -1431,11 +1477,11 @@ class UniversesBeyondTemplate (NormalTemplate):
                 )
         else:
             # Use Normal mask, TF Back/Transform shapes, and back side darker colors
-            psd.copy_layer_mask(psd.getLayer('Normal Mask', self.pinlines_group), self.pinlines_group)
-            psd.getLayer('TF Back', self.pinlines_shape_group).visible = True
-            psd.getLayer('Transform', self.twins_shape_group).visible = True
-            psd.getLayer('Normal', self.pinlines_shape_group).visible = False
-            psd.getLayer('Normal', self.twins_shape_group).visible = False
+            psd.copy_layer_mask(self.pinlines_group.layers.getByName('Normal Mask'), self.pinlines_group)
+            self.pinlines_shape_group.layers.getByName('TF Back').visible = True
+            self.twins_shape_group.layers.getByName('Transform').visible = True
+            self.pinlines_shape_group.layers.getByName('Normal').visible = False
+            self.twins_shape_group.layers.getByName('Normal').visible = False
 
             # Change Name, Type, and PT to white with shadow for non-Eldrazi backs
             if self.layout.transform_icon != con.layers.MOON_ELDRAZI_DFC:
@@ -1472,7 +1518,6 @@ class NormalExtendedTemplate (NormalTemplate):
     An extended-art version of the normal template. The layer structure of this template and
     NormalTemplate are identical.
     """
-    template_file_name = "normal-extended"
     template_suffix = "Extended"
 
 
@@ -1480,7 +1525,6 @@ class NormalFullartTemplate (NormalTemplate):
     """
     Normal full art template (Also called "Universes Beyond")
     """
-    template_file_name = "normal-fullart"
     template_suffix = "Fullart"
 
 
@@ -1489,7 +1533,6 @@ class WomensDayTemplate (NormalTemplate):
     The showcase template first used on the Women's Day Secret Lair. Doesn't have any background layers, needs a
     layer mask on the pinlines group when card is legendary, and doesn't support companions.
     """
-    template_file_name = "womensday"
     template_suffix = "Showcase"
 
     @cached_property
@@ -1520,7 +1563,6 @@ class StargazingTemplate (NormalTemplate):
     Stargazing template from Theros: Beyond Death showcase cards. The layer structure of this template and
     NormalTemplate are largely identical, but this template only has Nyx backgrounds and no companion layers.
     """
-    template_file_name = "stargazing.psd"
     template_suffix = "Stargazing"
 
     @property
@@ -1540,7 +1582,6 @@ class InventionTemplate (NormalTemplate):
     """
     Kaladesh Invention template. No special layers for lands, colorless, companion, or nyx.
     """
-    template_file_name = "masterpiece.psd"
     template_suffix = "Masterpiece"
 
     @cached_property
@@ -1578,7 +1619,6 @@ class ExpeditionTemplate (NormalTemplate):
     Zendikar Rising Expedition template. Masks pinlines for legendary cards, has a single static background layer,
     doesn't support color indicator, companion, or nyx layers.
     """
-    template_file_name = "znrexp.psd"
     template_suffix = "Expedition"
 
     @cached_property
@@ -1601,8 +1641,8 @@ class ExpeditionTemplate (NormalTemplate):
         # legendary crown
         psd.enable_mask(self.pinlines_layer.parent)
         self.crown_layer.visible = True
-        psd.getLayer(con.layers.NORMAL_BORDER, con.layers.BORDER).visible = False
-        psd.getLayer(con.layers.LEGENDARY_BORDER, con.layers.BORDER).visible = True
+        psd.getLayer(con.layers.NORMAL_BORDER, self.border_group).visible = False
+        psd.getLayer(con.layers.LEGENDARY_BORDER, self.border_group).visible = True
 
 
 class SnowTemplate (NormalTemplate):
@@ -1610,7 +1650,6 @@ class SnowTemplate (NormalTemplate):
     A snow template with textures from Kaldheim's snow cards.
     Doesn't support Nyx or Companion layers.
     """
-    template_file_name = "snow.psd"
     template_suffix = "Snow"
 
     @property
@@ -1626,7 +1665,6 @@ class MiracleTemplate (NormalTemplate):
     """
     A template for miracle cards. Doesn't support creatures, Nyx, or Companion.
     """
-    template_file_name = "miracle.psd"
 
     @property
     def is_creature(self) -> bool:
@@ -1650,7 +1688,6 @@ class TransformBackTemplate (NormalTemplate):
     """
     Template for the back faces of transform cards.
     """
-    template_file_name = "tf-back"
 
     def enable_frame_layers(self):
         # set transform icon
@@ -1670,7 +1707,6 @@ class TransformFrontTemplate (TransformBackTemplate):
     """
     Template for the front faces of transform cards.
     """
-    template_file_name = "tf-front.psd"
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
@@ -1703,7 +1739,6 @@ class IxalanTemplate (NormalTemplate):
     Typeline doesn't scale, no mana cost layer, doesn't support creatures, frame only has background.
     Expansion symbol is centered on this template.
     """
-    template_file_name = "ixalan"
 
     @property
     def is_creature(self) -> bool:
@@ -1745,7 +1780,6 @@ class MDFCBackTemplate (NormalTemplate):
     """
     Template for the back faces of modal double faced cards.
     """
-    template_file_name = "mdfc-back"
 
     @cached_property
     def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
@@ -1783,7 +1817,6 @@ class MDFCFrontTemplate (MDFCBackTemplate):
     """
     Template for the front faces of modal double faced cards.
     """
-    template_file_name = "mdfc-front"
 
 
 """
@@ -1798,7 +1831,6 @@ class MutateTemplate (NormalTemplate):
     the textbox. It also doesn't include layers for Nyx backgrounds or Companion crowns, but no mutate
     cards exist that would require these layers.
     """
-    template_file_name = "mutate.psd"
 
     """
     MUTATE TEXT 
@@ -1836,7 +1868,6 @@ class PrototypeTemplate (NormalTemplate):
     of additional text layers for prototype text, mana cost, and power/toughness.
     Doesn't support Nyx backgrounds or Companion crowns.
     """
-    template_file_name = "prototype.psd"
 
     def __init__(self, layout: CardLayout):
 
@@ -1932,7 +1963,6 @@ class AdventureTemplate (NormalTemplate):
     half of the textbox.It also doesn't include layers for Nyx backgrounds or Companion crowns, but
     no adventure cards exist that would require these layers.
     """
-    template_file_name = "adventure"
 
     def basic_text_layers(self):
         super().basic_text_layers()
@@ -1968,7 +1998,6 @@ class LevelerTemplate (NormalTemplate):
     Leveler template. No layers are scaled or positioned vertically so manual intervention is required.
     Doesn't support companion, nyx, or lands.
     """
-    template_file_name = "leveler"
 
     def __init__(self, layout: CardLayout):
         cfg.exit_early = True
@@ -2035,7 +2064,6 @@ class SagaTemplate (NormalTemplate):
     Saga template. No layers are scaled or positioned vertically so manual intervention is required.
     Doesn't support legendary crown, creatures, nyx, or companion.
     """
-    template_file_name = "saga"
 
     def __init__(self, layout: CardLayout):
         self._abilities = []
@@ -2108,10 +2136,6 @@ class SagaTemplate (NormalTemplate):
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
-
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TWINS)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
 
         # Saga stripe
         psd.getLayer(self.pinlines, con.layers.PINLINES_AND_SAGA_STRIPE).visible = True
@@ -2202,7 +2226,6 @@ class ClassTemplate (NormalTemplate):
     """
     Template for Class cards introduced in AFR.
     """
-    template_file_name = "class"
 
     def __init__(self, layout: CardLayout):
         self._line_layers: list[ArtLayer] = []
@@ -2340,7 +2363,6 @@ class PlaneswalkerTemplate (StarterTemplate):
     """
     Planeswalker template - 3 or 4 loyalty abilities.
     """
-    template_file_name = "pw.psd"
 
     def __init__(self, layout: CardLayout):
 
@@ -2383,7 +2405,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         return psd.getLayer(con.layers.PW_ADJUSTMENT_REFERENCE, self.text_layers)
 
     """
-    LAYERS
+    GROUPS
     """
 
     @cached_property
@@ -2400,6 +2422,14 @@ class PlaneswalkerTemplate (StarterTemplate):
     @cached_property
     def loyalty_group(self) -> LayerSet:
         return psd.getLayerSet(con.layers.LOYALTY_GRAPHICS)
+
+    @cached_property
+    def border_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(con.layers.BORDER, self.group)
+
+    """
+    LAYERS
+    """
 
     @property
     def ability_layers(self) -> list[ArtLayer]:
@@ -2491,10 +2521,6 @@ class PlaneswalkerTemplate (StarterTemplate):
         super().basic_text_layers()
 
     def enable_frame_layers(self):
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TEXTBOX, self.group)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), False, False)
-        self.active_layer = self.art_layer
 
         # Enable twins, pinlines, background, color indicator
         if self.twins_layer:
@@ -2511,7 +2537,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         Auto-position the ability text, colons, and shields.
         """
         # Core vars
-        spacing = 80 * self.app.activeDocument.width / 3264
+        spacing = 64 * (self.app.activeDocument.width / 3264)
         spaces = len(self.ability_layers) + 1
         ref_height = psd.get_layer_dimensions(self.textbox_reference)['height']
         total_height = ref_height - (spacing * spaces)
@@ -2519,33 +2545,33 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Resize text items till they fit in the available space
         ft.scale_text_layers_to_fit(self.ability_layers, total_height)
 
-        # Get the exact gap between each layer left over
-        layer_heights = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in self.ability_layers])
-        gap = (ref_height - layer_heights) / spaces
-
         # Space Planeswalker text evenly apart
-        psd.spread_layers_over_reference(self.ability_layers, self.textbox_reference, gap)
+        uniform_gap = True if len(self.ability_layers) < 3 else False
+        psd.spread_layers_over_reference(
+            self.ability_layers,
+            self.textbox_reference,
+            spacing if not uniform_gap else None
+        )
 
         # Check the top reference of loyalty badge
         ft.vertically_nudge_pw_text(
-            self.ability_layers, spacing, gap, self.textbox_reference, self.adj_ref, self.top_ref
+            self.ability_layers,
+            self.textbox_reference,
+            self.adj_ref,
+            self.top_ref,
+            spacing,
+            uniform_gap=uniform_gap
         )
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
             # Skip if this is a passive ability
             if self.shields[i] and self.colons[i]:
-                c_pos = self.colons[i].bounds[1]
-                self.docref.selection.select([
-                    [0, ref_layer.bounds[1]],
-                    [ref_layer.bounds[0], ref_layer.bounds[1]],
-                    [ref_layer.bounds[0], ref_layer.bounds[3]],
-                    [0, ref_layer.bounds[3]]
-                ])
-                psd.align_vertical(self.colons[i])
+                before = self.colons[i].bounds[1]
+                psd.align_vertical(self.colons[i], reference=ref_layer)
                 psd.clear_selection()
-                c_dif = self.colons[i].bounds[1] - c_pos
-                self.shields[i].translate(0, c_dif)
+                difference = self.colons[i].bounds[1] - before
+                self.shields[i].translate(0, difference)
 
         # Add the ability layer mask
         self.pw_ability_mask()
@@ -2633,7 +2659,6 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     An extended version of PlaneswalkerTemplate. Functionally identical except for the lack of background textures.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-extended"
     template_suffix = "Extended"
 
     @property
@@ -2649,12 +2674,11 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
         psd.content_fill_empty_area(self.art_layer)
 
 
-class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
+class PlaneswalkerMDFCTemplate (PlaneswalkerTemplate):
     """
-    Template for the back faces of modal double faced Planeswalker cards.
+    Template for modal double faced Planeswalker cards.
     Need to enable MDFC layers and add MDFC text.
     """
-    template_file_name = "pw-mdfc-back"
 
     @cached_property
     def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
@@ -2695,19 +2719,11 @@ class PlaneswalkerMDFCBackTemplate (PlaneswalkerTemplate):
                      psd.getLayerSet(con.layers.BOTTOM, self.dfc_group)).visible = True
 
 
-class PlaneswalkerMDFCFrontTemplate (PlaneswalkerMDFCBackTemplate):
+class PlaneswalkerMDFCExtendedTemplate (PlaneswalkerMDFCTemplate):
     """
-    Template for the front faces of modal double faced Planeswalker cards.
-    """
-    template_file_name = "pw-mdfc-front"
-
-
-class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
-    """
-    An extended version of Planeswalker MDFC Back template.
+    An extended version of Planeswalker MDFC template.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-mdfc-back-extended.psd"
     template_suffix = "Extended"
 
     @cached_property
@@ -2719,24 +2735,7 @@ class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
         psd.content_fill_empty_area(self.art_layer)
 
 
-class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
-    """
-    An extended version of Planeswalker MDFC Front template.
-    No background, fill empty area for art layer.
-    """
-    template_file_name = "pw-mdfc-front-extended.psd"
-    template_suffix = "Extended"
-
-    @cached_property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-        psd.content_fill_empty_area(self.art_layer)
-
-
-class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
+class PlaneswalkerTransformTemplate (PlaneswalkerTemplate):
     """
     Template for the back faces of transform cards.
     """
@@ -2762,36 +2761,11 @@ class PlaneswalkerTransformBackTemplate (PlaneswalkerTemplate):
         self.transform_icon.visible = True
 
 
-class PlaneswalkerTransformFrontTemplate (PlaneswalkerTransformBackTemplate):
-    """
-    Template for the back faces of transform cards.
-    """
-    template_file_name = "pw-tf-front"
-
-
-class PlaneswalkerTransformBackExtendedTemplate (PlaneswalkerTransformBackTemplate):
+class PlaneswalkerTransformExtendedTemplate (PlaneswalkerTransformTemplate):
     """
     An extended version of Planeswalker MDFC Back template.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-tf-back-extended"
-    template_suffix = "Extended"
-
-    @cached_property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-        psd.content_fill_empty_area(self.art_layer)
-
-
-class PlaneswalkerTransformFrontExtendedTemplate (PlaneswalkerTransformFrontTemplate):
-    """
-    An extended version of Planeswalker MDFC Front template.
-    No background, fill empty area for art layer.
-    """
-    template_file_name = "pw-tf-front-extended"
     template_suffix = "Extended"
 
     @cached_property
@@ -2812,7 +2786,6 @@ class PlanarTemplate (StarterTemplate):
     """
     Planar template for Planar/Phenomenon cards
     """
-    template_file_name = "planar"
 
     def __init__(self, layout: CardLayout):
         cfg.exit_early = True
@@ -2872,11 +2845,11 @@ class PlanarTemplate (StarterTemplate):
                 ),
             ])
 
-    def enable_frame_layers(self):
-
-        # Paste scryfall scan
-        self.active_layer = psd.getLayerSet(con.layers.TEXTBOX)
-        self.paste_scryfall_scan(psd.getLayer(con.layers.SCRYFALL_SCAN_FRAME), True)
+    def paste_scryfall_scan(
+            self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
+    ) -> Optional[ArtLayer]:
+        # Rotate the scan
+        return super().paste_scryfall_scan(reference_layer, True, visible)
 
 
 """
@@ -2888,7 +2861,6 @@ class BasicLandTemplate (BaseTemplate):
     """
     Basic land template - no text and icons (aside from legal), just a layer for each of the eleven basic lands.
     """
-    template_file_name = "basic"
 
     def __init__(self, layout: CardLayout):
         cfg.save_artist_name = True
@@ -2912,7 +2884,6 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
     Basic land template for the borderless basics from Unstable.
     Doesn't have expansion symbol.
     """
-    template_file_name = "basic-unstable"
     template_suffix = "Unstable"
 
     def expansion_symbol(self):
@@ -2926,7 +2897,6 @@ class BasicLandTherosTemplate (BasicLandTemplate):
     """
     Basic land template for the full-art Nyx basics from Theros: Beyond Death.
     """
-    template_file_name = "basic-theros"
     template_suffix = "Theros"
 
 
@@ -2934,7 +2904,6 @@ class BasicLandClassicTemplate (BasicLandTemplate):
     """
     Basic land template for 7th Edition basics.
     """
-    template_file_name = "basic-classic"
 
     @cached_property
     def template_suffix(self) -> str:

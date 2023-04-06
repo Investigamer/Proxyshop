@@ -3,13 +3,16 @@ CORE LAYOUTS
 """
 import re
 from functools import cached_property
+from pathlib import Path
 from typing import Optional, Match, Union, Type
 
+from src.__console__ import console
 from src.constants import con
+from src.core import retrieve_card_info
 from src.settings import cfg
-from src import scryfall as scry
+from src.utils.scryfall import get_set_data, get_card_data
 from src.frame_logic import select_frame_layers, FrameDetails
-from src.utils.strings import normalize_str
+from src.utils.strings import normalize_str, msg_error, msg_success
 
 # Regex
 leveler_regex = re.compile(
@@ -18,30 +21,79 @@ leveler_regex = re.compile(
 class_regex = re.compile(r"(.+?): Level (\d)\n(.+)")
 
 
+"""
+FUNCTIONS
+"""
+
+
+def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
+    """
+    Assign layout object to a card.
+    @param filename: String including card name, plus optionally:
+        - (artist name)
+        - [set code]
+        - {collector number}
+    @return: Layout object for this card
+    """
+    # Get basic card information
+    card = retrieve_card_info(filename)
+
+    # Get scryfall info for any other type
+    scryfall = get_card_data(card['name'], card['set'], card['number'])
+    if isinstance(scryfall, Exception) or not scryfall:
+        # Scryfall data invalid
+        console.log_exception(scryfall)
+        return f"Scryfall search failed: {msg_error(card['name'])}"
+
+    # Instantiate layout object
+    layout = layout_map.get(scryfall['layout'])
+    layout = layout(scryfall, card) if layout else f"Layout incompatible: {msg_error(card['name'])}"
+
+    # Did the layout fail?
+    if isinstance(layout, str):
+        return layout
+
+    # Assign the card
+    if not cfg.dev_mode:
+        console.update(f"{msg_success('SUCCESS:')} {str(layout)}")
+    return layout
+
+
+"""
+LAYOUT CLASSES
+"""
+
+
 class NormalLayout:
     """
     Defines unified properties for all cards.
     """
-    def __init__(self, scryfall: dict, file: dict):
+    def __init__(self, scryfall: dict, file: dict, **kwargs):
 
-        # settable properties
-        self.file = file
-        self.scryfall = scryfall
-        self.filename = self.file['filename']
-        self._template_path = ''
+        # Establish core properties
+        self._file = file
+        self._scryfall = scryfall
+        self._filename = file['filename']
+        self._template_file = ''
 
-        # Cache mtgset early
-        if self.mtgset:
-            print(f"{self.name}: Valid set data has been generated.")
-        else:
-            print(f"{self.name}: No set data was available.")
+        # Cache set data
+        if not hasattr(self, '_set_data'):
+            self._set_data = get_set_data(self.set) or {}
 
     def __str__(self):
-        return "{} [{}]".format(self.name, self.set)
+        return f"{self.name} [{self.set}] {{{self.collector_number}}}"
 
     """
     SETTABLE
     """
+
+    @property
+    def file(self) -> dict:
+        return self._file
+
+    @file.setter
+    def file(self, value):
+        self._file = value
 
     @property
     def filename(self) -> str:
@@ -52,12 +104,28 @@ class NormalLayout:
         self._filename = value
 
     @property
-    def template_path(self) -> str:
-        return self._template_path
+    def template_file(self) -> str:
+        return self._template_file
 
-    @template_path.setter
-    def template_path(self, value: str):
-        self._template_path = value
+    @template_file.setter
+    def template_file(self, value: str):
+        self._template_file = value
+
+    @property
+    def scryfall(self) -> dict:
+        return self._scryfall
+
+    @scryfall.setter
+    def scryfall(self, value):
+        self._scryfall = value
+
+    @property
+    def set_data(self) -> dict:
+        return self._set_data
+
+    @set_data.setter
+    def set_data(self, value):
+        self._set_data = value
 
     """
     GAMEPLAY ITEMS
@@ -159,10 +227,6 @@ class NormalLayout:
     """
 
     @cached_property
-    def mtgset(self) -> dict:
-        return scry.get_mtg_set(self.set) or {}
-
-    @cached_property
     def set(self) -> str:
         return self.scryfall['set'].upper()
 
@@ -190,20 +254,15 @@ class NormalLayout:
     def card_count(self) -> Optional[str]:
         # Get the lowest number
         least = min(
-            int(self.mtgset.get('printed_size', 999999)),
-            int(self.mtgset.get('baseSetSize', 999999)),
-            int(self.mtgset.get('totalSetSize', 999999)),
-            int(self.mtgset.get('card_count', 999999))
+            int(self.set_data.get('printed_size', 999999)),
+            int(self.set_data.get('baseSetSize', 999999)),
+            int(self.set_data.get('totalSetSize', 999999)),
+            int(self.set_data.get('card_count', 999999))
         )
         if least < int(self.collector_number):
             return
-
-        # Ensure formatting of count
-        if len(str(least)) == 2:
-            return f"0{least}"
-        elif len(str(least)) == 1:
-            return f"00{least}"
-        return str(least)
+        # Ensure minimum length of 3
+        return str(least).zfill(3)
 
     @cached_property
     def collector_number(self) -> str:
@@ -437,10 +496,10 @@ class TransformLayout (NormalLayout):
 
     @cached_property
     def transform_icon(self) -> str:
-        # Safe to assume the first frame effect will be the transform icon?
-        if 'frame_effects' in self.scryfall:
-            if self.scryfall['frame_effects'][0] != "legendary":
-                return self.scryfall['frame_effects'][0]
+        # Look for the transform icon
+        for effect in self.card.get('frame_effects', []):
+            if effect in con.transform_icons:
+                return effect
         return 'land' if 'Land' in self.type_line_raw else 'sunmoondfc'
 
     """
@@ -448,18 +507,23 @@ class TransformLayout (NormalLayout):
     """
 
     @cached_property
-    def saga_lines(self) -> list:
+    def saga_lines(self) -> list[dict]:
         # Not a saga?
         if 'Saga' not in self.type_line_raw:
             return []
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
         for i, line in enumerate(self.oracle_text.split("\n")[1:]):
-            icons, text = line.split(" \u2014 ", 1)
-            abilities.append({
-                "text": text,
-                "icons": icons.split(", ")
-            })
+            # Check if this is a full ability line
+            if " \u2014 " in line:
+                icons, text = line.split(" \u2014 ", 1)
+                abilities.append({
+                    "text": text,
+                    "icons": icons.split(", ")
+                })
+                continue
+            # Add to the previous line
+            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
         return abilities
 
     @cached_property
@@ -519,10 +583,10 @@ class MeldLayout (NormalLayout):
 
     @cached_property
     def transform_icon(self) -> str:
-        # Safe to assume the first frame effect will be the transform icon?
-        if 'frame_effects' in self.card:
-            if self.card['frame_effects'][0] != "legendary":
-                return self.card['frame_effects'][0]
+        # Look for the transform icon
+        for effect in self.card.get('frame_effects', []):
+            if effect in con.transform_icons:
+                return effect
         return 'meld'
 
 
@@ -692,7 +756,7 @@ class ClassLayout (NormalLayout):
     """
 
     @cached_property
-    def class_lines(self):
+    def class_lines(self) -> list[dict]:
         # Split the lines, add first static line
         lines = self.oracle_text.split("\n")
         abilities: list[dict] = [{'text': lines[1], "cost": None, "level": 1}]
@@ -700,13 +764,17 @@ class ClassLayout (NormalLayout):
         # Set up the dynamic lines
         lines = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]
         for line in lines:
+            # Try to match this line to a class ability
             details = class_regex.match(line)
-            abilities.append({
-                'cost': details[1],
-                'level': details[2],
-                'text': details[3]
-            })
-
+            if details and len(details.groups()) >= 3:
+                abilities.append({
+                    'cost': details[1],
+                    'level': details[2],
+                    'text': details[3]
+                })
+                continue
+            # Otherwise add line to the previous ability
+            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
         return abilities
 
 
@@ -724,24 +792,19 @@ class BasicLandLayout (NormalLayout):
     """
     No special data entry, just a basic land
     """
-    def __init__(self, scryfall: dict,  file: dict):
-        # Add artist to Scryfall data
+    def __init__(self, scryfall: dict,  file: dict, **kwargs):
+        # Add artist and creator to Scryfall data
         scryfall['artist'] = file['artist'] or 'Unknown'
         scryfall['creator'] = file['creator'] or None
-        super().__init__(scryfall, file)
+
+        # Assign empty set data
+        self._set_data = {}
+        super().__init__(scryfall, file, **kwargs)
 
     @property
     def card_class(self) -> str:
         # Always use basic land
         return con.basic_class
-
-    """
-    COLLECTOR
-    """
-
-    @property
-    def mtgset(self):
-        return {}
 
     """
     BOOL

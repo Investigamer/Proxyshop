@@ -5,15 +5,20 @@ import os
 import re
 import sys
 import json
+from multiprocessing import cpu_count
+
 import requests
 import os.path as osp
 from glob import glob
 from pathlib import Path
-from typing import Optional, Callable, TypedDict, Union
-from typing_extensions import NotRequired
+from concurrent import futures
+from typing import Optional, Callable, Union, Iterator
 from importlib import util, import_module
+
 from src import update
 from src.constants import con
+from src.utils.types_cards import CardDetails
+from src.utils.types_templates import TemplateDetails, TemplateUpdate
 
 # All Template types
 card_types = {
@@ -38,31 +43,7 @@ card_types = {
 
 reg_artist = re.compile(r'\(+(.*?)\)')
 reg_set = re.compile(r'\[(.*)]')
-reg_creator = re.compile(r'{(.*)}')
-
-
-"""
-TYPES
-"""
-
-
-class TemplateDetails(TypedDict):
-    class_name: str
-    plugin_path: Optional[str]
-    preview_path: str
-    templates_path: str
-    config_path: str
-    name: str
-    type: str
-    loaded_class: NotRequired[Callable]
-
-
-class CardDetails(TypedDict):
-    name: str
-    set: Optional[str]
-    artist: Optional[str]
-    creator: Optional[str]
-    filename: Union[str, Path]
+reg_number = re.compile(r'{(.*)}')
 
 
 """
@@ -70,7 +51,7 @@ TEMPLATE FUNCTIONS
 """
 
 
-def get_named_type(layout_class: str) -> Optional[str]:
+def get_named_type(layout_class: str) -> str:
     """
     Finds the named type for a given layout class.
     @param layout_class: Scryfall authentic layout type, ex: mdfc_font
@@ -79,7 +60,7 @@ def get_named_type(layout_class: str) -> Optional[str]:
     for name, types in card_types.items():
         if layout_class in types:
             return name
-    return
+    return 'Normal'
 
 
 def get_template_class(template: TemplateDetails) -> Callable:
@@ -102,31 +83,44 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
     Generate a dictionary of templates using app included json and any plugins.
     @return: Dictionary of lists containing template details.
     """
-    # Plugin folders
-    folders = glob(os.path.join(con.path_plugins, "*\\"))
+    # Track names for uniqueness
+    names = {}
 
-    # Process the default templates.json
-    with open(os.path.join(con.path_data, "templates.json"), encoding="utf-8") as f:
+    # Plugin folders and main data to return
+    data: dict[str, list[TemplateDetails]] = {}
+
+    # Load the built-in templates
+    with open(os.path.join(con.path_data, "app_manifest.json"), encoding="utf-8") as f:
         app_json = json.load(f)
-        main_json = {}
-        for card_type, templates in app_json.items():
-            main_json[card_type] = []
-            named_type = get_named_type(card_type)
-            for name, class_name in templates.items():
-                main_json[card_type].append({
-                    "plugin_path": None,
-                    "config_path": osp.join(con.path_src, f"configs/{class_name}.json"),
-                    "preview_path": osp.join(con.path_img, f"{class_name}.jpg"),
-                    "templates_path": osp.join(con.cwd, 'templates'),
-                    "class_name": class_name,
-                    "name": name,
-                    "type": named_type
-                })
+
+    # Build a TemplateDetails for each template
+    for card_type, templates in app_json.items():
+        # Get the display name of the type and build our details
+        named_type = get_named_type(card_type)
+        data[card_type] = [
+            {
+                "id": template['id'] if 'id' in template else None,
+                "name": name,
+                "type": named_type,
+                "layout": card_type,
+                "class_name": template['class'],
+                "config_path": osp.join(con.path_src, f"configs/{template['class']}.json"),
+                "preview_path": osp.join(con.path_img, f"{template['class']}.jpg"),
+                "template_path": osp.join(con.cwd, f"templates/{template['file']}"),
+                "plugin_path": None,
+            } for name, template in templates.items()
+        ]
+
+        # Update our name checker
+        names[card_type] = [template['name'] for template in data[card_type]]
 
     # Iterate through plugin folders
-    for folder in folders:
-        json_file = osp.join(folder, 'template_map.json')
+    for folder in glob(os.path.join(con.path_plugins, "*\\")):
+        # Mandatory paths
         py_file = osp.join(folder, 'templates.py')
+        json_file = osp.join(folder, 'manifest.json')
+
+        # Ensure mandatory paths exist
         if not osp.exists(json_file) or not osp.exists(py_file):
             continue
 
@@ -137,20 +131,42 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
         # Add plugin folder to Python environment
         sys.path.append(folder)
 
-        # Add plugin templates to dictionary
+        # Generate TemplateDetails for plugin templates
         for card_type, templates in plugin_json.items():
+            # Get the display name of the type and build our details
             named_type = get_named_type(card_type)
-            for name, class_name in templates.items():
-                main_json[card_type].append({
-                    "plugin_path": py_file,
-                    "config_path": py_file.replace('templates.py', f'configs/{class_name}.json'),
-                    "preview_path": py_file.replace('templates.py', f'img/{class_name}.jpg'),
-                    'templates_path': py_file.replace('.py', ''),
-                    "class_name": class_name,
+            for name, template in templates.items():
+                # Is the name unique?
+                if name in names[card_type]:
+                    name = f"{name} ({os.path.basename(os.path.normpath(folder))})"
+                # If name still not unique, skip
+                if name in names[card_type]:
+                    continue
+                names[card_type].append(name)
+                data[card_type].append({
+                    "id": template['id'] if 'id' in template else None,
                     "name": name,
-                    "type": named_type
+                    "type": named_type,
+                    "layout": card_type,
+                    "class_name": template['class'],
+                    "plugin_path": py_file,
+                    "config_path": osp.join(folder, f"configs/{template['class']}.json"),
+                    "preview_path": osp.join(folder, f"img/{template['class']}.jpg"),
+                    'template_path': osp.join(folder, f"templates/{template['file']}"),
+
                 })
-    return main_json
+
+    # Sort alphabetically, with "Normal" at the top of each list
+    for key in data:
+        templates = data[key]
+        templates_sorted = sorted(templates, key=lambda x: x['name'])
+        normal_template = next((x for x in templates_sorted if x['name'] == 'Normal'), None)
+        if normal_template:
+            templates_sorted.remove(normal_template)
+            templates_sorted.insert(0, normal_template)
+        data[key] = templates_sorted
+
+    return data
 
 
 def get_template_details(
@@ -195,7 +211,7 @@ def get_my_templates(provided: dict[str, str]) -> dict[str, TemplateDetails]:
     # Loop through all template types, use the ones selected or Normal for default
     for card_type, temps in templates.items():
         if card_type in selected:
-            result[card_type] = selected[card_type]
+            result[card_type] = selected.get(card_type)
         else:
             for template in temps:
                 if template['name'] == "Normal":
@@ -208,40 +224,28 @@ CARD FUNCTIONS
 """
 
 
-def retrieve_card_info(filename: Union[str, Path]) -> CardDetails:
+def retrieve_card_info(file_path: Union[str, Path]) -> CardDetails:
     """
     Retrieve card name and (if specified) artist from the input file.
     """
     # Extract just the card name
-    fname = os.path.basename(str(filename))
-    sep = [' {', ' [', ' (']
-    fn_split = re.split('|'.join(map(re.escape, sep)), os.path.splitext(fname)[0])
-    name = fn_split[0]
+    sep = [' [', ' (', ' {', '$']
+    file_name = os.path.basename(str(file_path))
+    fn_split = re.split('|'.join(map(re.escape, sep)), os.path.splitext(file_name)[0])
 
-    # Match pattern
-    artist = reg_artist.findall(fname)
-    set_code = reg_set.findall(fname)
-    creator = reg_creator.findall(fname)
+    # Match pattern and format data
+    artist = reg_artist.findall(file_name)
+    number = reg_number.findall(file_name)
+    set_code = reg_set.findall(file_name)
 
-    # Check for these values
-    creator = creator[0] if creator else ''
-    artist = artist[0] if artist else ''
-    set_code = set_code[0] if set_code else ''
-
-    # Correct strange set codes like promo variants (PMID)
-    if (
-        set_code and
-        set_code.upper() not in con.set_symbols and
-        set_code.upper()[1:] in con.set_symbols
-    ):
-        set_code = set_code[1:]
-
+    # Return dictionary
     return {
-        'name': name,
-        'artist': artist,
-        'set': set_code,
-        'creator': creator,
-        'filename': filename
+        'name': fn_split[0],
+        'filename': file_path,
+        'artist': artist[0] if artist else '',
+        'set': set_code[0] if set_code else '',
+        'number': number[0] if number and set_code else '',
+        'creator': fn_split[-1] if '$' in file_name else None,
     }
 
 
@@ -250,180 +254,139 @@ UPDATE FUNCTIONS
 """
 
 
-def check_for_updates() -> dict:
+def check_for_updates(
+    templates: Optional[dict[str, list[TemplateDetails]]] = None
+) -> dict[str, list[TemplateUpdate]]:
     """
-    Check our app manifest for base template updates.
-    Also check any plugins for an update manifest.
-    @return: Dict containing base temps and plugins temps needing updates.
+    Check our app and plugin manifests for template updates.
+    @param templates: Dict of listed template details, will pull them if not provided.
+    @return: Dict containing templates that need an update.
     """
-    # Base vars
-    updates: dict[list[dict]] = {}
+    # Set up our updates return
+    updates: dict[str, list[TemplateUpdate]] = {}
 
-    # Base app manifest
-    with open(osp.join(con.path_data, "manifest.json"), encoding="utf-8") as f:
-        # Get config info
-        data = json.load(f)
-        s3_enabled = data['__CONFIG__']['S3']
-        data.pop("__CONFIG__")
+    # Get templates if not provided
+    if not templates:
+        templates = get_templates()
 
-        # Build update dict
-        for cat, temps in data.items():
-            updates[cat] = []
-            for name, temp in temps.items():
+    # Check for an update on each template
+    unique_temps = []
+    for card_type, temps in templates.items():
+        for template in temps:
+            if template['id'] not in unique_temps and template['id']:
+                unique_temps.append(template)
 
-                # Is the ID valid?
-                if temp['id'] in ("", None, 0):
-                    continue
+    # Perform threaded version check requests
+    with futures.ThreadPoolExecutor(max_workers=cpu_count()) as executor:
+        results: Iterator[TemplateUpdate] = executor.map(version_check, unique_temps)
 
-                # Add important data to our temp dict
-                temp['type'] = cat
-                temp['name'] = name
-                temp['plugin'] = None
-                temp['manifest'] = os.path.join(con.path_data, 'manifest.json')
-                temp['s3'] = s3_enabled
-
-                # Does this template need an update?
-                file = version_check(temp)
-                if file:
-                    updates[cat].append(file)
-
-    # Get plugin manifests
-    plugins = []
-    folders = glob(os.path.join(con.path_plugins, "*\\"))
-    for folder in folders:
-        if 'manifest.json' in os.listdir(folder):
-            plugins.append({
-                'name': Path(folder).stem,
-                'path': os.path.join(folder, "manifest.json")
-            })
-
-    # Check the manifest of each plugin
-    for plug in plugins:
-        with open(plug['path'], encoding="utf-8") as f:
-            data = json.load(f)
-
-            # Check for config headers
-            s3_enabled = False
-            if "__CONFIG__" in data:
-                if "S3" in data['__CONFIG__']:
-                    s3_enabled = data['__CONFIG__']['S3']
-                data.pop("__CONFIG__")
-
-            # Append to the updates dict
-            for cat, temps in data.items():
-                if cat not in updates:
-                    print(f"{plug['name']} Plugin has unrecognized card type: {cat}")
-                    continue
-                for name, temp in temps.items():
-
-                    # Is the ID valid?
-                    if 'id' not in temp or not temp['id']:
-                        continue
-
-                    # Add important data to our temp dict
-                    temp['type'] = cat
-                    temp['name'] = name
-                    temp['plugin'] = plug['name']
-                    temp['manifest'] = plug['path']
-                    temp['s3'] = s3_enabled
-
-                    # Does this template need an update?
-                    if file := version_check(temp, plug['name']):
-                        updates[cat].append(file)
-
-    # Return dict of templates needing updates
+    # Ensure executor is finished before building return
+    results = list(results)
+    for temp in results:
+        if temp:
+            updates.setdefault(temp['type'], []).append(temp)
     return updates
 
 
-def version_check(temp: dict, plugin: Optional[str] = None) -> Optional[dict]:
+def version_check(template: TemplateDetails) -> Optional[TemplateUpdate]:
     """
-    Check if a given file is up-to-date based on the live file metadata.
-    @param temp: Template json data from the manifest
-    @param plugin: Plugin name, optional
-    @return: Dict of file details if it needs and update, otherwise None
+    Check if a template is up-to-date based on the live file metadata.
+    @param template: Dict containing template details.
+    @return: TemplateUpdate if update needed, else None.
     """
-    # Get our basic metadata dict
-    data = gdrive_metadata(temp['id'])
-    if not data or 'name' not in data:
-        # Gdrive couldn't locate the file
-        print(f"{temp['name']} ({temp['file']}) couldn't be located!")
+    # Get our metadata
+    data = gdrive_metadata(template['id'])
+    if not data:
+        # File couldn't be located on Google Drive
+        print(f"{template['name']} ({template['type']}) not found on Google Drive!")
         return
-    plugin_path = f"plugins/{plugin}/" if plugin else ""
-    full_path = osp.join(con.cwd, f"{plugin_path}templates/{temp['file']}")
-    if 'description' not in data or not data['description']:
-        data['description'] = "v1.0.0"
-    current = get_current_version(temp['id'], full_path)
 
-    # Build our return
-    file = {
-        'id': temp['id'],
-        'name': temp['name'],
-        'type': temp['type'],
+    # Compare the versions
+    latest = data.get('description', "v1.0.0")
+    current = get_current_version(template['id'], template['template_path'])
+    if current and current == latest:
+        # Version is up-to-date
+        return
+
+    # Add 'Front' or 'Back' to name if needed
+    updated_name = template['name']
+    if 'front' in template['layout']:
+        updated_name = f"{updated_name} Front"
+    if 'back' in template['layout']:
+        updated_name = f"{updated_name} Back"
+
+    # Return our TemplateUpdate dict
+    return {
+        'id': template['id'],
+        'name': updated_name,
+        'name_base': template['name'],
+        'type': template['type'],
         'filename': data['name'],
-        'path': full_path,
-        'manifest': temp['manifest'],
-        'plugin': temp['plugin'],
-        'version_old': current,
-        'version_new': data['description'],
-        'size': data['size'],
-        's3': temp['s3']
+        'path': template['template_path'],
+        'plugin': os.path.basename(
+            os.path.dirname(template['plugin_path'])
+        ) if template['plugin_path'] else None,
+        'version': latest,
+        'size': int(data['size'])
     }
 
-    # Update if file never downloaded or version mismatch
-    if not file['version_old'] or file['version_old'] != file['version_new']:
-        return file
-    return
 
-
-def get_current_version(file_id: str, path: str) -> Optional[str]:
+def get_current_version(file_id: str, file_path: str) -> Optional[str]:
     """
     Checks the current on-file version of this template.
     If the file is present, but no version tracked, fill in default.
     @param file_id: Google Drive file ID
-    @param path: Path to the template PSD
+    @param file_path: Path to the template PSD
     @return: The current version, or None if not on-file
     """
     # Is it logged in the tracker?
     version = con.versions[file_id] if file_id in con.versions else None
 
-    # Does the PSD exist?
-    if os.path.exists(path):
+    # PSD file exists
+    if os.path.exists(file_path):
+        # Version is logged
         if version:
             return version
-        version = "v1.0.0"
-        con.versions[file_id] = version
-    else:
-        if not version:
-            return
-        version = None
-        del con.versions[file_id]
 
-    # Update the tracker
+        # Version is not logged, use default
+        con.versions[file_id] = "v1.0.0"
+        con.update_version_tracker()
+        return "v1.0.0"
+
+    # PSD does not exist, and no version logged
+    if not version:
+        return
+
+    # PSD does not exist, version mistakenly logged
+    del con.versions[file_id]
     con.update_version_tracker()
-    return version
+    return
 
 
-def update_template(temp: dict, callback: Callable) -> bool:
+def update_template(temp: TemplateUpdate, callback: Callable) -> bool:
     """
     Update a given template to the latest version.
     @param temp: Dict containing template information.
     @param callback: Callback method to update progress bar.
+    @return: True if succeeded, False if failed.
     """
-    # Download using authorization
     try:
+        # Download using Google Drive
         result = update.download_google(temp['id'], temp['path'], callback)
+        if not result and not temp['plugin']:
+            # Google Drive failed, download from Amazon S3
+            url = f"{temp['plugin']}/{temp['filename']}" if temp['plugin'] else temp['filename']
+            result = update.download_s3(temp['path'], url, callback)
         if not result:
-            if temp['s3']:
-                # Try grabbing from Amazon S3 instead
-                result = update.download_s3(temp, callback)
+            # All Downloads failed
+            raise ConnectionError(f"Downloading '{temp['name']} ({temp['type']})' was unsuccessful!")
     except Exception as e:
         print(e)
         return False
 
-    # Change the version to match the new version
-    if result:
-        con.versions[temp['id']] = temp['version_new']
-        con.update_version_tracker()
+    # Update version tracker, return succeeded
+    con.versions[temp['id']] = temp['version']
+    con.update_version_tracker()
     return result
 
 
@@ -433,9 +396,16 @@ def gdrive_metadata(file_id: str) -> dict:
     @param file_id: ID of the Google Drive file
     @return: Dict of metadata
     """
-    source = "https://www.googleapis.com/drive/" \
-             f"v3/files/{file_id}?alt=json&fields=description,name,size&key={con.google_api}"
-    return requests.get(source, headers=con.http_header).json()
+    result = requests.get(
+        f"https://www.googleapis.com/drive/v3/files/{file_id}",
+        headers=con.http_header,
+        params={
+            'alt': 'json',
+            'fields': 'description,name,size',
+            'key': con.google_api
+        }
+    ).json()
+    return result if 'name' in result and 'size' in result else None
 
 
 """

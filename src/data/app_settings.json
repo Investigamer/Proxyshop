@@ -1,13 +1,13 @@
 [
   {
     "type": "title",
-    "title": "Files and Saving"
+    "title": "File Settings"
   },
   {
     "type": "options",
     "title": "[b]Output Filetype[/b]",
     "desc": "File extension to use for rendered images.\n[b](Default: jpg)[/b]",
-    "section": "FILES",
+    "section": "APP.FILES",
     "key": "Output.Filetype",
     "options": ["jpg", "png", "psd"],
     "default": "jpg"
@@ -15,8 +15,8 @@
   {
     "type": "bool",
     "title": "[b]Save Artist Name[/b]",
-    "desc": "Include artist in rendered file name, e.g. Damnation (Seb McKinnon).jpg\n[b](Default: True)[/b]",
-    "section": "FILES",
+    "desc": "Include artist in rendered file name, e.g. Assassinate (Kev Walker).jpg\n[b](Default: True)[/b]",
+    "section": "APP.FILES",
     "key": "Save.Artist.Name",
     "default": 1
   },
@@ -24,192 +24,61 @@
     "type": "bool",
     "title": "[b]Overwrite Duplicates[/b]",
     "desc": "Overwrite rendered files with identical file names.\n[b](Default: True)[/b]",
-    "section": "FILES",
+    "section": "APP.FILES",
     "key": "Overwrite.Duplicate",
     "default": 1
   },
   {
     "type": "title",
-    "title": "Text Options"
-  },
-  {
-    "type": "options",
-    "title": "[b]Language[/b]",
-    "desc": "A scryfall supported language code to look for alternate language text.\nPhyrexian is not supported at this time.\n[b](Default: en)[/b]",
-    "section": "TEXT",
-    "key": "Language",
-    "options": ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"],
-    "default": "en"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Enable Flavor Divider[/b]",
-    "desc": "Adds flavor divider to rendered card when appropriate.\n[b](Default: True)[/b]",
-    "section": "TEXT",
-    "key": "Flavor.Divider",
-    "default": 1
-  },
-  {
-    "type": "bool",
-    "title": "[b]Remove Flavor Text[/b]",
-    "desc": "Renders cards without flavor text.\n[b](Default: False)[/b]",
-    "section": "TEXT",
-    "key": "No.Flavor.Text",
-    "default": 0
-  },
-  {
-    "type": "bool",
-    "title": "[b]Remove Reminder Text[/b]",
-    "desc": "Renders cards without reminder text.\n[b](Default: False)[/b]",
-    "section": "TEXT",
-    "key": "No.Reminder.Text",
-    "default": 0
-  },
-  {
-    "type": "bool",
-    "title": "[b]Realistic Collector Info[/b]",
-    "desc": "Disabling this will limit collector info to set code and artist only.\n[b](Default: True)[/b]",
-    "section": "TEXT",
-    "key": "True.Collector.Info",
-    "default": 1
-  },
-  {
-    "type": "bool",
-    "title": "[b]Force English Formatting[/b]",
-    "desc": "Enabling this will force Photoshop text layers to use English formatting.\n[b](Default: False)[/b]",
-    "section": "TEXT",
-    "key": "Force.English.Formatting",
-    "default": 0
-  },
-  {
-    "type": "title",
-    "title": "Expansion Symbol"
-  },
-  {
-    "type": "options",
-    "title": "[b]Symbol Render Mode[/b]",
-    "desc": "Default: Renders using Keyrune + layer effects.\nClassic: Renders using Keyrune + gradient layers.\nSVG: Renders using SVGs sourced from CCGHQ.\nNone: Completely disables expansion symbol.\n[b](Default: 'default')[/b]",
-    "section": "SYMBOLS",
-    "key": "Symbol.Mode",
-    "options": ["default", "classic", "svg", "none"],
-    "default": "default"
-  },
-  {
-    "type": "string",
-    "title": "[b]Default Expansion Symbol[/b]",
-    "desc": "Symbol used when an automatic symbol couldn't be found.\nEnter an appropriate Magic the Gathering set code.\nList of Keyrune symbols and setcode: https://keyrune.andrewgioia.com/cheatsheet.html\n[b](Default: MTG)[/b]",
-    "section": "SYMBOLS",
-    "key": "Default.Symbol",
-    "default": "MTG"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Force Default Expansion Symbol[/b]",
-    "desc": "Forces Proxyshop to always used the Default Expansion Symbol chosen above.\n[b](Default: False)[/b]",
-    "section": "SYMBOLS",
-    "key": "Force.Default.Symbol",
-    "default": 0
-  },
-  {
-    "type": "numeric",
-    "title": "[b]Default Expansion Symbol Outline[/b]",
-    "desc": "Changes the thickness of the expansion symbol outline when not fully automated.\n[b](Default: 6)[/b]",
-    "section": "SYMBOLS",
-    "key": "Symbol.Stroke.Size",
-    "default": 6
-  },
-  {
-    "type": "title",
-    "title": "Watermarks"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Enable Watermark[/b]",
-    "desc": "Automatically generate watermark when detected and supported.\n[b](Default: False)[/b]",
-    "section": "WATERMARK",
-    "key": "Enable.Watermark",
-    "default": 0
-  },
-  {
-    "type": "title",
-    "title": "App Settings"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Manual Editing Mode[/b]",
-    "desc": "Pause the render process before saving to allow for manual edits.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Manual.Edit",
-    "default": 0
+    "title": "Render Settings"
   },
   {
     "type": "bool",
     "title": "[b]Skip Failed Cards[/b]",
     "desc": "Automatically skip failed cards without asking for confirmation.\n[b](Default: False)[/b]",
-    "section": "APP",
+    "section": "APP.RENDER",
     "key": "Skip.Failed",
     "default": 0
   },
   {
     "type": "bool",
-    "title": "[b]Scryfall Search Ascending[/b]",
-    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
-    "section": "APP",
-    "key": "Scryfall.Ascending",
+    "title": "[b]Force English Formatting[/b]",
+    "desc": "Enabling this will force Photoshop text layers to use English formatting.\n[b](Default: False)[/b]",
+    "section": "APP.RENDER",
+    "key": "Force.English.Formatting",
     "default": 0
   },
   {
     "type": "bool",
     "title": "[b]Targeted Text Replacement[/b]",
-    "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop.\nTry disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
-    "section": "APP",
+    "desc": "Disabling this can fix a crash that occurs on some versions of Photoshop. Try disabling this if experiencing a crash during the collector info step.\n[b](Default: True)[/b]",
+    "section": "APP.RENDER",
     "key": "Targeted.Replace",
     "default": 1
+  },
+  {
+    "type": "title",
+    "title": "Data Settings"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Scryfall Search Ascending[/b]",
+    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
+    "section": "APP.DATA",
+    "key": "Scryfall.Ascending",
+    "default": 0
+  },
+  {
+    "type": "title",
+    "title": "System Settings"
   },
   {
     "type": "bool",
     "title": "[b]Development Testing Mode[/b]",
     "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually.[/b]",
-    "section": "APP",
+    "section": "APP.SYSTEM",
     "key": "Dev.Mode",
     "disabled": true,
     "default": 0
-  },
-  {
-    "type": "title",
-    "title": "Special Template Settings"
-  },
-  {
-    "type": "options",
-    "title": "[b]Border Color[/b]",
-    "desc": "Choose the color of the card border used across templates.\nWill work on most templates, but considered experimental.\n[b](Default: 'black')[/b]",
-    "section": "TEMPLATES",
-    "key": "Border.Color",
-    "options": ["black", "white", "silver", "gold"],
-    "default": "black"
-  },
-  {
-    "type": "bool",
-    "title": "[b]Render Snow Cards with Snow Template[/b]",
-    "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
-    "section": "TEMPLATES",
-    "key": "Render.Snow",
-    "default": 0
-  },
-  {
-    "type": "bool",
-    "title": "[b]Render Miracle Cards with Miracle Template[/b]",
-    "desc": "When enabled, miracle cards will be rendered using Miracle template type.\n[b](Default: False)[/b]",
-    "section": "TEMPLATES",
-    "key": "Render.Miracle",
-    "default": 0
-  },
-  {
-    "type": "bool",
-    "title": "[b]Render Basic Land Cards with Basic Land Template[/b]",
-    "desc": "When disabled, Basic Land cards will be rendered using Normal template type.\n[b](Default: True)[/b]",
-    "section": "TEMPLATES",
-    "key": "Render.Basic",
-    "default": 1
   }
 ]

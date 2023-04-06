@@ -155,9 +155,9 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
         if self.name_shifted and self.is_front:
-            return psd.getLayer("tf-front", [self.text_layers])
+            return psd.getLayer("tf-front", self.text_layers)
         elif self.name_shifted:
-            return psd.getLayer("tf-back", [self.text_layers])
+            return psd.getLayer("tf-back", self.text_layers)
         return
 
     def enable_frame_layers(self):
@@ -330,7 +330,7 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
     Credit to Vittorio Masia (Sid)
     """
     template_file_name = "basic-dark-mode"
-    template_suffix = f"Dark"
+    template_suffix = "Dark"
 
     def __init__(self, layout):
         cfg.save_artist_name = True

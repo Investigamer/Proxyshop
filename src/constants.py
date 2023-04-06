@@ -6,6 +6,7 @@ import os
 from os import path as osp
 import json
 from dataclasses import dataclass
+from threading import Lock
 try:
     from src.__env__ import google
     from src.__env__ import cloudfront
@@ -174,18 +175,29 @@ class Constants:
 
     def load_values(self):
 
-        # Key file paths
+        # Key directories
         self.cwd = os.getcwd()
         self.path_src = osp.join(self.cwd, 'src')
         self.path_logs = osp.join(self.cwd, 'logs')
-        self.path_plugins = osp.join(self.cwd, 'plugins')
         self.path_img = osp.join(self.path_src, 'img')
         self.path_data = osp.join(self.path_src, 'data')
+        self.path_plugins = osp.join(self.cwd, 'plugins')
         self.path_tests = osp.join(self.path_src, 'tests')
+        self.path_configs = osp.join(self.path_src, 'configs')
         self.path_data_sets = osp.join(self.path_data, 'sets')
+
+        # Key files
         self.path_scryfall_scan = osp.join(self.path_logs, "card.jpg")
         self.path_version_tracker = osp.join(self.path_data, 'version_tracker.json')
-        self.path_config_json = osp.join(self.path_data, 'app_settings.json')
+
+        # Config paths
+        self.path_config_json_base = osp.join(self.path_data, 'base_settings.json')
+        self.path_config_json_app = osp.join(self.path_data, 'app_settings.json')
+        self.path_config_ini_base = os.path.join(self.path_configs, "base_config.ini")
+        self.path_config_ini_app = os.path.join(self.cwd, "config.ini")
+
+        # Lock for multithreading
+        self.lock = Lock()
 
         # Import version tracker
         if not osp.exists(self.path_version_tracker):
@@ -235,16 +247,16 @@ class Constants:
             "{B/P}": "Qp",
             "{R/P}": "Qp",
             "{G/P}": "Qp",
-            "{W/U/P}": "Qqp",
-            "{U/B/P}": "Qqp",
-            "{B/R/P}": "Qqp",
-            "{R/G/P}": "Qqp",
-            "{G/W/P}": "Qqp",
-            "{W/B/P}": "Qqp",
-            "{B/G/P}": "Qqp",
-            "{G/U/P}": "Qqp",
-            "{U/R/P}": "Qqp",
-            "{R/W/P}": "Qqp",
+            "{W/U/P}": "Qqyz",
+            "{U/B/P}": "Qqyz",
+            "{B/R/P}": "Qqyz",
+            "{R/G/P}": "Qqyz",
+            "{G/W/P}": "Qqyz",
+            "{W/B/P}": "Qqyz",
+            "{B/G/P}": "Qqyz",
+            "{G/U/P}": "Qqyz",
+            "{U/R/P}": "Qqyz",
+            "{R/W/P}": "Qqyz",
             "{E}": "e",
             "{T}": "ot",
             "{X}": "ox",
@@ -305,6 +317,16 @@ class Constants:
             "snowcoveredswamp",
             "snowcoveredmountain",
             "snowcoveredforest"
+        ]
+
+        # Transform icons
+        self.transform_icons = [
+            'compasslanddfc',
+            'mooneldrazidfc',
+            'originpwdfc',
+            'convertdfc',
+            'sunmoondfc',
+            'fandfc'
         ]
 
         # Color reference dictionary
@@ -389,7 +411,7 @@ class Constants:
             self.watermarks = json.load(js)
 
         # Import set symbol library
-        with open(osp.join(self.path_data, "symbols.json"), "r", encoding="utf-8-sig") as js:
+        with open(osp.join(self.path_data, "expansion_symbols.json"), "r", encoding="utf-8-sig") as js:
             self.set_symbols = json.load(js)
         if not osp.exists(osp.join(self.path_data, "custom_symbols.json")):
             with open(osp.join(self.path_data, "custom_symbols.json"), "w", encoding="utf-8") as cs:

@@ -2,7 +2,7 @@
 KIVY SETTINGS POPUPS
 """
 import os.path as osp
-from pathlib import Path
+from functools import cached_property
 from typing import Optional
 from kivy.config import ConfigParser
 
@@ -12,14 +12,25 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
-from kivy.uix.settings import Settings, SettingOptions, SettingSpacer, SettingNumeric, SettingString
+from kivy.uix.settings import (
+    Settings,
+    SettingOptions,
+    SettingSpacer,
+    SettingNumeric,
+    SettingString
+)
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 from src.core import TemplateDetails
 from src.constants import con
-from src.utils.files import verify_config_fields, get_valid_config_json
+from src.utils.files import (
+    verify_config_fields,
+    get_valid_config_json,
+    ensure_path_exists,
+    copy_config_or_verify
+)
 
 """
 AESTHETIC CLASSES
@@ -146,58 +157,166 @@ SETTINGS POPUP
 
 class SettingsPopup(ModalView):
 
-    @property
-    def path_ini(self) -> Optional:
+    """
+    Settings governing entire APP
+    """
+
+    @cached_property
+    def path_app_ini(self) -> str:
+        return con.path_config_ini_app
+
+    @cached_property
+    def path_app_json(self):
+        # System json configuration
+        return con.path_config_json_app
+
+    """
+    Settings that can be applied to templates
+    """
+
+    @cached_property
+    def path_base_ini(self) -> str:
+        # Main template settings INI
+        return con.path_config_ini_base
+
+    @cached_property
+    def path_base_json(self) -> str:
+        # Main template settings JSON
+        return con.path_config_json_base
+
+    """
+    Settings applying to only this template
+    """
+
+    @cached_property
+    def path_template_json(self) -> Optional[str]:
+        # Template JSON config path
+        if self.template and osp.isfile(self.template.get('config_path')):
+            return self.template.get('config_path')
+        return
+
+    @cached_property
+    def path_template_ini(self) -> Optional[str]:
         # Template INI config path
         if self.template and self.template.get('config_path'):
             return self.template.get('config_path', '').replace('json', 'ini')
-        return osp.join(con.cwd, "config.ini")
-
-    @property
-    def path_template_json(self) -> Optional[str]:
-        # Template JSON config path
-        if self.template and osp.exists(self.template.get('config_path')):
-            return self.template.get('config_path')
         return
+
+    """
+    Checks
+    """
+
+    @cached_property
+    def has_template(self) -> bool:
+        return bool(self.template and self.path_template_ini)
+
+    """
+    Generate Settings Page
+    """
 
     def __init__(self, template: Optional[TemplateDetails] = None, **kwargs):
         super().__init__(**kwargs)
         self.template = template
 
+        # Ensure the base and system app configs are valid:
+        self.validate_app_configs()
+
+        # Is this global or for a template?
+        if not self.has_template:
+            settings = self.load_global_settings()
+        else:
+            settings = self.load_template_settings()
+        self.add_widget(settings)
+
+    def load_global_settings(self) -> Settings:
+
+        # Create a settings panel
+        s = self.get_settings_panel()
+
+        # Load ini files
+        base_config = self.get_config_object(self.path_base_ini)
+        app_config = self.get_config_object(self.path_app_ini)
+
+        # Load JSON settings into panel
+        s.add_json_panel(
+            'Main Settings', base_config,
+            data=get_valid_config_json(self.path_base_json)
+        )
+        s.add_json_panel(
+            'System Settings', app_config,
+            data=get_valid_config_json(self.path_app_json)
+        )
+        return s
+
+    def load_template_settings(self) -> Settings:
+
+        # Create a settings panel
+        s = self.get_settings_panel()
+
+        # Load ini files
+        self.validate_template_config()
+        config = self.get_config_object(self.path_template_ini)
+
+        # Load JSON settings into panel
+        if self.path_template_json:
+            s.add_json_panel(
+                f"{self.template['name']} Template", config,
+                data=get_valid_config_json(self.path_template_json)
+            )
+        s.add_json_panel(
+            'Main Settings', config,
+            data=get_valid_config_json(self.path_base_json)
+        )
+        return s
+
+    """
+    Validate Settings
+    """
+
+    def validate_app_configs(self) -> None:
+        """
+        Validate both our BASE config and APP config.
+        """
+        verify_config_fields(self.path_app_ini, self.path_app_json)
+        verify_config_fields(self.path_base_ini, self.path_base_json)
+
+    def validate_template_config(self) -> None:
+        """
+        Verify that the ini file for the app/template contains necessary fields outlined in JSON.
+        """
+        # Ensure folder exists
+        ensure_path_exists(self.path_template_ini)
+
+        # Ensure app fields exist
+        copy_config_or_verify(self.path_base_ini, self.path_template_ini, self.path_base_json)
+        if self.path_template_json:
+            verify_config_fields(self.path_template_ini, self.path_template_json)
+
+    """
+    Handle Needed Objects
+    """
+
+    @staticmethod
+    def get_config_object(path: str) -> ConfigParser:
+        """
+        Returns a config option using a valid ini path.
+        @param path: Path to ini file.
+        @return: ConfigParser option that loaded the ini file.
+        """
+        config = ConfigParser(allow_no_value=True)
+        config.optionxform = str
+        config.read(path)
+        return config
+
+    def get_settings_panel(self) -> Settings:
+        """
+        Create a settings panel to register our JSON settings to.
+        @return: Settings object.
+        """
         # Configure settings panel
         s = Settings()
         s.bind(on_close=self.dismiss)
         s.register_type('options', FormattedSettingOptions)
         s.register_type('string', FormattedSettingString)
         s.register_type('numeric', FormattedSettingNumeric)
-
-        # Load ini file
-        self.verify_ini_file()
-        app_config = ConfigParser(allow_no_value=True)
-        app_config.optionxform = str
-        app_config.read(self.path_ini)
-
-        # Load JSON settings into panel
-        if self.path_template_json:
-            s.add_json_panel(
-                f"{template['name']} Template", app_config,
-                data=get_valid_config_json(self.path_template_json)
-            )
-        s.add_json_panel(
-            'App Settings', app_config,
-            data=get_valid_config_json(con.path_config_json)
-        )
-        self.add_widget(s)
-
-    def verify_ini_file(self):
-        """
-        Verify that the ini file for the app/template contains necessary fields outlined in JSON.
-        """
-        # Ensure folder exists
-        Path(osp.dirname(self.path_ini)).mkdir(mode=511, parents=True, exist_ok=True)
-
-        # Ensure app fields exist
-        verify_config_fields(self.path_ini, con.path_config_json)
-        if self.path_template_json:
-            # Ensure template fields exist
-            verify_config_fields(self.path_ini, self.path_template_json)
+        return s

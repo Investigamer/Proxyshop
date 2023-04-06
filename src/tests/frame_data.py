@@ -5,7 +5,8 @@ https://tinyurl.com/chilli-frame-logic-tests
 """
 # Change to root directory
 import os
-import time
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 from os import path as osp
 os.chdir(osp.abspath(osp.join(os.getcwd(), '..', '..')))
 
@@ -16,7 +17,7 @@ con.headless = True
 # Additional imports
 from src.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
 from src.layouts import NormalLayout
-from src.scryfall import card_info
+from src.utils.scryfall import get_card_data
 
 # TODO: Implement actual pytest assertions
 test_cases = {
@@ -97,7 +98,8 @@ test_cases = {
     },
     "Purphoros, God of the Forge": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, True, False]
+        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, True, False],
+        'set': 'ths'
     },
     "Nylea, God of the Hunt": {
         'layout': NormalLayout,
@@ -218,6 +220,26 @@ test_cases = {
     "Asmoranomardicadaistinaculdacar": {
         'layout': NormalLayout,
         'frame': [con.layers.BR, con.layers.BR, con.layers.LAND, False, False]
+    },
+
+    # Two color gold frame, with hybrid symbol
+    'Maelstrom Muse': {
+        'layout': NormalLayout,
+        'frame': [con.layers.GOLD, con.layers.UR, con.layers.GOLD, False, False]
+    },
+    'Ajani, Sleeper Agent': {
+        'layout': NormalLayout,
+        'frame': [con.layers.GOLD, con.layers.GW, con.layers.GOLD, False, False]
+    },
+    'Tamiyo, Compleated Sage': {
+        'layout': NormalLayout,
+        'frame': [con.layers.GOLD, con.layers.GU, con.layers.GOLD, False, False]
+    },
+
+    # Three color gold frame, with hybrid symbol
+    'Messenger Falcons': {
+        'layout': NormalLayout,
+        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
     },
 
     # Double faced cards
@@ -855,11 +877,15 @@ test_cases = {
 }
 """
 
-# Test each card
-failed = []
-for card, correct_result in test_cases.items():
+
+def check_card_Frame(data):
     # Retrieve scryfall for the card
-    scryfall = card_info(card)
+    card, correct_result = data
+    if correct_result.get('set'):
+        scryfall = get_card_data(card, correct_result.get('set'))
+        correct_result.pop('set')
+    else:
+        scryfall = get_card_data(card)
     mock_file_info = {
         'name': card,
         'artist': '',
@@ -876,18 +902,30 @@ for card, correct_result in test_cases.items():
     except Exception as e:
         print(e)
         print('Error at:', card)
-        continue
+        return
 
     # Do the results match?
     if not actual_result == correct_result:
-        print(card)
-        print('Result:', actual_result)
-        print('Desired Result:', correct_result)
-        failed.append({'name': card, 'expected': correct_result, 'actual': actual_result})
-        print("==================================")
+        return card, actual_result, correct_result
+    return
 
-    # Scryfall rate limit
-    time.sleep(0.05)
 
-# Look over any failures
-print(failed if failed else "ALL SUCCESSFUL!")
+with ThreadPoolExecutor(max_workers=cpu_count()) as executor:
+    results = executor.map(check_card_Frame, test_cases.items())
+results = list(results)
+failed = [result for result in results if result is not None]
+
+# Print the failures
+if not failed:
+    print("ALL SUCCESSFUL!")
+    input("Press enter to exit...")
+    exit()
+
+# List the failures
+for name, actual, correct in failed:
+    print(name)
+    print('Result:', actual)
+    print('Desired Result:', correct)
+    print("==================================")
+input("Press enter to exit...")
+exit()

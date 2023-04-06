@@ -161,7 +161,7 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        scryfall = self.check_alternate_language(scryfall)
+        scryfall = self.format_scryfall_data(scryfall)
         temp = get_my_templates({"Planeswalker": self.selected_template})
         self.render_custom(root.render_custom, temp['planeswalker'], scryfall)
 
@@ -198,7 +198,7 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-        scryfall = self.check_alternate_language(scryfall)
+        scryfall = self.format_scryfall_data(scryfall)
         temp = get_my_templates({"Saga": self.selected_template})
         self.render_custom(root.render_custom, temp['saga'], scryfall)
 

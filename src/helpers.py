@@ -12,9 +12,8 @@ from photoshop.api import (
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
-from src.constants import con
-from src.scryfall import card_scan
 from src.settings import cfg
+from src.constants import con
 from src.utils.enums_photoshop import Alignment, Stroke
 from src.utils.strings import ps_version_check
 from src.utils.types_photoshop import EffectStroke, EffectDropShadow, EffectGradientOverlay, LayerEffects, \
@@ -47,10 +46,10 @@ def getLayer(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = Non
         # Was LayerSet provided?
         if isinstance(group, str):
             # LayerSet name given
-            return app.activeDocument.layerSets.getByName(group).layers.getByName(name)
+            return app.activeDocument.layerSets.getByName(group).artLayers.getByName(name)
         elif isinstance(group, LayerSet):
             # LayerSet object given
-            return group.layers.getByName(name)
+            return group.artLayers.getByName(name)
         elif isinstance(group, (tuple, list)):
             # Tuple or list of LayerSets
             layer_set = app.activeDocument
@@ -61,9 +60,9 @@ def getLayer(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = Non
                 elif isinstance(g, LayerSet):
                     # LayerSet object given
                     layer_set = g
-            return layer_set.layers.getByName(name)
+            return layer_set.artLayers.getByName(name)
         # Valid LayerSet not given
-        return app.activeDocument.layers.getByName(name)
+        return app.activeDocument.artLayers.getByName(name)
     except (PhotoshopPythonAPIError, AttributeError, TypeError):
         print(f'\nLayer "{name}" could not be found!')
         if group:
@@ -571,7 +570,8 @@ def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
     """
     # Create new layer at top of layers
     active_layer = app.activeDocument.activeLayer
-    layer = app.activeDocument.artLayers.add(layer_name=layer_name or "Layer")
+    layer = app.activeDocument.artLayers.add()
+    layer.name = layer_name or "Layer"
 
     # Name it & set blend mode to normal
     layer.blendMode = BlendMode.NormalBlend
@@ -733,22 +733,45 @@ def position_between_layers(
 def spread_layers_over_reference(
     layers: list[ArtLayer],
     ref: ArtLayer,
-    gap: Union[int, float],
-    inside_gap: Union[int, float, None] = None
+    gap: Optional[Union[int, float]] = None,
+    inside_gap: Union[int, float, None] = None,
+    outside_matching: bool = True
 ) -> None:
     """
     Spread layers apart across a reference layer.
     @param layers: List of ArtLayers or LayerSets.
     @param ref: Reference used as the maximum height boundary for all layers given.
-    @param gap: Gap between the top of the reference and the first layer.
-    @param inside_gap: Gap between each layer, uses gap instead of not provided.
+    @param gap: Gap between the top of the reference and the first layer, or between all layers if not provided.
+    @param inside_gap: Gap between each layer, calculated using leftover space if not provided.
+    @param outside_matching: If enabled, will enforce top and bottom gap to match.
     """
+    # Calculate outside gap if not provided
+    outside_gap = gap
+    if not gap:
+        total_space = get_layer_dimensions(ref)['height'] - sum(
+            [get_text_layer_dimensions(layer)['height'] for layer in layers]
+        )
+        outside_gap = total_space / (len(layers) + 1)
+
     # Position the top layer relative to the reference
-    delta = (ref.bounds[1] + gap) - layers[0].bounds[1]
+    delta = (ref.bounds[1] + outside_gap) - layers[0].bounds[1]
     layers[0].translate(0, delta)
 
+    # Calculate inside gap if not provided
+    if gap and not inside_gap:
+        # Calculate the inside gap
+        ignored = 2 if outside_matching else 1
+        spaces = len(layers) - 1 if outside_matching else len(layers)
+        total_space = get_layer_dimensions(ref)['height'] - sum(
+            [get_text_layer_dimensions(layer)['height'] for layer in layers]
+        )
+        inside_gap = (total_space - (ignored * gap)) / spaces
+    elif not gap:
+        # Use the outside gap uniformly
+        inside_gap = outside_gap
+
     # Position the bottom layers relative to the top
-    space_layers_apart(layers, inside_gap or gap)
+    space_layers_apart(layers, inside_gap)
 
 
 def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, float]) -> None:
@@ -941,17 +964,19 @@ def rasterize_layer_style(layer: ArtLayer) -> None:
     app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
-def import_art(layer: ArtLayer, file: str) -> None:
+def import_art(layer: ArtLayer, file: str, name: str = "Layer 1") -> ArtLayer:
     """
     Imports an art file into the active layer.
     @param layer: Layer to make active and receive image.
     @param file: Image file to import.
+    @param name: Name of the new layer.
     """
     desc = ActionDescriptor()
     app.activeDocument.activeLayer = layer
     desc.putPath(cID("null"), file)
     app.executeAction(cID("Plc "), desc)
-    app.activeDocument.activeLayer.name = "Layer 1"
+    app.activeDocument.activeLayer.name = name
+    return app.activeDocument.activeLayer
 
 
 def import_svg(
@@ -1007,14 +1032,13 @@ def paste_file(
     app.activeDocument.paste()
 
 
-def paste_file_into_new_layer(file: str) -> ArtLayer:
+def import_art_into_new_layer(file: str, name: str = "New Layer") -> ArtLayer:
     """
-    Wrapper for paste_file which creates a new layer for the file next to the active layer.
-    Returns the new layer.
+    Creates a new layer and imports a given art into that layer.
+    @param file: Image file to import, must have a valid image extension.
+    @param name: Chosen name of the new layer.
     """
-    new_layer = create_new_layer("New Layer")
-    paste_file(new_layer, file)
-    return new_layer
+    return import_art(create_new_layer(name), file, name)
 
 
 """
@@ -1442,22 +1466,6 @@ def repair_edges(edge: int = 6) -> None:
 
     # Deselect
     app.activeDocument.selection.deselect()
-
-
-"""
-PROXYSHOP UTILITIES
-"""
-
-
-def insert_scryfall_scan(image_url: str) -> Optional[ArtLayer]:
-    """
-    Downloads the specified scryfall scan and inserts it into a new layer next to the active layer.
-    Returns the new layer.
-    """
-    scryfall_scan = card_scan(image_url)
-    if scryfall_scan:
-        return paste_file_into_new_layer(scryfall_scan)
-    return
 
 
 """

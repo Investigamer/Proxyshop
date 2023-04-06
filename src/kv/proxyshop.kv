@@ -1,5 +1,6 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import HoverButton src.gui.utils.HoverButton
+#:import get_font src.gui.utils.get_font
 #:import Thread threading.Thread
 #:import cfg src.settings.cfg
 #:import ak asynckivy
@@ -142,7 +143,20 @@
         halign: "left"
     TemplateSettingsButton:
         id: settings_button
-        text: "Settings"
+        text: "⚙️"
+        options: []
+        font_name: get_font("seguiemj.ttf")
+        background_color: get_color_from_hex("#598cc5")
         size_hint: (None, 1)
-        width: 80
+        width: 40
         on_press: ak.start(self.open_settings())
+    TemplateResetDefaultButton:
+        id: reset_default_button
+        text: "🧹️"
+        options: []
+        font_name: get_font("seguiemj.ttf")
+        hover_color: "#ede98a"
+        background_color: get_color_from_hex("#c5c059")
+        size_hint: (None, 1)
+        width: 40
+        on_press: ak.start(self.reset_default())

@@ -128,8 +128,7 @@ def download_google(
             return False
 
     # Get temp file
-    details = get_temp_file(res, sess, path, url)
-    file, current, res = details['file'], details['current'], details['res']
+    file, current, res = get_temp_file(res, sess, path, url)
 
     # Let the user know its downloading
     print("Downloading...", file=sys.stderr)
@@ -142,16 +141,16 @@ def download_google(
     return download_file(file, res, sess, path, callback)
 
 
-def download_s3(temp: dict, callback: Callable) -> bool:
+def download_s3(save_path: str, s3_path: str, callback: Optional[Callable] = None) -> bool:
     """
     Download template from Amazon S3 bucket.
-    @param temp: Dict containing template data.
+    @param save_path: Path to save the file to.
+    @param s3_path: Filepath key on S3 bucket.
     @param callback: Callback function to update progress.
     @return: True if success, False if failed.
     """
-    # Establish this object's key
-    key = f"{temp['plugin']}/{temp['filename']}" if temp['plugin'] else temp['filename']
-    url = f"{con.cloudfront_url}/{key}"
+    # Establish this object's cloudfront URL
+    url = f"{con.cloudfront_url}/{s3_path}"
 
     # Establish session
     sess = requests.session()
@@ -159,39 +158,17 @@ def download_s3(temp: dict, callback: Callable) -> bool:
     res = sess.get(url, headers=header, stream=True, verify=True)
 
     # Get temp file
-    details = get_temp_file(res, sess, temp['path'], url)
-    file, current, res = details['file'], details['current'], details['res']
+    file, current, res = get_temp_file(res, sess, save_path, url)
 
     # Let the user know its downloading
     print("Downloading...", file=sys.stderr)
     if current != 0:
         print("Resume:", file, file=sys.stderr)
     print("From:", url, file=sys.stderr)
-    print("To:", temp['path'], file=sys.stderr)
+    print("To:", save_path, file=sys.stderr)
 
     # Start the download
-    return download_file(file, res, sess, temp['path'], callback)
-
-
-def download_s3_file(filename: str, path: str) -> bool:
-    """
-    Download template from Amazon S3 bucket.
-    @param filename: Filename on S3
-    @param path: Path to save file to.
-    @return: True if success, False if failed.
-    """
-    # Establish this object's key
-    url = f"{con.cloudfront_url}/{filename}"
-
-    # Establish session
-    sess = requests.session()
-    header = con.http_header.copy()
-    res = sess.get(url, headers=header, stream=True, verify=True)
-
-    # Get temp file
-    details = get_temp_file(res, sess, path, url)
-    file, current, res = details['file'], details['current'], details['res']
-    return download_file(file, res, sess, path)
+    return download_file(file, res, sess, save_path, callback)
 
 
 def get_temp_file(
@@ -199,14 +176,14 @@ def get_temp_file(
         sess: requests.Session,
         path: str,
         url: str,
-) -> dict:
+) -> tuple:
     """
     Check for an existing temporary file or create a new one.
     @param res: Planned download request.
     @param sess: Current download session.
     @param path: Planned path name to the completed download.
     @param url: If resumable, url to generate a new download request.
-    @return: Dict containing temp file path, new download request, and total bytes downloaded.
+    @return: Tuple containing temp file path, total bytes downloaded, new download request.
     """
     existing_tmp_files = []
     header = con.http_header.copy()
@@ -232,11 +209,7 @@ def get_temp_file(
         if tmp_file is not None and f.tell() != 0:
             header["Range"] = "bytes={}-".format(f.tell())
             res = sess.get(url, headers=header, stream=True, verify=True)
-    return {
-        'file': tmp_file,
-        'res': res,
-        'current': current
-    }
+    return tmp_file, current, res
 
 
 def download_file(
