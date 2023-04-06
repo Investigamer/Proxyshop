@@ -1266,7 +1266,7 @@ class NormalClassicTemplate (StarterTemplate):
 
         # Add the promo star
         if self.promo_star:
-            psd.getLayer("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
+            psd.getLayerSet("Promo Star", con.layers.TEXT_AND_ICONS).visible = True
 
     def collector_info(self) -> None:
         """
@@ -2924,4 +2924,4 @@ class BasicLandClassicTemplate (BasicLandTemplate):
 
         # Add the promo star
         if self.promo_star:
-            psd.getLayer("Promo Star").visible = True
+            psd.getLayerSet("Promo Star").visible = True
