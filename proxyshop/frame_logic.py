@@ -43,11 +43,11 @@ def fix_color_triple(triple):
     * Utility function to standardize ordering of color triples, ie. "BUR" becomes "UBR"
     """
     color_triples = [
-        con.layers.GWU,
         con.layers.WUB,
         con.layers.UBR,
         con.layers.BRG,
         con.layers.RGW,
+        con.layers.GWU,
         con.layers.WBG,
         con.layers.URW,
         con.layers.BGU,
