@@ -1,8 +1,10 @@
 """
 Types for Photoshop Actions
 """
+# Standard Library Imports
 from typing import TypedDict, Literal, Union
 
+# Third Party Imports
 from photoshop.api import SolidColor
 from typing_extensions import NotRequired
 

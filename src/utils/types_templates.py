@@ -1,13 +1,15 @@
 """
 Types pertaining to Templates
 """
-from typing import TypedDict, Optional, Callable, Union
+# Standard Library Imports
+from typing import TypedDict, Optional, Callable
 from typing_extensions import NotRequired
 
 
 class TemplateDetails(TypedDict):
     id: Optional[str]
     class_name: str
+    plugin_name: Optional[str]
     plugin_path: Optional[str]
     preview_path: str
     template_path: str

@@ -1,9 +1,11 @@
 """
 Enums for Photoshop Actions
 """
+# Standard Library Imports
 from enum import Enum
 from typing import Literal, Union
 
+# Third Party Imports
 import photoshop.api as ps
 app = ps.Application()
 cID = app.charIDToTypeID

@@ -1,14 +1,18 @@
+"""
+FONT UTILITIES
+"""
+# Standard Library Imports
 import ctypes
 from ctypes import wintypes
 import os.path as osp
 from typing import Union
+from _ctypes import COMError
 
+# Third Party Imports
 from photoshop.api.enumerations import LayerKind
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
 import photoshop.api as ps
-from _ctypes import COMError
-
 app = ps.Application()
 
 
