@@ -1,33 +1,39 @@
 """
 PHOTOSHOP HELPER FUNCTIONS
 """
+# Standard Library Imports
+from os import path as osp
 from typing import Optional, Union
-import os
 
+# Third Party Imports
 from photoshop.api import (
-    PhotoshopPythonAPIError, SolidColor, Application, DialogModes, Units, ActionDescriptor,
+    PhotoshopPythonAPIError, SolidColor, DialogModes, ActionDescriptor,
     ColorModel, RasterizeType, ElementPlacement, ActionReference, LayerKind, BlendMode,
     AnchorPosition, SaveOptions, ActionList, PNGSaveOptions, JPEGSaveOptions, PhotoshopSaveOptions
 )
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
+from photoshop.api._document import Document
 
+# Local Imports
 from src.settings import cfg
 from src.constants import con
 from src.utils.enums_photoshop import Alignment, Stroke
+from src.utils.exceptions import PS_EXCEPTIONS
 from src.utils.strings import ps_version_check
-from src.utils.types_photoshop import EffectStroke, EffectDropShadow, EffectGradientOverlay, LayerEffects, \
-    EffectColorOverlay
+from src.utils.types_photoshop import (
+    LayerEffects,
+    EffectStroke,
+    EffectDropShadow,
+    EffectColorOverlay,
+    EffectGradientOverlay
+)
 
 # QOL Definitions
-app = Application()
+app = con.app
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
-
-# Ensure scaling with pixels, font size with points
-app.preferences.rulerUnits = Units.Pixels
-app.preferences.typeUnits = Units.Points
 
 
 """
@@ -63,9 +69,12 @@ def getLayer(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = Non
             return layer_set.artLayers.getByName(name)
         # Valid LayerSet not given
         return app.activeDocument.artLayers.getByName(name)
-    except (PhotoshopPythonAPIError, AttributeError, TypeError):
+    except (AttributeError, TypeError, *PS_EXCEPTIONS):
+        # Layer couldn't be found
         print(f'\nLayer "{name}" could not be found!')
-        if group:
+        if group and isinstance(group, LayerSet):
+            print(f"LayerSet reference used: {group.name}")
+        elif group and isinstance(group, str):
             print(f"LayerSet reference used: {group}")
     return
 
@@ -101,10 +110,10 @@ def getLayerSet(name: str, group: Optional[Union[str, list, tuple, LayerSet]] = 
             return group.layerSets.getByName(name)
         # LayerSet can't be located
         raise PhotoshopPythonAPIError(f"LayerSet given invalid: {group}")
-    except (PhotoshopPythonAPIError, AttributeError, TypeError):
+    except (AttributeError, TypeError, *PS_EXCEPTIONS):
         print(f'LayerSet "{name}" could not be found!')
-        if group:
-            print(f"LayerSet reference used: {group}")
+        if group and isinstance(group, LayerSet):
+            print(f"LayerSet reference used: {group.name}")
     return
 
 
@@ -116,13 +125,9 @@ COLOR FUNCTIONS
 def rgb_black() -> SolidColor:
     """
     Creates a black SolidColor object.
-    @return: SolidColor object
+    @return: SolidColor object.
     """
-    color = SolidColor()
-    color.rgb.red = 0
-    color.rgb.green = 0
-    color.rgb.blue = 0
-    return color
+    return get_rgb(0, 0, 0)
 
 
 def rgb_grey() -> SolidColor:
@@ -130,11 +135,7 @@ def rgb_grey() -> SolidColor:
     Creates a grey SolidColor object.
     @return: SolidColor object.
     """
-    color = SolidColor()
-    color.rgb.red = 170
-    color.rgb.green = 170
-    color.rgb.blue = 170
-    return color
+    return get_rgb(170, 170, 170)
 
 
 def rgb_white() -> SolidColor:
@@ -142,11 +143,7 @@ def rgb_white() -> SolidColor:
     Creates a white SolidColor object.
     @return: SolidColor object.
     """
-    color = SolidColor()
-    color.rgb.red = 255
-    color.rgb.green = 255
-    color.rgb.blue = 255
-    return color
+    return get_rgb(255, 255, 255)
 
 
 def get_rgb(r: int, g: int, b: int) -> SolidColor:
@@ -170,7 +167,7 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
     @param c: Float from 0.0 to 100.0 for Cyan component.
     @param m: Float from 0.0 to 100.0 for Magenta component.
     @param y: Float from 0.0 to 100.0 for Yellow component.
-    @param k: Float from 0.0 to 100.0 for blacK component.
+    @param k: Float from 0.0 to 100.0 for black component.
     @return: SolidColor object.
     """
     color = SolidColor()
@@ -250,56 +247,64 @@ def apply_color(action: ActionDescriptor, color: SolidColor) -> None:
     @param color: CMYK or RGB SolidColor object.
     """
     if color.model == ColorModel.RGBModel:
-        apply_rgb(action, color)
-    elif color.model == ColorModel.CMYKModel:
-        apply_cmyk(action, color)
-    else:
-        raise ValueError(f"Received unsupported color object: {color}")
+        return apply_rgb(action, color)
+    if color.model == ColorModel.CMYKModel:
+        return apply_cmyk(action, color)
+    raise ValueError(f"Received unsupported color object: {color}")
 
 
 """
-LAYER PROPERTIES
+BOUNDS / DIMENSIONS
 """
 
 
-def layer_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> list[int, int, int, int]:
+def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> list[int, int, int, int]:
     """
     Returns the bounds of a given layer without its effects applied.
     @param layer: A layer object
     @return list: Pixel location top left, top right, bottom left, bottom right.
     """
-    current = app.activeDocument.activeLayer
-    app.activeDocument.activeLayer = layer
-    bounds = app.eval_javascript(
-        "app.activeDocument.activeLayer.boundsNoEffects"
-    )
-    app.activeDocument.activeLayer = current
-    return [int(num) for num in bounds.replace(" px", "").split(",")]
+    reference = ActionReference()
+    reference.putIdentifier(sID('layer'), layer.id)
+    descriptor = app.executeActionGet(reference)
+    bounds = descriptor.getObjectValue(sID('boundsNoEffects'))
+    return [
+        bounds.getInteger(sID('left')),
+        bounds.getInteger(sID('top')),
+        bounds.getInteger(sID('right')),
+        bounds.getInteger(sID('bottom'))
+    ]
+
+
+def get_dimensions_from_bounds(bounds: list) -> dict[str: Union[float, int]]:
+    """
+    Compute width and height based on a set of bounds given.
+    @param bounds: List of bounds given.
+    @return: Dict containing eight and width.
+    """
+    return {
+        'width': int(bounds[2]-bounds[0]),
+        'height': int(bounds[3]-bounds[1]),
+    }
 
 
 def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> dict[str: Union[float, int]]:
     """
     Compute the dimensions of a layer without its effects applied.
     @param layer: A layer object
-    @return dict: Height and width of the layer
+    @return: Dict containing eight and width.
     """
-    bounds = layer_bounds_no_effects(layer)
-    return {
-        'width': bounds[2] - bounds[0],
-        'height': bounds[3] - bounds[1],
-    }
+    bounds = get_bounds_no_effects(layer)
+    return get_dimensions_from_bounds(bounds)
 
 
 def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> dict[str: Union[float, int]]:
     """
     Compute the width and height dimensions of a layer.
     @param layer: A layer object
-    @return dict: Height and width of the layer.
+    @return: Dict containing eight and width.
     """
-    return {
-        'width': layer.bounds[2]-layer.bounds[0],
-        'height': layer.bounds[3]-layer.bounds[1],
-    }
+    return get_dimensions_from_bounds(layer.bounds)
 
 
 """
@@ -307,20 +312,73 @@ TEXT LAYER PROPERTIES
 """
 
 
-def get_text_layer_bounds(layer: ArtLayer, legacy: bool = False) -> dict[str: Union[int, float]]:
+def check_textbox_overflow(layer: ArtLayer) -> bool:
     """
-    Return an object with the specified text layer's bounding box.
+    Check if a TextLayer overflows the bounding box.
+    @param layer: ArtLayer with "kind" of TextLayer.
+    @return: True if text overflowing, else False.
+    """
+    if layer.kind != LayerKind.TextLayer:
+        return False
+
+    # Create a test layer to check the difference
+    height = get_text_layer_dimensions(layer)['height']
+    layer.textItem.height = 1000
+    dif = get_text_layer_dimensions(layer)['height'] - height
+    undo_action()
+    if dif > 0:
+        return True
+    return False
+
+
+def get_text_layer_bounds(layer: ArtLayer, legacy: bool = False) -> list[int, int, int, int]:
+    """
+    Returns a list of the text layer's bounds [left, top, right, bottom].
     @param layer: Layer to get the bounds of.
-    @param legacy: Force old way for legacy text layers.
-    @return: Array of the bounds of the given layer.
+    @param legacy: Force old way for legacy Photoshop versions.
+    @return: List of the bounds of a given layer.
     """
-    if int(app.version[0:2]) < 21 or legacy:
+    if legacy or int(app.version[0:2]) < 21:
         layer_copy = layer.duplicate(app.activeDocument, ElementPlacement.PlaceInside)
         layer_copy.rasterize(RasterizeType.TextContents)
         layer_bounds = layer.bounds
         layer_copy.remove()
         return layer_bounds
     return layer.bounds
+
+
+def get_textbox_bounds(layer: ArtLayer) -> list[int]:
+    """
+    Get the bounds of a TextLayer's bounding box.
+    @param layer: ArtLayer with "kind" of TextLayer.
+    @return: List of bounds integers.
+    """
+    reference = ActionReference()
+    reference.putIdentifier(sID('layer'), layer.id)
+    descriptor = app.executeActionGet(reference)
+    bounds = descriptor.getObjectValue(sID('boundingBox'))
+    return [
+        bounds.getInteger(sID('left')),
+        bounds.getInteger(sID('top')),
+        bounds.getInteger(sID('right')),
+        bounds.getInteger(sID('bottom'))
+    ]
+
+
+def get_textbox_dimensions(layer: ArtLayer):
+    """
+    Get the dimensions of a TextLayer's bounding box.
+    @param layer: ArtLayer with "kind" of TextLayer.
+    @return: Dict containing width and height.
+    """
+    reference = ActionReference()
+    reference.putIdentifier(sID('layer'), layer.id)
+    descriptor = app.executeActionGet(reference)
+    bounds = descriptor.getObjectValue(sID('boundingBox'))
+    return {
+        'width': bounds.getInteger(sID('width')),
+        'height': bounds.getInteger(sID('height'))
+    }
 
 
 def get_text_layer_dimensions(layer, legacy: bool = False) -> dict[str: Union[int, float]]:
@@ -331,7 +389,7 @@ def get_text_layer_dimensions(layer, legacy: bool = False) -> dict[str: Union[in
     @param legacy: Force old way for legacy text layers.
     @return: Dict containing height and width of the given layer.
     """
-    if int(app.version[0:2]) < 21 or legacy:
+    if legacy or int(app.version[0:2]) < 21:
         layer_copy = layer.duplicate(app.activeDocument, ElementPlacement.PlaceInside)
         layer_copy.rasterize(RasterizeType.TextContents)
         dimensions = get_layer_dimensions(layer_copy)
@@ -354,26 +412,38 @@ def get_text_layer_color(layer: ArtLayer) -> SolidColor:
     return rgb_black()
 
 
-def get_text_scale_factor(layer: Optional[ArtLayer] = None, axis: str = "xx") -> float:
+def get_text_scale_factor(
+    layer: Optional[ArtLayer] = None,
+    axis: Optional[Union[str, list]] = 'yy',
+    text_key = None
+) -> Union[int, float, list[Union[int, float]]]:
     """
     Get the scale factor of the document for changing text size.
     @param layer: The layer to make active and run the check on.
-    @param axis: xx for horizontal, yy for vertical.
+    @param axis: Scale axis or list of scale axis to check
+                 (xx: horizontal, yy: vertical)
+    @param text_key: textKey action descriptor
     @return: Float scale factor
     """
-    # Change the active layer, if needed
-    if layer:
-        app.activeDocument.activeLayer = layer
+    # Get the textKey if not provided
+    if not text_key:
+        # Get the activeLayer if not provided
+        if not layer:
+            layer = app.activeDocument.activeLayer
+        ref = ActionReference()
+        ref.putIdentifier(sID("layer"), layer.id)
+        text_key = app.executeActionGet(ref).getObjectValue(sID('textKey'))
 
-    # Get the scale factor if not 1
-    factor = 1
-    ref = ActionReference()
-    ref.putEnumerated(cID("Lyr "), cID("Ordn"), cID("Trgt"))
-    desc = app.executeActionGet(ref).getObjectValue(sID('textKey'))
-    if desc.hasKey(sID('transform')):
-        transform = desc.getObjectValue(sID('transform'))
-        factor = transform.getUnitDoubleValue(sID(axis))
-    return factor
+    # Check for the "transform" descriptor
+    if text_key.hasKey(sID('transform')):
+        transform = text_key.getObjectValue(sID('transform'))
+        # Check list of axis
+        if isinstance(axis, list):
+            return [transform.getUnitDoubleValue(sID(n)) for n in axis]
+        # Check string axis
+        if isinstance(axis, str):
+            return transform.getUnitDoubleValue(sID(axis))
+    return 1 if not isinstance(axis, list) else [1] * len(axis)
 
 
 def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
@@ -470,7 +540,7 @@ def select_no_layers() -> None:
     selectNone = ActionDescriptor()
     ref = ActionReference()
     ref.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
-    selectNone.putReference(cID("null"), ref)
+    selectNone.putReference(sID("target"), ref)
     app.executeAction(sID("selectNoLayers"), selectNone, NO_DIALOG)
 
 
@@ -603,7 +673,7 @@ def lock_layer(layer: Union[ArtLayer, LayerSet], protection: str = "protectAll")
     desc819 = ActionDescriptor()
     ref378 = ActionReference()
     ref378.putIdentifier(cID("Lyr "), layer.id)
-    desc819.putReference(cID("null"), ref378)
+    desc819.putReference(sID("target"), ref378)
     desc820 = ActionDescriptor()
     desc820.putBoolean(sID(protection), True)
     idlayerLocking = sID("layerLocking")
@@ -648,7 +718,7 @@ def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
     ref1 = ActionReference()
     ref2 = ActionReference()
     ref1.putProperty(idChnl, cID("fsel"))
-    des1.putReference(cID("null"), ref1)
+    des1.putReference(sID("target"), ref1)
     ref2.putEnumerated(idChnl, idChnl, cID("Trsp"))
     if layer:
         ref2.putIdentifier(sID("layer"), layer.id)
@@ -817,34 +887,78 @@ def frame_layer(
     clear_selection()
 
 
-def set_layer_mask(layer: ArtLayer, visible: bool = True) -> None:
+def set_layer_mask(
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    visible: bool = True
+) -> None:
     """
-    Set the visibility of the active layer's layer mask.
+    Set the visibility of a layer's mask.
+    @param layer: ArtLayer object.
+    @param visible: Whether to make the layer mask visible.
     """
+    if not layer:
+        layer = app.activeDocument.activeLayer
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
     ref1 = ActionReference()
     ref1.putIdentifier(cID("Lyr "), layer.id)
-    desc1.putReference(cID("null"), ref1)
+    desc1.putReference(sID("target"), ref1)
     desc2.putBoolean(cID("UsrM"), visible)
     desc1.putObject(cID("T   "), cID("Lyr "), desc2)
     app.executeAction(cID("setd"), desc1, NO_DIALOG)
 
 
-def enable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
+def enable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     """
     Enables a given layer's mask.
-    @param layer: A layer object
+    @param layer: ArtLayer object.
     """
     set_layer_mask(layer, True)
 
 
-def disable_mask(layer: Union[ArtLayer, LayerSet]) -> None:
+def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     """
     Disables a given layer's mask.
-    @param layer: A layer object
+    @param layer: ArtLayer object.
     """
     set_layer_mask(layer, False)
+
+
+def set_layer_vector_mask(
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    visible: bool = False
+) -> None:
+    """
+    Set the visibility of a layer's vector mask.
+    @param layer: ArtLayer object.
+    @param visible: Whether to make the vector mask visible.
+    """
+    if not layer:
+        layer = app.activeDocument.activeLayer
+    desc1 = ActionDescriptor()
+    desc2 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.putIdentifier(sID("layer"), layer.id)
+    desc1.putReference(sID("target"), ref1)
+    desc2.putBoolean(sID("vectorMaskEnabled"), visible)
+    desc1.putObject(sID("to"), sID("layer"), desc2)
+    app.executeAction(sID("set"), desc1, NO_DIALOG)
+
+
+def enable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """
+    Enables a given layer's vector mask.
+    @param layer: ArtLayer object.
+    """
+    set_layer_vector_mask(layer, True)
+
+
+def disable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """
+    Disables a given layer's vector mask.
+    @param layer: ArtLayer object.
+    """
+    set_layer_vector_mask(layer, False)
 
 
 def set_fx_visibility(layer: Optional[Union[ArtLayer, LayerSet]], visible: bool = True) -> None:
@@ -855,10 +969,6 @@ def set_fx_visibility(layer: Optional[Union[ArtLayer, LayerSet]], visible: bool 
     """
     if not layer:
         layer = app.activeDocument.activeLayer
-    else:
-        app.activeDocument.activeLayer = layer
-
-    # Change visibility
     desc = ActionDescriptor()
     action_list = ActionList()
     ref = ActionReference()
@@ -973,7 +1083,7 @@ def import_art(layer: ArtLayer, file: str, name: str = "Layer 1") -> ArtLayer:
     """
     desc = ActionDescriptor()
     app.activeDocument.activeLayer = layer
-    desc.putPath(cID("null"), file)
+    desc.putPath(sID("target"), file)
     app.executeAction(cID("Plc "), desc)
     app.activeDocument.activeLayer.name = name
     return app.activeDocument.activeLayer
@@ -993,7 +1103,7 @@ def import_svg(
     """
     # Import the art
     desc = ActionDescriptor()
-    desc.putPath(cID("null"), file)
+    desc.putPath(sID("target"), file)
     app.executeAction(cID("Plc "), desc)
 
     # Position the layer if needed
@@ -1219,7 +1329,6 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     @param replace: Text string to replace matches with.
     """
     # Set the active layer
-    current = app.activeDocument.activeLayer
     app.activeDocument.activeLayer = layer
 
     # Find and replace
@@ -1227,10 +1336,10 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     ref3 = ActionReference()
     desc32 = ActionDescriptor()
     ref3.putProperty(sID("property"), sID("findReplace"))
-    ref3.putEnumerated(sID('textLayer'), sID('ordinal'), sID('targetEnum'))
-    desc31.putReference(sID("null"), ref3)
-    desc32.putString(sID("find"), f"{find}")
-    desc32.putString(sID("replace"), f"{replace}")
+    ref3.putEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
+    desc31.putReference(sID("target"), ref3)
+    desc32.putString(sID("find"), f"""{find}""")
+    desc32.putString(sID("replace"), f"""{replace}""")
     desc32.putBoolean(
         sID("checkAll"),  # Targeted replace doesn't work on old PS versions
         False if cfg.targeted_replace and ps_version_check(con.version_targeted_replace) else True
@@ -1242,13 +1351,86 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
     app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
 
-    # Reset current selected
-    app.activeDocument.activeLayer = current
-
 
 """
 DOCUMENT ACTIONS
 """
+
+
+def jump_to_history_state(position: int):
+    """
+    Jump to a position in the history state relative to its current position.
+    2 moves forward two, -2 moves backwards two.
+    @param position: Integer value determining how far ahead or behind in the state to move.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.PutOffset(sID("historyState"),  position)
+    desc1.PutReference(sID("target"),  ref1)
+    app.Executeaction(sID("select"), desc1,  NO_DIALOG)
+
+
+def toggle_history_state(direction: str = "previous") -> None:
+    """
+    Alter the history state.
+    @param direction: Direction to move the history state ("previous" or "next").
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.PutEnumerated(sID("historyState"), sID("ordinal"), sID(direction))
+    desc1.PutReference(sID("target"), ref1)
+    app.Executeaction(sID("select"), desc1, NO_DIALOG)
+
+
+def undo_action() -> None:
+    """
+    Undo the last action in the history state.
+    """
+    toggle_history_state("previous")
+
+
+def redo_action() -> None:
+    """
+    Redo the last action undone in the history state.
+    """
+    toggle_history_state("next")
+
+
+def convert_points_to_pixels(number: Union[int, float]) -> float:
+    """
+    Converts a given number in points units to pixel units.
+    @return: Float representing the given value in pixel units.
+    """
+    return (app.activeDocument.resolution / 72) * number
+
+
+def check_active_document() -> bool:
+    """
+    Checks if there are any active documents loaded in Photoshop.
+    @return: True if exists, otherwise False.
+    """
+    try:
+        if app.documents.length > 0:
+            return True
+    except PS_EXCEPTIONS:
+        pass
+    return False
+
+
+def get_document(name: str) -> Optional[Document]:
+    """
+    Check if a Photoshop Document has been loaded.
+    @param name: Filename of the document.
+    @return: The Document if located, None if missing.
+    """
+    try:
+        if app.documents.length < 1:
+            return
+        doc = app.documents.getByName(name)
+        app.activeDocument = doc
+        return doc
+    except PS_EXCEPTIONS:
+        return
 
 
 def clear_selection() -> None:
@@ -1296,7 +1478,7 @@ def save_document_png(file_name: str, directory='out') -> None:
     png_options = PNGSaveOptions()
     png_options.compression = 3
     app.activeDocument.saveAs(
-        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.png"),
+        file_path=osp.join(con.cwd, f"{directory}/{file_name}.png"),
         options=png_options, asCopy=True
     )
 
@@ -1310,7 +1492,7 @@ def save_document_jpeg(file_name: str, directory='out') -> None:
     jpeg_options = JPEGSaveOptions(quality=12)
     jpeg_options.scans = 3
     app.activeDocument.saveAs(
-        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.jpg"),
+        file_path=osp.join(con.cwd, f"{directory}/{file_name}.jpg"),
         options=jpeg_options, asCopy=True
     )
 
@@ -1322,7 +1504,7 @@ def save_document_psd(file_name: str, directory='out') -> None:
     @param directory: Directory to save the file.
     """
     app.activeDocument.saveAs(
-        file_path=os.path.join(con.cwd, f"{directory}/{file_name}.psd"),
+        file_path=osp.join(con.cwd, f"{directory}/{file_name}.psd"),
         options=PhotoshopSaveOptions(),
         asCopy=True
     )
@@ -1341,7 +1523,7 @@ def reset_document() -> None:
     """
     idslct = cID("slct")
     desc9 = ActionDescriptor()
-    idnull = cID("null")
+    idnull = sID("target")
     ref1 = ActionReference()
     idSnpS = cID("SnpS")
     ref1.putName(idSnpS, app.activeDocument.name)
@@ -1369,7 +1551,7 @@ def content_fill_empty_area(layer: Optional[ArtLayer] = None) -> None:
     desc307 = ActionDescriptor()
     ref257 = ActionReference()
     ref257.putProperty(cID("Chnl"), cID("fsel"))
-    desc307.putReference(cID("null"), ref257)
+    desc307.putReference(sID("target"), ref257)
     ref258 = ActionReference()
     idChnl = cID("Chnl")
     ref258.putEnumerated(idChnl, idChnl, cID("Trsp"))
@@ -1486,7 +1668,7 @@ def fill_expansion_symbol(reference: ArtLayer, color: SolidColor = rgb_black()) 
     click1 = ActionDescriptor()
     ref1 = ActionReference()
     ref1.putProperty(cID("Chnl"), cID("fsel"))
-    click1.putReference(cID("null"), ref1)
+    click1.putReference(sID("target"), ref1)
     click1.putObject(cID("T   "), cID("Pnt "), coords)
     click1.putInteger(cID("Tlrn"), 12)
     click1.putBoolean(cID("AntA"), True)
@@ -1516,7 +1698,7 @@ def fill_expansion_symbol(reference: ArtLayer, color: SolidColor = rgb_black()) 
     return layer
 
 
-def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Optional[tuple[str, list]]:
+def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Optional[list]:
     """
     Takes in set code and returns information needed to build the expansion symbol.
     @param symbol: Symbol chosen by layout object.
@@ -1524,7 +1706,6 @@ def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Opti
     @return: List of dicts containing information about this symbol.
     """
     # Ref not defined unless explicit
-    ref = None
     symbols = []
     if isinstance(symbol, str):
         # Symbol as a string only
@@ -1549,12 +1730,10 @@ def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Opti
         # Multilayered symbol
         for sym in symbol:
             symbols.append(format_expansion_symbol_dict(sym, rarity))
-            if sym.get('reference', False):
-                ref = sym['char']
     else:
         # Unsupported data type, return default symbol
-        return process_expansion_symbol_info(con.set_symbols['MTG'], rarity)
-    return ref or symbols[0]['char'], symbols
+        return process_expansion_symbol_info(cfg.get_default_symbol(), rarity)
+    return symbols
 
 
 def format_expansion_symbol_dict(sym: dict, rarity: str) -> dict:
