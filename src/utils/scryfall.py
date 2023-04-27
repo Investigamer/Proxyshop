@@ -1,18 +1,22 @@
 """
 FUNCTIONS THAT INTERACT WITH SCRYFALL
 """
+# Standard Library Imports
 import os
 import json
+from functools import cache
 from shutil import copyfileobj
+from typing import Optional, Union, Callable, Any
 
+# Third Party Imports
 import requests
 from ratelimit import sleep_and_retry, RateLimitDecorator
 from backoff import on_exception, expo
-from typing import Optional, Union, Callable, Any
 
+# Local Imports
+from src.env.__console__ import console
 from src.settings import cfg
 from src.constants import con
-from src.__console__ import console
 from src.utils.strings import msg_warn, normalize_str
 
 
@@ -116,7 +120,8 @@ def get_card_data(
     """
     # Enforce Basic Land template?
     if normalize_str(card_name, True) in con.basic_land_names and cfg.render_basic:
-        return get_basic_land(card_name, card_set)
+        with con.lock_func_cached:
+            return get_basic_land(card_name, card_set)
 
     # Alternate language
     if cfg.lang != "en":
@@ -131,7 +136,7 @@ def get_card_data(
         # Was the result correct?
         if isinstance(card, dict):
             return card
-        elif not cfg.dev_mode:
+        elif not cfg.test_mode:
             # Language couldn't be found
             console.update(msg_warn(f"Reverting to English: [b]{card_name}[/b]"))
 
@@ -150,7 +155,7 @@ def get_set_data(card_set: str) -> Optional[dict]:
     # Has this set been logged?
     filepath = os.path.join(con.path_data_sets, f"SET-{card_set.upper()}.json")
     if os.path.exists(filepath):
-        with con.lock:
+        with con.lock_file_open:
             with open(filepath, "r", encoding="utf-8") as f:
                 try:
                     # Try to load the JSON data
@@ -163,12 +168,16 @@ def get_set_data(card_set: str) -> Optional[dict]:
 
     # Get set data
     data_scry = get_set_scryfall(card_set)
+
+    # Check for token set before progressing
+    if data_scry.get('set_type', '') == 'token':
+        card_set = data_scry.get('parent_set_code', card_set)
     data_mtg = get_set_mtgjson(card_set)
 
     # Save the data if both lookups were valid, or 'printed_size' is present
     data_scry.update(data_mtg)
     if (data_mtg and data_scry) or 'printed_size' in data_scry:
-        with con.lock:
+        with con.lock_file_open:
             with open(filepath, "w", encoding="utf-8") as f:
                 try:
                     # Try to dump the JSON data
@@ -200,8 +209,9 @@ def get_card_unique(
     @param lang: Lang code to look for, ex: en
     @return: Card dict or ScryfallError
     """
+    lang = '' if lang == 'en' else f'/{lang}'
     res = requests.get(
-        url=f'https://api.scryfall.com/cards/{card_set.lower()}/{card_number}/{lang}',
+        url=f'https://api.scryfall.com/cards/{card_set.lower()}/{card_number}{lang}',
         headers=con.http_header
     )
     card, url = res.json(), res.url
@@ -232,7 +242,7 @@ def get_card_search(
         headers=con.http_header,
         params={
             'unique': 'prints',
-            'order': 'released',
+            'order': cfg.scry_sorting,
             'dir': 'asc' if cfg.scry_ascending else 'desc',
             'include_extras': True,
             'q': f'!"{card_name}"'
@@ -265,13 +275,19 @@ def get_set_mtgjson(card_set: str) -> dict:
         f"https://mtgjson.com/api/v5/{card_set.upper()}.json",
         headers=con.http_header
     ).text
-    j = json.loads(source).get('data')
+    j = json.loads(source).get('data', {})
 
     # Minimize data stored
     j.pop('cards', None)
-    j.pop('tokens', None)
     j.pop('booster', None)
     j.pop('sealedProduct', None)
+
+    # Verify token count
+    if 'tokens' in j:
+        j['tokenCount'] = len(j.get('tokens', []))
+        j.pop('tokens', None)
+    else:
+        j['tokenCount'] = 0
 
     # Return data if valid
     return j if j.get('name') else {}
@@ -314,6 +330,7 @@ UTILITIES
 """
 
 
+@cache
 def get_basic_land(card_name: str, set_code: Optional[str]) -> dict:
     """
     Generate fake Scryfall data from basic land.
