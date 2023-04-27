@@ -667,7 +667,6 @@
             "common-stroke": ["black", 4]
         },
         {
-            "reference": true,
             "char": "",
             "fill": false,
             "common-fill": false
@@ -831,6 +830,7 @@
     "SLX": "SLD",
     "SLC": "SLD",
     "SLU": "SLD",
+    "BCORE": "\uE612",
     "OVNT": "SLD",
     "J21": "",
     "MID": [
@@ -952,8 +952,7 @@
             "common-stroke": ["black", 6]
         },
         {
-            "char": "",
-            "reference": true
+            "char": ""
         }
     ],
     "CLB": [
@@ -968,8 +967,7 @@
         {
             "char": "",
             "fill": "white",
-            "common-fill": "white",
-            "reference": true
+            "common-fill": "white"
         }
     ],
     "2X2": "",
@@ -1001,8 +999,7 @@
             "rarity": false,
             "color": "black",
             "common-color": "white",
-            "common-stroke": false,
-            "reference": true
+            "common-stroke": false
         }
     ],
     "BRO": "",
@@ -1026,8 +1023,7 @@
             "stroke": ["white", 6],
             "rarity": false,
             "fill": false,
-            "common-fill": false,
-            "reference": true
+            "common-fill": false
         }
     ],
     "BRC": [
@@ -1036,8 +1032,7 @@
             "stroke": false,
             "common-stroke": false,
             "fill": "white",
-            "common-fill": "white",
-            "reference": true
+            "common-fill": "white"
         },
         {
             "char": "",
@@ -1078,8 +1073,7 @@
             "common-color": "white",
             "common-fill": false,
             "common-stroke": false,
-            "rarity": false,
-            "reference": true
+            "rarity": false
         }
     ],
     "BOT": "",
@@ -1099,8 +1093,7 @@
                 "color": "white",
                 "weight": 6,
                 "style": "out"
-            },
-            "reference": true
+            }
         },
         {
             "char": "\uEA61",
@@ -1124,8 +1117,7 @@
                 "color": "white",
                 "weight": 6,
                 "style": "center"
-            },
-            "reference": true
+            }
         }
     ],
     "SCD": [
@@ -1188,7 +1180,6 @@
             "char": "\uE9A9",
             "fill": "black",
             "common-fill": "white",
-            "reference": true,
             "rarity": false
         }
     ]
