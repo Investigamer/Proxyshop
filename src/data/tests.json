@@ -11,16 +11,28 @@
         ["Ghost Ark", "Vehicle"]
     ],
     "transform_front": [
-        ["Docent of Perfection", "Creature"]
+        ["Docent of Perfection [EMN]", "Moon Eldrazi DFC"],
+        ["Beloved Beggar [MID]", "Sun Moon DFC"],
+        ["Azor's Gateway [RIX]", "Compass DFC"],
+        ["Nissa, Vastwood Seer [ORI]", "Origin PW DFC"],
+        ["Optimus Prime, Hero [BOT]", "Convert DFC"],
+        ["Havengul Laboratory [SLX]", "Land DFC"]
     ],
     "transform_back": [
-        ["Lord of Lineage", "Creature"]
+        ["Final Iteration [EMN]", "Moon Eldrazi DFC"],
+        ["Lord of Lineage [ISD]", "Sun Moon DFC"],
+        ["Havengul Mystery [SLX]", "Land DFC"],
+        ["Dragon-Kami's Egg [NEO]", "Fan DFC"],
+        ["Optimus Prime, Autobot Leader [BOT]", "Convert DFC"]
     ],
     "mdfc_front": [
-        ["Plargg, Dean of Chaos", "Legendary Creature"]
+        ["Plargg, Dean of Chaos", "Legendary Creature"],
+        ["Birgi, God of Storytelling", "Creature"]
     ],
     "mdfc_back": [
-        ["Journey to the Oracle", "Noncreature"]
+        ["Journey to the Oracle", "Noncreature"],
+        ["Harnfel, Horn of Bounty", "Artifact"]
+
     ],
     "ixalan": [
         ["Azcanta, the Sunken Ruin", "Legendary Land"]
