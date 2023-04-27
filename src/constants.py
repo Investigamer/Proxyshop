@@ -1,181 +1,36 @@
 ﻿"""
-GLOBAL CONSTANTS
-Keep all global variables here.
+GLOBAL CONSTANTS MODULE
 """
+# Standard Library Imports
 import os
 from os import path as osp
 import json
-from dataclasses import dataclass
 from threading import Lock
-try:
-    from src.__env__ import google
-    from src.__env__ import cloudfront
-except ModuleNotFoundError:
-    google = ""
-    cloudfront = ""
 
-
-@dataclass
-class Layers:
-    """
-    Layer Names
-    """
-    WHITE = "W"
-    BLUE = "U"
-    BLACK = "B"
-    RED = "R"
-    GREEN = "G"
-    WU = "WU"
-    UB = "UB"
-    BR = "BR"
-    RG = "RG"
-    GW = "GW"
-    WB = "WB"
-    BG = "BG"
-    GU = "GU"
-    UR = "UR"
-    RW = "RW"
-    ARTIFACT = "Artifact"
-    COLORLESS = "Colorless"
-    NONLAND = "Nonland"
-    LAND = "Land"
-    GOLD = "Gold"
-    VEHICLE = "Vehicle"
-
-    # frame layer group names
-    PT_BOX = "PT Box"
-    PT_AND_LEVEL_BOXES = "PT and Level Boxes"
-    TWINS = "Name & Title Boxes"
-    LEGENDARY_CROWN = "Legendary Crown"
-    PINLINES_TEXTBOX = "Pinlines & Textbox"
-    PINLINES_AND_SAGA_STRIPE = "Pinlines & Saga Stripe"
-    PINLINES = "Pinlines"
-    LAND_PINLINES_TEXTBOX = "Land Pinlines & Textbox"
-    COMPANION = "Companion"
-    BACKGROUND = "Background"
-    NYX = "Nyx"
-
-    # borders
-    BORDER = "Border"
-    NORMAL_BORDER = "Normal Border"
-    LEGENDARY_BORDER = "Legendary Border"
-
-    # shadows
-    SHADOWS = "Shadows"
-    HOLLOW_CROWN_SHADOW = "Hollow Crown Shadow"
-
-    # legal
-    LEGAL = "Legal"
-    ARTIST = "Artist"
-    SET = "Set"
-    COLLECTOR = "Collector"
-    TOP_LINE = "Top"
-    BOTTOM_LINE = "Bottom"
-
-    # text and icons
-    TEXT_AND_ICONS = "Text and Icons"
-    NAME = "Card Name"
-    NAME_SHIFT = "Card Name Shift"
-    NAME_ADVENTURE = "Card Name - Adventure"
-    TYPE_LINE = "Typeline"
-    TYPE_LINE_SHIFT = "Typeline Shift"
-    TYPE_LINE_ADVENTURE = "Typeline - Adventure"
-    MANA_COST = "Mana Cost"
-    MANA_COST_ADVENTURE = "Mana Cost - Adventure"
-    EXPANSION_SYMBOL = "Expansion Symbol"
-    EXPANSION_REFERENCE = "Expansion Reference"
-    COLOR_INDICATOR = "Color Indicator"
-    POWER_TOUGHNESS = "Power / Toughness"
-    FLIPSIDE_POWER_TOUGHNESS = "Flipside Power / Toughness"
-    RULES_TEXT = "Rules Text"
-    RULES_TEXT_NONCREATURE = "Rules Text - Noncreature"
-    RULES_TEXT_NONCREATURE_FLIP = "Rules Text - Noncreature Flip"
-    RULES_TEXT_CREATURE = "Rules Text - Creature"
-    RULES_TEXT_CREATURE_FLIP = "Rules Text - Creature Flip"
-    RULES_TEXT_ADVENTURE = "Rules Text - Adventure"
-    MUTATE = "Mutate"
-    DIVIDER = "Divider"
-
-    # prototype
-    PROTO_TEXTBOX = "Prototype Textbox"
-    PROTO_MANABOX_SMALL = "Prototype Manabox 2"
-    PROTO_MANABOX_MEDIUM = "Prototype Manabox 3"
-    PROTO_PTBOX = "Prototype PT Box"
-    PROTO_MANA_COST = "Prototype Mana Cost"
-    PROTO_RULES = "Prototype Rules Text"
-    PROTO_PT = "Prototype Power / Toughness"
-
-    # planar text and icons
-    STATIC_ABILITY = "Static Ability"
-    CHAOS_ABILITY = "Chaos Ability"
-    CHAOS_SYMBOL = "Chaos Symbol"
-    PHENOMENON = "Phenomenon"
-    TEXTBOX = "Textbox"
-
-    # textbox references
-    TEXTBOX_REFERENCE = "Textbox Reference"
-    TEXTBOX_REFERENCE_LAND = "Textbox Reference Land"
-    TEXTBOX_REFERENCE_ADVENTURE = "Textbox Reference - Adventure"
-    MUTATE_REFERENCE = "Mutate Reference"
-    PT_REFERENCE = "PT Adjustment Reference"
-    PT_TOP_REFERENCE = "PT Top Reference"
-
-    # planeswalker
-    FIRST_ABILITY = "First Ability"
-    SECOND_ABILITY = "Second Ability"
-    THIRD_ABILITY = "Third Ability"
-    FOURTH_ABILITY = "Fourth Ability"
-    STARTING_LOYALTY = "Starting Loyalty"
-    LOYALTY_GRAPHICS = "Loyalty Graphics"
-    STATIC_TEXT = "Static Text"
-    ABILITY_TEXT = "Ability Text"
-    PW_ADJUSTMENT_REFERENCE = "PW Adjustment Reference"
-    PW_TOP_REFERENCE = "PW Top Reference"
-    COLON = "Colon"
-    TEXT = "Text"
-    COST = "Cost"
-
-    # art frames
-    ART_FRAME = "Art Frame"
-    FULL_ART_FRAME = "Full Art Frame"
-    BASIC_ART_FRAME = "Basic Art Frame"
-    PLANESWALKER_ART_FRAME = "Planeswalker Art Frame"
-    SCRYFALL_SCAN_FRAME = "Scryfall Scan Frame"
-
-    # transform
-    TF_FRONT = "tf-front"
-    TF_BACK = "tf-back"
-    MDFC_FRONT = "mdfc-front"
-    MDFC_BACK = "mdfc-back"
-    MOON_ELDRAZI_DFC = "mooneldrazidfc"
-
-    # mdfc
-    TOP = "Top"
-    BOTTOM = "Bottom"
-    LEFT = "Left"
-    RIGHT = "Right"
-
-
-# For object permanence
-class Singleton(type):
-    _instances: dict = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+# Local Imports
+from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
+from src.utils.enums_layers import LAYERS
+from src.utils.objects import Singleton, PhotoshopHandler
 
 
 # Global app-wide constants class
 class Constants:
+    """
+    Stores global constants that affect the behavior of the app.
+    Can be changed within a template class to affect rendering behavior.
+    """
     __metaclass__ = Singleton
 
     def __init__(self):
+        self.app = PhotoshopHandler()
         self.load_values()
 
     def load_values(self):
-
-        # Key directories
+        """
+        Loads default values across the board.
+        Called between renders to remove any changes made by templates.
+        """
+        # Consistent paths used by the app
         self.cwd = os.getcwd()
         self.path_src = osp.join(self.cwd, 'src')
         self.path_logs = osp.join(self.cwd, 'logs')
@@ -185,33 +40,28 @@ class Constants:
         self.path_tests = osp.join(self.path_src, 'tests')
         self.path_configs = osp.join(self.path_src, 'configs')
         self.path_data_sets = osp.join(self.path_data, 'sets')
-
-        # Key files
-        self.path_scryfall_scan = osp.join(self.path_logs, "card.jpg")
-        self.path_version_tracker = osp.join(self.path_data, 'version_tracker.json')
-
-        # Config paths
         self.path_config_json_base = osp.join(self.path_data, 'base_settings.json')
         self.path_config_json_app = osp.join(self.path_data, 'app_settings.json')
         self.path_config_ini_base = os.path.join(self.path_configs, "base_config.ini")
         self.path_config_ini_app = os.path.join(self.cwd, "config.ini")
 
-        # Lock for multithreading
-        self.lock = Lock()
+        # Key files used by the app
+        self.path_scryfall_scan = osp.join(self.path_logs, "card.jpg")
+        self.path_watermarks = osp.join(self.path_data, 'watermarks.json')
+        self.path_version_tracker = osp.join(self.path_data, 'version_tracker.json')
+        self.path_expansion_symbols = osp.join(self.path_data, 'expansion_symbols.json')
+        self.path_custom_symbols = osp.join(self.path_data, "custom_symbols.json")
+
+        # Locking handlers for multithreading
+        self.lock_file_open = Lock()
+        self.lock_func_cached = Lock()
 
         # Import version tracker
-        if not osp.exists(self.path_version_tracker):
-            with open(self.path_version_tracker, "w", encoding="utf-8") as tr:
-                json.dump({}, tr, indent=4)
-        with open(self.path_version_tracker, "r", encoding="utf-8") as tr:
-            try:
-                self.versions = json.load(tr)
-            except json.decoder.JSONDecodeError:
-                self.versions = {}
+        self.versions = self.get_version_tracker()
 
         # Import API Keys
-        self.google_api = google
-        self.cloudfront_url = cloudfront
+        self.google_api = ENV_API_GOOGLE
+        self.cloudfront_url = ENV_API_AMAZON
 
         # Card classes - finer grained than Scryfall layouts
         self.normal_class = "normal"
@@ -235,10 +85,7 @@ class Constants:
         self.basic_class = "basic"
         self.planar_class = "planar"
         self.prototype_class = "prototype"
-
-        # Layer names
-        self.layers = Layers()
-        self.default_layer = "Layer 1"
+        self.token_class = "token"
 
         # Symbol dictionary for NDPMTG font
         self.symbols = {
@@ -257,6 +104,7 @@ class Constants:
             "{G/U/P}": "Qqyz",
             "{U/R/P}": "Qqyz",
             "{R/W/P}": "Qqyz",
+            "{A}": "oj",
             "{E}": "e",
             "{T}": "ot",
             "{X}": "ox",
@@ -319,14 +167,15 @@ class Constants:
             "snowcoveredforest"
         ]
 
-        # Transform icons
+        # Layer names and transform icons
+        self.layers = LAYERS
         self.transform_icons = [
-            'compasslanddfc',
-            'mooneldrazidfc',
-            'originpwdfc',
-            'convertdfc',
-            'sunmoondfc',
-            'fandfc'
+            LAYERS.DFC_COMPASSLAND,
+            LAYERS.DFC_MOONELDRAZI,
+            LAYERS.DFC_ORIGINPW,
+            LAYERS.DFC_CONVERT,
+            LAYERS.DFC_SUNMOON,
+            LAYERS.DFC_FAN
         ]
 
         # Color reference dictionary
@@ -407,17 +256,12 @@ class Constants:
         }
 
         # Import watermark library
-        with open(osp.join(self.path_data, 'watermarks.json'), "r", encoding="utf-8-sig") as js:
-            self.watermarks = json.load(js)
+        self.watermarks = self.get_watermarks()
 
-        # Import set symbol library
-        with open(osp.join(self.path_data, "expansion_symbols.json"), "r", encoding="utf-8-sig") as js:
-            self.set_symbols = json.load(js)
-        if not osp.exists(osp.join(self.path_data, "custom_symbols.json")):
-            with open(osp.join(self.path_data, "custom_symbols.json"), "w", encoding="utf-8") as cs:
-                json.dump({}, cs, indent=4)
-        with open(osp.join(self.path_data, "custom_symbols.json"), "r", encoding="utf-8-sig") as js:
-            self.set_symbols.update(json.load(js))
+        # Import symbol library, update with custom symbols, establish fallback
+        self.set_symbols = self.get_expansion_symbols()
+        self.set_symbols.update(self.get_custom_symbols())
+        self.set_symbol_fallback = ""
 
         # Font names
         self.font_rules_text = "PlantinMTPro-Regular"
@@ -471,20 +315,43 @@ class Constants:
         # Run headless
         self.headless = False
 
+        # Track timed checks
+        self.times = []
+
         # Version compatibility features
         self.version_webp = '23.2.0'
         self.version_targeted_replace = '22.0.0'
 
-        # Console message colors
-        self.console_message_error = "#a84747"
-        self.console_message_warning = "#d4c53d"
-        self.console_message_success = "#59d461"
+    """
+    UTILITY
+    """
 
     def reload(self):
         """
         Reloads default values
         """
         self.load_values()
+
+    """
+    VERSION TRACKER
+    """
+
+    def get_version_tracker(self) -> dict:
+        """
+        Get the current version tracker dict.
+        """
+        # Write a blank version tracker if not found
+        if not osp.isfile(self.path_version_tracker):
+            with open(self.path_version_tracker, "w", encoding="utf-8") as f:
+                json.dump({}, f, indent=4)
+
+        # Pull the version tracker
+        with open(self.path_version_tracker, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.decoder.JSONDecodeError:
+                # Data is invalid
+                return {}
 
     def update_version_tracker(self):
         """
@@ -493,6 +360,50 @@ class Constants:
         with open(self.path_version_tracker, "w", encoding="utf-8") as vt:
             json.dump(self.versions, vt, indent=4)
 
+    """
+    EXPANSION SYMBOLS
+    """
 
-# Global instance
+    def get_expansion_symbols(self) -> dict:
+        """
+        Import the expansion symbol library.
+        @return: Dict containing expansion symbol entries.
+        """
+        # Import expansion symbol library
+        with open(self.path_expansion_symbols, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+
+    def get_custom_symbols(self) -> dict:
+        """
+        Import any custom defined expansion symbols.
+        @return: Dict containing custom symbol entries.
+        """
+        # Check for a custom expansion symbol library
+        if not osp.exists(self.path_custom_symbols):
+            with open(osp.join(self.path_data, "custom_symbols.json"), "w", encoding="utf-8-sig") as f:
+                json.dump({}, f, indent=4)
+
+        # Pull the custom expansion symbol library
+        with open(self.path_custom_symbols, "r", encoding="utf-8-sig") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                # Data is invalid
+                return {}
+
+    """
+    WATERMARKS
+    """
+
+    def get_watermarks(self) -> dict:
+        """
+        Import the watermark library.
+        @return: Dict containing watermark entries.
+        """
+        # Import expansion symbol library
+        with open(self.path_watermarks, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+
+# Global instance tracking our constants
 con = Constants()
