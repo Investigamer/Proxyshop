@@ -3,21 +3,23 @@ Borrows from Gdown Project
 Source: https://github.com/wkentaro/gdown
 License: https://github.com/wkentaro/gdown/blob/main/LICENSE
 """
-import json
-from pathlib import Path
+# Standard Library Imports
 import os
-import os.path as osp
-import re
-import shutil
 import sys
+import json
+import shutil
 import tempfile
 import textwrap
+import os.path as osp
+from pathlib import Path
 from typing import Callable, Optional
+
+# Third Party Imports
 import requests
 
+# Local Imports
 from src.constants import con
-
-CHUNK_SIZE = 1024 * 1024  # 1 MB
+from src.utils.regex import Reg
 
 
 def get_url_from_gdrive_confirmation(contents: str) -> str:
@@ -26,35 +28,25 @@ def get_url_from_gdrive_confirmation(contents: str) -> str:
     @param contents: Google Drive page data.
     @return: Correct url for downloading.
     """
-    url = ""
     for line in contents.splitlines():
-        m = re.search(r'href="(/uc\?export=download[^"]+)', line)
-        if m:
-            url = "https://docs.google.com" + m.groups()[0]
-            url = url.replace("&amp;", "&")
-            break
-        m = re.search('id="download-form" action="(.+?)"', line)
-        if m:
-            url = m.groups()[0]
-            url = url.replace("&amp;", "&")
-            break
-        m = re.search('"downloadUrl":"([^"]+)', line)
-        if m:
-            url = m.groups()[0]
-            url = url.replace("\\u003d", "=")
-            url = url.replace("\\u0026", "&")
-            break
-        m = re.search('<p class="uc-error-subcaption">(.*)</p>', line)
-        if m:
+        if m := Reg.GDOWN_EXPORT.search(line):
+            # Google Docs URL
+            return f"https://docs.google.com{m.groups()[0]}".replace("&amp;", "&")
+        if m := Reg.GDOWN_FORM.search(line):
+            # Download URL from Form
+            return m.groups()[0].replace("&amp;", "&")
+        if m := Reg.GDOWN_URL.search(line):
+            # Download URL from JSON
+            return m.groups()[0].replace("\\u003d", "=").replace("\\u0026", "&")
+        if m := Reg.GDOWN_ERROR.search(line):
+            # Error Returned
             error = m.groups()[0]
             raise RuntimeError(error)
-    if not url:
-        raise RuntimeError(
-            "Cannot retrieve the public link of the file. "
-            "You may need to change the permission to "
-            "'Anyone with the link', or have had many accesses."
-        )
-    return url
+    raise RuntimeError(
+        "Cannot retrieve a public link of the file. "
+        "You may need to change access permission, "
+        "or have reached the daily limit."
+    )
 
 
 def download_google(
@@ -62,27 +54,16 @@ def download_google(
     path: str,
     callback: Callable,
     use_cookies: bool = True
-):
+) -> bool:
     """
-    Download file from Gdrive ID.
-
-    Parameters
-    ----------
-    file_id: str
-        Google Drive's file ID.
-    path: str
-        Output path.
-    callback: any
-        Function to call on each chunk downloaded.
-    use_cookies: bool
-        Use cookies with request.
-
-    Returns
-    -------
-    output: bool
-        True if success, False if failed.
+    Download a file from Google Drive using its file ID.
+    @param file_id: Google Drive file ID.
+    @param path: Path to save downloaded file.
+    @param callback: Function to call on each chunk downloaded.
+    @param use_cookies: Use cookies with request if True.
+    @return: True if successful, otherwise False.
     """
-    Path(os.path.dirname(Path(path))).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(osp.dirname(Path(path))).mkdir(mode=511, parents=True, exist_ok=True)
     url = "https://drive.google.com/uc?id={id}".format(id=file_id)
     url_origin = url
     sess = requests.session()
@@ -131,11 +112,7 @@ def download_google(
     file, current, res = get_temp_file(res, sess, path, url)
 
     # Let the user know its downloading
-    print("Downloading...", file=sys.stderr)
-    if current != 0:
-        print("Resume:", file, file=sys.stderr)
-    print("From:", url_origin, file=sys.stderr)
-    print("To:", path, file=sys.stderr)
+    print_download(url_origin, path, file if current != 0 else None)
 
     # Start the download
     return download_file(file, res, sess, path, callback)
@@ -161,21 +138,17 @@ def download_s3(save_path: str, s3_path: str, callback: Optional[Callable] = Non
     file, current, res = get_temp_file(res, sess, save_path, url)
 
     # Let the user know its downloading
-    print("Downloading...", file=sys.stderr)
-    if current != 0:
-        print("Resume:", file, file=sys.stderr)
-    print("From:", url, file=sys.stderr)
-    print("To:", save_path, file=sys.stderr)
+    print_download(url, save_path, file if current != 0 else None)
 
     # Start the download
     return download_file(file, res, sess, save_path, callback)
 
 
 def get_temp_file(
-        res: requests.Response,
-        sess: requests.Session,
-        path: str,
-        url: str,
+    res: requests.Response,
+    sess: requests.Session,
+    path: str,
+    url: str,
 ) -> tuple:
     """
     Check for an existing temporary file or create a new one.
@@ -193,7 +166,7 @@ def get_temp_file(
             existing_tmp_files.append(osp.join(osp.dirname(path), file))
     if len(existing_tmp_files) != 0:
         tmp_file = existing_tmp_files[0]
-        current = int(os.path.getsize(tmp_file))
+        current = int(osp.getsize(tmp_file))
     else:
         current = 0
         # mkstemp is preferred, but does not work on Windows
@@ -212,12 +185,27 @@ def get_temp_file(
     return tmp_file, current, res
 
 
+def print_download(url: str, path: str, resume: str = None) -> None:
+    """
+    Print the details of an initiated download.
+    @param url: Url file is being received from.
+    @param path: Path the file is being saved to.
+    @param resume: Temporary file we're resuming download on, if provided.
+    """
+    print("Downloading...", file=sys.stderr)
+    if resume:
+        print("Resume:", resume, file=sys.stderr)
+    print("From:", url, file=sys.stderr)
+    print("To:", path, file=sys.stderr)
+
+
 def download_file(
-        file: str,
-        res: requests.Response,
-        sess: requests.Session,
-        path: Optional[str] = None,
-        callback: Optional[Callable] = None
+    file: str,
+    res: requests.Response,
+    sess: requests.Session,
+    path: Optional[str] = None,
+    callback: Optional[Callable] = None,
+    chunk_size = 1024 * 1024
 ) -> bool:
     """
     Download file as a temporary file, then rename to its correct filename.
@@ -226,17 +214,22 @@ def download_file(
     @param sess: Download session.
     @param path: Final path to save the completed temporary file.
     @param callback: Callback to update download progress.
+    @param chunk_size: Amount of bytes to download before processing the callback.
     @return: True if download completed without error, otherwise False.
     """
+    # Ensure a proper chunk_size
+    if not chunk_size or not isinstance(chunk_size, int):
+        chunk_size = 1024 * 1024
+
     # Try to download the file
     total = int(res.headers.get("Content-Length") or 1)
-    current = int(os.path.getsize(file))
+    current = int(osp.getsize(file))
     try:
         with open(file, "ab") as f:
-            for chunk in res.iter_content(chunk_size=CHUNK_SIZE):
+            for chunk in res.iter_content(chunk_size=chunk_size):
                 f.write(chunk)
                 if callback:
-                    current += int(CHUNK_SIZE)
+                    current += int(chunk_size)
                     callback(current, total)
         if path and file != path:
             shutil.move(file, path)
@@ -244,5 +237,6 @@ def download_file(
         print(e, file=sys.stderr)
         return False
     finally:
+        # Close the session
         sess.close()
     return True
