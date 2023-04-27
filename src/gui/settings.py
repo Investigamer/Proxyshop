@@ -1,11 +1,13 @@
 """
 KIVY SETTINGS POPUPS
 """
+# Standard Library Imports
 import os.path as osp
 from functools import cached_property
 from typing import Optional
-from kivy.config import ConfigParser
 
+# Third Party Imports
+from kivy.config import ConfigParser
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
@@ -23,6 +25,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
+# Local Imports
 from src.core import TemplateDetails
 from src.constants import con
 from src.utils.files import (

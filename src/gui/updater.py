@@ -1,16 +1,19 @@
 """
-UPDATER FUNCTIONALITY
+GUI UPDATER
 """
+# Standard Library Imports
 import os
 from typing import Optional
 
+# Third Party Imports
+import asynckivy as ak
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.label import Label
-import asynckivy as ak
 
+# Local Imports
 from src.constants import con
 from src.core import check_for_updates, update_template
 from src.gui.utils import GUI

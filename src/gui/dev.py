@@ -1,15 +1,18 @@
 """
 DEV MODE
 """
+# Standard Library Imports
 import os
 import threading
 
+# Third Party Imports
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 
+# Local Imports
 from src.constants import con
 from src.core import get_templates, TemplateDetails
 from src.gui.utils import HoverButton

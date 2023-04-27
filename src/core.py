@@ -1,22 +1,26 @@
 """
 LOADS PLUGINS AND TEMPLATES
 """
+# Standard Library Imports
 import os
-import re
 import sys
 import json
-from multiprocessing import cpu_count
-
-import requests
 import os.path as osp
-from glob import glob
 from pathlib import Path
 from concurrent import futures
 from typing import Optional, Callable, Union, Iterator
-from importlib import util, import_module
+from importlib import import_module
+from multiprocessing import cpu_count
 
+# Third Party Imports
+import requests
+
+# Local Imports
 from src import update
 from src.constants import con
+from src.settings import cfg
+from src.utils.modules import get_loaded_module
+from src.utils.regex import Reg
 from src.utils.types_cards import CardDetails
 from src.utils.types_templates import TemplateDetails, TemplateUpdate
 
@@ -41,10 +45,6 @@ card_types = {
     "Planar": ["planar"]
 }
 
-reg_artist = re.compile(r'\(+(.*?)\)')
-reg_set = re.compile(r'\[(.*)]')
-reg_number = re.compile(r'{(.*)}')
-
 
 """
 TEMPLATE FUNCTIONS
@@ -66,16 +66,20 @@ def get_named_type(layout_class: str) -> str:
 def get_template_class(template: TemplateDetails) -> Callable:
     """
     Get template based on input and layout
+    @param template: Dict containing template details.
+    @return: Class from this template's module.
     """
     # Built-in template?
     if not template['plugin_path']:
         return getattr(import_module("src.templates"), template['class_name'])
 
-    # Plugin template
-    spec = util.spec_from_file_location("templates", template['plugin_path'])
-    temp_mod = util.module_from_spec(spec)
-    spec.loader.exec_module(temp_mod)
-    return getattr(temp_mod, template['class_name'])
+    # Load the plugin module, use hot-loading if enabled
+    module = get_loaded_module(
+        template['plugin_path'],
+        f"templates.{template['plugin_name']}",
+        cfg.refresh_plugins
+    )
+    return getattr(module, template['class_name'])
 
 
 def get_templates() -> dict[str, list[TemplateDetails]]:
@@ -107,6 +111,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 "config_path": osp.join(con.path_src, f"configs/{template['class']}.json"),
                 "preview_path": osp.join(con.path_img, f"{template['class']}.jpg"),
                 "template_path": osp.join(con.cwd, f"templates/{template['file']}"),
+                "plugin_name": None,
                 "plugin_path": None,
             } for name, template in templates.items()
         ]
@@ -115,10 +120,10 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
         names[card_type] = [template['name'] for template in data[card_type]]
 
     # Iterate through plugin folders
-    for folder in glob(os.path.join(con.path_plugins, "*\\")):
+    for folder in [f for f in os.scandir(con.path_plugins) if f.is_dir()]:
         # Mandatory paths
-        py_file = osp.join(folder, 'templates.py')
-        json_file = osp.join(folder, 'manifest.json')
+        py_file = osp.join(folder.path, 'templates.py')
+        json_file = osp.join(folder.path, 'manifest.json')
 
         # Ensure mandatory paths exist
         if not osp.exists(json_file) or not osp.exists(py_file):
@@ -129,7 +134,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
             plugin_json = json.load(f)
 
         # Add plugin folder to Python environment
-        sys.path.append(folder)
+        sys.path.append(folder.path)
 
         # Generate TemplateDetails for plugin templates
         for card_type, templates in plugin_json.items():
@@ -138,7 +143,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
             for name, template in templates.items():
                 # Is the name unique?
                 if name in names[card_type]:
-                    name = f"{name} ({os.path.basename(os.path.normpath(folder))})"
+                    name = f"{name} ({folder.name})"
                 # If name still not unique, skip
                 if name in names[card_type]:
                     continue
@@ -149,14 +154,24 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                     "type": named_type,
                     "layout": card_type,
                     "class_name": template['class'],
+                    "plugin_name": folder.name,
                     "plugin_path": py_file,
-                    "config_path": osp.join(folder, f"configs/{template['class']}.json"),
-                    "preview_path": osp.join(folder, f"img/{template['class']}.jpg"),
-                    'template_path': osp.join(folder, f"templates/{template['file']}"),
+                    "config_path": osp.join(folder.path, f"configs/{template['class']}.json"),
+                    "preview_path": osp.join(folder.path, f"img/{template['class']}.jpg"),
+                    'template_path': osp.join(folder.path, f"templates/{template['file']}"),
 
                 })
 
-    # Sort alphabetically, with "Normal" at the top of each list
+    # Return the templates sorted
+    return sort_templates(data)
+
+
+def sort_templates(data: dict[str, list[TemplateDetails]]) -> dict[str, list[TemplateDetails]]:
+    """
+    Sort each template type by template name, but forcing "Normal" templates to the beginning of list.
+    @param data: Unsorted dict of TemplateDetails, with each key representing a card type.
+    @return: Sorted dict of TemplateDetails.
+    """
     for key in data:
         templates = data[key]
         templates_sorted = sorted(templates, key=lambda x: x['name'])
@@ -165,7 +180,6 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
             templates_sorted.remove(normal_template)
             templates_sorted.insert(0, normal_template)
         data[key] = templates_sorted
-
     return data
 
 
@@ -179,7 +193,7 @@ def get_template_details(
     @param named_type: Displayed type name, ex: MDFC
     @param name: Displayed name of the template
     @param templates: Dictionary of templates
-    @return:
+    @return: Dict of TemplateDetails with each key being a card type.
     """
     # Get templates if not provided
     if not templates:
@@ -226,25 +240,26 @@ CARD FUNCTIONS
 
 def retrieve_card_info(file_path: Union[str, Path]) -> CardDetails:
     """
-    Retrieve card name and (if specified) artist from the input file.
+    Retrieve card name from the input file, and optional tags (artist, set, number).
+    @param file_path: Path to the image file.
+    @return: Dict of card details.
     """
     # Extract just the card name
-    sep = [' [', ' (', ' {', '$']
     file_name = os.path.basename(str(file_path))
-    fn_split = re.split('|'.join(map(re.escape, sep)), os.path.splitext(file_name)[0])
+    fn_split = Reg.PATH_SPLIT.split(os.path.splitext(file_name)[0])
 
     # Match pattern and format data
-    artist = reg_artist.findall(file_name)
-    number = reg_number.findall(file_name)
-    set_code = reg_set.findall(file_name)
+    artist = Reg.PATH_ARTIST.search(file_name)
+    number = Reg.PATH_NUM.search(file_name)
+    code = Reg.PATH_SET.search(file_name)
 
     # Return dictionary
     return {
-        'name': fn_split[0],
+        'name': fn_split[0].strip(),
         'filename': file_path,
-        'artist': artist[0] if artist else '',
-        'set': set_code[0] if set_code else '',
-        'number': number[0] if number and set_code else '',
+        'artist': artist.group(1) if artist else '',
+        'set': code.group(1) if code else '',
+        'number': number.group(1) if number and code else '',
         'creator': fn_split[-1] if '$' in file_name else None,
     }
 
@@ -373,7 +388,7 @@ def update_template(temp: TemplateUpdate, callback: Callable) -> bool:
     try:
         # Download using Google Drive
         result = update.download_google(temp['id'], temp['path'], callback)
-        if not result and not temp['plugin']:
+        if not result:
             # Google Drive failed, download from Amazon S3
             url = f"{temp['plugin']}/{temp['filename']}" if temp['plugin'] else temp['filename']
             result = update.download_s3(temp['path'], url, callback)
@@ -406,23 +421,3 @@ def gdrive_metadata(file_id: str) -> dict:
         }
     ).json()
     return result if 'name' in result and 'size' in result else None
-
-
-"""
-HEADLESS CONSOLE
-"""
-
-
-class Console:
-    """
-    Replaces the GUI console when running headless.
-    """
-
-    @staticmethod
-    def update(msg):
-        print(msg)
-
-    @staticmethod
-    def wait(msg):
-        print(msg)
-        input("Would you like to continue?")

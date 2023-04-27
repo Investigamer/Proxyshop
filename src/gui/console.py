@@ -1,22 +1,24 @@
 """
 CONSOLE MODULES
 """
-import ctypes
+# Standard Library Imports
 import os
-import sys
-import threading
 import time
+from threading import Thread, Event, Lock
 from traceback import print_tb
-from typing import Union
-import asynckivy as ak
+from typing import Optional
 from datetime import datetime as dt
-from kivy.app import App
+
+# Third Party Imports
+import asynckivy as ak
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 
+# Local Imports
 from src.constants import con
 from src.gui.updater import UpdatePopup
+from src.gui.utils import HoverButton
 from src.settings import cfg, Singleton
 
 
@@ -24,124 +26,121 @@ class Console(BoxLayout):
     """
     Main console class
     """
+    max_lines = 250
+    running = True
+    waiting = False
+    success = True
+    choice = False
+    lock = Lock()
     __metaclass__ = Singleton
     Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
-    lines = 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if not cfg.dev_mode:
+        if not cfg.test_mode:
             self.size_hint = (1, .58)
 
-    def update(self, msg="", e=None, end="\n"):
+    """
+    Console GUI Objects
+    """
+
+    @property
+    def output(self) -> 'ConsoleOutput':
         """
-        Add text to console
+        Label where console output is stored.
         """
-        output = self.ids.console_output
+        return self.ids.console_output
 
-        # Enforce maximum number of lines
-        if self.lines == 300:
-            text = output.text.split("\n", 1)[1]
-        else:
-            text = output.text
-            self.lines += 1
-
-        # Add message to the output label
-        output.text = f"{text}{msg}{end}"
-        self.ids.viewport.scroll_y = 0
-        if e:
-            self.log_exception(e)
-
-    def log_error(self, msg, card, template=None, e=None):
+    @property
+    def continue_btn(self) -> HoverButton:
         """
-        Log failed card in a log file.
-        Then prompt error request
+        Button that continues to the next render operation.
         """
-        cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
-        log_text = f"{card} ({template}) [{cur_time}]\n" if template else f"{card} [{cur_time}]\n"
-        with open(os.path.join(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
-            log.write(log_text)
-        return self.error(msg, e)
+        return self.ids.continue_btn
 
-    def error(self, msg, e=None, continue_msg="Continue to next card?"):
+    @property
+    def cancel_btn(self) -> HoverButton:
         """
-        Display error, wait for user to cancel or continue.
+        Button that cancels the current render operation.
         """
-        # End waiting to cancel
-        self.end_await()
+        return self.ids.cancel_btn
 
-        # Log exception if given
-        if e:
-            self.log_exception(e)
-
-        # Are we in dev mode?
-        if cfg.dev_mode:
-            return False
-
-        # Automatically skip to next card?
-        if cfg.skip_failed:
-            continue_msg = "Skipping this card!"
-
-        # Notify user
-        self.update(f"{msg}{continue_msg}")
-
-        # Enable buttons
-        self.ids.continue_btn.disabled = False
-        self.ids.cancel_btn.disabled = False
-
-        # Prompt user response
-        result = True if cfg.skip_failed else self.ids.console_controls.wait()
-
-        # Cancel or don't
-        if not result:
-            self.update("Understood! Canceling render operation.")
-
-        # Disable buttons
-        self.ids.continue_btn.disabled = True
-        self.ids.cancel_btn.disabled = True
-        return result
-
-    def wait(self, msg):
+    @property
+    def update_btn(self) -> HoverButton:
         """
-        Wait for user to continue.
+        Button that launches the updater popup.
         """
-        self.end_await()
-        self.update(msg)
-        self.ids.continue_btn.disabled = False
-        self.ids.console_controls.wait()
-        self.ids.continue_btn.disabled = True
-        return True
+        return self.ids.update_btn
 
-    def await_cancel(self, thr):
-        """
-        Await for user to cancel the operation.
-        Auto-returns if the render finishes.
-        """
-        self.ids.console_controls.success = False
-        self.ids.cancel_btn.disabled = False
-        self.ids.console_controls.await_cancel()
-        if not self.ids.console_controls.success:
-            self.ids.cancel_btn.disabled = True
-            App.get_running_app().enable_buttons()
-            self.kill_thread(thr)
-            self.update("Canceling render process!")
-            sys.exit()
-        return True
+    """
+    Reusable Strings
+    """
 
-    def end_await(self):
+    @property
+    def message_cancel(self) -> str:
         """
-        Stops awaiting cancellation
+        Boilerplate message for canceling the render process.
         """
-        self.ids.console_controls.success = True
-        self.ids.console_controls.running = False
-        self.ids.cancel_btn.disabled = True
+        return "Understood! Canceling render operation.\n"
 
-    @staticmethod
-    def log_exception(error: Union[Exception, str], log_file: str = "error.txt"):
+    @property
+    def message_waiting(self) -> str:
+        """
+        Boilerplate message for awaiting a user response.
+        """
+        return "Manual editing enabled!\nClick continue to proceed..."
+
+    @property
+    def message_skipping(self):
+        """
+        Boilerplate message for skipping a render process!
+        """
+        return "Skipping this card!"
+
+    @property
+    def time(self) -> str:
+        """
+        Current date and time in human-readable format.
+        """
+        return dt.now().strftime("%m/%d/%Y %H:%M")
+
+    @property
+    def current_output(self) -> str:
+        """
+        GText currently contained in the console output label.
+        Remove lines from the top when the total linebreaks exceed 250.
+        """
+        output = self.output.text
+        line_count = output.count('\n') + 1
+        if line_count <= self.max_lines:
+            return output
+        return output.split('\n', line_count-self.max_lines)[-1]
+
+    """
+    Utility Methods
+    """
+
+    def enable_buttons(self) -> None:
+        """
+        Enable both user signal buttons (Continue and Cancel).
+        """
+        self.continue_btn.disabled = False
+        self.cancel_btn.disabled = False
+
+    def disable_buttons(self) -> None:
+        """
+        Enable both user signal buttons (Continue and Cancel)
+        """
+        self.continue_btn.disabled = True
+        self.cancel_btn.disabled = True
+
+    def log_exception(self, error: Exception, log_file: str = "error.txt") -> None:
         """
         Log python exception.
+        @param error: Exception object to log.
+        @param log_file: Text file to log the exception to.
         """
-        # Is this an Exception object?
+        # Is this a proper Exception object?
         if not hasattr(error, '__traceback__'):
             return
 
@@ -150,73 +149,209 @@ class Console(BoxLayout):
         print(f"  Reason: {str(error)}")
 
         # Add to log file
-        cur_time = dt.now().strftime("%m/%d/%Y %H:%M")
         with open(os.path.join(con.path_logs, log_file), "a", encoding="utf-8") as log:
             log.write("============================================================================\n")
-            log.write(f"> {cur_time}\n")
+            log.write(f"> {self.time}\n")
             log.write("============================================================================\n")
             print_tb(error.__traceback__, file=log)
             log.write(f"  Reason: {str(error)}\n")
 
-    @staticmethod
-    def kill_thread(thr: threading.Thread):
+    def clear(self) -> None:
         """
-        Kill current render thread.
-        @param thr: Thread object to kill
+        Clear the console output.
         """
-        thread_id = thr.ident
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
-        if res > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+        self.output.text = ''
 
-
-class ConsoleOutput(Label):
     """
-    Label displaying console output
+    Console Operations
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = "Test mode enabled!\n" if cfg.dev_mode else "Let's make a proxy!\n"
 
+    def update(
+        self,
+        msg: str = "",
+        exception: Optional[Exception] = None,
+        end: str = "\n"
+    ) -> None:
+        """
+        Add text to console output.
+        @param msg: Message to add to the console output, blank if not provided.
+        @param exception: Exception object to log, if provided.
+        @param end: String to append at the end of the message, adds a newline if not provided.
+        """
+        # Add message to the output label
+        self.output.text = f"{self.current_output}{msg}{end}"
+        self.ids.viewport.scroll_y = 0
+        if exception:
+            self.log_exception(exception)
 
-class ConsoleControls(BoxLayout):
+    def log_error(
+        self,
+        thr: Event,
+        card: str,
+        template: Optional[str] = None,
+        msg: str = "Encountered a general error!",
+        exception: Optional[Exception] = None
+    ) -> bool:
+        """
+        Log failed card and exception if provided, then prompt user to make a decision.
+        @param thr: Event object representing the status of the render thread.
+        @param card: Card to log in /logs/failed.txt.
+        @param template: Template to log in /logs/failed.txt.
+        @param msg: Message to add to the console output.
+        @param exception: Exception to log in /logs/error.txt.
+        """
+        with open(os.path.join(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
+            log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
+        return self.error(thr=thr, msg=msg, exception=exception)
+
+    def error(
+        self,
+        thr: Optional[Event] = None,
+        msg: str = "Encountered a general error!",
+        exception: Optional[Exception] = None,
+        end: str = " Continue to next card?\n"
+    ) -> bool:
+        """
+        Display error, wait for user to cancel or continue.
+        @param thr: Event object representing the status of the render thread.
+        @param msg: Message to add to the console output.
+        @param exception: Exception to log in /logs/error.txt.
+        @param end: String to append to the end of the message.
+        """
+        # Stop awaiting any signals
+        self.end_await()
+
+        # Log exception if provided
+        if exception:
+            self.log_exception(exception)
+
+        # Skip the prompts for Dev Mode
+        if cfg.test_mode:
+            return False
+
+        # Notify the user, then wait for a continue signal if needed
+        if cfg.skip_failed:
+            self.update(f"{msg}\n{self.message_skipping}")
+            return True
+        if self.await_choice(thr, msg, end):
+            return True
+        self.update(self.message_cancel)
+        return False
+
     """
-    Console control buttons
+    User Prompt Signals
     """
-    running = True
-    waiting = False
-    success = True
-    choice = False
 
-    def wait(self):
+    def await_choice(self, thr: Event, msg: Optional[str] = None, end: str = "\n") -> bool:
         """
-        Force wait until user makes a choice
+        Prompt the user to either continue or cancel.
+        @param thr: Event object representing the status of the render thread.
+        @param msg: Message to prompt the user with, uses boilerplate waiting message if not provided.
+        @param end: String to append to the end of a message, adds a newline if not provided.
+        @return: True if continued, False if canceled.
         """
-        self.waiting = True
-        while self.waiting:
-            time.sleep(.5)
-        return self.choice
+        # Clear other await procedures, then begin awaiting a user signal
+        self.end_await()
+        self.update(msg=msg or self.message_waiting, end=end)
+        self.enable_buttons()
+        self.start_await()
 
-    def choose(self, confirm=True):
+        # Cancel the current thread or continue based on user signal
+        if thr:
+            self.cancel_thread(thr) if not self.running else self.start_await_cancel(thr)
+        return self.running
+
+    def signal(self, choice: bool):
         """
-        Define the response, end wait
+        Signal the user decision to any prompts awaiting a response.
+        @param choice: True if continuing, False if canceling.
         """
-        if confirm:
-            self.choice = True
-        else:
-            self.choice = False
-            self.running = False
-            self.success = False
+        # Ensure buttons can't be spammed
+        self.disable_buttons()
+
+        # Continue if True, otherwise False
+        self.running = choice
+
+        # End await
+        self.end_await()
+
+    """
+    Await Cancelling Procedures
+    """
+
+    def start_await_cancel(self, thr: Event) -> None:
+        """
+        Starts an await_cancel loop in a separate thread.
+        @param thr: Event object representing the status of the render thread.
+        """
+        Thread(target=self.await_cancel, args=(thr,), daemon=True).start()
+
+    def await_cancel(self, thr: Event):
+        """
+        Await a signal from the user to cancel the operation.
+        @param thr: Event object representing the status of the render thread.
+        """
+        # Await a signal from the user to cancel the operation
+        self.cancel_btn.disabled = False
+        self.start_await()
+
+        # Cancel the current thread if running flag set to False
+        if not self.running:
+            self.cancel_thread(thr)
+
+    """
+    Await Loop Handlers
+    """
+
+    def end_await(self) -> None:
+        """
+        Clears the console of any procedures awaiting a response.
+        """
+        # Set the waiting flag
         self.waiting = False
 
-    def await_cancel(self):
+        # Ensure await is complete before returning
+        with self.lock:
+            return
+
+    def start_await(self) -> None:
         """
-        Await for user cancelling during render process
+        Starts an await loop that finishes when waiting is flagged as False.
         """
+        # Set initial running and waiting flags
+        self.waiting = True
         self.running = True
-        while self.running:
-            time.sleep(1)
-        return None
+
+        # Await can only start if others have finished
+        with self.lock:
+            while self.waiting:
+                time.sleep(.1)
+        self.disable_buttons()
+
+    """
+    Thread Management
+    """
+
+    def cancel_thread(self, thr: Event) -> None:
+        """
+        Initiate cancellation of a given thread operation.
+        @param thr: Thread event to signal the cancellation.
+        """
+        # Kill the thread and notify
+        self.kill_thread(thr)
+        self.update(self.message_cancel)
+
+    @staticmethod
+    def kill_thread(thr: Event) -> None:
+        """
+        Kill a given thread.
+        @param thr: Thread event to signal the cancellation.
+        """
+        thr.set()
+
+    """
+    Update Button
+    """
 
     @staticmethod
     async def check_for_updates():
@@ -228,3 +363,18 @@ class ConsoleControls(BoxLayout):
         Updater.open()
         await ak.run_in_thread(Updater.check_for_updates, daemon=True)
         ak.start(Updater.populate_updates())
+
+
+class ConsoleOutput(Label):
+    """
+    Label displaying console output.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.text = "Test mode enabled!\n" if cfg.test_mode else "Let's make a proxy!\n"
+
+
+class ConsoleControls(BoxLayout):
+    """
+    Layout containing console control.
+    """

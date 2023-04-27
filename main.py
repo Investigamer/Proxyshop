@@ -1,5 +1,5 @@
 """
-PROXYSHOP - GUI LAUNCHER
+PROXYSHOP GUI LAUNCHER
 """
 # Core imports
 import sys
@@ -7,26 +7,17 @@ import json
 import os.path as osp
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
-from os import environ, listdir
-from threading import Thread
+from os import listdir
 from pathlib import Path
+from threading import Event
 from time import perf_counter
-from typing import Union, Optional
-
+from typing import Union, Optional, Callable
 from _ctypes import COMError
+
+# Third-party imports
 from photoshop import api as ps
 from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api._document import Document
-
-# Development specific imports
-development = False
-if not hasattr(sys, '_MEIPASS'):
-	try:
-		from src.__dev__ import development
-	except ImportError:
-		development = False
-if not development:
-	environ["KIVY_NO_CONSOLELOG"] = "1"
 
 # Kivy imports
 from kivy.app import App
@@ -42,7 +33,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 
 # Proxyshop imports
-from src.__version__ import version
+from src.env import ENV_VERSION, ENV_DEV_MODE
 from src.utils.files import remove_config_file
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
@@ -123,6 +114,7 @@ class ProxyshopApp(App):
 
 		# Data
 		self._templates_selected = {}
+		self._cancel_render = None
 		self._result = False
 		self._docref = None
 
@@ -132,7 +124,7 @@ class ProxyshopApp(App):
 
 	@property
 	def title(self) -> str:
-		return f"Proxyshop v{version}"
+		return f"Proxyshop v{ENV_VERSION}"
 
 	@property
 	def icon(self) -> str:
@@ -173,8 +165,42 @@ class ProxyshopApp(App):
 	def docref(self, value):
 		self._docref = value
 
+	@property
+	def cancel_render(self) -> Optional[Event]:
+		return self._cancel_render
+
+	@cancel_render.setter
+	def cancel_render(self, value: Optional[Event]):
+		self._cancel_render = value
+
 	"""
-	METHODS
+	DYNAMIC PROPERTIES
+	"""
+
+	@property
+	def timer(self) -> float:
+		return perf_counter()
+
+	"""
+	DECORATORS
+	"""
+
+	@staticmethod
+	def render_process_wrapper(func) -> Callable:
+		"""
+		Decorator to handle state maintenance before and after an initiated render process.
+		@param func: Function being wrapped.
+		@return: The result of the wrapped function.
+		"""
+		def wrapper(self, *args):
+			self.reset(disable_buttons=True, clear_console=True)
+			result = func(self, *args)
+			self.reset(enable_buttons=True, close_document=True)
+			return result
+		return wrapper
+
+	"""
+	UTILITIES
 	"""
 
 	def select_template(self, btn: ToggleButton) -> None:
@@ -185,7 +211,7 @@ class ProxyshopApp(App):
 		# Set the preview image
 		btn.parent.image.source = btn.parent.preview if (
 			osp.exists(btn.parent.preview)
-		) else osp.join(con.cwd, "src/img/NotFound.jpg")
+		) else osp.join(con.path_img, "NotFound.jpg")
 
 		# Select the template
 		card_type = btn.parent.type
@@ -198,50 +224,126 @@ class ProxyshopApp(App):
 					button.state = "normal"
 			btn.disabled = True
 
+	@staticmethod
+	def get_art_files(folder: str = 'art') -> list[str]:
+		"""
+		Grab all supported image files within a given directory.
+		@param folder: Path within the working directory containing images.
+		@return: List of art files.
+		"""
+		# Folder, file list, supported extensions
+		folder = osp.join(con.cwd, folder)
+		all_files = listdir(folder)
+		ext = (".png", ".jpg", ".tif", ".jpeg", ".jpf")
+
+		# Select all images in folder not prepended with !
+		files = [osp.join(folder, f) for f in all_files if f.endswith(ext) and not f.startswith('!')]
+
+		# Check for webp files
+		files_webp = [osp.join(folder, f) for f in all_files if f.endswith('.webp') and not f.startswith('!')]
+
+		# Check if Photoshop version supports webp
+		if files_webp and not ps_version_check(con.version_webp):
+			console.update(msg_warn('Skipped WEBP image, WEBP requires Photoshop ^23.2.0'))
+		elif files_webp:
+			files.extend(files_webp)
+		return files
+
+	def reset(
+		self,
+		reload_config: bool = True,
+		reload_constants: bool = True,
+		close_document: bool = False,
+		enable_buttons: bool = False,
+		disable_buttons: bool = False,
+		clear_console: bool = False
+	) -> None:
+		"""
+		Reset app config state to default.
+		@param reload_config: Reload the configuration object using system and base settings.
+		@param reload_constants: Reload the global constants object.
+		@param close_document: Close the Photoshop document if still open.
+		@param enable_buttons: Enable UI buttons.
+		@param disable_buttons: Disable UI buttons.
+		@param clear_console: Clear the console of all output.
+		"""
+		# Reset current render thread
+		self.cancel_render = None
+		if reload_config:
+			cfg.load()
+		if reload_constants:
+			con.reload()
+		if close_document:
+			self.close_document()
+		if enable_buttons:
+			self.enable_buttons()
+		if disable_buttons:
+			self.disable_buttons()
+		if clear_console:
+			console.clear()
+
+	@staticmethod
+	def select_art(app: ps.Application) -> Optional[Union[str, list]]:
+		"""
+		Open file select dialog in Photoshop, return the file.
+		@param app: Photoshop Application object.
+		@return: File object.
+		"""
+		try:
+			# Open a file select dialog in Photoshop
+			files = app.openDialog()
+		except (COMError, PhotoshopPythonAPIError):
+			# Photoshop is busy
+			console.update("Photoshop is currently busy!")
+			return
+		# Were any files selected?
+		if not files:
+			return
+		return files
+
+	def close_document(self) -> None:
+		"""
+		Close Photoshop document if open.
+		"""
+		try:
+			# Close and set null
+			if self.docref and isinstance(self.docref, Document):
+				self.docref.close(ps.SaveOptions.DoNotSaveChanges)
+				self.docref = None
+		except Exception as e:
+			# Document wasn't available
+			print("Couldn't close corresponding document!")
+			console.log_exception(e)
+			self.docref = None
+
+	"""
+	RENDER METHODS
+	"""
+
+	@render_process_wrapper
 	def render_target(self) -> None:
 		"""
-		Render card using target image selected in Photoshop.
+		Open the file select dialog in Photoshop and pass the selected arts to render_all.
 		"""
-		# Setup step
-		self.reset(disable_buttons=True)
-
-		# Open file in PS
+		# Select target art files
+		self.disable_buttons()
 		app = ps.Application()
-		if not (file_name := self.select_art(app, single=False)):
+		if not (files := self.select_art(app)):
 			return
-		if isinstance(file_name, list):
-			return self.render_all(file_name)
+		return self.render_all(files)
 
-		# Assign layout to card
-		card = assign_layout(file_name)
-		if isinstance(card, str):
-			# Card failed to assign
-			console.update(msg_error(card))
-			self.enable_buttons()
-			return
-
-		# Start a new thread
-		console.update()
-		temps = get_my_templates(self.templates_selected)
-		template = temps[card.card_class].copy()
-		template['loaded_class'] = get_template_class(template)
-		self.start_thread(Thread(target=self.render, args=(template, card), daemon=True))
-
-		# Return to normal
-		self.reset(close_document=True, enable_buttons=True)
-
+	@render_process_wrapper
 	def render_all(self, files: Optional[list[str]] = None) -> None:
 		"""
 		Render cards using all images located in the art folder.
+		@param files: List of art file paths, if not provided use valid images in the art folder.
 		"""
-		# Setup step
-		self.reset(disable_buttons=True)
+		# Get our templates
 		temps = get_my_templates(self.templates_selected)
 
 		# Get art files, make sure there's at least 1
 		if not files and len(files := self.get_art_files()) == 0:
 			console.update("No art images found!")
-			self.enable_buttons()
 			return
 
 		# Run through each file, assigning layout
@@ -257,12 +359,16 @@ class ProxyshopApp(App):
 
 		# Did any cards fail to find?
 		if failed := '\n'.join(layouts.pop('failed', [])):
-			# Some cards failed, should we continue?
-			if not console.error(
-				f"\n---- [b]I can't render the following cards[/b] ----\n{failed}",
-				continue_msg="\n---- [b]Would you still like to proceed?[/b] ----"
-			):
-				# Cancel the operation
+			# Let the user choose to continue if only some failed
+			proceed = False if not layouts else console.error(
+				msg=f"\n[b]I can't render the following cards[/b] ...\n{failed}",
+				end="\n[b]Should I continue anyway?[/b] ...\n"
+			)
+			# If all failed alert the user
+			if not layouts:
+				console.update(f"\n[b]Failed to render all cards[/b] ...\n{failed}")
+			# Cancel the operation if required
+			if not proceed:
 				self.enable_buttons()
 				return
 		console.update()
@@ -274,24 +380,20 @@ class ProxyshopApp(App):
 			template['loaded_class'] = get_template_class(template)
 			for card in cards:
 				# Start render thread
-				thr = Thread(target=self.render, args=(template, card), daemon=True)
-				if not self.start_thread(thr):
-					self.reset(close_document=True, enable_buttons=True)
+				if not self.start_render(template, card):
 					return
 				# Card complete
 				self.reset()
 			# Render group complete
-			self.reset(close_document=True)
-		# All renders complete
-		self.enable_buttons()
+			self.close_document()
 
-	def render_custom(self, template: TemplateDetails, scryfall) -> None:
+	@render_process_wrapper
+	def render_custom(self, template: TemplateDetails, scryfall: dict) -> None:
 		"""
 		Set up custom render job, then execute
+		@param template: Dict of template details.
+		@param scryfall: Dict of scryfall data.
 		"""
-		# Setup step
-		self.reset(disable_buttons=True)
-
 		# Open file in PS
 		app = ps.Application()
 		if not (file_name := self.select_art(app)):
@@ -302,10 +404,10 @@ class ProxyshopApp(App):
 			layout = layout_map[scryfall['layout']](
 				scryfall,
 				file={
-					'filename': file_name,
-					'name': scryfall['name'],
-					'artist': scryfall['artist'],
-					'set': scryfall['set'],
+					'filename': file_name[0],
+					'name': scryfall.get('name', ''),
+					'artist': scryfall.get('artist', ''),
+					'set': scryfall.get('set', ''),
 					'creator': None
 				}
 			)
@@ -314,20 +416,16 @@ class ProxyshopApp(App):
 			console.update(f"Custom card failed!\n", e)
 			return
 
-		# Execute template
+		# Start render
 		console.update()
-		thr = Thread(target=self.render, args=(template, layout), daemon=True)
-		self.start_thread(thr)
-		self.reset(close_document=True, enable_buttons=True)
+		self.start_render(template, layout)
 
+	@render_process_wrapper
 	def test_all(self, deep: bool = False) -> None:
 		"""
 		Test all templates in series.
 		@param deep: Tests every card case for each template if enabled.
 		"""
-		# Setup step
-		self.reset(disable_buttons=True)
-
 		# Load temps and test case cards
 		with open(osp.join(con.cwd, "src/data/tests.json"), encoding="utf-8") as fp:
 			cases = json.load(fp)
@@ -351,16 +449,18 @@ class ProxyshopApp(App):
 					if isinstance(layout, str):
 						# Layout or Scryfall Fail
 						console.update(layout)
-						self.reset(enable_buttons=True)
 						return
 					# Grab the template class and start the render thread
 					layout.filename = osp.join(con.cwd, "src/img/test.png")
 					template['loaded_class'] = get_template_class(template)
-					thr = Thread(target=self.render, args=(template, layout))
-					if not self.start_thread(thr):
+					if not self.start_render(template, layout):
 						failures.append(card[0])
+					# Was the thread cancelled?
+					if self.cancel_render.is_set():
+						return
 					# Card finished
 					self.reset()
+
 				# Template finished
 				self.reset(close_document=True)
 				console.update(
@@ -368,18 +468,14 @@ class ProxyshopApp(App):
 					msg_error(f"FAILED ({', '.join(failures)})") if failures
 					else msg_success("SUCCESS")
 				)
-		# All tests finished
-		self.reset(enable_buttons=True)
 
+	@render_process_wrapper
 	def test_target(self, card_type: str, template: TemplateDetails) -> None:
 		"""
 		Tests a specific template, always tests every case.
 		@param card_type: Type of card, corresponds to template type.
 		@param template: Specific template to test.
 		"""
-		# Setup step
-		self.reset(disable_buttons=True)
-
 		# Load test case cards
 		with open(osp.join(con.cwd, "src/data/tests.json"), encoding="utf-8") as fp:
 			cards = json.load(fp)
@@ -388,7 +484,6 @@ class ProxyshopApp(App):
 		console.update(msg_success(f"\n---- {template['class_name']} ----"))
 		if not osp.isfile(template['template_path']):
 			console.update(msg_warn("SKIPPED (Template not installed)"))
-			self.reset(enable_buttons=True)
 			return
 
 		# Render each test case
@@ -398,165 +493,77 @@ class ProxyshopApp(App):
 			if isinstance(layout, str):
 				# Layout or Scryfall Fail
 				console.update(layout)
-				self.reset(enable_buttons=True)
 				return
 
 			# Start the render
 			layout.filename = osp.join(con.cwd, "src/img/test.png")
 			console.update(f"{card[0]} ... ", end="")
 			template['loaded_class'] = get_template_class(template)
-			thr = Thread(target=self.render, args=(template, layout), daemon=True)
 			console.update(
-				msg_success("SUCCESS") if self.start_thread(thr)
+				msg_success("SUCCESS") if self.start_render(template, layout)
 				else msg_error(f"FAILED - {card[1]}")
 			)
 			# Card finished
 			self.reset()
-		# All tests finished
-		self.reset(close_document=True, enable_buttons=True)
 
-	def render(
+	def start_render(
 		self, template: TemplateDetails, card: CardLayout
-	) -> None:
+	) -> bool:
 		"""
 		Execute a render job using a given template and layout object.
 		@param template: Template details containing class, plugin, etc.
 		@param card: Layout object representing validated scryfall data.
 		"""
+		# Track execution time
+		start_time = self.timer
 		try:
-			if not cfg.dev_mode:
-				console.update(msg_success(f"---- {card.name} ----"))
+			# Notify the user
+			if not cfg.test_mode:
+				console.update(msg_success(f"---- {card.display_name} ----"))
+
+			# Load config and template class
 			cfg.load(template=template)
+			con.app.refresh()
 			card.template_file = template['template_path']
 			proxy = template['loaded_class'](card)
+			self.cancel_render = proxy.event
+
+			# Run the operation in a ThreadPoolExecutor and await a cancel signal
+			with ThreadPoolExecutor() as executor:
+				future = executor.submit(proxy.execute)
+				console.start_await_cancel(proxy.event)
+				result = future.result()
+
+			# Establish the document that is currently open
 			self.docref = proxy.docref
-			self.result = proxy.execute()
 			del proxy
+
+			# Report this results
+			if result and not cfg.test_mode:
+				console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
+			return result
 		except Exception as e:
-			console.log_error(
-				msg_error(
-					"Encountered a general Photoshop error!\n"
+			# General error outside Template render process
+			return console.log_error(
+				self.cancel_render or Event(),
+				card=card.name,
+				template=template['name'],
+				msg=msg_error(
+					"Encountered a general error!\n"
 					"Check [b]/logs/error.txt[/b] for details."
 				),
-				card.name,
-				card.template_file,
-				e
+				exception=e
 			)
 
-	def start_thread(self, thr: Thread) -> bool:
-		"""
-		Create a counter, start a thread, print time completed.
-		@param thr: Thread object
-		@return: True if success, None if failed
-		"""
-		start_t = perf_counter()
-		thr.start()
-		console.await_cancel(thr)
-		thr.join()
-		end_t = perf_counter()
-		if self.result:
-			if not cfg.dev_mode:
-				console.update(f"[i]Time completed: {int(end_t - start_t)} seconds[/i]\n")
-			return True
-		return False
-
-	def reset(
-		self,
-		reload_config: bool = True,
-		reload_constants: bool = True,
-		close_document: bool = False,
-		enable_buttons: bool = False,
-		disable_buttons: bool = False
-	) -> None:
-		"""
-		Reset app config state to default.
-		"""
-		self.result = False
-		if reload_config:
-			cfg.load()
-		if reload_constants:
-			con.reload()
-		if close_document:
-			self.close_document()
-		if enable_buttons:
-			self.enable_buttons()
-		if disable_buttons:
-			self.disable_buttons()
-
-	def select_art(self, app: ps.Application, single: bool = True) -> Optional[Union[str, list]]:
-		"""
-		Open file select dialog in Photoshop, return the file.
-		@param app: Photoshop Application object.
-		@param single: Only return one file selection.
-		@return: File object.
-		"""
-		try:
-			file = app.openDialog()
-		except (COMError, PhotoshopPythonAPIError):
-			# Photoshop is busy
-			console.update("Photoshop is not responding!")
-			self.enable_buttons()
-			return
-		if not file:
-			# No file selected
-			self.enable_buttons()
-			return
-		# List of files or just one?
-		if len(file) > 1 and not single:
-			return list(file)
-		return file[0]
-
-	def close_document(self) -> None:
-		"""
-		Close Photoshop document if open.
-		"""
-		try:
-			# Close and set null
-			if self.docref:
-				self.docref.close(ps.SaveOptions.DoNotSaveChanges)
-				self.docref = None
-		except Exception as e:
-			# Document wasn't available
-			print("Couldn't close corresponding document!")
-			console.log_exception(e)
-
-	@staticmethod
-	def get_art_files(dir_name: str = 'art') -> list[str]:
-		"""
-		Grab all supported image files within a given directory.
-		@param dir_name: Folder within the working directory containing images.
-		@return: List of art files.
-		"""
-		# Folder, file list, supported extensions
-		folder = osp.join(con.cwd, dir_name)
-		all_files = listdir(folder)
-		ext = (".png", ".jpg", ".tif", ".jpeg", ".jpf")
-
-		# Select all images in folder not prepended with !
-		files = [osp.join(folder, f) for f in all_files if f.endswith(ext) and f[0] != '!']
-
-		# Check for webp files
-		files_webp = [osp.join(folder, f) for f in all_files if f.endswith('.webp') and f[0] != '!']
-		# Check if Photoshop version supports webp
-		if files_webp and not ps_version_check(con.version_webp):
-			console.update(msg_warn('Skipped WEBP image, WEBP requires Photoshop ^23.2.0'))
-		elif files_webp:
-			files.extend(files_webp)
-		return files
-
-	@staticmethod
-	async def open_app_settings() -> None:
-		"""
-		Opens a settings panel for global or template specific configs.
-		"""
-		cfg_panel = SettingsPopup()
-		cfg_panel.open()
+	"""
+	UI METHODS
+	"""
 
 	def disable_buttons(self) -> None:
 		"""
 		Disable buttons while render process running.
 		"""
-		if cfg.dev_mode:
+		if cfg.test_mode:
 			self.root.ids.test_all.disabled = True
 			self.root.ids.test_all_deep.disabled = True
 			self.root.ids.test_target.disabled = True
@@ -571,7 +578,7 @@ class ProxyshopApp(App):
 		"""
 		Re-enable buttons after render process completed.
 		"""
-		if cfg.dev_mode:
+		if cfg.test_mode:
 			self.root.ids.test_all.disabled = False
 			self.root.ids.test_all_deep.disabled = False
 			self.root.ids.test_target.disabled = False
@@ -582,13 +589,32 @@ class ProxyshopApp(App):
 			self.root.ids.app_settings_btn.disabled = False
 			console.ids.update_btn.disabled = False
 
+	"""
+	GUI METHODS
+	"""
+
+	@staticmethod
+	async def open_app_settings() -> None:
+		"""
+		Opens a settings panel for global or template specific configs.
+		"""
+		cfg_panel = SettingsPopup()
+		cfg_panel.open()
+
 	def build(self) -> Union[TestApp, ProxyshopPanels]:
 		"""
 		Build the app for display.
 		"""
-		layout = TestApp() if cfg.dev_mode else ProxyshopPanels()
+		layout = TestApp() if cfg.test_mode else ProxyshopPanels()
 		layout.add_widget(console)
 		return layout
+
+	def on_stop(self):
+		"""
+		Called when the app is closed.
+		"""
+		if self.cancel_render and isinstance(self.cancel_render, Event):
+			self.cancel_render.set()
 
 
 """
@@ -641,7 +667,9 @@ class TemplateList(GridLayout):
 		self.add_template_rows()
 
 	def add_template_rows(self):
-
+		"""
+		Add a row for each template in this list.
+		"""
 		# Track missing templates
 		missing = []
 
@@ -663,7 +691,9 @@ class TemplateList(GridLayout):
 			self.add_widget(row)
 
 	def reload_template_rows(self):
-
+		"""
+		Remove existing rows and generate new ones using current template data.
+		"""
 		# Remove existing rows
 		self.clear_widgets()
 		self.add_template_rows()
@@ -679,9 +709,7 @@ class TemplateView(ScrollView):
 
 class TemplateRow(BoxLayout):
 	"""
-	Row containing template toggle button and config button.
-	@param name: Name of template display on the button.
-	@param card_type: Card type of this template.
+	Row containing template selector and governing buttons.
 	"""
 	def __init__(self, template: TemplateDetails, preview: Image, **kwargs):
 		super().__init__(**kwargs)
@@ -721,7 +749,6 @@ class TemplateSettingsButton(HoverButton):
 	"""
 	Opens the settings panel for a given template.
 	"""
-
 	async def open_settings(self):
 		cfg_panel = SettingsPopup(self.parent.template)
 		cfg_panel.open()
@@ -732,7 +759,6 @@ class TemplateResetDefaultButton(HoverButton):
 	"""
 	Opens the settings panel for a given template.
 	"""
-
 	async def reset_default(self):
 		# Remove the config file and alert the user
 		if remove_config_file(self.parent.template['config_path'].replace('.json', '.ini')):
@@ -747,9 +773,9 @@ if __name__ == '__main__':
 
 	# Update symbol library and manifest
 	try:
-		if not development:
+		if not ENV_DEV_MODE:
 			download_s3(osp.join(con.path_data, 'app_manifest.json'), 'app_manifest.json')
-			download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'symbols.json')
+			download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'expansion_symbols.json')
 			con.reload()
 	except Exception as err:
 		print(err)
@@ -765,7 +791,7 @@ if __name__ == '__main__':
 	Builder.load_file(osp.join(con.cwd, "src/kv/proxyshop.kv"))
 
 	# Imports that use console must be imported here
-	from src.__console__ import console
+	from src.env.__console__ import console
 
 	# Start app
 	ProxyshopApp().run()

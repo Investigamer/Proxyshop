@@ -1,16 +1,21 @@
+"""
+GUI UTILITIES
+"""
+# Standard Library Imports
 import os
 import random
 
+# Third Party Imports
 from kivy.app import App
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.properties import BooleanProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.utils import get_color_from_hex
 
+# Local Imports
 from src.core import card_types
 
 """

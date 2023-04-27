@@ -1,16 +1,19 @@
 """
-CARD CREATOR TAB
+CUSTOM CARD CREATOR
 """
+# Standard Library Imports
 import os
 import threading
 from typing import Callable
 
+# Third Party Imports
 from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 from kivy.uix.textinput import TextInput
 
+# Local Imports
 from src.constants import con
 from src.core import TemplateDetails, get_templates, get_my_templates
 from src.settings import cfg

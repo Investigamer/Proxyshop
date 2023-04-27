@@ -3,6 +3,7 @@
 #:import ScrollView kivy.uix.scrollview.ScrollView
 #:import ak asynckivy
 <Console>:
+    id: console
     orientation: "horizontal"
     padding: 10
     canvas:
@@ -54,12 +55,12 @@
                 size: self.width,self.height
                 pos: self.pos
         HoverButton:
+            id: continue_btn
             size_hint_y: None
             height: 40
             options: ["Go for it!", "Hurry up!", "Do it!", "Let's go!", "Next!"]
             hover_color: "#4a5f8a"
-            id: continue_btn
-            on_press: console_controls.choose()
+            on_press: console.signal(True)
             disabled: True
             text: "Continue"
             font_size: 20
@@ -67,12 +68,12 @@
             background_disabled_normal: ""
             background_color: get_color_from_hex("#283c5e")
         HoverButton:
+            id: cancel_btn
             size_hint_y: None
             height: 40
             options: ["STOP!", "End it now!", "No more!", "QUIT!", "Quiddit!", "Enough!"]
             hover_color: "#8a4a50"
-            id: cancel_btn
-            on_press: console_controls.choose(False)
+            on_press: console.signal(False)
             disabled: True
             text: "Cancel"
             font_size: 20
@@ -82,12 +83,12 @@
         Label:
             text: ""
         HoverButton:
+            id: update_btn
             size_hint_y: None
             height: 40
             options: ["UPDATE"]
             hover_color: "#4a5f8a"
-            id: update_btn
-            on_press: ak.start(console_controls.check_for_updates())
+            on_press: ak.start(console.check_for_updates())
             disabled: False
             text: "Update"
             font_size: 20
