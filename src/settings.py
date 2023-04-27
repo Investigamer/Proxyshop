@@ -1,29 +1,22 @@
 """
-Process config file into global settings.
+GLOBAL SETTINGS MODULE
 """
+# Standard Library Imports
 import os
-from typing import Optional
+from typing import Optional, Union
 from configparser import ConfigParser
 
+# Local Imports
 from src.constants import con
-from src.core import TemplateDetails
+from src.utils.objects import Singleton
+from src.utils.types_templates import TemplateDetails
 from src.utils.files import verify_config_fields
 
 
-# For object permanence
-class Singleton(type):
-	_instances = {}
-
-	def __call__(cls, *args, **kwargs):
-		if cls not in cls._instances:
-			cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-		return cls._instances[cls]
-
-
-# Global app-wide settings configuration
 class Config:
 	"""
-	Build our config info
+	Stores the current state of app and template settings.
+	Can be changed within a template class to affect rendering behavior.
 	"""
 	__metaclass__ = Singleton
 
@@ -45,10 +38,12 @@ class Config:
 		self.force_english_formatting = self.file.getboolean('APP.RENDER', "Force.English.Formatting")
 
 		# APP - DATA
-		self.scry_ascending = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
+		self.scry_ascending = self.file['APP.DATA']['Scryfall.Ascending']
+		self.scry_sorting = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
 
 		# APP - SYSTEM
-		self.dev_mode = self.file.getboolean('APP.SYSTEM', 'Dev.Mode')
+		self.refresh_plugins = self.file.getboolean('APP.SYSTEM', 'Refresh.Plugins')
+		self.test_mode = self.file.getboolean('APP.SYSTEM', 'Test.Mode')
 
 		# TEXT settings
 		self.lang = self.file['BASE.TEXT']['Language']
@@ -61,8 +56,9 @@ class Config:
 		self.symbol_mode = self.file['BASE.SYMBOLS']['Symbol.Mode']
 		self.symbol_default = self.file['BASE.SYMBOLS']['Default.Symbol']
 		self.symbol_force_default = self.file.getboolean('BASE.SYMBOLS', 'Force.Default.Symbol')
-		self.symbol_stroke = self.file['BASE.SYMBOLS']['Symbol.Stroke.Size']
+		self.symbol_stroke = int(self.file['BASE.SYMBOLS']['Symbol.Stroke.Size'])
 		self.enable_watermark = self.file.getboolean('BASE.SYMBOLS', 'Enable.Watermark')
+		self.watermark_opacity = int(self.file['BASE.SYMBOLS']['Watermark.Opacity'])
 
 		# TEMPLATES settings
 		self.exit_early = self.file.getboolean('BASE.TEMPLATES', 'Manual.Edit')
@@ -71,6 +67,17 @@ class Config:
 		self.render_snow = self.file.getboolean('BASE.TEMPLATES', 'Render.Snow')
 		self.render_miracle = self.file.getboolean('BASE.TEMPLATES', 'Render.Miracle')
 		self.render_basic = self.file.getboolean('BASE.TEMPLATES', 'Render.Basic')
+
+	def get_default_symbol(self) -> Union[str, dict, list[dict]]:
+		"""
+		Gets the default expansion symbol set by the user, or the 'MTG' fallback symbol if not found.
+		@return: Symbol character string or dict/list notation.
+		"""
+		return con.set_symbols.get(
+			self.symbol_default, con.set_symbols.get(
+				'MTG', con.set_symbol_fallback
+			)
+		)
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""
@@ -99,7 +106,7 @@ class Config:
 		# Check if we're using a template ini file
 		template_ini = template['config_path'].replace('json', 'ini').replace('Back', 'Front') if template else None
 		template_json = template['config_path'].replace('Back', 'Front') if template else None
-		if template_ini and os.path.exists(template_ini) and not self.dev_mode:
+		if template_ini and os.path.exists(template_ini) and not self.test_mode:
 			conf = template_ini
 		else:
 			conf = con.path_config_ini_base
@@ -107,7 +114,7 @@ class Config:
 		# Validate ini file contents
 		verify_config_fields(conf, con.path_config_json_base)
 		verify_config_fields(con.path_config_ini_app, con.path_config_json_app)
-		if template_ini and os.path.exists(template_ini) and not self.dev_mode:
+		if template_ini and os.path.exists(template_ini) and not self.test_mode:
 			verify_config_fields(conf, template_json)
 
 		# Load necessary files
@@ -120,5 +127,5 @@ class Config:
 		self.update_definitions()
 
 
-# Global settings object
+# Global instance tracking our settings
 cfg = Config()

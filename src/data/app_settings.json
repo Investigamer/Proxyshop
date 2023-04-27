@@ -61,9 +61,18 @@
     "title": "Data Settings"
   },
   {
+    "type": "options",
+    "title": "[b]Scryfall Sorting[/b]",
+    "desc": "The method used to sort the Scryfall card lookup results.\n[b](Default: 'released')[/b]",
+    "section": "APP.DATA",
+    "key": "Scryfall.Sorting",
+    "default": "released",
+    "options": ["released", "set", "rarity", "usd", "eur", "edhrec", "artist"]
+  },
+  {
     "type": "bool",
     "title": "[b]Scryfall Search Ascending[/b]",
-    "desc": "When pulling card from Scryfall, search from oldest to most recent.\n[b](Default: False)[/b]",
+    "desc": "When pulling card from Scryfall, search ascending instead of descending.\nFor example, in order of 'released', ascending would be oldest to newest.\n[b](Default: False)[/b]",
     "section": "APP.DATA",
     "key": "Scryfall.Ascending",
     "default": 0
@@ -74,10 +83,18 @@
   },
   {
     "type": "bool",
-    "title": "[b]Development Testing Mode[/b]",
-    "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually.[/b]",
+    "title": "[b]Hotload Plugin Templates[/b]",
+    "desc": "Enabling this will cause plugin template code to be re-cached at each call.\nWill add minimal execution time but allows creators to live test code changes.\n[b](Default: False)[/b]",
     "section": "APP.SYSTEM",
-    "key": "Dev.Mode",
+    "key": "Refresh.Plugins",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Testing Mode[/b]",
+    "desc": "Enabling this will change the GUI into a simple testing interface.\n[b]This setting must be changed manually in config.ini![/b]",
+    "section": "APP.SYSTEM",
+    "key": "Test.Mode",
     "disabled": true,
     "default": 0
   }
