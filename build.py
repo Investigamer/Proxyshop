@@ -8,7 +8,7 @@ from pathlib import Path
 from shutil import copy2, copytree, rmtree, move
 import PyInstaller.__main__
 
-from src.__version__ import version
+from src.env import ENV_VERSION
 
 # Folder definitions
 CWD = os.getcwd()
@@ -121,8 +121,8 @@ def build_zip():
     Create a zip of this release.
     """
     print("Building ZIP...")
-    ZIP = os.path.join(CWD, 'Proxyshop.v{}.zip'.format(version))
-    ZIP_DIST = os.path.join(DIST, 'Proxyshop.v{}.zip'.format(version))
+    ZIP = os.path.join(CWD, 'Proxyshop.v{}.zip'.format(ENV_VERSION))
+    ZIP_DIST = os.path.join(DIST, 'Proxyshop.v{}.zip'.format(ENV_VERSION))
     with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED) as zipf:
         for fp in glob(os.path.join(DIST, "**/*"), recursive=True):
             base = os.path.commonpath([DIST, fp])

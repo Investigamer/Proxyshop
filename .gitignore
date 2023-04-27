@@ -114,9 +114,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
 venv/
-ENV/
 env.bak/
 venv.bak/
 # Spyder project settings
@@ -171,7 +169,7 @@ cython_debug/
 # Generated new release
 /release
 # Environmental variables
-/src/__env__.py
+/src/env/__private__.py
 # All plugins that aren't MrTeferi or SilvanMTG
 /plugins/*
 !/plugins/MrTeferi

@@ -1,25 +1,27 @@
 """
 EXPANSION SYMBOL TESTING
 """
-# Change to root directory
+# Standard Library Imports
 import os
-
-from src.utils.enums_photoshop import Alignment
+from functools import cached_property
+from pathlib import Path
+from typing import Optional
 
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
-from functools import cached_property
-from pathlib import Path
-from typing import Optional
+# Third Party Imports
 from photoshop.api._layerSet import LayerSet
 from photoshop.api.application import ArtLayer
 import photoshop.api as ps
 
+# Local Imports
 from src.constants import con
 con.headless = True
 from src import helpers as psd
 from src.settings import cfg
+from src.utils.enums_photoshop import Alignment
+from src.utils.enums_layers import LAYERS
 
 # Generate rarity folders if they don't exist
 Path(os.path.join(con.path_tests, "symbols/common")).mkdir(mode=511, parents=True, exist_ok=True)
@@ -94,12 +96,12 @@ class TestTemplate:
     @cached_property
     def expansion_reference_layer(self):
         # Expansion symbol reference layer
-        return psd.getLayer(con.layers.EXPANSION_REFERENCE, self.text_layers)
+        return psd.getLayer(LAYERS.EXPANSION_REFERENCE, self.text_layers)
 
     @cached_property
     def expansion_symbol_layer(self) -> Optional[ArtLayer]:
         # Expansion symbol layer
-        return psd.getLayer(con.layers.EXPANSION_SYMBOL, self.text_layers)
+        return psd.getLayer(LAYERS.EXPANSION_SYMBOL, self.text_layers)
 
     def expansion_symbol(self) -> None:
         """

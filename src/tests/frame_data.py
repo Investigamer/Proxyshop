@@ -3,867 +3,866 @@ FRAME LOGIC TESTS
 Credit to Chilli
 https://tinyurl.com/chilli-frame-logic-tests
 """
-# Change to root directory
-import os
+# Standard Library Imports
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
-from os import path as osp
-os.chdir(osp.abspath(osp.join(os.getcwd(), '..', '..')))
 
-# Run headless
+# Use this to force a working directory if IDE doesn't support it
+# os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
+
+# Local Imports
 from src.constants import con
 con.headless = True
-
-# Additional imports
 from src.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
 from src.layouts import NormalLayout
 from src.utils.scryfall import get_card_data
+from src.utils.enums_layers import LAYERS
 
-# TODO: Implement actual pytest assertions
+# TODO: Implement actual pytest assertions?
 test_cases = {
     # Basic test cases - mono colored, normal 'frame' cards
     "Healing Salve": {
         'layout': NormalLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, False, False]
     }, "Ancestral Recall": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]
     }, "Dark Ritual": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, False, False]
     }, "Lightning Bolt": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, False, False]
     }, "Giant Growth": {
         'layout': NormalLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Mono colored cards with 2/C in their cost
     "Spectral Procession": {
         'layout': NormalLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Advice from the Fae": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Beseech the Queen": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Flame Javelin": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Tower Above": {
         'layout': NormalLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Pacts
     "Intervention Pact": {
         'layout': NormalLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Pact of Negation": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Slaughter Pact": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Pact of the Titan": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Summoner's Pact": {
         'layout': NormalLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Enchantment creatures
     "Heliod, God of the Sun": {
         'layout': NormalLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, True, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, True, False]
     },
     "Thassa, God of the Sea": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, True, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, True, False]
     },
     "Erebos, God of the Dead": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, True, False]
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, True, False]
     },
     "Purphoros, God of the Forge": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, True, False],
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, True, False],
         'set': 'ths'
     },
     "Nylea, God of the Hunt": {
         'layout': NormalLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, True, False]
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, True, False]
     },
 
     # Suspend cards with no mana cost
     "Restore Balance": {
         'layout': NormalLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Ancestral Vision": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Living End": {
         'layout': NormalLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Wheel of Fate": {
         'layout': NormalLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Hypergenesis": {
         'layout': NormalLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
     "Lotus Bloom": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
 
     # Two colored, normal frame cards
     "Azorius Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.WU, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.WU, LAYERS.GOLD, False, False]
     },
     "Dimir Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.UB, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.UB, LAYERS.GOLD, False, False]
     },
     "Rakdos Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.BR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.BR, LAYERS.GOLD, False, False]
     },
     "Gruul Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.RG, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.RG, LAYERS.GOLD, False, False]
     },
     "Selesnya Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GW, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GW, LAYERS.GOLD, False, False]
     },
     "Orzhov Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.WB, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.WB, LAYERS.GOLD, False, False]
     },
     "Golgari Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.BG, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.BG, LAYERS.GOLD, False, False]
     },
     "Simic Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GU, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GU, LAYERS.GOLD, False, False]
     },
     "Izzet Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.UR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.UR, LAYERS.GOLD, False, False]
     },
     "Boros Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.RW, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.RW, LAYERS.GOLD, False, False]
     },
 
     # Two colored, hybrid frame cards
     "Godhead of Awe": {
         'layout': NormalLayout,
-        'frame': [con.layers.WU, con.layers.WU, con.layers.LAND, False, False]
+        'frame': [LAYERS.WU, LAYERS.WU, LAYERS.LAND, False, False]
     },
     "Ghastlord of Fugue": {
         'layout': NormalLayout,
-        'frame': [con.layers.UB, con.layers.UB, con.layers.LAND, False, False]
+        'frame': [LAYERS.UB, LAYERS.UB, LAYERS.LAND, False, False]
     },
     "Demigod of Revenge": {
         'layout': NormalLayout,
-        'frame': [con.layers.BR, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.BR, LAYERS.BR, LAYERS.LAND, False, False]
     },
     "Deus of Calamity": {
         'layout': NormalLayout,
-        'frame': [con.layers.RG, con.layers.RG, con.layers.LAND, False, False]
+        'frame': [LAYERS.RG, LAYERS.RG, LAYERS.LAND, False, False]
     },
     "Oversoul of Dusk": {
         'layout': NormalLayout,
-        'frame': [con.layers.GW, con.layers.GW, con.layers.LAND, False, False]
+        'frame': [LAYERS.GW, LAYERS.GW, LAYERS.LAND, False, False]
     },
     "Divinity of Pride": {
         'layout': NormalLayout,
-        'frame': [con.layers.WB, con.layers.WB, con.layers.LAND, False, False]
+        'frame': [LAYERS.WB, LAYERS.WB, LAYERS.LAND, False, False]
     },
     "Deity of Scars": {
         'layout': NormalLayout,
-        'frame': [con.layers.BG, con.layers.BG, con.layers.LAND, False, False]
+        'frame': [LAYERS.BG, LAYERS.BG, LAYERS.LAND, False, False]
     },
     "Overbeing of Myth": {
         'layout': NormalLayout,
-        'frame': [con.layers.GU, con.layers.GU, con.layers.LAND, False, False]
+        'frame': [LAYERS.GU, LAYERS.GU, LAYERS.LAND, False, False]
     },
     "Dominus of Fealty": {
         'layout': NormalLayout,
-        'frame': [con.layers.UR, con.layers.UR, con.layers.LAND, False, False]
+        'frame': [LAYERS.UR, LAYERS.UR, LAYERS.LAND, False, False]
     },
     "Nobilis of War": {
         'layout': NormalLayout,
-        'frame': [con.layers.RW, con.layers.RW, con.layers.LAND, False, False]
+        'frame': [LAYERS.RW, LAYERS.RW, LAYERS.LAND, False, False]
     },
 
     # Two color hybrid frame, no mana cost
     "Asmoranomardicadaistinaculdacar": {
         'layout': NormalLayout,
-        'frame': [con.layers.BR, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.BR, LAYERS.BR, LAYERS.LAND, False, False]
     },
 
     # Two color gold frame, with hybrid symbol
     'Maelstrom Muse': {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.UR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.UR, LAYERS.GOLD, False, False]
     },
     'Ajani, Sleeper Agent': {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GW, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GW, LAYERS.GOLD, False, False]
     },
     'Tamiyo, Compleated Sage': {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GU, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GU, LAYERS.GOLD, False, False]
     },
 
     # Three color gold frame, with hybrid symbol
     'Messenger Falcons': {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Double faced cards
     "Insectile Aberration": {
         'layout': TransformLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Ravager of the Fells": {
         'layout': TransformLayout,
-        'frame': [con.layers.GOLD, con.layers.RG, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.RG, LAYERS.GOLD, False, False]
     },
     "Brisela, Voice of Nightmares": {
         'layout': MeldLayout,
-        'frame': [con.layers.COLORLESS, con.layers.COLORLESS, con.layers.COLORLESS, False, True]
+        'frame': [LAYERS.COLORLESS, LAYERS.COLORLESS, LAYERS.COLORLESS, False, True]
     },
     "Archangel Avacyn": {
         'layout': TransformLayout,
-        'frame': [con.layers.WHITE, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.WHITE, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Avacyn, the Purifier": {
         'layout': TransformLayout,
-        'frame': [con.layers.RED, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.RED, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Curious Homunculus": {
         'layout': TransformLayout,
-        'frame': [con.layers.BLUE, con.layers.BLUE, con.layers.BLUE, False, False]},
+        'frame': [LAYERS.BLUE, LAYERS.BLUE, LAYERS.BLUE, False, False]},
     "Voracious Reader": {
         'layout': TransformLayout,
-        'frame': [con.layers.COLORLESS, con.layers.COLORLESS, con.layers.COLORLESS, False, True]},
+        'frame': [LAYERS.COLORLESS, LAYERS.COLORLESS, LAYERS.COLORLESS, False, True]},
     "Barkchannel Pathway": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]},
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]},
     "Tidechannel Pathway": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.LAND, con.layers.BLUE, con.layers.BLUE, False, False]},
+        'frame': [LAYERS.LAND, LAYERS.BLUE, LAYERS.BLUE, False, False]},
     "Blex, Vexing Pest": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.GREEN, con.layers.GREEN, con.layers.GREEN, False, False]},
+        'frame': [LAYERS.GREEN, LAYERS.GREEN, LAYERS.GREEN, False, False]},
     "Search for Blex": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.BLACK, con.layers.BLACK, con.layers.BLACK, False, False]},
+        'frame': [LAYERS.BLACK, LAYERS.BLACK, LAYERS.BLACK, False, False]},
     "Extus, Oriq Overlord": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.GOLD, con.layers.WB, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.WB, LAYERS.GOLD, False, False]
     },
     "Awaken the Blood Avatar": {
         'layout': ModalDoubleFacedLayout,
-        'frame': [con.layers.GOLD, con.layers.BR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.BR, LAYERS.GOLD, False, False]
     },
 
     # Tri colored, normal frame cards
     "Esper Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Grixis Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Jund Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Naya Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Bant Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Abzan Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Jeskai Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Sultai Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Mardu Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Temur Charm": {
         'layout': NormalLayout,
-        'frame': [con.layers.GOLD, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.GOLD, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Eldrazi
     "Emrakul, the Aeons Torn": {
         'layout': NormalLayout,
-        'frame': [con.layers.COLORLESS, con.layers.COLORLESS, con.layers.COLORLESS, False, True]
+        'frame': [LAYERS.COLORLESS, LAYERS.COLORLESS, LAYERS.COLORLESS, False, True]
     },
     "Scion of Ugin": {
         'layout': NormalLayout,
-        'frame': [con.layers.COLORLESS, con.layers.COLORLESS, con.layers.COLORLESS, False, True]
+        'frame': [LAYERS.COLORLESS, LAYERS.COLORLESS, LAYERS.COLORLESS, False, True]
     },
 
     # Colorless artifacts
     "Herald's Horn": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Black Lotus": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Mox Pearl": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Mox Sapphire": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Mox Jet": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Mox Ruby": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
     "Mox Emerald": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.ARTIFACT, con.layers.ARTIFACT, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.ARTIFACT, LAYERS.ARTIFACT, False, False]
     },
 
     # Mono colored artifacts
     "The Circle of Loyalty": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "The Magic Mirror": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "The Cauldron of Eternity": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Embercleave": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.RED, LAYERS.RED, False, False]
     },
     "The Great Henge": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Two colored artifacts
     "Filigree Angel": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.WU, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.WU, LAYERS.GOLD, False, False]
     },
     "Time Sieve": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.UB, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.UB, LAYERS.GOLD, False, False]
     },
     "Demonspine Whip": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.BR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.BR, LAYERS.GOLD, False, False]
     },
     "Mage Slayer": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.RG, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.RG, LAYERS.GOLD, False, False]
     },
     "Behemoth Sledge": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GW, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GW, LAYERS.GOLD, False, False]
     },
     "Tainted Sigil": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.WB, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.WB, LAYERS.GOLD, False, False]
     },
     "Shardless Agent": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GU, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GU, LAYERS.GOLD, False, False]
     },
     "Etherium-Horn Sorcerer": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.UR, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.UR, LAYERS.GOLD, False, False]
     },
 
     # Tri colored artifacts
     "Sphinx of the Steel Wind": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Thopter Foundry": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Five color artifacts
     "Sphinx of the Guildpact": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Reaper King": {
         'layout': NormalLayout,
-        'frame': [con.layers.ARTIFACT, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.ARTIFACT, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Colorless lands with varying rules texts
     "Vesuva": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Evolving Wilds": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Karn's Bastion": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Hall of Heliod's Generosity": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Academy Ruins": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Volrath's Stronghold": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Gemstone Caverns": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Glacial Chasm": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Ash Barrens": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Crumbling Vestige": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Blighted Steppe": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Blighted Cataract": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Blighted Fen": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Blighted Gorge": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Blighted Woodland": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Maze's End": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Inventors' Fair": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Myriad Landscape": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Crystal Quarry": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Panoramas
     "Esper Panorama": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Grixis Panorama": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Jund Panorama": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Naya Panorama": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
     "Bant Panorama": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.LAND, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.LAND, LAYERS.LAND, False, False]
     },
 
     # Mono colored lands that specifically add their color of mana
     "Castle Ardenvale": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Castle Vantress": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Castle Locthwain": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Castle Embereth": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Castle Garenbrig": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
     "Serra's Sanctum": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Tolarian Academy": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Cabal Coffers": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Gaea's Cradle": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Mono colored lands with basic lands subtype
     "Idyllic Grange": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Mystic Sanctuary": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Witch's Cottage": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Dwarven Mine": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Gingerbread Cabin": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Mono colored lands with a multicolor activated ability
     "Axgard Armory": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Surtland Frostpyre": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Skemfar Elderhall": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Mono colored lands that make all lands X basic land type
     "Urborg, Tomb of Yawgmoth": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Yavimaya, Cradle of Growth": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Vivid lands
     "Vivid Meadow": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WHITE, con.layers.WHITE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WHITE, LAYERS.WHITE, False, False]
     },
     "Vivid Creek": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLUE, con.layers.BLUE, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLUE, LAYERS.BLUE, False, False]
     },
     "Vivid Marsh": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BLACK, con.layers.BLACK, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BLACK, LAYERS.BLACK, False, False]
     },
     "Vivid Crag": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RED, con.layers.RED, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RED, LAYERS.RED, False, False]
     },
     "Vivid Grove": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Two colored lands that specifically add their colors of mana
     "Celestial Colonnade": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WU, LAYERS.LAND, False, False]
     },
     "Creeping Tar Pit": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UB, LAYERS.LAND, False, False]
     },
     "Lavaclaw Reaches": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BR, LAYERS.LAND, False, False]
     },
     "Raging Ravine": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RG, LAYERS.LAND, False, False]
     },
     "Stirring Wildwood": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GW, LAYERS.LAND, False, False]
     },
     "Shambling Vent": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WB, LAYERS.LAND, False, False]
     },
     "Hissing Quagmire": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BG, LAYERS.LAND, False, False]
     },
     "Lumbering Falls": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GU, LAYERS.LAND, False, False]
     },
     "Wandering Fumarole": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UR, LAYERS.LAND, False, False]
     },
     "Needle Spires": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RW, LAYERS.LAND, False, False]
     },
 
     # Two colored lands with basic land subtypes
     "Hallowed Fountain": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WU, LAYERS.LAND, False, False]
     },
     "Watery Grave": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UB, LAYERS.LAND, False, False]
     },
     "Blood Crypt": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BR, LAYERS.LAND, False, False]
     },
     "Stomping Ground": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RG, LAYERS.LAND, False, False]
     },
     "Temple Garden": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GW, LAYERS.LAND, False, False]
     },
     "Godless Shrine": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WB, LAYERS.LAND, False, False]
     },
     "Overgrown Tomb": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BG, LAYERS.LAND, False, False]
     },
     "Breeding Pool": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GU, LAYERS.LAND, False, False]
     },
     "Steam Vents": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UR, LAYERS.LAND, False, False]
     },
     "Sacred Foundry": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RW, LAYERS.LAND, False, False]
     },
 
     # Onslaught/Zendikar fetchlands
     "Flooded Strand": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WU, LAYERS.LAND, False, False]
     },
     "Polluted Delta": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UB, LAYERS.LAND, False, False]
     },
     "Bloodstained Mire": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BR, LAYERS.LAND, False, False]
     },
     "Wooded Foothills": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RG, LAYERS.LAND, False, False]
     },
     "Windswept Heath": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GW, LAYERS.LAND, False, False]
     },
     "Marsh Flats": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.WB, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.WB, LAYERS.LAND, False, False]
     },
     "Verdant Catacombs": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.BG, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.BG, LAYERS.LAND, False, False]
     },
     "Misty Rainforest": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GU, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GU, LAYERS.LAND, False, False]
     },
     "Scalding Tarn": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.UR, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.UR, LAYERS.LAND, False, False]
     },
     "Arid Mesa": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.RW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.RW, LAYERS.LAND, False, False]
     },
 
     # Other wildcards
     "Krosan Verge": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GW, con.layers.LAND, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GW, LAYERS.LAND, False, False]
     },
     "Murmuring Bosk": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GREEN, False, False]
     },
     "Dryad Arbor": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GREEN, con.layers.GREEN, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GREEN, LAYERS.GREEN, False, False]
     },
 
     # Tri color lands
     "Arcane Sanctum": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Crumbling Necropolis": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Savage Lands": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Jungle Shrine": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Seaside Citadel": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Sandsteppe Citadel": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Mystic Monastery": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Opulent Palace": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Nomad Outpost": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Frontier Bivouac": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 
     # Gold lands with varying rules text
     "Prismatic Vista": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Fabled Passage": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Aether Hub": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "City of Brass": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Mana Confluence": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Ally Encampment": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
     "Command Tower": {
         'layout': NormalLayout,
-        'frame': [con.layers.LAND, con.layers.GOLD, con.layers.GOLD, False, False]
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
 }
 
@@ -872,7 +871,7 @@ test_cases = {
 test_cases = {
     "Asmoranomardicadaistinaculdacar": {
         'layout': NormalLayout,
-        'frame': [con.layers.BR, con.layers.BR, con.layers.LAND, False, False]
+        'frame': [LAYERS.BR, LAYERS.BR, LAYERS.LAND, False, False]
     }
 }
 """

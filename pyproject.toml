@@ -18,6 +18,7 @@ typing-extensions = "^4.5.0"
 pyinstaller = "5.6.2"
 ratelimit = "^2.2.1"
 backoff = "^2.2.1"
+pathvalidate = "^2.5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -35,5 +36,5 @@ changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
-    "src/__version__.py"
+    "src/env/__version__.py"
 ]
