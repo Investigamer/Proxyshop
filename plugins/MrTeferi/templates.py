@@ -6,9 +6,9 @@ from typing import Optional, Callable
 
 from actions import pencilsketch, sketch
 import src.templates as temp
-from src.constants import con
 from src.settings import cfg
 import src.helpers as psd
+from src.utils.enums_layers import LAYERS
 
 from photoshop.api._artlayer import ArtLayer
 import photoshop.api as ps
@@ -25,7 +25,6 @@ class SketchTemplate (temp.NormalTemplate):
     Sketch showcase from MH2
     Original PSD by Nelynes
     """
-    template_file_name = "sketch"
     template_suffix = "Sketch"
 
     @property
@@ -59,6 +58,7 @@ class SketchTemplate (temp.NormalTemplate):
         if not self.art_action == pencilsketch.run:
             return
         return {
+            'thr': self.event,
             'rough_sketch': cfg.get_setting(
                 section="ACTION",
                 key="Rough.Sketch.Lines",
@@ -87,7 +87,6 @@ class KaldheimTemplate (temp.NormalTemplate):
     Kaldheim viking legendary showcase.
     Original Template by FeuerAmeise
     """
-    template_file_name = "kaldheim"
     template_suffix = "Kaldheim"
 
     @property
@@ -109,16 +108,16 @@ class KaldheimTemplate (temp.NormalTemplate):
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
         if "Vehicle" in self.layout.type_line:
-            return psd.getLayer("Vehicle", con.layers.PT_BOX)
-        return psd.getLayer(self.twins, con.layers.PT_BOX)
+            return psd.getLayer("Vehicle", LAYERS.PT_BOX)
+        return psd.getLayer(self.twins, LAYERS.PT_BOX)
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         if self.is_land:
-            return psd.getLayer(self.pinlines, con.layers.LAND_PINLINES_TEXTBOX)
+            return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
         if "Vehicle" in self.layout.type_line:
-            return psd.getLayer("Vehicle", con.layers.PINLINES_TEXTBOX)
-        return psd.getLayer(self.pinlines, con.layers.PINLINES_TEXTBOX)
+            return psd.getLayer("Vehicle", LAYERS.PINLINES_TEXTBOX)
+        return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
 class CrimsonFangTemplate (temp.NormalTemplate):
@@ -128,7 +127,6 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     Works for Normal and Transform cards
     Transform is kinda experimental.
     """
-    template_file_name = "crimson-fang"
     template_suffix = "Fang"
 
     @property
@@ -147,10 +145,10 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     def pinlines_layer(self) -> Optional[ArtLayer]:
         # Pinlines
         if self.is_land:
-            return psd.getLayer(self.pinlines, con.layers.LAND_PINLINES_TEXTBOX)
+            return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
         if self.name_shifted and not self.is_front:
-            return psd.getLayer(self.pinlines, "MDFC " + con.layers.PINLINES_TEXTBOX)
-        return psd.getLayer(self.pinlines, con.layers.PINLINES_TEXTBOX)
+            return psd.getLayer(self.pinlines, "MDFC " + LAYERS.PINLINES_TEXTBOX)
+        return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
@@ -173,7 +171,6 @@ class PhyrexianTemplate (temp.NormalTemplate):
     """
     From the Phyrexian secret lair promo
     """
-    template_file_name = "phyrexian"
     template_suffix = "Phyrexian"
 
     @property
@@ -199,7 +196,6 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     Original assets from Warpdandy's Proximity Template
     Doesn't support companion, nyx, or twins layers.
     """
-    template_file_name = "double-feature"
     template_suffix = "Double Feature"
 
     @property
@@ -220,14 +216,13 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
 
     @property
     def background_layer(self) -> Optional[ArtLayer]:
-        return psd.getLayer(self.layout.pinlines, con.layers.BACKGROUND)
+        return psd.getLayer(self.layout.pinlines, LAYERS.BACKGROUND)
 
 
 class MaleMPCTemplate (temp.NormalTemplate):
     """
     MaleMPC's extended black box template.
     """
-    template_file_name = "male-mpc"
     template_suffix = "Extended Black"
 
     @cached_property
@@ -248,7 +243,7 @@ class MaleMPCTemplate (temp.NormalTemplate):
         psd.content_fill_empty_area(self.art_layer)
 
     def enable_crown(self):
-        psd.enable_mask(psd.getLayer(con.layers.SHADOWS))
+        psd.enable_mask(psd.getLayer(LAYERS.SHADOWS))
         psd.enable_mask(self.pinlines_layer.parent)
         super().enable_crown()
 
@@ -264,7 +259,6 @@ class ColorshiftedTemplate (temp.NormalTemplate):
     Rendered from CC and MSE assets. Most titleboxes are built into pinlines.
     Doesn't support special layers for nyx, companion, land, or colorless.
     """
-    template_file_name = "colorshifted"
     template_suffix = "Shifted"
 
     def __init__(self, layout):
@@ -288,9 +282,9 @@ class ColorshiftedTemplate (temp.NormalTemplate):
         if self.is_creature:
             # Check if vehicle
             if "Vehicle" in self.layout.type_line:
-                return psd.getLayer("Vehicle", con.layers.PT_BOX)
-            return psd.getLayer(self.twins, con.layers.PT_BOX)
-        return psd.getLayerSet(con.layers.PT_BOX)
+                return psd.getLayer("Vehicle", LAYERS.PT_BOX)
+            return psd.getLayer(self.twins, LAYERS.PT_BOX)
+        return psd.getLayerSet(LAYERS.PT_BOX)
 
     @property
     def is_nyx(self) -> bool:
@@ -329,16 +323,11 @@ class BasicLandDarkMode (temp.BasicLandTemplate):
     Basic land Dark Mode
     Credit to Vittorio Masia (Sid)
     """
-    template_file_name = "basic-dark-mode"
     template_suffix = "Dark"
-
-    def __init__(self, layout):
-        cfg.save_artist_name = True
-        super().__init__(layout)
 
     def collector_info(self):
         # Collector info only has artist
-        psd.replace_text(psd.getLayer(con.layers.ARTIST, self.legal_group), "Artist", self.layout.artist)
+        psd.replace_text(psd.getLayer(LAYERS.ARTIST, self.legal_group), "Artist", self.layout.artist)
 
     def load_artwork(self):
         super().load_artwork()

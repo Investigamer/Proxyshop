@@ -1,9 +1,10 @@
 """
 Pencil Sketchify Action Module
 """
+from threading import Event
 from typing import Union
 
-from src.__console__ import console
+from src.env.__console__ import console
 import photoshop.api as ps
 app = ps.Application()
 cID = app.charIDToTypeID
@@ -197,7 +198,7 @@ def blend_overlay(): blend('overlay')
 def blend_color(): blend('color')
 
 
-def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_editing=False):
+def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True, manual_editing=False):
 	"""
 	Pencil Sketchify Steps
 	"""
@@ -1183,5 +1184,5 @@ def run(draft_sketch=False, rough_sketch=False, black_and_white=True, manual_edi
 
 	# Flatten
 	if manual_editing:
-		console.wait("Sketch Action complete, hit continue when ready!")
+		console.await_choice(thr, "Sketch Action complete, hit continue when ready!")
 	app.executeAction(cID("FltI"), None, dialog_mode)

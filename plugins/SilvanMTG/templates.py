@@ -1,32 +1,32 @@
 """
 SILVAN'S TEMPLATES
 """
+# Standard Library Imports
 from typing import Optional
 
+# Third Party Imports
 from photoshop.api._artlayer import ArtLayer
 
+# Local Imports
 import src.templates as temp
-from src.constants import con
 import src.helpers as psd
-import photoshop.api as ps
-app = ps.Application()
+from src.utils.enums_layers import LAYERS
 
 
 class SilvanExtendedTemplate (temp.NormalTemplate):
     """
     Silvan's legendary extended template used for WillieTanner proxies
     """
-    template_file_name = "extended"
     template_suffix = "Extended"
 
     @property
     def background_layer(self) -> Optional[ArtLayer]:
         # Background
         if self.is_nyx:
-            return psd.getLayer(self.background, con.layers.NYX)
+            return psd.getLayer(self.background, LAYERS.NYX)
         if self.background == "Colorless":
             return
-        return psd.getLayer(self.background, con.layers.BACKGROUND)
+        return psd.getLayer(self.background, LAYERS.BACKGROUND)
 
     def load_artwork(self):
         super().load_artwork()
@@ -51,12 +51,10 @@ MDFC TEMPLATES
 """
 
 
-class SilvanMDFCBackTemplate (temp.MDFCBackTemplate):
+class SilvanMDFCTemplate (temp.MDFCTemplate):
     """
     Silvan extended template modified for MDFC
     """
-    template_file_name = "extended-mdfc-back"
-    dfc_layer_group = con.layers.MDFC_BACK
     template_suffix = "Extended"
 
     def load_artwork(self):
@@ -64,12 +62,3 @@ class SilvanMDFCBackTemplate (temp.MDFCBackTemplate):
 
         # Content aware fill
         psd.content_fill_empty_area(self.art_layer)
-
-
-class SilvanMDFCFrontTemplate (SilvanMDFCBackTemplate):
-    """
-    Silvan extended template modified for MDFC
-    """
-    template_file_name = "extended-mdfc-front"
-    dfc_layer_group = con.layers.MDFC_FRONT
-    template_suffix = "Extended"

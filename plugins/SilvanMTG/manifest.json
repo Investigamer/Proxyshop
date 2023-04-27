@@ -8,14 +8,14 @@
     },
     "mdfc_front": {
         "Silvan Extended": {
-            "class": "SilvanMDFCFrontTemplate",
+            "class": "SilvanMDFCTemplate",
             "file": "extended-mdfc-front.psd",
             "id": "1ALesKmMQ_1icVr5gF4nsaVFsHsmdemar"
         }
     },
     "mdfc_back": {
         "Silvan Extended": {
-            "class": "SilvanMDFCBackTemplate",
+            "class": "SilvanMDFCTemplate",
             "file": "extended-mdfc-back.psd",
             "id": "1XTuL2i2eFXxIy1kuoagbX6m6xQVVRd0j"
         }
