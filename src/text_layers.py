@@ -1,22 +1,35 @@
 """
 TEXT LAYER MODULE
 """
+# Standard Library Imports
 from functools import cached_property
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
-import photoshop.api as ps
+# Third Party Imports
+from photoshop.api import (
+    ActionDescriptor,
+    ActionReference,
+    ActionList,
+    DialogModes,
+    LayerKind,
+    SolidColor,
+    Language,
+    Justification,
+    RasterizeType
+)
 from photoshop.api._artlayer import ArtLayer
 
+# Local Imports
 import src.helpers as psd
 from src.constants import con
 from src.settings import cfg
 from src import format_text as ft
 
 # QOL Definitions
-app = ps.Application()
+app = con.app
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
-NO_DIALOG = ps.DialogModes.DisplayNoDialogs
+NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 """
@@ -39,8 +52,8 @@ class TextField:
         self.contents = contents.replace("\n", "\r")
 
         # Change to English formatting if needed
-        if self.layer.kind == ps.LayerKind.TextLayer and cfg.force_english_formatting:
-            self.layer.textItem.language = ps.Language.EnglishUSA
+        if self.layer.kind == LayerKind.TextLayer and cfg.force_english_formatting:
+            self.layer.textItem.language = Language.EnglishUSA
 
     """
     PROPERTIES
@@ -51,7 +64,7 @@ class TextField:
         return self.kwargs.get('reference', None)
 
     @cached_property
-    def color(self) -> ps.SolidColor:
+    def color(self) -> SolidColor:
         return self.kwargs.get('color', psd.get_text_layer_color(self.layer))
 
     @property
@@ -71,24 +84,41 @@ class TextField:
         self.layer.textItem.color = self.color
 
 
-class ScaledTextField (TextField):
+class ScaledWidthTextField (TextField):
     """
-    A TextField which automatically scales down its font size (in 0.25 pt increments) until
-    its right bound no longer overlaps with a reference layer's left bound.
+    A TextField which automatically scales down its font size until the width of the
+    layer is within the horizontal bound of a reference layer.
     """
-    @cached_property
-    def flip_scale(self):
-        return self.kwargs.get('flip_scale', False)
 
     def execute(self):
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            if self.flip_scale:
-                ft.scale_text_left_overlap(self.layer, self.reference)
-            else:
-                ft.scale_text_right_overlap(self.layer, self.reference)
+            ft.scale_text_to_fit_reference(self.layer, self.reference, height=False)
+
+
+class ScaledTextField (TextField):
+    """
+    A TextField which automatically scales down its font size until the right bound
+    no longer overlaps with a reference layer's left bound.
+    """
+    @cached_property
+    def flip_scale(self) -> bool:
+        return self.kwargs.get('flip_scale', False)
+
+    @cached_property
+    def scale_action(self) -> Callable:
+        if self.flip_scale:
+            return ft.scale_text_left_overlap
+        return ft.scale_text_right_overlap
+
+    def execute(self):
+        super().execute()
+
+        # Scale down the text layer until it doesn't overlap with a reference layer
+        if self.reference:
+            self.scale_action(self.layer, self.reference)
 
 
 class FormattedTextField (TextField):
@@ -104,7 +134,7 @@ class FormattedTextField (TextField):
     def text_details(self) -> dict:
 
         # Generate italic text arrays from things in (parentheses), ability words, and the given flavor text
-        italic_text = ft.generate_italics(self.contents)
+        italic_text = ft.generate_italics(self.contents) if self.contents else []
 
         # Add flavor text to italics array
         flavor_text = self.flavor_text
@@ -119,7 +149,7 @@ class FormattedTextField (TextField):
 
         # Locate symbols and update the input string
         ret = ft.locate_symbols(self.contents)
-        input_string = f"{ret['input_string']}\r{flavor_text}"
+        input_string = f"{ret['input_string']}\r{flavor_text}" if self.contents else flavor_text
 
         # Locate italics text indices
         italics_indices = ft.locate_italics(input_string, italic_text)
@@ -154,9 +184,7 @@ class FormattedTextField (TextField):
 
     @cached_property
     def flavor_text(self) -> str:
-        if 'flavor' in self.kwargs:
-            return self.kwargs['flavor'].replace('\n', '\r')
-        return ''
+        return self.kwargs.get('flavor', '').replace('\n', '\r')
 
     @property
     def divider(self) -> Optional[ArtLayer]:
@@ -173,11 +201,10 @@ class FormattedTextField (TextField):
 
     @cached_property
     def line_break_lead(self) -> Union[int, float]:
-        if 'line_break_lead' in self.kwargs:
-            return self.kwargs['line_break_lead']
-        if self.contents_centered:
-            return 0
-        return con.line_break_lead
+        return self.kwargs.get(
+            'line_break_lead',
+            0 if self.contents_centered else con.line_break_lead
+        )
 
     @cached_property
     def flavor_text_lead(self) -> Union[int, float]:
@@ -204,13 +231,13 @@ class FormattedTextField (TextField):
         return self.kwargs.get('right_align_quote', False)
 
     @cached_property
-    def flavor_color(self) -> Optional[ps.SolidColor]:
+    def flavor_color(self) -> Optional[SolidColor]:
         return self.kwargs.get('flavor_color', None)
 
     @cached_property
     def font_size(self) -> float:
-        if 'font_size' in self.kwargs:
-            return self.kwargs['font_size'] * psd.get_text_scale_factor(self.layer)
+        if font_size := self.kwargs.get('font_size'):
+            return font_size * psd.get_text_scale_factor(self.layer)
         return self.layer.textItem.size * psd.get_text_scale_factor(self.layer)
 
     """
@@ -223,20 +250,20 @@ class FormattedTextField (TextField):
         from the NDPMTG font.
         """
         # Prepare action descriptor and reference variables
-        primary_action_descriptor = ps.ActionDescriptor()
-        primary_action_list = ps.ActionList()
-        desc119 = ps.ActionDescriptor()
-        desc26 = ps.ActionDescriptor()
-        desc25 = ps.ActionDescriptor()
-        ref101 = ps.ActionReference()
-        desc141 = ps.ActionDescriptor()
-        desc142 = ps.ActionDescriptor()
-        desc143 = ps.ActionDescriptor()
-        desc144 = ps.ActionDescriptor()
-        desc145 = ps.ActionDescriptor()
-        list13 = ps.ActionList()
-        list14 = ps.ActionList()
-        list15 = ps.ActionList()
+        primary_action_descriptor = ActionDescriptor()
+        primary_action_list = ActionList()
+        desc119 = ActionDescriptor()
+        desc26 = ActionDescriptor()
+        desc25 = ActionDescriptor()
+        ref101 = ActionReference()
+        desc141 = ActionDescriptor()
+        desc142 = ActionDescriptor()
+        desc143 = ActionDescriptor()
+        desc144 = ActionDescriptor()
+        desc145 = ActionDescriptor()
+        list13 = ActionList()
+        list14 = ActionList()
+        list15 = ActionList()
         idkerningRange = sID("kerningRange")
         idparagraphStyleRange = sID("paragraphStyleRange")
         idfontPostScriptName = sID("fontPostScriptName")
@@ -274,8 +301,8 @@ class FormattedTextField (TextField):
 
         # Bold the contents if necessary
         if self.bold_rules_text and self.flavor_index != 0:
-            bold_action1 = ps.ActionDescriptor()
-            bold_action2 = ps.ActionDescriptor()
+            bold_action1 = ActionDescriptor()
+            bold_action2 = ActionDescriptor()
             contents_index = len(self.input) - 1 if self.flavor_index < 0 else self.flavor_index - 1
             primary_action_list.putObject(idTxtt, current_layer_ref)
             bold_action1.putInteger(idFrom, 0)  # bold start index
@@ -291,8 +318,8 @@ class FormattedTextField (TextField):
 
         # Italicize text from our italics indices
         for italics_index in self.italics_indices:
-            italics_action1 = ps.ActionDescriptor()
-            italics_action2 = ps.ActionDescriptor()
+            italics_action1 = ActionDescriptor()
+            italics_action2 = ActionDescriptor()
             primary_action_list.putObject(idTxtt, current_layer_ref)
             italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
             italics_action1.putInteger(idTo, italics_index['end_index'])  # italics end index
@@ -308,11 +335,11 @@ class FormattedTextField (TextField):
         # Format each symbol correctly
         for symbol_index in self.symbol_indices:
             current_layer_ref = ft.format_symbol(
-                primary_action_list=primary_action_list,
-                starting_layer_ref=current_layer_ref,
+                action_list=primary_action_list,
+                starting_ref=current_layer_ref,
                 symbol_index=symbol_index['index'],
                 symbol_colors=symbol_index['colors'],
-                layer_font_size=self.font_size,
+                font_size=self.font_size,
             )
 
         # Insert actions for bold, italics, and symbol formatting
@@ -418,7 +445,7 @@ class FormattedTextField (TextField):
         app.activeDocument.activeLayer = self.layer
         self.format_text()
         if self.contents_centered:
-            self.layer.textItem.justification = ps.Justification.Center
+            self.layer.textItem.justification = Justification.Center
 
 
 class FormattedTextArea (FormattedTextField):
@@ -435,15 +462,38 @@ class FormattedTextArea (FormattedTextField):
 
     @cached_property
     def divider(self) -> Optional[ArtLayer]:
-        if 'divider' in self.kwargs and cfg.flavor_divider and len(self.flavor_text) > 0 and len(self.contents) > 0:
-            return self.kwargs['divider']
+        if (divider := self.kwargs.get('divider')) and all([self.flavor_text, self.contents, cfg.flavor_divider]):
+            return divider
         return
 
     @cached_property
-    def fix_length(self) -> bool:
-        # Check if text needs the long text entry fix
+    def scale_height(self) -> bool:
+        # Scale text to fit reference height (Default: True)
+        if scale_height := self.kwargs.get('scale_height'):
+            return scale_height
+        return True
+
+    @cached_property
+    def scale_width(self) -> bool:
+        # Scale text to fit reference width (Default: False)
+        if scale_width := self.kwargs.get('scale_width'):
+            return scale_width
+        return False
+
+    @cached_property
+    def fix_overflow_width(self) -> bool:
+        # Scale text to fit bounding box width (Default: False)
+        if fix_overflow_width := self.kwargs.get('fix_overflow_width'):
+            return fix_overflow_width
+        return True
+
+    @cached_property
+    def fix_overflow_height(self) -> bool:
+        # Scale text to fit bounding box height (Default: If overflow the bounds)
         if len(self.contents + self.flavor_text) > 280:
             return True
+        if fix_overflow_height := self.kwargs.get('fix_overflow_height'):
+            return fix_overflow_height
         return False
 
     """
@@ -465,9 +515,9 @@ class FormattedTextArea (FormattedTextField):
         self.layer.visible = False
         layer_text_contents = self.layer.duplicate()
         psd.replace_text(layer_text_contents, flavor_replace, "")
-        layer_text_contents.rasterize(ps.RasterizeType.EntireLayer)
+        layer_text_contents.rasterize(RasterizeType.EntireLayer)
         layer_flavor_text = self.layer.duplicate()
-        layer_flavor_text.rasterize(ps.RasterizeType.EntireLayer)
+        layer_flavor_text.rasterize(RasterizeType.EntireLayer)
         psd.select_layer_bounds(layer_text_contents)
         app.activeDocument.activeLayer = layer_flavor_text
         app.activeDocument.selection.expand(1)
@@ -485,31 +535,45 @@ class FormattedTextArea (FormattedTextField):
 
     def execute(self):
 
-        # Fix length procedure before super called
-        if self.fix_length and self.reference:
+        # Skip if both are empty
+        if not self.contents and not self.flavor_text:
+            return
+
+        # Fix height overflow before formatting text
+        if self.fix_overflow_height and self.reference:
             self.layer.textItem.contents = self.contents + "\r" + self.flavor_text
             ft.scale_text_to_fit_reference(
                 self.layer, int(psd.get_layer_dimensions(self.reference)['height']*1.01)
             )
 
+        # Execute text formatting
         super().execute()
-        if self.contents != "" or self.flavor_text != "":
-            # Resize the text until it fits into the reference layer
+
+        # Resize the text until it fits the reference vertically
+        if self.scale_height:
             ft.scale_text_to_fit_reference(self.layer, self.reference)
 
-            # Ensure the layer is centered vertically
-            ft.vertically_align_text(self.layer, self.reference)
+        # Resize the text until it fits the reference horizontally
+        if self.scale_width:
+            ft.scale_text_to_fit_reference(self.layer, self.reference, height=False, step=0.2)
 
-            # Ensure the layer is centered horizontally if needed
-            if self.contents_centered and self.flavor_centered:
-                psd.select_layer_bounds(self.reference)
-                app.activeDocument.activeLayer = self.layer
-                psd.align_horizontal()
-                psd.clear_selection()
+        # Resize the text until it fits the TextLayer bounding box
+        if self.fix_overflow_width:
+            ft.scale_text_to_fit_textbox(self.layer)
 
-            # Insert flavor divider if needed
-            if self.divider and len(self.flavor_text) > 0:
-                self.insert_divider()
+        # Ensure the layer is centered vertically
+        ft.vertically_align_text(self.layer, self.reference)
+
+        # Ensure the layer is centered horizontally if needed
+        if self.contents_centered and self.flavor_centered:
+            psd.select_layer_bounds(self.reference)
+            app.activeDocument.activeLayer = self.layer
+            psd.align_horizontal()
+            psd.clear_selection()
+
+        # Insert flavor divider if needed
+        if self.divider:
+            self.insert_divider()
 
 
 class CreatureFormattedTextArea (FormattedTextArea):
