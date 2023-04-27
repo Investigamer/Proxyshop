@@ -1,38 +1,44 @@
 """
 Utility functions to format text
 """
+# Standard Library Imports
 import math
-import re
 from typing import Optional, Union
 
-import photoshop.api as ps
+# Third Party Imports
+from photoshop.api import (
+    ActionList,
+    ActionReference,
+    ActionDescriptor,
+    SolidColor,
+    DialogModes,
+    LayerKind,
+    RasterizeType
+)
 from photoshop.api._artlayer import ArtLayer
 
-import src.helpers as psd
+# Local Imports
 from src.constants import con
-from src.__console__ import console
+import src.helpers as psd
+from src.utils.types_cards import CardTextSymbols, CardTextSymbolIndex
+from src.utils.regex import Reg
 
 # QOL Definitions
-app = ps.Application()
+app = con.app
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
-NO_DIALOG = ps.DialogModes.DisplayNoDialogs
-
-# Precompiled regex
-reg_symbol = re.compile(r"(\{.*?})")
-reg_mana_normal = re.compile(r"{([WUBRG])}")
-reg_mana_hybrid = re.compile(r"{([2WUBRG])/([WUBRG])}")
-reg_mana_phyrexian = re.compile(r"{([WUBRG])/P}")
-reg_mana_phyrexian_hybrid = re.compile(r"{([WUBRG])/([WUBRG])/P}")
-reg_ability_words = re.compile(r"(?:\A|\r+|• +)([A-Za-z0-9 ]+) — ")
-reg_reminder_text = re.compile(r"\([^()]*\)")
+NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 class SymbolMapper:
-    def __init__(self):
-        self.load_values()
+    """
+    Maps symbols to their corresponding colors.
+    """
 
-    def load_values(self):
+    def __init__(self):
+        self.load()
+
+    def load(self):
         """
         Load SolidColor objects using data from the constants object.
         """
@@ -84,41 +90,40 @@ class SymbolMapper:
         self.hybrid_color_map_inner = self.color_map_inner.copy()
         self.hybrid_color_map_inner['B'] = self.clri_bh
 
-    def reload(self):
-        """
-        Reload default values.
-        """
-        self.load_values()
 
+def locate_symbols(input_string: str) -> CardTextSymbols:
+    """
+    Locate symbols in the input string, replace them with the proper characters from the NDPMTG font,
+    and determine the colors those characters need to be.
+    @param input_string: String to analyze for symbols.
+    @return: Dict containing the modified string, and a list of dictionaries containing the location and color
+             of each symbol to format.
+    """
+    # Is there a symbol in this text?
+    if '{' not in input_string:
+        return {
+            'input_string': input_string,
+            'symbol_indices': []
+        }
 
-def locate_symbols(input_string: str) -> dict[str: Union[str, dict]]:
-    """
-    Locate symbols in the input string, replace them with the characters we use to represent them in NDPMTG,
-    and determine the colors those characters need to be. Returns an object with the modified input string and
-    a list of symbol indices.
-    """
-    # Ensure symbol mappings are up-to-date
-    sym.reload()
+    # Starting values
+    symbol_indices: list[CardTextSymbolIndex] = []
+    start = input_string.find('{')
+    end = input_string.find('}')
     symbol = ""
-    symbol_indices = []
     try:
-        while True:
-            match = reg_symbol.search(input_string)
-            if match:
-                symbol = match[1]
-                symbol_index = match.span()[0]
-                symbol_char = con.symbols[symbol]
-                input_string = input_string.replace(symbol, symbol_char, 1)
-                symbol_indices.extend([{
-                    'index': symbol_index,
-                    'colors': determine_symbol_colors(symbol, len(symbol_char))
-                }])
-            else:
-                break
-    except Exception as e:
-        console.update(
-            f"Encountered a symbol I don't recognize: {symbol}", e
-        )
+        while 0 <= start <= end:
+            # Replace the symbol and add its index
+            symbol = input_string[start:end+1]
+            input_string = input_string.replace(symbol, con.symbols[symbol], 1)
+            symbol_indices.append({
+                'index': start,
+                'colors': determine_symbol_colors(symbol)
+            })
+            start = input_string.find('{')
+            end = input_string.find('}')
+    except (KeyError, IndexError):
+        raise Exception(f"Encountered a symbol I don't recognize: {symbol}")
     return {
         'input_string': input_string,
         'symbol_indices': symbol_indices
@@ -128,120 +133,128 @@ def locate_symbols(input_string: str) -> dict[str: Union[str, dict]]:
 def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: int]]:
     """
     Locate all instances of italic strings in the input string and record their start and end indices.
-    Returns a list of italic string indices (start and end).
+    @param input_string: String to search for italics strings.
+    @param italics_strings: List of italics strings to look for.
+    @return: List of italic string indices (start and end).
     """
     italics_indices = []
     for italics in italics_strings:
-
-        # replace symbols with their character representations in the italic string
-        if "}" in italics:
-            for key, symbol in con.symbols.items():
-                if key in italics:
-                    italics = italics.replace(key, symbol)
+        # Replace symbols with their font characters
+        if '{' in italics:
+            start = italics.find('{')
+            end = italics.find('}')
+            while 0 <= start < end:
+                symbol = italics[start:end + 1]
+                italics = italics.replace(symbol, con.symbols[symbol])
+                start = italics.find('{')
+                end = italics.find('}')
 
         # Locate Italicized text
         end_index = 0
         while True:
             start_index = input_string.find(italics, end_index)
-            end_index = start_index + len(italics)
             if start_index < 0:
                 break
+            end_index = start_index + len(italics)
             italics_indices.append({
                 'start_index': start_index,
                 'end_index': end_index,
             })
-
     return italics_indices
 
 
-def determine_symbol_colors(
-    symbol: str,
-    symbol_length: int
-) -> Optional[list[ps.SolidColor]]:
+def determine_symbol_colors(symbol: str) -> list[SolidColor]:
     """
     Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+    @param symbol: Symbol to determine the colors of.
+    @return: List of SolidColor objects to color the symbol's characters.
     """
     # Special Symbols
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
-        return [sym.clr_primary]
+        return [symbol_map.clr_primary]
     elif symbol == "{S}":
         # Snow symbol
-        return [sym.clr_c, sym.clr_primary, sym.clr_secondary]
+        return [symbol_map.clr_c, symbol_map.clr_primary, symbol_map.clr_secondary]
     elif symbol == "{Q}":
         # Untap symbol
-        return [sym.clr_primary, sym.clr_secondary]
+        return [symbol_map.clr_primary, symbol_map.clr_secondary]
 
     # Normal mana symbol
-    normal_symbol_match = reg_mana_normal.match(symbol)
+    normal_symbol_match = Reg.MANA_NORMAL.match(symbol)
     if normal_symbol_match:
         return [
-            sym.color_map[normal_symbol_match[1]],
-            sym.color_map_inner[normal_symbol_match[1]]
+            symbol_map.color_map[normal_symbol_match[1]],
+            symbol_map.color_map_inner[normal_symbol_match[1]]
         ]
 
     # Hybrid
-    hybrid_match = reg_mana_hybrid.match(symbol)
+    hybrid_match = Reg.MANA_HYBRID.match(symbol)
     if hybrid_match:
         # Use the darker color for black's symbols for 2/B hybrid symbols
-        color_map = sym.hybrid_color_map if hybrid_match[1] == "2" else sym.color_map
+        color_map = symbol_map.hybrid_color_map if hybrid_match[1] == "2" else symbol_map.color_map
         return [
             color_map[hybrid_match[2]],
             color_map[hybrid_match[1]],
-            sym.color_map_inner[hybrid_match[1]],
-            sym.color_map_inner[hybrid_match[2]]
+            symbol_map.color_map_inner[hybrid_match[1]],
+            symbol_map.color_map_inner[hybrid_match[2]]
         ]
 
     # Phyrexian
-    phyrexian_match = reg_mana_phyrexian.match(symbol)
+    phyrexian_match = Reg.MANA_PHYREXIAN.match(symbol)
     if phyrexian_match:
         return [
-            sym.hybrid_color_map[phyrexian_match[1]],
-            sym.hybrid_color_map_inner[phyrexian_match[1]]
+            symbol_map.hybrid_color_map[phyrexian_match[1]],
+            symbol_map.hybrid_color_map_inner[phyrexian_match[1]]
         ]
 
     # Phyrexian hybrid
-    phyrexian_hybrid_match = reg_mana_phyrexian_hybrid.match(symbol)
+    phyrexian_hybrid_match = Reg.MANA_PHYREXIAN_HYBRID.match(symbol)
     if phyrexian_hybrid_match:
         return [
-            sym.color_map[phyrexian_hybrid_match[2]],
-            sym.color_map[phyrexian_hybrid_match[1]],
-            sym.color_map_inner[phyrexian_hybrid_match[1]],
-            sym.color_map_inner[phyrexian_hybrid_match[2]]
+            symbol_map.color_map[phyrexian_hybrid_match[2]],
+            symbol_map.color_map[phyrexian_hybrid_match[1]],
+            symbol_map.color_map_inner[phyrexian_hybrid_match[1]],
+            symbol_map.color_map_inner[phyrexian_hybrid_match[2]]
         ]
 
     # Weird situation?
-    if symbol_length == 2:
-        return [sym.clr_c, sym.clr_primary]
+    if len(con.symbols[symbol]) == 2:
+        return [symbol_map.clr_c, symbol_map.clr_primary]
 
     # Nothing matching found!
-    console.update(f"Encountered a symbol that I don't know how to color: {symbol}")
-    return
+    raise Exception(f"Encountered a symbol that I don't know how to color: {symbol}")
 
 
 def format_symbol(
-    primary_action_list: ps.ActionList,
-    starting_layer_ref: ps.ActionDescriptor,
+    action_list: ActionList,
+    starting_ref: ActionDescriptor,
     symbol_index: int,
-    symbol_colors: list[ps.SolidColor],
-    layer_font_size: Union[int, float]
-) -> ps.ActionDescriptor:
+    symbol_colors: list[SolidColor],
+    font_size: Union[int, float]
+) -> ActionDescriptor:
     """
     Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
+    @param action_list: Action list to append these actions to.
+    @param starting_ref: Action reference to use at the beginning of appending actions to the action list.
+    @param symbol_index: Index where the symbol begins in the text layer.
+    @param symbol_colors: List of SolidColors to color this symbol's characters.
+    @param font_size: Font size to apply to this symbol's characters.
+    @return: Action descriptor with all actions applied.
     """
-    current_ref = starting_layer_ref
+    current_ref = starting_ref
     for i, color in enumerate(symbol_colors):
-        desc1 = ps.ActionDescriptor()
-        desc2 = ps.ActionDescriptor()
+        desc1 = ActionDescriptor()
+        desc2 = ActionDescriptor()
         idTxtS = cID("TxtS")
-        primary_action_list.putObject(cID("Txtt"), current_ref)
+        action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
         desc1.putInteger(cID("T   "), symbol_index + i + 1)
         desc2.putString(sID("fontPostScriptName"), con.font_mana)
         desc2.putString(cID("FntN"), con.font_mana)
-        desc2.putUnitDouble(cID("Sz  "), cID("#Pnt"), layer_font_size)
+        desc2.putUnitDouble(cID("Sz  "), cID("#Pnt"), font_size)
         desc2.putBoolean(sID("autoLeading"), False)
-        desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), layer_font_size)
+        desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), font_size)
         psd.apply_color(desc2, color)
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
@@ -255,17 +268,17 @@ def format_flavor_text(input_string: str) -> None:
     @param input_string: The string to insert into the active layer
     """
     # Is the active layer a text layer?
-    if app.activeDocument.activeLayer.kind is not ps.LayerKind.TextLayer:
+    if app.activeDocument.activeLayer.kind is not LayerKind.TextLayer:
         return
 
     # Prepare action descriptor and reference variables
     layer_font_size = app.activeDocument.activeLayer.textItem.size
-    primary_action_descriptor = ps.ActionDescriptor()
-    primary_action_list = ps.ActionList()
-    desc119 = ps.ActionDescriptor()
-    desc26 = ps.ActionDescriptor()
-    desc25 = ps.ActionDescriptor()
-    ref101 = ps.ActionReference()
+    primary_action_descriptor = ActionDescriptor()
+    primary_action_list = ActionList()
+    desc119 = ActionDescriptor()
+    desc26 = ActionDescriptor()
+    desc25 = ActionDescriptor()
+    ref101 = ActionReference()
     idTxtS = sID("textStyle")
     idTxLr = cID("TxLr")
     idTo = sID("to")
@@ -287,7 +300,7 @@ def format_flavor_text(input_string: str) -> None:
     primary_action_list.putObject(idTxtt, desc25)
     primary_action_descriptor.putList(idTxtt, primary_action_list)
 
-    # Push changes to document, disable hyphenation
+    # Push changes to the layer, disable hyphenation
     desc119.putObject(idTo, idTxLr, primary_action_descriptor)
     app.executeAction(sID("set"), desc119, NO_DIALOG)
     app.activeDocument.activeLayer.textItem.hyphenation = False
@@ -296,6 +309,8 @@ def format_flavor_text(input_string: str) -> None:
 def generate_italics(card_text: str) -> list[str]:
     """
     Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
+    @param card_text: Text to search for strings that need to be italicised.
+    @return: List of italics strings.
     """
     italic_text = []
 
@@ -303,39 +318,48 @@ def generate_italics(card_text: str) -> list[str]:
     end_index = 0
     while True:
         start_index = card_text.find("(", end_index)
-        if start_index >= 0:
-            end_index = card_text.find(")", start_index + 1)
-            end_index += 1
-            italic_text.extend([card_text[start_index:end_index]])
-        else:
+        if start_index < 0:
             break
+        end_index = card_text.find(")", start_index + 1) + 1
+        italic_text.append(card_text[start_index:end_index])
+
+    # Determine whether to look for ability words
+    if ' — ' not in card_text:
+        return italic_text
 
     # Find and add ability words
-    for match in reg_ability_words.findall(card_text):
+    for match in Reg.TEXT_ABILITY.findall(card_text):
         # Cover boast cards and cards like Mirrodin Besieged
         if (f"• {match}" in card_text and card_text[0:12] != "Choose one —") or "Boast" in match:
             continue
         italic_text.append(match)
-
     return italic_text
 
 
-def strip_reminder_text(oracle_text: str) -> str:
+def strip_reminder_text(text: str) -> str:
     """
-    Strip out any reminder text that a card's oracle text has (reminder text in parentheses).
-    If this empties the string, instead return the original string.
+    Strip out any reminder text from a given oracle text. Reminder text appears in parentheses.
+    @param text: Text that may contain reminder text.
+    @return: Oracle text with no reminder text.
     """
-    oracle_text_stripped = reg_reminder_text.sub("", oracle_text)
+    # Skip if there's no reminder text present
+    if '(' not in text:
+        return text
 
-    # ensure we didn't add any double whitespace by doing that
-    oracle_text_stripped = re.sub(r"  +", "", oracle_text_stripped)
-    if oracle_text_stripped != "":
-        return oracle_text_stripped
-    return oracle_text
+    # Remove reminder text
+    text_stripped = Reg.TEXT_REMINDER.sub("", text)
+
+    # Remove any extra whitespace
+    text_stripped = Reg.EXTRA_SPACE.sub('', text_stripped).strip()
+
+    # Return the stripped text if it isn't empty
+    if text_stripped:
+        return text_stripped
+    return text
 
 
 def align_formatted_text(
-    action_list: ps.ActionList,
+    action_list: ActionList,
     start: int,
     end: int,
     alignment: str = "right"
@@ -348,10 +372,10 @@ def align_formatted_text(
     @param alignment: left, right, or center
     @return: Returns the existing ActionDescriptor with changes applied
     """
-    desc1 = ps.ActionDescriptor()
+    desc1 = ActionDescriptor()
     desc1.putInteger(cID("From"), start)
     desc1.putInteger(cID("T   "), end)
-    desc2 = ps.ActionDescriptor()
+    desc2 = ActionDescriptor()
     idstyleSheetHasParent = sID("styleSheetHasParent")
     desc2.putBoolean(idstyleSheetHasParent, True)
     desc2.putEnumerated(cID("Algn"), cID("Alg "), sID(alignment))
@@ -362,29 +386,43 @@ def align_formatted_text(
     return action_list
 
 
-def align_formatted_text_right(action_list: ps.ActionList, start: int, end: int):
+def align_formatted_text_right(action_list: ActionList, start: int, end: int) -> None:
     """
     Quality of life shorthand to call align_formatted_text with correct alignment.
+    @param action_list: Action list to apply the following action to.
+    @param start: Starting index of the string to apply this action to.
+    @param end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "right")
 
 
-def align_formatted_text_left(action_list: ps.ActionList, start: int, end: int):
+def align_formatted_text_left(action_list: ActionList, start: int, end: int) -> None:
     """
     Quality of life shorthand to call align_formatted_text with correct alignment.
+    @param action_list: Action list to apply the following action to.
+    @param start: Starting index of the string to apply this action to.
+    @param end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "left")
 
 
-def align_formatted_text_center(action_list: ps.ActionList, start: int, end: int):
+def align_formatted_text_center(action_list: ActionList, start: int, end: int) -> None:
     """
     Quality of life shorthand to call align_formatted_text with correct alignment.
+    @param action_list: Action list to apply the following action to.
+    @param start: Starting index of the string to apply this action to.
+    @param end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "center")
 
 
 def ensure_visible_reference(reference: ArtLayer) -> bool:
-    if reference.kind is ps.LayerKind.TextLayer:
+    """
+    Ensures that a layer used for reference has bounds if it is a text layer.
+    @param reference: Reference layer that might be a TextLayer.
+    @return: True if it was empty previously, False if it was always visible.
+    """
+    if reference.kind is LayerKind.TextLayer:
         if reference.textItem.contents in ("", " "):
             reference.textItem.contents = "."
             return True
@@ -491,10 +529,31 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         reference.textItem.contents = ''
 
 
+def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
+    """
+    Check if the text in a TextLayer exceeds its bounding box.
+    @param layer: ArtLayer with "kind" of TextLayer.
+    """
+    if layer.kind != LayerKind.TextLayer:
+        return
+
+    # Get the starting font size
+    font_size = layer.textItem.size * psd.get_text_scale_factor(layer)
+    step = 0.1
+
+    # Continue to reduce the size until within the bounding box
+    while psd.get_text_layer_dimensions(layer)['width'] > (psd.get_textbox_dimensions(layer)['width'] + 1):
+        font_size -= step
+        layer.textItem.size = font_size
+        layer.textItem.leading = font_size
+
+
 def scale_text_to_fit_reference(
     layer: ArtLayer,
     ref: Union[ArtLayer, int, float],
-    spacing: Optional[int] = None
+    spacing: Optional[int] = None,
+    height: bool = True,
+    step: float = 0.4
 ) -> None:
     """
     Resize a given text layer's contents (in 0.2 pt increments) until it fits inside a specified reference layer.
@@ -502,28 +561,33 @@ def scale_text_to_fit_reference(
     @param layer: Text layer to scale.
     @param ref: Reference layer the text should fit inside.
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
+    @param height: Fit according to height if true, otherwise fit according to width.
+    @param step: Amount to step font size down by in each check.
     """
+    # Establish the dimension to use
+    dim = 'height' if height else 'width'
+
     # Establish base variables, ensure a level of spacing at the margins
     if not ref:
         return
     if isinstance(ref, int) or isinstance(ref, float):
-        # Only checking against fixed height
-        ref_height = ref
+        # Only checking against fixed number
+        ref_dim = ref
     elif isinstance(ref, ArtLayer):
         # Use a reference layer
         if not spacing:  # If no spacing provided, use default
             spacing = int((app.activeDocument.width / 3264) * 64)
-        ref_height = psd.get_layer_dimensions(ref)['height'] - spacing
+        ref_dim = psd.get_layer_dimensions(ref)[dim] - spacing
     else:
         return
     factor = psd.get_text_scale_factor(layer) or 1
     font_size = layer.textItem.size * factor
-    step, half_step = 0.4, 0.2
+    half_step = step / 2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
-    if ref_height > psd.get_text_layer_dimensions(layer)['height']:
+    if ref_dim > psd.get_text_layer_dimensions(layer)[dim]:
         return
-    while ref_height < psd.get_text_layer_dimensions(layer)['height']:
+    while ref_dim < psd.get_text_layer_dimensions(layer)[dim]:
         font_size -= step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -532,13 +596,18 @@ def scale_text_to_fit_reference(
     font_size += half_step
     layer.textItem.size = font_size
     layer.textItem.leading = font_size
-    if ref_height < psd.get_text_layer_dimensions(layer)['height']:
+    if ref_dim < psd.get_text_layer_dimensions(layer)[dim]:
         font_size -= half_step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
 
 
 def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
+    """
+    Scale multiple text layers until they all can fit within the same given height dimension.
+    @param text_layers: List of TextLayers to check.
+    @param ref_height: Height to fit inside.
+    """
     # Heights
     font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
     step = 0.40
@@ -574,9 +643,11 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
             layer.textItem.leading = font_size
 
 
-def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer):
+def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer) -> None:
     """
     Centers a given text layer vertically with respect to the bounding box of a reference layer.
+    @param layer: TextLayer to vertically center.
+    @param reference_layer: Reference layer to center within.
     """
     ref_height = psd.get_layer_dimensions(reference_layer)['height']
     lay_height = psd.get_text_layer_dimensions(layer)['height']
@@ -598,7 +669,7 @@ def check_for_text_overlap(
     @return: How much the layer must be moved to compensate.
     """
     layer_copy = text_layer.duplicate()
-    layer_copy.rasterize(ps.RasterizeType.TextContents)
+    layer_copy.rasterize(RasterizeType.TextContents)
     app.activeDocument.activeLayer = layer_copy
     psd.select_layer_pixels(adj_reference)
     app.activeDocument.selection.invert()
@@ -706,11 +777,10 @@ def space_after_paragraph(space: Union[int, float]) -> None:
     """
     Set the space after paragraph value.
     @param space: Space after paragraph
-    @return:
     """
-    desc1 = ps.ActionDescriptor()
-    ref1 = ps.ActionReference()
-    deesc2 = ps.ActionDescriptor()
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    deesc2 = ActionDescriptor()
     ref1.PutProperty(sID("property"), sID("paragraphStyle"))
     ref1.PutEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
     desc1.PutReference(sID("target"),  ref1)
@@ -720,4 +790,4 @@ def space_after_paragraph(space: Union[int, float]) -> None:
     app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
 
 
-sym = SymbolMapper()
+symbol_map = SymbolMapper()
