@@ -58,7 +58,7 @@
     },
     "transform_front": {
         "Normal": {
-            "class": "TransformFrontTemplate",
+            "class": "TransformTemplate",
             "file": "tf-front.psd",
             "id": "1F44D7_CKrXLAV4yzTi_HLO9bsUAgDzgX"
         },
@@ -69,7 +69,7 @@
     },
     "transform_back": {
         "Normal": {
-            "class": "TransformBackTemplate",
+            "class": "TransformTemplate",
             "file": "tf-back.psd",
             "id": "1QCwNqHRphAcFLw1RDf_rUwef_jRxKA9Q"
         },
@@ -80,14 +80,14 @@
     },
     "mdfc_front": {
         "Normal": {
-            "class": "MDFCFrontTemplate",
+            "class": "MDFCTemplate",
             "file": "mdfc-front.psd",
             "id": "1qND_rcc2FuV3mXDb1Sh9qZ2fNG_PEdqP"
         }
     },
     "mdfc_back": {
         "Normal": {
-            "class": "MDFCBackTemplate",
+            "class": "MDFCTemplate",
             "file": "mdfc-back.psd",
             "id": "1LePVD7a9tZRmxIEFL2V1g6K29AvRErQ_"
         }
@@ -211,6 +211,12 @@
         "Normal": {
             "class": "SnowTemplate",
             "file": "snow.psd"
+        }
+    },
+    "token": {
+        "Normal": {
+            "class": "TokenTemplate",
+            "file": "token.psd"
         }
     },
     "basic": {

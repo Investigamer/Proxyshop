@@ -1,24 +1,22 @@
 """
-CORE LAYOUTS
+CARD LAYOUTS
 """
-import re
+# Standard Library Imports
 from functools import cached_property
 from pathlib import Path
 from typing import Optional, Match, Union, Type
+from os import path as osp
 
-from src.__console__ import console
+# Local Imports
+from src.env.__console__ import console
 from src.constants import con
 from src.core import retrieve_card_info
 from src.settings import cfg
+from src.utils.regex import Reg
+from src.utils.enums_layers import LAYERS
 from src.utils.scryfall import get_set_data, get_card_data
-from src.frame_logic import select_frame_layers, FrameDetails
+from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors
 from src.utils.strings import normalize_str, msg_error, msg_success
-
-# Regex
-leveler_regex = re.compile(
-    r"(.*?)\nLEVEL (\d*-\d*)\n(\d*/\d*)\n(.*?)\nLEVEL (\d*\+)\n(\d*/\d*)\n(.*?)$"
-)
-class_regex = re.compile(r"(.+?): Level (\d)\n(.+)")
 
 
 """
@@ -29,34 +27,36 @@ FUNCTIONS
 def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
     """
     Assign layout object to a card.
-    @param filename: String including card name, plus optionally:
+    @param filename: String including card name, and the following optional tags:
         - (artist name)
         - [set code]
         - {collector number}
-    @return: Layout object for this card
+    @return: Layout object for this card.
     """
     # Get basic card information
     card = retrieve_card_info(filename)
+    name_failed = osp.basename(str(card.get('filename', 'None')))
 
-    # Get scryfall info for any other type
+    # Get scryfall data for the card
     scryfall = get_card_data(card['name'], card['set'], card['number'])
     if isinstance(scryfall, Exception) or not scryfall:
-        # Scryfall data invalid
+        # Scryfall request failed
         console.log_exception(scryfall)
-        return f"Scryfall search failed: {msg_error(card['name'])}"
+        return msg_error(name_failed, reason="Scryfall search failed")
 
     # Instantiate layout object
-    layout = layout_map.get(scryfall['layout'])
-    layout = layout(scryfall, card) if layout else f"Layout incompatible: {msg_error(card['name'])}"
-
-    # Did the layout fail?
-    if isinstance(layout, str):
+    if scryfall.get('layout', 'None') in layout_map:
+        try:
+            layout = layout_map[scryfall['layout']](scryfall, card)
+        except Exception as e:
+            # Couldn't instantiate layout object
+            console.log_exception(e)
+            return msg_error(name_failed, reason="Layout generation failed")
+        if not cfg.test_mode:
+            console.update(f"{msg_success('FOUND:')} {str(layout)}")
         return layout
-
-    # Assign the card
-    if not cfg.dev_mode:
-        console.update(f"{msg_success('SUCCESS:')} {str(layout)}")
-    return layout
+    # Couldn't find an appropriate layout
+    return msg_error(name_failed, reason="Layout incompatible")
 
 
 """
@@ -78,10 +78,17 @@ class NormalLayout:
 
         # Cache set data
         if not hasattr(self, '_set_data'):
-            self._set_data = get_set_data(self.set) or {}
+            self._set_data = get_set_data(scryfall.get('set')) or {}
+
+        # Cache frame data
+        _ = self.frame
 
     def __str__(self):
         return f"{self.name} [{self.set}] {{{self.collector_number}}}"
+
+    @property
+    def display_name(self):
+        return self.name
 
     """
     SETTABLE
@@ -205,11 +212,11 @@ class NormalLayout:
 
     @cached_property
     def color_identity(self) -> list:
-        return self.scryfall['color_identity']
+        return self.scryfall.get('color_identity', [])
 
     @cached_property
     def color_indicator(self) -> str:
-        return self.card.get('color_indicator', None)
+        return get_ordered_colors(self.card.get('color_indicator', None))
 
     @cached_property
     def loyalty(self) -> str:
@@ -228,7 +235,7 @@ class NormalLayout:
 
     @cached_property
     def set(self) -> str:
-        return self.scryfall['set'].upper()
+        return self.set_data.get('code', 'MTG').upper()
 
     @cached_property
     def rarity(self):
@@ -317,7 +324,7 @@ class NormalLayout:
             if isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols:
                 return con.set_symbols[sym]
             return sym
-        return con.set_symbols.get(cfg.symbol_default, con.set_symbols['MTG'])
+        return cfg.get_default_symbol()
 
     @cached_property
     def watermark(self) -> str:
@@ -365,7 +372,7 @@ class NormalLayout:
 
     @cached_property
     def frame(self) -> FrameDetails:
-        return select_frame_layers(self.card)
+        return get_frame_details(self.card)
 
     @cached_property
     def twins(self) -> str:
@@ -394,7 +401,7 @@ class NormalLayout:
     @cached_property
     def other_face_twins(self) -> Optional[str]:
         if self.other_face:
-            return select_frame_layers(self.other_face)['twins']
+            return get_frame_details(self.other_face)['twins']
         return
 
     @cached_property
@@ -477,7 +484,7 @@ class TransformLayout (NormalLayout):
         # Normal transform
         if not self.card['front']:
             # Is back face an Ixalan land?
-            if self.transform_icon == 'compasslanddfc':
+            if self.transform_icon == LAYERS.DFC_COMPASSLAND:
                 return con.ixalan_class
             return con.transform_back_class
         return con.transform_front_class
@@ -497,10 +504,10 @@ class TransformLayout (NormalLayout):
     @cached_property
     def transform_icon(self) -> str:
         # Look for the transform icon
-        for effect in self.card.get('frame_effects', []):
+        for effect in self.scryfall.get('frame_effects', []):
             if effect in con.transform_icons:
                 return effect
-        return 'land' if 'Land' in self.type_line_raw else 'sunmoondfc'
+        return 'land' if 'Land' in self.type_line_raw else LAYERS.DFC_SUNMOON
 
     """
     SAGA
@@ -616,7 +623,7 @@ class ModalDoubleFacedLayout (NormalLayout):
         return True
 
     """
-    OVERWRITE
+    TEXT PROPERTIES
     """
 
     @cached_property
@@ -635,10 +642,6 @@ class ModalDoubleFacedLayout (NormalLayout):
 
         # Planeswalker?
         return text.replace("\u2212", "-") if 'Planeswalker' in self.type_line_raw else text
-
-    @cached_property
-    def transform_icon(self) -> str:
-        return "modal_dfc"
 
 
 class AdventureLayout (NormalLayout):
@@ -681,7 +684,7 @@ class LevelerLayout (NormalLayout):
     def leveler_match(self) -> Optional[Match[str]]:
         # Unpack oracle text into: level text, levels x-y text, levels z+ text, middle level,
         # middle level power/toughness, bottom level, and bottom level power/toughness
-        return leveler_regex.match(self.oracle_text)
+        return Reg.LEVELER.match(self.oracle_text)
 
     @cached_property
     def level_up_text(self) -> str:
@@ -765,7 +768,7 @@ class ClassLayout (NormalLayout):
         lines = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]
         for line in lines:
             # Try to match this line to a class ability
-            details = class_regex.match(line)
+            details = Reg.CLASS.match(line)
             if details and len(details.groups()) >= 3:
                 abilities.append({
                     'cost': details[1],
@@ -780,12 +783,49 @@ class ClassLayout (NormalLayout):
 
 class PlanarLayout (NormalLayout):
     """
-    Used for Planar cards
+    Used for Planar cards.
     """
 
     @cached_property
     def card_class(self) -> str:
         return con.planar_class
+
+
+class TokenLayout (NormalLayout):
+    """
+    Used for Token cards.
+    """
+
+    @property
+    def display_name(self):
+        return f"{self.name} Token"
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.token_class
+
+    @cached_property
+    def set(self) -> str:
+        return self.set_data.get('parent_set_code', '').upper()
+
+    @cached_property
+    def rarity_letter(self) -> str:
+        return 'T'
+
+    @cached_property
+    def card_count(self) -> Optional[str]:
+        # Get the lowest number
+        least = min(
+            int(self.set_data.get('printed_size', 999999)),
+            int(self.set_data.get('card_count', 999999)),
+            int(self.set_data.get('tokenCount', 999999)),
+        )
+        if least == 999999:
+            return
+        if least < int(self.collector_number):
+            return
+        # Ensure minimum length of 3
+        return str(least).zfill(3)
 
 
 class BasicLandLayout (NormalLayout):
@@ -853,6 +893,7 @@ CardLayout = Union[
     SagaLayout,
     ClassLayout,
     PlanarLayout,
+    TokenLayout,
     MeldLayout,
     BasicLandLayout
 ]
@@ -867,6 +908,8 @@ layout_map: dict[str, Type[CardLayout]] = {
     "saga": SagaLayout,
     "class": ClassLayout,
     "planar": PlanarLayout,
+    "token": TokenLayout,
+    "emblem": TokenLayout,
     "meld": MeldLayout,
     'basic': BasicLandLayout
 }
