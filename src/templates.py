@@ -33,6 +33,7 @@ import src.helpers as psd
 from src.utils.enums_photoshop import Alignment
 from src.utils.enums_layers import LAYERS
 from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.files import get_unique_filename
 from src.utils.scryfall import card_scan
 from src.utils.strings import msg_warn, msg_error, is_multiline
 from src.utils.regex import Reg
@@ -213,19 +214,11 @@ class BaseTemplate:
         suffix = self.template_suffix
         if cfg.save_artist_name:
             suffix = f"{suffix} {self.layout.artist}" if suffix else self.layout.artist
-        name = f"{self.layout.name_raw} ({suffix})" if suffix else self.layout.name_raw
+        name = self.layout.name_raw
 
         # Check if name already exists
         if not cfg.overwrite_duplicate:
-            num = 0
-            while osp.exists(osp.join(con.cwd, f"out/{name}.{cfg.output_filetype}")):
-                num += 1
-                if ")" not in name:
-                    name = f'{name} (1)'
-                elif ")" in name and num == 1:
-                    name = name.replace(f'({suffix})', f'({suffix} 1)')
-                else:
-                    name = name.replace(f'{num - 1})', f'{num})')
+            name = get_unique_filename(osp.join(con.cwd, "out"), name, f'.{cfg.output_filetype}', suffix)
         return sanitize_filename(name)
 
     """

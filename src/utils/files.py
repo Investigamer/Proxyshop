@@ -118,3 +118,21 @@ def ensure_path_exists(path: str):
     @return:
     """
     Path(osp.dirname(path)).mkdir(mode=511, parents=True, exist_ok=True)
+
+
+def get_unique_filename(path: str, name: str, ext: str, suffix: str):
+    """
+    If a filepath exists, number the file according to the lowest number that doesn't exist.
+    @param path: Path to the file.
+    @param name: Name of the file.
+    @param ext: Extension of the file.
+    @param suffix: Suffix to add before the number.
+    @return: Unique filename.
+    """
+    num = 0
+    new_name = f"{name} ({suffix})" if suffix else name
+    suffix = f' ({suffix}'+' {})' if suffix else ' ({})'
+    while osp.isfile(osp.join(path, f"{new_name}{ext}")):
+        num += 1
+        new_name = name + suffix.format(num)
+    return new_name
