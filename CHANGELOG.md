@@ -1,3 +1,39 @@
+## v1.8.0 (2023-04-27)
+
+### Feat
+
+- **templates**: New template type: Token. Now ships with one included token template (credit to Chilli Axe). Emblems are also rolled into this template type. Also implemented better Expansion Symbol positioning and scaling, reworked the rendering chain, implemented better error handling and thread procedures, and merged most transform and MDFC template classes into single classes that can handle both faces
+- **threading**: Implemented sophisticated thread tracking, locking, and release. Threads will now shut down properly when the Cancel button is pressed. The Console class was completely rewritten to faciliate management of the current render thread. "Render Target" can now select more than one card art to render
+- **settings**: Added new settings. Scryfall Sorting: Change order of Scryfall results. Watermark Default Opacity: Change the defeault opacity of generated Watermarks. Renamed Dev mode to Test mode. Implemented get_default_symbol utility function
+
+### Fix
+
+- **text_layers**: Implemented new properties governing scaling behavior such as scale_height, scale_width, fix_overflow_width, fix_overflow_height. Added a step that ensures text does not overflow the bounding box of the text area when needed
+- **fonts**: Updated the NDPMTG font to fix Phyrexian hybrid and implement acorn symbol
+
+### Refactor
+
+- **templates**: Move duplicate filename logic to file utils
+- **frame_logic**: Completely rewrote the frame logic step for efficiency, introduced efficient mapping and utility function to find the correctly ordered color identity sequence. Creators can now use this sequence to implement 3+ color frame elements with accuracy
+- **expansion_symbols.json**: Updated symbol library, removed reference keys as they are now deprecated
+- **constants**: Updated constants object to use new env variables, added new utility methods, added new lock objects, added global PhotoshopHandler object
+- **plugins**: Updated included plugins to use new LAYERS library and updated console handler
+- **tests,-build,-deps**: Added pathvalidate dependency, updated tests, implemented env module for tracking environment variables and flags
+- **img**: Renamed some preview images and SVG symbol directories
+- **update**: Refactored download functions for better readability
+- **enums_layers**: Moved our layer names library to a StrEnum class, con.layers refrences this
+- **modules**: Implemented module utilities for retrieving and refreshing plugin modules
+- **objects**: Implemented a PhotoshopHandler class to maintain one global Photoshop Application instance and refresh across new threads
+- **scryfall**: Updated scryfall set utilities to support token cards
+- **utils.strings**: Moved headless console to string utilities, updated console output utility functions
+- **utils**: Added import comments, implemented new types and updated existing types
+
+### Perf
+
+- **format_text**: Improved execution time on multiple format_text functions, refactored SymbolMapper, implemented new function scale_text_to_fit_textbox
+- **helpers**: Improved efficiency of some helper functions. Introduced new helpers: check_textbox_overflow, get_textbox_bounds, get_textbox_dimensions, enable/disable_vector_mask, undo/redo_action, convert_points_to_pixels, check_active_document, get_document
+- **regex**: Implemented a regex pattern dataclass to pre-compile all regex patterns used by the app
+
 ## v1.7.0 (2023-04-06)
 
 ### Feat
