@@ -34,10 +34,6 @@ class SymbolMapper:
     """
     Maps symbols to their corresponding colors.
     """
-
-    def __init__(self):
-        self.load()
-
     def load(self):
         """
         Load SolidColor objects using data from the constants object.
@@ -441,41 +437,49 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         return
     ref_empty = ensure_visible_reference(reference)
 
-    # Obtain the correct scale factor and spacing
+    # Obtain the correct font scale factor
     factor = 1
     if app.activeDocument.width != 3264:
         factor = psd.get_text_scale_factor(layer)
-    spacing = int((app.activeDocument.width / 3264) * 36)
+    # On the largest document size, ensure 30 pixel gap
+    spacing = int((app.activeDocument.width / 3264) * 30)
 
     # Can't find UnitValue object in python api
-    font_size = old_size = layer.textItem.size * factor
+    font_size = old_size = float(layer.textItem.size) * factor
     ref_left_bound = reference.bounds[0]
-    layer_left_bound = layer.bounds[0]
     layer_right_bound = layer.bounds[2]
     step, half_step = 0.4, 0.2
 
-    # Guard against the reference's left bound being left of the layer's left bound
-    if ref_left_bound >= layer_left_bound:
+    # Guard against reference being left of the layer
+    if ref_left_bound < layer.bounds[0]:
+        if ref_empty:
+            # Reset reference
+            reference.textItem.contents = ''
+        return
+
+    # Make our first check if scaling is necessary
+    continue_scaling = bool(layer_right_bound > (ref_left_bound - spacing))
+    if continue_scaling:
+
         # Step down the font till it clears the reference
-        while layer_right_bound > (ref_left_bound - spacing):  # minimum 24 px gap
+        while continue_scaling:
             font_size -= step
             layer.textItem.size = font_size
-            layer_right_bound = layer.bounds[2]
+            continue_scaling = bool(layer.bounds[2] > (ref_left_bound - spacing))
 
         # Go up a half step and check if still in bounds
         font_size += half_step
         layer.textItem.size = font_size
-        layer_right_bound = layer.bounds[2]
-        if layer_right_bound > (ref_left_bound - spacing):
+        if layer.bounds[2] > (ref_left_bound - spacing):
             font_size -= half_step
             layer.textItem.size = font_size
 
         # Shift baseline up to keep text centered vertically
-        if old_size > (layer.textItem.size * factor):
-            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
+        layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
 
     # Fix corrected reference layer
     if ref_empty:
+        # Reset reference
         reference.textItem.contents = ''
 
 
@@ -504,25 +508,32 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     layer_left_bound = layer.bounds[0]
     step, half_step = 0.4, 0.2
 
-    # Guard against the reference's left bound being left of the layer's left bound
-    if layer_left_bound >= ref_left_bound:
+    # Guard against reference being right of the layer
+    if layer.bounds[0] < ref_left_bound:
+        if ref_empty:
+            # Reset reference
+            reference.textItem.contents = ''
+        return
+
+    # Make our first check if scaling is necessary
+    continue_scaling = bool(ref_right_bound > (layer_left_bound - spacing))
+    if continue_scaling:
+
         # Step down the font till it clears the reference
-        while ref_right_bound > (layer_left_bound - spacing):  # minimum 24 px gap
+        while continue_scaling:  # minimum 24 px gap
             font_size -= step
             layer.textItem.size = font_size
-            layer_left_bound = layer.bounds[0]
+            continue_scaling = bool(ref_right_bound > (layer.bounds[0] - spacing))
 
         # Go up a half step and check if still in bounds
         font_size += half_step
         layer.textItem.size = font_size
-        layer_left_bound = layer.bounds[0]
-        if ref_right_bound > (layer_left_bound - spacing):
+        if ref_right_bound > (layer.bounds[0] - spacing):
             font_size -= half_step
             layer.textItem.size = font_size
 
         # Shift baseline up to keep text centered vertically
-        if old_size > (layer.textItem.size * factor):
-            layer.textItem.baselineShift = (old_size * 0.3) - (layer.textItem.size * factor * 0.3)
+        layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
 
     # Fix corrected reference layer
     if ref_empty:
@@ -542,7 +553,7 @@ def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
     step = 0.1
 
     # Continue to reduce the size until within the bounding box
-    while psd.get_text_layer_dimensions(layer)['width'] > (psd.get_textbox_dimensions(layer)['width'] + 1):
+    while psd.get_dimensions_no_effects(layer)['width'] > (psd.get_textbox_dimensions(layer)['width'] + 1):
         font_size -= step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
