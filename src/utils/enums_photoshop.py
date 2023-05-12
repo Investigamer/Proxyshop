@@ -5,32 +5,38 @@ Enums for Photoshop Actions
 from enum import Enum
 from typing import Literal, Union
 
-# Third Party Imports
-import photoshop.api as ps
-app = ps.Application()
-cID = app.charIDToTypeID
-sID = app.stringIDToTypeID
+# Local Imports
+from src.constants import con
 
 
-class Alignment(Enum):
+class DescriptorEnum(Enum):
+    def __call__(self, *args, **kwargs) -> int:
+        return self.value
+
+    @property
+    def value(self) -> int:
+        return int(con.app.stringIDToTypeID(self._value_))
+
+
+class Alignment(DescriptorEnum):
     """
     Layer alignment descriptors.
     """
-    Top: int = int(sID('ADSTops'))
-    Bottom: int = int(sID('ADSBottoms'))
-    Left: int = int(sID('ADSLefts'))
-    Right: int = int(sID('ADSRights'))
-    CenterHorizontal: int = int(sID('ADSCentersH'))
-    CenterVertical: int = int(sID('ADSCentersV'))
+    Top: str = 'ADSTops'
+    Bottom: str = 'ADSBottoms'
+    Left: str = 'ADSLefts'
+    Right: str = 'ADSRights'
+    CenterHorizontal: str = 'ADSCentersH'
+    CenterVertical: str = 'ADSCentersV'
 
 
-class Stroke(Enum):
+class Stroke(DescriptorEnum):
     """
     Stroke effect descriptors.
     """
-    Inside: int = int(sID('insetFrame'))
-    Outside: int = int(sID('outsetFrame'))
-    Center: int = int(sID('centeredFrame'))
+    Inside: str = 'insetFrame'
+    Outside: str = 'outsetFrame'
+    Center: str = 'centeredFrame'
 
     @staticmethod
     def position(
