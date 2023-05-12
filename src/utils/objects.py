@@ -36,21 +36,21 @@ class PhotoshopHandler(Application):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
-        super().__init__()
-        self.preferences.rulerUnits = Units.Pixels
-        self.preferences.typeUnits = Units.Points
-
     """
     CLASS METHODS
     """
 
-    def refresh(self):
+    def refresh_app(self):
         """
         Replace the existing Photoshop Application instance with a new one.
         """
         if not self.is_running():
             super(PhotoshopHandler, self).__init__()
+        try:
+            self.preferences.rulerUnits = Units.Pixels
+            self.preferences.typeUnits = Units.Points
+        except Exception:
+            raise OSError("Photoshop appears to be busy or is not installed!")
 
     @classmethod
     def is_running(cls) -> bool:
