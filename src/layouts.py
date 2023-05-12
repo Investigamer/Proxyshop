@@ -835,7 +835,6 @@ class BasicLandLayout (NormalLayout):
     def __init__(self, scryfall: dict,  file: dict, **kwargs):
         # Add artist and creator to Scryfall data
         scryfall['artist'] = file['artist'] or 'Unknown'
-        scryfall['creator'] = file['creator'] or None
 
         # Assign empty set data
         self._set_data = {}
@@ -845,6 +844,10 @@ class BasicLandLayout (NormalLayout):
     def card_class(self) -> str:
         # Always use basic land
         return con.basic_class
+
+    @cached_property
+    def set(self) -> str:
+        return self.scryfall.get('set', 'MTG')
 
     """
     BOOL
@@ -869,18 +872,6 @@ class BasicLandLayout (NormalLayout):
     @property
     def is_legendary(self):
         return False
-
-    """
-    SETTABLE
-    """
-
-    @property
-    def filename(self) -> str:
-        return self._filename
-
-    @filename.setter
-    def filename(self, value):
-        self._filename = value
 
 
 # Types
