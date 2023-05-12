@@ -143,6 +143,19 @@ def msg_success(msg: str) -> str:
     return f'[color={ConsoleMessages.success}]{msg}[/color]'
 
 
+def get_bullet_points(text: list[str], char: str = '—') -> str:
+    """
+    Turns a list of strings into a joined string bullet point list.
+    @param text: List of strings.
+    @param char: Character to use as bullet.
+    @return: Joined string with bullet points and newlines.
+    """
+    if not text:
+        return ""
+    bullet = f"\n{char} "
+    return str(bullet + bullet.join(text))
+
+
 """
 HEADLESS CONSOLE
 """
