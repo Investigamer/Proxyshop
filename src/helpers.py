@@ -616,6 +616,29 @@ def copy_layer_mask(
     app.ExecuteAction(sID("make"), desc255, DialogModes.DisplayNoDialogs)
 
 
+def copy_layer_effects(from_layer, to_layer):
+    """
+    Copies the layer effects from one layer to another layer.
+    @param from_layer: Layer to copy effects from.
+    @param to_layer: Layer to apply effects to.
+    """
+    # Get layer effects from source layer
+    desc_get = ActionDescriptor()
+    ref_get = ActionReference()
+    ref_get.putIdentifier(sID("layer"), from_layer.id)
+    desc_get.putReference(sID("null"), ref_get)
+    desc_get.putEnumerated(sID("class"), sID("class"), sID("layerEffects"))
+    result_desc = app.executeAction(sID("get"), desc_get, NO_DIALOG)
+
+    # Apply layer effects to target layer
+    desc_set = ActionDescriptor()
+    ref_set = ActionReference()
+    ref_set.putIdentifier(sID("layer"), to_layer.id)
+    desc_set.putReference(sID("null"), ref_set)
+    desc_set.putObject(sID("to"), sID("layerEffects"), result_desc.getObjectValue(sID("layerEffects")))
+    app.executeAction(sID("set"), desc_set, NO_DIALOG)
+
+
 def duplicate_group(name: str):
     """
     Duplicates current active layer set without renaming contents.
@@ -1655,7 +1678,7 @@ EXPANSION SYMBOL
 """
 
 
-def fill_expansion_symbol(reference: ArtLayer, color: SolidColor = rgb_black()) -> ArtLayer:
+def fill_expansion_symbol(reference: ArtLayer, color: Optional[SolidColor] = None) -> ArtLayer:
     """
     Give the symbol a background for open space symbols (i.e. M10)
     @param reference: Reference layer to put the new fill layer underneath
@@ -1685,7 +1708,7 @@ def fill_expansion_symbol(reference: ArtLayer, color: SolidColor = rgb_black()) 
     layer.moveAfter(reference)
 
     # Fill selection with stroke color
-    app.foregroundColor = color
+    app.foregroundColor = color or rgb_black()
     click3 = ActionDescriptor()
     click3.putObject(cID("From"), cID("Pnt "), coords)
     click3.putInteger(cID("Tlrn"), 0)
