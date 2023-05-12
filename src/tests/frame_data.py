@@ -864,6 +864,10 @@ test_cases = {
         'layout': NormalLayout,
         'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
     },
+    'Thran Portal': {
+        'layout': NormalLayout,
+        'frame': [LAYERS.LAND, LAYERS.GOLD, LAYERS.GOLD, False, False]
+    },
 }
 
 # Singular test
