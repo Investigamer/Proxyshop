@@ -17,6 +17,7 @@ from backoff import on_exception, expo
 from src.env.__console__ import console
 from src.settings import cfg
 from src.constants import con
+from src.utils.exceptions import ScryfallError
 from src.utils.strings import msg_warn, normalize_str
 
 
@@ -27,36 +28,6 @@ ERROR HANDLING
 
 # RateLimiter object to handle Scryfall rate limits
 scryfall_rate_limit = RateLimitDecorator(calls=20, period=1)
-
-
-class ScryfallError(Exception):
-    """
-    Exception representing a failure to retrieve Scryfall data.
-    """
-    def __init__(
-        self,
-        url: Optional[str] = None,
-        name: Optional[str] = '',
-        code: Optional[str] = '',
-        number: Optional[str] = '',
-        lang: Optional[str] = '',
-
-    ):
-        # Establish string patterns
-        name = f"{name} " if name else ''
-        code = f"[{code}] " if code else ''
-        number = f"{{{number}}} " if number else ''
-        lang = f"<{lang}>" if lang else ''
-
-        # Check if no values passed
-        if not any([url, name, code, number, lang]):
-            message = f"Scryfall request failed"
-        else:
-            message = f"Couldn't find card: {name}{code}{number}{lang}\n" \
-                      f"Scryfall: {url or 'Request Rejected'}"
-
-        # Build the message
-        super().__init__(message)
 
 
 def handle_final_exception(fail_response: Optional[Any]) -> Callable:
