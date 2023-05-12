@@ -294,6 +294,16 @@ def get_frame_details_land(card: dict) -> FrameDetails:
                 })
                 return result
 
+        # Check if the line chooses a basic land type, e.g. Thran Portal
+        if 'choose a basic land type' in line:
+            # Gold Identity Land
+            result.update({
+                'pinlines': LAYERS.GOLD,
+                'twins': LAYERS.GOLD,
+                'identity': LAYERS.GOLD
+            })
+            return result
+
         # Check if the line makes all lands X type, ex: Urborg, Tomb of Yawgmoth
         if 'Each land is a ' in line:
             for k, v in land_types.items():
