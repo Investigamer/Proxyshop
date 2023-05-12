@@ -18,6 +18,7 @@ from photoshop.api import (
     RasterizeType
 )
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 import src.helpers as psd
@@ -461,7 +462,7 @@ class FormattedTextArea (FormattedTextField):
     """
 
     @cached_property
-    def divider(self) -> Optional[ArtLayer]:
+    def divider(self) -> Optional[Union[ArtLayer, LayerSet]]:
         if (divider := self.kwargs.get('divider')) and all([self.flavor_text, self.contents, cfg.flavor_divider]):
             return divider
         return

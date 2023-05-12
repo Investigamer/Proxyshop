@@ -10,6 +10,11 @@
             "file": "normal-classic.psd",
             "id": "1XqoqfopB-euMNkZ461n5Z9Z0h0zq0tw1"
         },
+        "Classic Remastered": {
+            "class": "ClassicRemasteredTemplate",
+            "file": "classic-remastered.psb",
+            "id": "TBA"
+        },
         "Fullart": {
             "class": "NormalFullartTemplate",
             "file": "normal-fullart.psd",
@@ -19,6 +24,11 @@
             "class": "NormalExtendedTemplate",
             "file": "normal-extended.psd",
             "id": "1pROEod7I37syF7lFLP3j9DP4PTgcE-bc"
+        },
+        "Etched": {
+            "class": "EtchedTemplate",
+            "file": "etched.psd",
+            "id": "TBA"
         },
         "Invention": {
             "class": "InventionTemplate",
@@ -216,7 +226,8 @@
     "token": {
         "Normal": {
             "class": "TokenTemplate",
-            "file": "token.psd"
+            "file": "token.psd",
+            "id": "16uJhHm97_nZEFwysCfcfFWZr7m0k5pxm"
         }
     },
     "basic": {

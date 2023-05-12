@@ -14,10 +14,11 @@ from photoshop.api import (
     AnchorPosition,
     ElementPlacement,
     ColorBlendMode,
+    SolidColor,
     BlendMode,
     Urgency
 )
-from photoshop.api.application import ArtLayer, Photoshop
+from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
 
@@ -32,8 +33,9 @@ from src.settings import cfg
 import src.helpers as psd
 from src.utils.enums_photoshop import Alignment
 from src.utils.enums_layers import LAYERS
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.files import get_unique_filename
+from src.utils.objects import PhotoshopHandler
 from src.utils.scryfall import card_scan
 from src.utils.strings import msg_warn, msg_error, is_multiline
 from src.utils.regex import Reg
@@ -50,12 +52,6 @@ class BaseTemplate:
         # Setup manual properties
         self.layout = layout
         self.tx_layers = []
-
-        # Load PSD file
-        try:
-            self.load_template()
-        except Exception as e:
-            self.raise_error("PSD template failed to load!", e, document=False)
 
         # Remove flavor or reminder text
         if cfg.remove_flavor:
@@ -154,8 +150,8 @@ class BaseTemplate:
         # Console output object
         return console
 
-    @cached_property
-    def app(self) -> Photoshop:
+    @property
+    def app(self) -> PhotoshopHandler:
         # Photoshop Application object
         return con.app
 
@@ -219,6 +215,8 @@ class BaseTemplate:
         # Check if name already exists
         if not cfg.overwrite_duplicate:
             name = get_unique_filename(osp.join(con.cwd, "out"), name, f'.{cfg.output_filetype}', suffix)
+        else:
+            name = f"{name} ({suffix})"
         return sanitize_filename(name)
 
     """
@@ -274,7 +272,7 @@ class BaseTemplate:
     @cached_property
     def text_layer_creator(self) -> Optional[ArtLayer]:
         # Creator name layer
-        return psd.getLayer("Creator", self.legal_group)
+        return psd.getLayer(LAYERS.CREATOR, self.legal_group)
 
     @cached_property
     def text_layer_name(self) -> Optional[ArtLayer]:
@@ -673,10 +671,10 @@ class BaseTemplate:
             layer = psd.merge_layers([mask_layer, layer])
             return layer
 
-        def apply_fill(layer, color=psd.rgb_black()):
+        def apply_fill(layer, color: Optional[SolidColor] = None):
             # Make active and fill background
             self.app.activeDocument.activeLayer = layer
-            return psd.fill_expansion_symbol(self.expansion_reference_layer, color)
+            return psd.fill_expansion_symbol(self.expansion_reference_layer, color or psd.rgb_black())
 
         # Create each symbol layer
         for i, lay in enumerate(symbols):
@@ -721,8 +719,9 @@ class BaseTemplate:
         expansion = cfg.symbol_default if cfg.symbol_force_default else self.layout.set
         expansion = f"{expansion}F" if expansion.lower() == 'con' else expansion  # Conflux case
         svg_path = osp.join(con.path_img, f'symbols/{expansion}/{self.layout.rarity.upper()[0]}.svg')
-        if not osp.exists(svg_path):
+        if not osp.isfile(svg_path):
             self.create_expansion_symbol(group)
+            return
 
         # Import the SVG and place it correctly
         svg = psd.import_svg(svg_path)
@@ -876,12 +875,11 @@ class BaseTemplate:
         """
         pass
 
-    def reset(self, document: bool = True) -> None:
+    def reset(self) -> None:
         """
         Reset the document, purge the cache, end await.
-        @param document: Whether the document is currently open.
         """
-        if document:
+        if self.docref:
             psd.reset_document()
             self.app.purge(4)
         console.end_await()
@@ -891,7 +889,6 @@ class BaseTemplate:
         funcs: list[Callable],
         message: str,
         warning: bool = False,
-        document: bool = True,
         args: Optional[tuple[Any]] = None
     ) -> tuple[bool, bool]:
         """
@@ -899,7 +896,6 @@ class BaseTemplate:
         @param funcs: List of functions to perform.
         @param message: Error message to raise if exception occurs.
         @param warning: Warn the user if True, otherwise raise error.
-        @param document: Whether the document has been opened.
         @param args: Optional arguments to pass to the func. Empty tuple if not provided.
         @return: True if tasks completed, False if exception occurs or thread is cancelled.
         """
@@ -917,17 +913,16 @@ class BaseTemplate:
             except Exception as e:
                 # Prompt the user for an error
                 if not warning:
-                    return False, self.raise_error(message=message, error=e, document=document)
+                    return False, self.raise_error(message=message, error=e)
                 console.log_exception(e)
                 self.raise_warning(message)
         return True, True
 
-    def raise_error(self, message: str, error: Optional[Exception] = None, document: bool = True) -> bool:
+    def raise_error(self, message: str, error: Optional[Exception] = None) -> bool:
         """
         Raise an error on the console display.
         @param message: Message to be displayed
         @param error: Exception object
-        @param document: Whether the document is currently open.
         @return: True if continuing, False if cancelling.
         """
         result = console.log_error(
@@ -935,7 +930,7 @@ class BaseTemplate:
             f"{msg_error(message)}\nCheck [b]/logs/error.txt[/b] for details.",
             error
         )
-        self.reset(document)
+        self.reset()
         return result
 
     @staticmethod
@@ -981,12 +976,39 @@ class BaseTemplate:
 
     def execute(self) -> bool:
         """
-        Perform actions to populate this template. Load and frame artwork, enable frame layers,
-        and execute all text layers. Returns the file name of the image w/ the template's suffix if it
-        specified one. Don't override this method!
+        Perform actions to render the card using this template. Each action is wrapped in an
+        exception check and a breakpoint to cancel the thread if a cancellation signal was
+        sent by the user. NEVER override this method!
         """
+        # Refresh the Photoshop Application
+        while True:
+            # Ensure the Photoshop Application is responsive
+            check = con.refresh_photoshop()
+            if not isinstance(check, OSError):
+                break
+            # Connection with Photoshop couldn't be established, try again?
+            if not console.await_choice(
+                self.event, get_photoshop_error_message(check),
+                end="Hit Continue to try again, or Cancel to end the operation.\n"
+            ):
+                # Cancel the operation
+                return False
+
+        # Load in the PSD template
+        check = self.run_tasks([self.load_template], "PSD template failed to load!")
+        if not all(check):
+            return check[1]
+
         # Ensure maximum urgency
         self.docref.info.urgency = Urgency.High
+
+        # Reload the symbol color map
+        check = self.run_tasks(
+            [ft.symbol_map.load],
+            "Failed to load the symbol color map!"
+        )
+        if not all(check):
+            return check[1]
 
         # Load in artwork and frame it
         check = self.run_tasks([self.load_artwork], "Unable to load artwork!")
@@ -1047,14 +1069,6 @@ class BaseTemplate:
         check = self.run_tasks(
             self.hooks,
             "Encountered an error during triggered hooks step!"
-        )
-        if not all(check):
-            return check[1]
-
-        # Reload the symbol color map before text execution
-        check = self.run_tasks(
-            [ft.symbol_map.load],
-            "Failed to load the symbol color map!"
         )
         if not all(check):
             return check[1]
@@ -1546,6 +1560,61 @@ class MiracleTemplate (NormalTemplate):
     @property
     def is_legendary(self) -> bool:
         return False
+
+
+class EtchedTemplate (NormalTemplate):
+    """
+    Etched template first introduced in Commander Legends. Uses pinline colors for the background,
+    except for Artifact cards. Uses pinline colors for the textbox always. No hollow crown, no companion or
+    nyx layers.
+    """
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        # No background layers
+        return
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        # Not separated for land layers, use Artifact layer even for colored artifacts
+        if self.layout.background != LAYERS.ARTIFACT:
+            return psd.getLayer(self.layout.pinlines, LAYERS.PINLINES)
+        return psd.getLayer(LAYERS.ARTIFACT, LAYERS.PINLINES)
+
+    @cached_property
+    def crown_layer(self) -> Optional[ArtLayer]:
+        # Use Artifact layer even for colored artifacts
+        if self.layout.background != LAYERS.ARTIFACT:
+            return psd.getLayer(self.layout.pinlines, LAYERS.LEGENDARY_CROWN)
+        return psd.getLayer(LAYERS.ARTIFACT, LAYERS.LEGENDARY_CROWN)
+
+    @cached_property
+    def textbox_layer(self) -> Optional[ArtLayer]:
+        # Normal pinline coloring rules
+        return psd.getLayer(self.layout.pinlines, LAYERS.TEXTBOX)
+
+    @cached_property
+    def divider_layer(self) -> Optional[ArtLayer]:
+        # Divider is grouped
+        return psd.getLayerSet(LAYERS.DIVIDER, self.text_layers)
+
+    def enable_frame_layers(self) -> None:
+        # Enable textbox colors separate from pinlines
+        super().enable_frame_layers()
+        self.textbox_layer.visible = True
+
+    def enable_crown(self) -> None:
+        # No hollow crown, enable pinlines mask
+        self.crown_layer.visible = True
+        psd.enable_mask(self.pinlines_layer.parent)
 
 
 """
@@ -2988,6 +3057,181 @@ generate dual colors by automating the combination of these layers with a blende
 
 *   Right now these documents have incredible quality, but automated execution time takes a couple seconds longer.
 """
+
+
+class ClassicRemasteredTemplate (NormalTemplate):
+    """
+    Based on iDerp's Classic Remastered template, modified to work with Proxyshop, colored pinlines added for
+    land generation. PT box added for creatures. Does not support Nyx or Companion layers.
+    """
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    """
+    PROPERTIES
+    """
+
+    @cached_property
+    def shape(self) -> str:
+        # Which cutout to use for the textbox
+        if self.is_transform:
+            return "Transform"
+        return "Normal"
+
+    @cached_property
+    def pinlines(self) -> Optional[str]:
+        # Only apply pinlines for lands
+        if self.is_land:
+            return self.layout.pinlines
+        return
+
+    @cached_property
+    def textbox(self) -> str:
+        # Land
+        if self.is_land:
+            return f"{self.layout.pinlines} {LAYERS.LAND}"
+        # Multicolor
+        if 1 > len(self.layout.pinlines) < 4:
+            return LAYERS.GOLD
+        # All others
+        return self.layout.pinlines
+
+    """
+    GROUPS
+    """
+
+    @cached_property
+    def pinlines_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(LAYERS.PINLINES_TEXTBOX)
+
+    @cached_property
+    def crown_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(LAYERS.LEGENDARY_CROWN)
+
+    @cached_property
+    def textbox_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(LAYERS.TEXTBOX, self.pinlines_group)
+
+    @cached_property
+    def pinlines_top_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet("Pinlines Top", self.pinlines_group)
+
+    @cached_property
+    def pinlines_bottom_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet("Pinlines Bottom", self.pinlines_group)
+
+    """
+    LAYERS
+    """
+
+    @cached_property
+    def pt_layer(self) -> Optional[ArtLayer]:
+        # Must enable the group
+        if layer := psd.getLayer(self.twins, LAYERS.PT_BOX):
+            layer.parent.visible = True
+            return layer
+        return
+
+    @cached_property
+    def pinlines_layer_top(self) -> Optional[ArtLayer]:
+        # Must enable the correct shape cut-out
+        if layer := psd.getLayer(self.pinlines, self.pinlines_top_group):
+            psd.getLayer(self.shape, [self.pinlines_top_group, "Shape"]).visible = True
+            return layer
+        return
+
+    @cached_property
+    def pinlines_layer_bottom(self) -> Optional[ArtLayer]:
+        # Must enable the group
+        if layer := psd.getLayer(self.pinlines, self.pinlines_bottom_group):
+            layer.parent.visible = True
+            return layer
+        return
+
+    @cached_property
+    def pinlines_layer_crown(self) -> Optional[ArtLayer]:
+        # Must enable the Pinlines group within Crown group
+        if layer := psd.getLayer(self.pinlines, [self.crown_group, LAYERS.PINLINES]):
+            layer.parent.visible = True
+            return layer
+        return
+
+    @cached_property
+    def textbox_layer(self) -> Optional[ArtLayer]:
+        # Must enable the correct shape cut-out and apply the layer effects
+        if layer := psd.getLayer(self.textbox, self.textbox_group):
+            psd.getLayer(self.shape, [self.textbox_group, "Shape"]).visible = True
+            psd.copy_layer_effects(
+                psd.getLayer("EFFECTS LAND" if self.pinlines else "EFFECTS", self.textbox_group),
+                self.textbox_group
+            )
+            return layer
+        return
+
+    @cached_property
+    def crown_layer(self) -> Optional[ArtLayer]:
+        # Use background instead of pinlines
+        # TODO: Allow dual colors
+        return psd.getLayer(self.background, LAYERS.LEGENDARY_CROWN)
+
+    @cached_property
+    def background_layer(self) -> Optional[ArtLayer]:
+        # TODO: Allow dual colors
+        return psd.getLayer(self.background, LAYERS.BACKGROUND)
+
+    """
+    METHODS
+    """
+
+    def collector_info(self) -> None:
+
+        # Change artist
+        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        artist.textItem.contents = self.layout.artist
+        if self.border_color != 'black':
+            artist.textItem.color = psd.rgb_black()
+
+    def enable_frame_layers(self) -> None:
+
+        # PT Box
+        if self.is_creature and self.pt_layer:
+            self.pt_layer.visible = True
+
+        # Pinlines
+        if self.pinlines and self.pinlines_layer_top and self.pinlines_layer_bottom:
+            self.pinlines_layer_top.visible = True
+            self.pinlines_layer_bottom.visible = True
+
+        # Textbox
+        if self.textbox_layer:
+            self.textbox_layer.visible = True
+
+        # Color Indicator
+        if self.type_line_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
+
+        # Background
+        if self.background_layer:
+            self.background_layer.visible = True
+
+        # Legendary crown
+        if self.is_legendary and self.crown_layer:
+            self.enable_crown()
+
+    def enable_crown(self) -> None:
+        """
+        Enable the Legendary crown
+        """
+        self.crown_layer.parent.visible = True
+        self.crown_layer.visible = True
+        if self.pinlines and self.pinlines_layer_crown:
+            self.pinlines_layer_crown.visible = True
 
 
 class UniversesBeyondTemplate (NormalTemplate):
