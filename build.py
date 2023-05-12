@@ -2,6 +2,7 @@
 SCRIPT TO BUILD PROXYSHOP AS EXE RELEASE
 """
 import os
+import sys
 import zipfile
 from glob import glob
 from pathlib import Path
@@ -116,13 +117,14 @@ def remove_unneeded_files():
                 os.remove(os.path.join(directory, file_name))
 
 
-def build_zip():
+def build_zip(tag: str = None):
     """
     Create a zip of this release.
     """
     print("Building ZIP...")
-    ZIP = os.path.join(CWD, 'Proxyshop.v{}.zip'.format(ENV_VERSION))
-    ZIP_DIST = os.path.join(DIST, 'Proxyshop.v{}.zip'.format(ENV_VERSION))
+    tag = f'.{tag}' if tag else ''
+    ZIP = os.path.join(CWD, 'Proxyshop.v{}{}.zip'.format(ENV_VERSION, tag))
+    ZIP_DIST = os.path.join(DIST, 'Proxyshop.v{}{}.zip'.format(ENV_VERSION, tag))
     with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED) as zipf:
         for fp in glob(os.path.join(DIST, "**/*"), recursive=True):
             base = os.path.commonpath([DIST, fp])
@@ -132,6 +134,15 @@ def build_zip():
 
 if __name__ == '__main__':
 
+    # Console enabled build?
+    if '--console' in sys.argv:
+        build_spec = 'Proxyshop-console.spec'
+        zip_tag = 'console'
+        del sys.argv[1]
+    else:
+        build_spec = 'Proxyshop.spec'
+        zip_tag = ''
+
     # Pre-build steps
     clear_build_files()
     make_dirs()
@@ -139,12 +150,12 @@ if __name__ == '__main__':
     # Run pyinstaller
     print("Starting PyInstaller...")
     PyInstaller.__main__.run([
-        'Proxyshop.spec',
+        build_spec,
         '--clean'
     ])
 
     # Post-build steps
     move_data()
     remove_unneeded_files()
-    build_zip()
+    build_zip(zip_tag)
     clear_build_files(False)
