@@ -154,7 +154,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                     "type": named_type,
                     "layout": card_type,
                     "class_name": template['class'],
-                    "plugin_name": folder.name,
+                    "plugin_name": str(folder.name),
                     "plugin_path": py_file,
                     "config_path": osp.join(folder.path, f"configs/{template['class']}.json"),
                     "preview_path": osp.join(folder.path, f"img/{template['class']}.jpg"),
@@ -296,7 +296,7 @@ def check_for_updates(
         results: Iterator[TemplateUpdate] = executor.map(version_check, unique_temps)
 
     # Ensure executor is finished before building return
-    results = list(results)
+    results: list[TemplateUpdate] = list(results)
     for temp in results:
         if temp:
             updates.setdefault(temp['type'], []).append(temp)

@@ -10,6 +10,7 @@ from threading import Lock
 # Local Imports
 from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
 from src.utils.enums_layers import LAYERS
+from src.utils.exceptions import PS_EXCEPTIONS
 from src.utils.objects import Singleton, PhotoshopHandler
 
 
@@ -22,7 +23,9 @@ class Constants:
     __metaclass__ = Singleton
 
     def __init__(self):
-        self.app = PhotoshopHandler()
+        # Initialize the values
+        self.app = None
+        self.refresh_photoshop()
         self.load_values()
 
     def load_values(self):
@@ -34,6 +37,7 @@ class Constants:
         self.cwd = os.getcwd()
         self.path_src = osp.join(self.cwd, 'src')
         self.path_logs = osp.join(self.cwd, 'logs')
+        self.path_fonts = osp.join(self.cwd, 'fonts')
         self.path_img = osp.join(self.path_src, 'img')
         self.path_data = osp.join(self.path_src, 'data')
         self.path_plugins = osp.join(self.cwd, 'plugins')
@@ -331,6 +335,24 @@ class Constants:
         Reloads default values
         """
         self.load_values()
+
+    def refresh_photoshop(self):
+        """
+        Attempts to refresh the Photoshop object.
+        """
+        try:
+            if isinstance(self.app, PhotoshopHandler):
+                self.app.refresh_app()
+                return
+            self.app = PhotoshopHandler()
+        except PS_EXCEPTIONS as e:
+            self.app = None
+            if 'busy' in str(e).lower():
+                return OSError("Photoshop appears to be busy currently!\n"
+                               "Ensure no dialog windows are open in Photoshop and there are no actions "
+                               "currently being performed such as using the text tool.")
+            return OSError("Make sure Photoshop is installed properly!\n"
+                           "If it is installed, check the FAQ for troubleshooting steps.")
 
     """
     VERSION TRACKER

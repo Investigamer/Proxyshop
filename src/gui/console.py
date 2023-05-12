@@ -26,14 +26,14 @@ class Console(BoxLayout):
     """
     Main console class
     """
+    Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
+    __metaclass__ = Singleton
     max_lines = 250
     running = True
     waiting = False
     success = True
     choice = False
     lock = Lock()
-    __metaclass__ = Singleton
-    Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -369,9 +369,6 @@ class ConsoleOutput(Label):
     """
     Label displaying console output.
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.text = "Test mode enabled!\n" if cfg.test_mode else "Let's make a proxy!\n"
 
 
 class ConsoleControls(BoxLayout):
