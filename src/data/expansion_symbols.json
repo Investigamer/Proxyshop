@@ -458,8 +458,10 @@
     "A25": [
         {
             "char": "",
-            "fill": "black",
-            "common-fill": "white"
+            "fill": "rarity",
+            "common-fill": "white",
+            "stroke": false,
+            "common-stroke": false
         }
     ],
     "DDU": [
@@ -1152,13 +1154,7 @@
         }
     ],
     "DMR": "",
-    "MOM": [
-        {
-            "char": "",
-            "fill": "black",
-            "common-fill": "white"
-        }
-    ],
+    "MOM": "",
     "MOC": [
         {
             "char": "\uEA63",
