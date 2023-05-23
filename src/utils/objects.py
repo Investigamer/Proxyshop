@@ -7,6 +7,7 @@ from _ctypes import COMError
 
 # Third Party
 from photoshop.api import Application, Units
+from packaging.version import parse
 
 
 class Singleton(type):
@@ -98,3 +99,32 @@ class PhotoshopHandler(Application):
         @param index: ID to convert to TypeID.
         """
         return super().stringIDToTypeID(index)
+
+    """
+    VERSION CHECKS
+    """
+
+    @cache
+    def supports_target_text_replace(self) -> bool:
+        """
+        Checks if Photoshop version supports targeted text replacement.
+        @return: True if it does, otherwise False.
+        """
+        return self.version_meets_requirement('22.0.0')
+
+    @cache
+    def supports_webp(self) -> bool:
+        """
+        Checks if Photoshop version supports targeted text replacement.
+        @return: True if it does, otherwise False.
+        """
+        return self.version_meets_requirement('22.0.0')
+
+    def version_meets_requirement(self, value: str) -> bool:
+        """
+        Checks if Photoshop version meets or exceeds required value.
+        @return: True if it does, otherwise false.
+        """
+        if parse(self.version) >= parse(value):
+            return True
+        return False

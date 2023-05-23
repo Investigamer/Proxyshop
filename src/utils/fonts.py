@@ -6,14 +6,13 @@ import ctypes
 import os
 from ctypes import wintypes
 import os.path as osp
-from typing import Union, Generator, Iterable
+from typing import Union, Iterable
 from _ctypes import COMError
 
 # Third Party Imports
 from photoshop.api.enumerations import LayerKind
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
-import photoshop.api as ps
 from fontTools import ttLib
 
 # Local Imports
