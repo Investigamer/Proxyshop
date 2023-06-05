@@ -155,7 +155,20 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
 
 # Credits
 * Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop
-* SilvanMTG, Nelynes, Trix are for Scoot, FeuerAmeise, michayggdrasil, Warpdandy, MaleMPC, Vittorio Masia and others who have provided assets to the community that made various other templates and features possible
-* Andrew Gioia for the [Keyrune](https://github.com/andrewgioia/keyrune) project that enables high quality expansion symbols
-* Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api)
-* Wizards of the Coast and all the talented artists who make Magic the Gathering a reality
+* Additional template and asset support from:
+  * SilvanMTG
+  * Nelynes
+  * Trix are for Scoot
+  * FeuerAmeise
+  * michayggdrasil
+  * Warpdandy
+  * MaleMPC
+  * Vittorio Masia
+  * iDerp
+  * Tupinambá (Pedro Neves)
+* Andrew Gioia for the [Keyrune](https://github.com/andrewgioia/keyrune) project that enables high quality expansion symbols.
+* Various members of the Collectible Card Game Headquarters forum for providing SVG renditions of expansion symbols ([link](https://www.slightlymagic.net/forum/viewtopic.php?f=15&t=7010)).
+* Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api).
+* Wizards of the Coast and all the talented artists who make Magic the Gathering a reality.
+* Countless others who have provided help and other assets to the community that made various features possible.
+* All contributors listed on the Github page for making contributions to the code base.
