@@ -19,11 +19,12 @@ class CardDetails(TypedDict):
 
 
 class FrameDetails(TypedDict):
-    is_colorless: bool
     background: Optional[str]
     pinlines: Optional[str]
     twins: Optional[str]
     identity: Optional[str]
+    is_colorless: bool
+    is_hybrid: bool
 
 
 class CardTextSymbolIndex(TypedDict):
