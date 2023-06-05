@@ -1,5 +1,9 @@
 [
   {
+    "type": "title",
+    "title": "Frame Options"
+  },
+  {
     "type": "options",
     "title": "[b]Accent Colors[/b]",
     "desc": "Choose whether to use Silver or Bronze accents!\n[b](Default: Silver)[/b]",

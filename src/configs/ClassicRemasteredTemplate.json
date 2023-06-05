@@ -1,0 +1,23 @@
+[
+  {
+    "type": "title",
+    "title": "Frame Options"
+  },
+  {
+    "type": "options",
+    "title": "[b]Max Frame Colors[/b]",
+    "desc": "How many colors can the frame split by before the card just becomes Gold?\n[b](Default: 3)[/b]",
+    "section": "FRAME",
+    "key": "Max.Colors",
+    "options": ["2", "3"],
+    "default": "3"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Use Gold PT for Multicolor Cards[/b]",
+    "desc": "How many colors can the frame split by before the card just becomes Gold?\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Gold.PT",
+    "default": 0
+  }
+]
