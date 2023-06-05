@@ -20,7 +20,7 @@ class DescriptorEnum(Enum):
 
 class Alignment(DescriptorEnum):
     """
-    Layer alignment descriptors.
+    Selection alignment descriptors.
     """
     Top: str = 'ADSTops'
     Bottom: str = 'ADSBottoms'
@@ -28,6 +28,15 @@ class Alignment(DescriptorEnum):
     Right: str = 'ADSRights'
     CenterHorizontal: str = 'ADSCentersH'
     CenterVertical: str = 'ADSCentersV'
+
+
+class TextAlignment(DescriptorEnum):
+    """
+    Selection alignment descriptors.
+    """
+    Left: str = 'left'
+    Right: str = 'right'
+    Center: str = 'center'
 
 
 class Stroke(DescriptorEnum):

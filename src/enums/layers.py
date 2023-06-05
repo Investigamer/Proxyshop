@@ -2,6 +2,20 @@
 LAYER NAME ENUMS
 """
 from src.utils.strings import StrEnum
+from dataclasses import dataclass
+
+
+@dataclass
+class COLORS:
+    W = [246, 246, 239]
+    U = ""
+    B = ""
+    R = ""
+    G = ""
+    Artifact = ""
+    Colorless = ""
+    Gold = ""
+    Land = ""
 
 
 class LAYERS (StrEnum):
@@ -50,7 +64,7 @@ class LAYERS (StrEnum):
     GOLD = "Gold"
     VEHICLE = "Vehicle"
 
-    # frame layer group names
+    # Frame layer group names
     PT_BOX = "PT Box"
     PT_AND_LEVEL_BOXES = "PT and Level Boxes"
     TWINS = "Name & Title Boxes"
@@ -70,17 +84,29 @@ class LAYERS (StrEnum):
     NONE = "None"
     ONE_LINE = "One Line"
     FULL = "Full"
+    NORMAL = "Normal"
 
     # borders
     BORDER = "Border"
     NORMAL_BORDER = "Normal Border"
     LEGENDARY_BORDER = "Legendary Border"
 
-    # shadows
+    # Shadows
     SHADOWS = "Shadows"
     HOLLOW_CROWN_SHADOW = "Hollow Crown Shadow"
 
-    # legal
+    # Vectors
+    SHAPE = "Shape"
+
+    # Masks
+    MASKS = "Masks"
+    HALF = "1/2"
+    THIRD = "1/3"
+    TWO_THIRDS = "2/3"
+    QUARTER = "1/4"
+    THREE_QUARTERS = "3/4"
+
+    # Legal Group
     LEGAL = "Legal"
     ARTIST = "Artist"
     SET = "Set"
@@ -88,7 +114,7 @@ class LAYERS (StrEnum):
     TOP_LINE = "Top"
     BOTTOM_LINE = "Bottom"
 
-    # text and icons
+    # Text and Icons
     TEXT_AND_ICONS = "Text and Icons"
     NAME = "Card Name"
     NAME_SHIFT = "Card Name Shift"
@@ -110,8 +136,9 @@ class LAYERS (StrEnum):
     RULES_TEXT_ADVENTURE = "Rules Text - Adventure"
     MUTATE = "Mutate"
     DIVIDER = "Divider"
+    CREATOR = "Creator"
 
-    # prototype
+    # Prototype
     PROTO_TEXTBOX = "Prototype Textbox"
     PROTO_MANABOX_SMALL = "Prototype Manabox 2"
     PROTO_MANABOX_MEDIUM = "Prototype Manabox 3"
@@ -120,14 +147,14 @@ class LAYERS (StrEnum):
     PROTO_RULES = "Prototype Rules Text"
     PROTO_PT = "Prototype Power / Toughness"
 
-    # planar text and icons
+    # Planar text and icons
     STATIC_ABILITY = "Static Ability"
     CHAOS_ABILITY = "Chaos Ability"
     CHAOS_SYMBOL = "Chaos Symbol"
     PHENOMENON = "Phenomenon"
     TEXTBOX = "Textbox"
 
-    # textbox references
+    # Text References
     TEXTBOX_REFERENCE = "Textbox Reference"
     TEXTBOX_REFERENCE_LAND = "Textbox Reference Land"
     TEXTBOX_REFERENCE_ADVENTURE = "Textbox Reference - Adventure"
@@ -140,7 +167,7 @@ class LAYERS (StrEnum):
     NAME_REFERENCE = "Name Reference"
     TYPE_LINE_REFERENCE = "Typeline Reference"
 
-    # planeswalker
+    # Planeswalker
     FIRST_ABILITY = "First Ability"
     SECOND_ABILITY = "Second Ability"
     THIRD_ABILITY = "Third Ability"
@@ -155,14 +182,18 @@ class LAYERS (StrEnum):
     TEXT = "Text"
     COST = "Cost"
 
-    # art frames
+    # Art Frames
     ART_FRAME = "Art Frame"
     FULL_ART_FRAME = "Full Art Frame"
     BASIC_ART_FRAME = "Basic Art Frame"
     PLANESWALKER_ART_FRAME = "Planeswalker Art Frame"
     SCRYFALL_SCAN_FRAME = "Scryfall Scan Frame"
 
-    # transform
+    # Transform
+    MDFC = "MDFC"
+    TRANSFORM = "Transform"
+    TRANSFORM_FRONT = "TF Front"
+    TRANSFORM_BACK = "TF Back"
     TF_FRONT = "tf-front"
     TF_BACK = "tf-back"
     MDFC_FRONT = "mdfc-front"
