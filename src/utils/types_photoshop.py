@@ -6,6 +6,9 @@ from typing import TypedDict, Literal, Union
 
 # Third Party Imports
 from photoshop.api import SolidColor
+from photoshop.api._layerSet import LayerSet
+from photoshop.api._document import Document
+from comtypes.client.lazybind import Dispatch
 from typing_extensions import NotRequired
 
 """
@@ -71,3 +74,11 @@ class EffectColorOverlay(TypedDict):
 
 
 LayerEffects = Union[EffectStroke, EffectDropShadow, EffectGradientOverlay, EffectColorOverlay]
+
+
+"""
+LAYER TYPES
+"""
+
+
+LayerContainer = LayerSet, Document, Dispatch
