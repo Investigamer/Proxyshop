@@ -325,9 +325,11 @@ def check_playable_card(card_json: dict) -> bool:
     @param card_json: Scryfall data for this card.
     @return: Valid scryfall data if check passed, else None.
     """
-    if card_json.get('set_type') != "memorabilia" or 'Championship' in card_json['set_name']:
-        return True
-    return False
+    if card_json.get('set_type') in ["minigame"]:
+        return False
+    if card_json.get('layout') in ['art_series']:
+        return False
+    return True
 
 
 def process_scryfall_data(card_json: dict) -> dict:
