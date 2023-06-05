@@ -3,6 +3,8 @@ OBJECT UTILITIES
 """
 # Standard Library
 from functools import cache
+from typing import Union
+
 from _ctypes import COMError
 
 # Third Party
@@ -27,6 +29,9 @@ class PhotoshopHandler(Application):
     Wrapper for the Photoshop Application object to maintain a single instance globally,
     caching mechanisms, app instance refresh, etc.
     """
+    DIMS_1200 = (3264, 4440)
+    DIMS_800 = (2176, 2960)
+    DIMS_600 = (1632, 2220)
     _instance = None
 
     def __new__(cls) -> 'PhotoshopHandler':
@@ -118,7 +123,7 @@ class PhotoshopHandler(Application):
         Checks if Photoshop version supports targeted text replacement.
         @return: True if it does, otherwise False.
         """
-        return self.version_meets_requirement('22.0.0')
+        return self.version_meets_requirement('23.2.0')
 
     def version_meets_requirement(self, value: str) -> bool:
         """
@@ -128,3 +133,23 @@ class PhotoshopHandler(Application):
         if parse(self.version) >= parse(value):
             return True
         return False
+
+    """
+    DIMENSION CHECKS
+    """
+
+    def scale_by_height(self, value: Union[int, float]) -> int:
+        """
+        Scales a value by comparing 1200 DPI height to current document.
+        @param value: Integer or float value to adjust by comparing document height.
+        @return: Adjusted value as an integer.
+        """
+        return int((self.activeDocument.height / self.DIMS_1200[1]) * value)
+
+    def scale_by_width(self, value: Union[int, float]) -> int:
+        """
+        Scales a value by comparing 1200 DPI width to current document.
+        @param value: Integer or float value to adjust by comparing document width.
+        @return: Adjusted value as an integer.
+        """
+        return int((self.activeDocument.width / self.DIMS_1200[0]) * value)
