@@ -1,10 +1,11 @@
 """
 PROXYSHOP GUI LAUNCHER
 """
-# Core imports
+# Standard Library Imports
 import sys
 import json
 import os.path as osp
+from os import environ
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from os import listdir
@@ -14,12 +15,15 @@ from time import perf_counter
 from typing import Union, Optional, Callable
 from _ctypes import COMError
 
-# Third-party imports
+# Third-party Imports
 from photoshop import api as ps
 from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api._document import Document
 
-# Kivy imports
+# Kivy logging
+environ["KIVY_NO_CONSOLELOG"] = "1"
+
+# Kivy Imports
 from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
@@ -32,25 +36,27 @@ from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 
-# Proxyshop imports
+# Local Imports
 from src.env import ENV_VERSION, ENV_DEV_MODE
 from src.utils.exceptions import get_photoshop_error_message
 from src.utils.files import remove_config_file
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
-from src.gui.utils import (
-    HoverBehavior, HoverButton, GUI
-)
+from src.gui.utils import HoverBehavior, HoverButton, GUI
 from src.gui.settings import SettingsPopup
 from src.update import download_s3
 from src.constants import con
 from src.core import (
-    TemplateDetails, get_templates, card_types, get_template_class, get_my_templates
+    card_types,
+    get_templates,
+    TemplateDetails,
+    get_my_templates,
+    get_template_class
 )
 from src.settings import cfg
 from src.layouts import CardLayout, layout_map, assign_layout
 from src.utils.fonts import get_missing_fonts
-from src.utils.strings import msg_success, msg_error, msg_warn, ps_version_check, get_bullet_points
+from src.utils.strings import msg_success, msg_error, msg_warn, get_bullet_points
 
 # App configuration
 Config.set('graphics', 'width', '800')
@@ -252,7 +258,7 @@ class ProxyshopApp(App):
         files_webp = [osp.join(folder, f) for f in all_files if f.endswith('.webp') and not f.startswith('!')]
 
         # Check if Photoshop version supports webp
-        if files_webp and not ps_version_check(con.version_webp):
+        if files_webp and not con.app.supports_webp:
             console.update(msg_warn('Skipped WEBP image, WEBP requires Photoshop ^23.2.0'))
         elif files_webp:
             files.extend(files_webp)
@@ -818,7 +824,6 @@ if __name__ == '__main__':
     # Update symbol library and manifest
     try:
         if not ENV_DEV_MODE:
-            download_s3(osp.join(con.path_data, 'app_manifest.json'), 'app_manifest.json')
             download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'expansion_symbols.json')
             con.reload()
     except Exception as err:
