@@ -21,8 +21,12 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-import src.helpers as psd
 from src.constants import con
+from src.helpers.bounds import get_text_layer_bounds, get_layer_dimensions
+from src.helpers.colors import get_text_layer_color, apply_color
+from src.helpers.layers import select_layer_bounds
+from src.helpers.position import position_between_layers, align_horizontal
+from src.helpers.text import get_text_scale_factor, replace_text_robust
 from src.settings import cfg
 from src import format_text as ft
 
@@ -66,7 +70,7 @@ class TextField:
 
     @cached_property
     def color(self) -> SolidColor:
-        return self.kwargs.get('color', psd.get_text_layer_color(self.layer))
+        return self.kwargs.get('color', get_text_layer_color(self.layer))
 
     @property
     def input(self) -> str:
@@ -238,8 +242,8 @@ class FormattedTextField (TextField):
     @cached_property
     def font_size(self) -> float:
         if font_size := self.kwargs.get('font_size'):
-            return font_size * psd.get_text_scale_factor(self.layer)
-        return self.layer.textItem.size * psd.get_text_scale_factor(self.layer)
+            return font_size * get_text_scale_factor(self.layer)
+        return self.layer.textItem.size * get_text_scale_factor(self.layer)
 
     """
     METHODS
@@ -294,7 +298,7 @@ class FormattedTextField (TextField):
         desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
         desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
         desc26.putUnitDouble(idSz, idPnt, self.font_size)
-        psd.apply_color(desc26, self.color)
+        apply_color(desc26, self.color)
         desc26.putBoolean(idautoLeading, False)
         desc26.putUnitDouble(idLdng, idPnt, self.font_size)
         desc25.putObject(idTxtS, idTxtS, desc26)
@@ -311,7 +315,7 @@ class FormattedTextField (TextField):
             bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)
             bold_action2.putString(idFntN, con.font_rules_text_bold)
             bold_action2.putUnitDouble(idSz, idPnt, self.font_size)
-            psd.apply_color(bold_action2, self.color)
+            apply_color(bold_action2, self.color)
             bold_action2.putBoolean(idautoLeading, False)
             bold_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             bold_action1.putObject(idTxtS, idTxtS, bold_action2)
@@ -327,7 +331,7 @@ class FormattedTextField (TextField):
             italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)
             italics_action2.putString(idFntN, con.font_rules_text_italic)
             italics_action2.putUnitDouble(idSz, idPnt, self.font_size)
-            psd.apply_color(italics_action2, self.color)
+            apply_color(italics_action2, self.color)
             italics_action2.putBoolean(idautoLeading, False)
             italics_action2.putUnitDouble(idLdng, idPnt, self.font_size)
             italics_action1.putObject(idTxtS, idTxtS, italics_action2)
@@ -407,7 +411,7 @@ class FormattedTextField (TextField):
                 desc145.putUnitDouble(idSz, idPnt, self.font_size)
                 desc145.putBoolean(idautoLeading, False)
                 desc145.putUnitDouble(idLdng, idPnt, self.font_size)
-                psd.apply_color(desc145, self.flavor_color)
+                apply_color(desc145, self.flavor_color)
                 desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
                 list15.PutObject(sID("textStyleRange"), desc144)
                 primary_action_descriptor.putList(sID("textStyleRange"), list15)
@@ -515,11 +519,11 @@ class FormattedTextArea (FormattedTextField):
         # Established two separate layers: contents and flavor, each rasterized
         self.layer.visible = False
         layer_text_contents = self.layer.duplicate()
-        psd.replace_text(layer_text_contents, flavor_replace, "")
+        replace_text_robust(layer_text_contents, flavor_replace, "")
         layer_text_contents.rasterize(RasterizeType.EntireLayer)
         layer_flavor_text = self.layer.duplicate()
         layer_flavor_text.rasterize(RasterizeType.EntireLayer)
-        psd.select_layer_bounds(layer_text_contents)
+        select_layer_bounds(layer_text_contents)
         app.activeDocument.activeLayer = layer_flavor_text
         app.activeDocument.selection.expand(1)
         app.activeDocument.selection.clear()
@@ -527,8 +531,8 @@ class FormattedTextArea (FormattedTextField):
         self.layer.visible = True
 
         # Move flavor text to bottom, then position divider
-        layer_flavor_text.translate(0, psd.get_text_layer_bounds(self.layer)[3] - layer_flavor_text.bounds[3])
-        psd.position_between_layers(self.divider, layer_text_contents, layer_flavor_text)
+        layer_flavor_text.translate(0, get_text_layer_bounds(self.layer)[3] - layer_flavor_text.bounds[3])
+        position_between_layers(self.divider, layer_text_contents, layer_flavor_text)
 
         # Remove reference layers
         layer_text_contents.remove()
@@ -544,7 +548,7 @@ class FormattedTextArea (FormattedTextField):
         if self.fix_overflow_height and self.reference:
             self.layer.textItem.contents = self.contents + "\r" + self.flavor_text
             ft.scale_text_to_fit_reference(
-                self.layer, int(psd.get_layer_dimensions(self.reference)['height']*1.01)
+                self.layer, int(get_layer_dimensions(self.reference)['height']*1.01)
             )
 
         # Execute text formatting
@@ -567,10 +571,10 @@ class FormattedTextArea (FormattedTextField):
 
         # Ensure the layer is centered horizontally if needed
         if self.contents_centered and self.flavor_centered:
-            psd.select_layer_bounds(self.reference)
+            select_layer_bounds(self.reference)
             app.activeDocument.activeLayer = self.layer
-            psd.align_horizontal()
-            psd.clear_selection()
+            align_horizontal()
+            app.activeDocument.selection.deselect()
 
         # Insert flavor divider if needed
         if self.divider:

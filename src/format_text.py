@@ -19,7 +19,16 @@ from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.constants import con
-import src.helpers as psd
+from src.helpers.bounds import (
+    get_dimensions_no_effects,
+    get_textbox_dimensions,
+    get_layer_dimensions,
+    get_text_layer_dimensions
+)
+from src.helpers.colors import get_color, apply_color
+from src.helpers.layers import select_layer_pixels
+from src.helpers.position import spread_layers_over_reference
+from src.helpers.text import get_text_scale_factor
 from src.utils.types_cards import CardTextSymbols, CardTextSymbolIndex
 from src.utils.regex import Reg
 
@@ -34,57 +43,45 @@ class SymbolMapper:
     """
     Maps symbols to their corresponding colors.
     """
-    def load(self):
+    def load(self, color_map: dict = None):
         """
         Load SolidColor objects using data from the constants object.
         """
-        # Symbol colors outer
-        self.clr_c = psd.get_color(con.clr_c)
-        self.clr_w = psd.get_color(con.clr_w)
-        self.clr_u = psd.get_color(con.clr_u)
-        self.clr_b = psd.get_color(con.clr_b)
-        self.clr_bh = psd.get_color(con.clr_bh)
-        self.clr_r = psd.get_color(con.clr_r)
-        self.clr_g = psd.get_color(con.clr_g)
-
-        # Symbol colors inner
-        self.clri_c = psd.get_color(con.clri_c)
-        self.clri_w = psd.get_color(con.clri_w)
-        self.clri_u = psd.get_color(con.clri_u)
-        self.clri_b = psd.get_color(con.clri_b)
-        self.clri_bh = psd.get_color(con.clri_bh)
-        self.clri_r = psd.get_color(con.clri_r)
-        self.clri_g = psd.get_color(con.clri_g)
+        # Use default color map from constants if not provided
+        color_map = color_map or con.mana_colors
 
         # Primary inner color (black default)
-        self.clr_primary = psd.get_color(con.clr_primary)
+        self.primary = get_color(color_map['primary'])
 
         # Secondary inner color (white default)
-        self.clr_secondary = psd.get_color(con.clr_secondary)
+        self.secondary = get_color(color_map['secondary'])
+
+        # Colorless color
+        self.colorless = get_color(color_map['c'])
 
         # Symbol map for regular mana symbols
         self.color_map = {
-            "W": self.clr_w,
-            "U": self.clr_u,
-            "B": self.clr_b,
-            "R": self.clr_r,
-            "G": self.clr_g,
-            "2": self.clr_c
+            "W": get_color(color_map['w']),
+            "U": get_color(color_map['u']),
+            "B": get_color(color_map['b']),
+            "R": get_color(color_map['r']),
+            "G": get_color(color_map['g']),
+            "2": get_color(color_map['c'])
         }
         self.color_map_inner = {
-            "W": self.clri_w,
-            "U": self.clri_u,
-            "B": self.clri_b,
-            "R": self.clri_r,
-            "G": self.clri_g,
-            "2": self.clri_c,
+            "W": get_color(color_map['w_i']),
+            "U": get_color(color_map['u_i']),
+            "B": get_color(color_map['b_i']),
+            "R": get_color(color_map['r_i']),
+            "G": get_color(color_map['g_i']),
+            "2": get_color(color_map['c_i'])
         }
 
         # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
         self.hybrid_color_map = self.color_map.copy()
-        self.hybrid_color_map['B'] = self.clr_bh
+        self.hybrid_color_map['B'] = get_color(color_map['bh'])
         self.hybrid_color_map_inner = self.color_map_inner.copy()
-        self.hybrid_color_map_inner['B'] = self.clri_bh
+        self.hybrid_color_map_inner['B'] = get_color(color_map['bh_i'])
 
 
 def locate_symbols(input_string: str) -> CardTextSymbols:
@@ -168,25 +165,23 @@ def determine_symbol_colors(symbol: str) -> list[SolidColor]:
     # Special Symbols
     if symbol in ("{E}", "{CHAOS}"):
         # Energy or chaos symbols
-        return [symbol_map.clr_primary]
+        return [symbol_map.primary]
     elif symbol == "{S}":
         # Snow symbol
-        return [symbol_map.clr_c, symbol_map.clr_primary, symbol_map.clr_secondary]
+        return [symbol_map.colorless, symbol_map.primary, symbol_map.secondary]
     elif symbol == "{Q}":
         # Untap symbol
-        return [symbol_map.clr_primary, symbol_map.clr_secondary]
+        return [symbol_map.primary, symbol_map.secondary]
 
     # Normal mana symbol
-    normal_symbol_match = Reg.MANA_NORMAL.match(symbol)
-    if normal_symbol_match:
+    if normal_symbol_match := Reg.MANA_NORMAL.match(symbol):
         return [
             symbol_map.color_map[normal_symbol_match[1]],
             symbol_map.color_map_inner[normal_symbol_match[1]]
         ]
 
     # Hybrid
-    hybrid_match = Reg.MANA_HYBRID.match(symbol)
-    if hybrid_match:
+    if hybrid_match := Reg.MANA_HYBRID.match(symbol):
         # Use the darker color for black's symbols for 2/B hybrid symbols
         color_map = symbol_map.hybrid_color_map if hybrid_match[1] == "2" else symbol_map.color_map
         return [
@@ -197,16 +192,14 @@ def determine_symbol_colors(symbol: str) -> list[SolidColor]:
         ]
 
     # Phyrexian
-    phyrexian_match = Reg.MANA_PHYREXIAN.match(symbol)
-    if phyrexian_match:
+    if phyrexian_match := Reg.MANA_PHYREXIAN.match(symbol):
         return [
             symbol_map.hybrid_color_map[phyrexian_match[1]],
             symbol_map.hybrid_color_map_inner[phyrexian_match[1]]
         ]
 
     # Phyrexian hybrid
-    phyrexian_hybrid_match = Reg.MANA_PHYREXIAN_HYBRID.match(symbol)
-    if phyrexian_hybrid_match:
+    if phyrexian_hybrid_match := Reg.MANA_PHYREXIAN_HYBRID.match(symbol):
         return [
             symbol_map.color_map[phyrexian_hybrid_match[2]],
             symbol_map.color_map[phyrexian_hybrid_match[1]],
@@ -216,7 +209,7 @@ def determine_symbol_colors(symbol: str) -> list[SolidColor]:
 
     # Weird situation?
     if len(con.symbols[symbol]) == 2:
-        return [symbol_map.clr_c, symbol_map.clr_primary]
+        return [symbol_map.colorless, symbol_map.primary]
 
     # Nothing matching found!
     raise Exception(f"Encountered a symbol that I don't know how to color: {symbol}")
@@ -251,7 +244,7 @@ def format_symbol(
         desc2.putUnitDouble(cID("Sz  "), cID("#Pnt"), font_size)
         desc2.putBoolean(sID("autoLeading"), False)
         desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), font_size)
-        psd.apply_color(desc2, color)
+        apply_color(desc2, color)
         desc1.putObject(idTxtS, idTxtS, desc2)
         current_ref = desc1
     return current_ref
@@ -361,6 +354,7 @@ def align_formatted_text(
     alignment: str = "right"
 ):
     """
+    Align a selection of formatted text to a certain alignment.
     Align the quote credit of --Name to the right like on some classic cards.
     @param action_list: Action list to add this action to
     @param start: Starting index of the quote string
@@ -369,12 +363,12 @@ def align_formatted_text(
     @return: Returns the existing ActionDescriptor with changes applied
     """
     desc1 = ActionDescriptor()
-    desc1.putInteger(cID("From"), start)
-    desc1.putInteger(cID("T   "), end)
     desc2 = ActionDescriptor()
+    desc1.putInteger(sID("from"), start)
+    desc1.putInteger(sID("to"), end)
     idstyleSheetHasParent = sID("styleSheetHasParent")
     desc2.putBoolean(idstyleSheetHasParent, True)
-    desc2.putEnumerated(cID("Algn"), cID("Alg "), sID(alignment))
+    desc2.putEnumerated(sID("align"), sID("alignmentType"), sID(alignment))
     idparagraphStyle = sID("paragraphStyle")
     desc1.putObject(idparagraphStyle, idparagraphStyle, desc2)
     idparagraphStyleRange = sID("paragraphStyleRange")
@@ -440,9 +434,9 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     # Obtain the correct font scale factor
     factor = 1
     if app.activeDocument.width != 3264:
-        factor = psd.get_text_scale_factor(layer)
+        factor = get_text_scale_factor(layer)
     # On the largest document size, ensure 30 pixel gap
-    spacing = int((app.activeDocument.width / 3264) * 30)
+    spacing = app.scale_by_width(30)
 
     # Can't find UnitValue object in python api
     font_size = old_size = float(layer.textItem.size) * factor
@@ -498,8 +492,9 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     # Obtain the correct scale factor and spacing
     factor = 1
     if app.activeDocument.width != 3264:
-        factor = psd.get_text_scale_factor(layer)
-    spacing = int((app.activeDocument.width / 3264) * 36)
+        factor = get_text_scale_factor(layer)
+    # On the largest document size, ensure 30 pixel gap
+    spacing = app.scale_by_width(30)
 
     # Set starting variables
     font_size = old_size = layer.textItem.size * factor
@@ -549,11 +544,11 @@ def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
         return
 
     # Get the starting font size
-    font_size = layer.textItem.size * psd.get_text_scale_factor(layer)
+    font_size = layer.textItem.size * get_text_scale_factor(layer)
     step = 0.1
 
     # Continue to reduce the size until within the bounding box
-    while psd.get_dimensions_no_effects(layer)['width'] > (psd.get_textbox_dimensions(layer)['width'] + 1):
+    while get_dimensions_no_effects(layer)['width'] > (get_textbox_dimensions(layer)['width'] + 1):
         font_size -= step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -579,26 +574,29 @@ def scale_text_to_fit_reference(
     dim = 'height' if height else 'width'
 
     # Establish base variables, ensure a level of spacing at the margins
-    if not ref:
-        return
     if isinstance(ref, int) or isinstance(ref, float):
         # Only checking against fixed number
         ref_dim = ref
     elif isinstance(ref, ArtLayer):
         # Use a reference layer
-        if not spacing:  # If no spacing provided, use default
-            spacing = int((app.activeDocument.width / 3264) * 64)
-        ref_dim = psd.get_layer_dimensions(ref)[dim] - spacing
+        if not spacing:
+            # If no spacing provided, use default
+            spacing = app.scale_by_height(64) if height else app.scale_by_width(64)
+        ref_dim = get_layer_dimensions(ref)[dim] - spacing
     else:
         return
-    factor = psd.get_text_scale_factor(layer) or 1
+
+    # Cancel if we're already within expected bounds
+    if ref_dim > get_text_layer_dimensions(layer)[dim]:
+        return
+
+    # Establish initial values
+    factor = get_text_scale_factor(layer) or 1
     font_size = layer.textItem.size * factor
     half_step = step / 2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
-    if ref_dim > psd.get_text_layer_dimensions(layer)[dim]:
-        return
-    while ref_dim < psd.get_text_layer_dimensions(layer)[dim]:
+    while ref_dim < get_text_layer_dimensions(layer)[dim]:
         font_size -= step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -607,7 +605,7 @@ def scale_text_to_fit_reference(
     font_size += half_step
     layer.textItem.size = font_size
     layer.textItem.leading = font_size
-    if ref_dim < psd.get_text_layer_dimensions(layer)[dim]:
+    if ref_dim < get_text_layer_dimensions(layer)[dim]:
         font_size -= half_step
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
@@ -620,10 +618,10 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
     @param ref_height: Height to fit inside.
     """
     # Heights
-    font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
+    font_size = text_layers[0].textItem.size * get_text_scale_factor(text_layers[0])
     step = 0.40
     half_step = 0.20
-    total_layer_height = sum([psd.get_text_layer_dimensions(layer)["height"] for layer in text_layers])
+    total_layer_height = sum([get_text_layer_dimensions(layer)["height"] for layer in text_layers])
 
     # Skip if the size is already fine
     if total_layer_height <= ref_height:
@@ -636,7 +634,7 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
         for i, layer in enumerate(text_layers):
             layer.textItem.size = font_size
             layer.textItem.leading = font_size
-            total_layer_height += psd.get_text_layer_dimensions(layer)["height"]
+            total_layer_height += get_text_layer_dimensions(layer)["height"]
 
     # Check half_step
     font_size += half_step
@@ -644,7 +642,7 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
     for i, layer in enumerate(text_layers):
         layer.textItem.size = font_size
         layer.textItem.leading = font_size
-        total_layer_height += psd.get_text_layer_dimensions(layer)["height"]
+        total_layer_height += get_text_layer_dimensions(layer)["height"]
 
     # Compare height of all 3 elements vs total reference height
     if total_layer_height > ref_height:
@@ -660,8 +658,8 @@ def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer) -> None:
     @param layer: TextLayer to vertically center.
     @param reference_layer: Reference layer to center within.
     """
-    ref_height = psd.get_layer_dimensions(reference_layer)['height']
-    lay_height = psd.get_text_layer_dimensions(layer)['height']
+    ref_height = get_layer_dimensions(reference_layer)['height']
+    lay_height = get_text_layer_dimensions(layer)['height']
     bound_delta = reference_layer.bounds[1] - layer.bounds[1]
     height_delta = ref_height - lay_height
     layer.translate(0, bound_delta + height_delta / 2)
@@ -682,7 +680,7 @@ def check_for_text_overlap(
     layer_copy = text_layer.duplicate()
     layer_copy.rasterize(RasterizeType.TextContents)
     app.activeDocument.activeLayer = layer_copy
-    psd.select_layer_pixels(adj_reference)
+    select_layer_pixels(adj_reference)
     app.activeDocument.selection.invert()
     app.activeDocument.selection.clear()
     app.activeDocument.selection.deselect()
@@ -690,7 +688,6 @@ def check_for_text_overlap(
     # Determine how much the rules text overlaps loyalty box
     dif = top_reference.bounds[3] - layer_copy.bounds[3]
     layer_copy.delete()
-    psd.clear_selection()
     return dif
 
 
@@ -735,12 +732,12 @@ def vertically_nudge_pw_text(
     movable = len(layers)-1
 
     # Additional references
-    ref_height = psd.get_layer_dimensions(ref)['height']
-    font_size = text_layers[0].textItem.size * psd.get_text_scale_factor(text_layers[0])
+    ref_height = get_layer_dimensions(ref)['height']
+    font_size = text_layers[0].textItem.size * get_text_scale_factor(text_layers[0])
 
     # Calculate inside gap
     total_space = ref_height - sum(
-        [psd.get_text_layer_dimensions(layer)['height'] for layer in text_layers]
+        [get_text_layer_dimensions(layer)['height'] for layer in text_layers]
     )
     if not uniform_gap:
         inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
@@ -773,7 +770,7 @@ def vertically_nudge_pw_text(
         lyr.textItem.leading = font_size - 0.2
 
     # Space apart planeswalker text evenly
-    psd.spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
+    spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
 
     # Check for another iteration
     vertically_nudge_pw_text(text_layers, ref, adj_reference, top_reference, space, uniform_gap)
