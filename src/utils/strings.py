@@ -8,9 +8,6 @@ from typing import Union, Optional
 import unicodedata
 import string
 
-# Third Party Imports
-import photoshop.api as ps
-from packaging.version import parse
 
 """
 STRING CLASSES
@@ -23,6 +20,10 @@ class StrEnum(str, Enum):
     """
     def __str__(self) -> str:
         return self.value
+
+    @classmethod
+    def contains(cls, item):
+        return item in cls._value2member_map_
 
     @cached_property
     def value(self) -> str:
@@ -56,18 +57,6 @@ def normalize_str(st: str, no_space: bool = False) -> str:
 
     # Remove punctuation
     return st.translate(str.maketrans("", "", string.punctuation))
-
-
-def ps_version_check(check_version: str) -> bool:
-    """
-    Checks that current Photoshop version matches or exceeds given value.
-    @param check_version: Version to meet or exceed.
-    @return: True or False
-    """
-    current_version = ps.Application().version
-    if parse(current_version) >= parse(check_version):
-        return True
-    return False
 
 
 def is_multiline(text: Union[str, list[str]]) -> Union[bool, list[bool]]:
