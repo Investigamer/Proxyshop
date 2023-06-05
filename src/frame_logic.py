@@ -5,10 +5,8 @@ FRAME LOGIC MODULE
 from typing import Union, Optional
 
 # Local Imports
-from src.constants import con
-from src.settings import cfg
 from src.utils.types_cards import FrameDetails
-from src.utils.enums_layers import LAYERS
+from src.enums.layers import LAYERS
 
 
 """
@@ -80,6 +78,23 @@ hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R',
 """
 COLOR CHECKS
 """
+
+
+def contains_frame_colors(text: str) -> bool:
+    """
+    Checks if a string contains only frame color characters.
+    @param text: String of color letters, or other string.
+    @return: True if the string represents color letters.
+    """
+    if not text:
+        return False
+    if len(text) == 1:
+        return False
+    if len(text) > 5:
+        return False
+    if len(text) == 5:
+        return bool(text == LAYERS.WUBRG)
+    return bool(''.join(sorted(text)) in color_lookup.get(len(text), []))
 
 
 def get_ordered_colors(text: Union[str, list]) -> Optional[str]:
@@ -197,22 +212,16 @@ def get_frame_details_land(card: dict) -> FrameDetails:
     @param card: Dict of Scryfall data representing the card.
     @return: Dict containing FrameDetails representing the card's frame makeup.
     """
-    # Destructure the attributes we need
-    mana_cost, type_line, oracle_text, color_identity_array, color_indicator, is_mdfc = [
-        card.get('mana_cost', ''),
-        card.get('type_line', ''),
-        card.get('oracle_text', ''),
-        card.get('color_identity', []),
-        card.get('color_indicator', []),
-        card.get('object') == 'card_face'
-    ]
+    # Grab the attributes we need
+    type_line, oracle_text = card.get('type_line', ''), card.get('oracle_text', '')
     twins = colors_tapped = basic_identity = ''
     result: FrameDetails = {
         "background": LAYERS.LAND,
         "pinlines": LAYERS.LAND,
         "twins": LAYERS.LAND,
         "identity": LAYERS.LAND,
-        "is_colorless": False
+        "is_colorless": False,
+        "is_hybrid": False
     }
 
     # Check if it has a basic land type
@@ -354,12 +363,10 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
     for example Noble Hierarch's color identity is [W, U, G] on Scryfall, but the frame is Green.
     @param card: Dict containing Scryfall data for this card.
     """
-    # Destructure the attributes we need
-    mana_cost, type_line, oracle_text = [
-        card.get('mana_cost', ''),
-        card.get('type_line', ''),
-        card.get('oracle_text', '')
-    ]
+    # Establish the attributes we need
+    mana_cost = card.get('mana_cost', '')
+    type_line = card.get('type_line', '')
+    oracle_text = card.get('oracle_text', '')
 
     # Establish the initial assumed color identity
     color_identity = get_color_identity_nonland(
@@ -376,7 +383,8 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
         "pinlines": color_identity,
         "twins": color_identity,
         "identity": color_identity,
-        "is_colorless": False
+        "is_colorless": False,
+        "is_hybrid": False
     }
 
     # Handle full art colorless cards and devoid frame cards
@@ -416,6 +424,10 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
         is_dfc=bool(card.get('object') == 'card_face')
     )
 
+    # Is this card hybrid?
+    if hybrid:
+        result['is_hybrid'] = True
+
     # Switch Background
     if LAYERS.VEHICLE in type_line:
         # Vehicle card
@@ -448,58 +460,3 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
 
     # Return the processed details
     return result
-
-
-"""
-EXPANSION SYMBOLS
-"""
-
-
-def format_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> list:
-    """
-    Takes in symbol details and returns information needed to build the expansion symbol.
-    @param symbol: Symbol chosen by layout object.
-    @param rarity: Rarity of the symbol.
-    @return: List of dicts containing information about this symbol.
-    """
-    rare = bool(rarity != con.rarity_common)
-    if isinstance(symbol, str):
-        return [{
-            # String provided, use defaults
-            'char': symbol,
-            'rarity': rare,
-            'stroke': ['black', cfg.symbol_stroke] if rare else ['white', cfg.symbol_stroke],
-            'scale': 1
-        }]
-    if isinstance(symbol, dict):
-        return [{
-            # Single symbol dictionary
-            'char': symbol.get('char', 'X'),
-            'rarity': bool(symbol.get('rarity', True) and rare),
-            'fill': symbol.get('fill', False) if rare else symbol.get('common-fill', False),
-            'color': symbol.get('color', False) if rare else symbol.get('common-color', False),
-            'stroke': symbol.get(
-                'stroke', ['black', cfg.symbol_stroke]
-            ) if rare else symbol.get(
-                'common-stroke', ['white', cfg.symbol_stroke]
-            ),
-            'scale': symbol.get('scale', 1)
-        }]
-    if isinstance(symbol, list):
-        syms = [
-            {
-                # List of symbol dictionaries
-                'char': sym.get('char', 'X'),
-                'rarity': bool(sym.get('rarity', True) and rare),
-                'fill': sym.get('fill', False) if rare else sym.get('common-fill', False),
-                'color': sym.get('color', False) if rare else sym.get('common-color', False),
-                'stroke': sym.get(
-                    'stroke', ['black', cfg.symbol_stroke]
-                ) if rare else sym.get(
-                    'common-stroke', ['white', cfg.symbol_stroke]
-                ),
-                'scale': sym.get('scale', 1)
-            } for sym in symbol
-        ]
-        return syms
-    return format_expansion_symbol_info(cfg.get_default_symbol(), rarity)
