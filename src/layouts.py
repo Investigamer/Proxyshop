@@ -2,18 +2,19 @@
 CARD LAYOUTS
 """
 # Standard Library Imports
-from functools import cached_property
-from pathlib import Path
 from typing import Optional, Match, Union, Type
+from functools import cached_property
 from os import path as osp
+from pathlib import Path
 
 # Local Imports
 from src.env.__console__ import console
-from src.constants import con
 from src.core import retrieve_card_info
+from src.constants import con
 from src.settings import cfg
 from src.utils.regex import Reg
-from src.utils.enums_layers import LAYERS
+from src.enums.layers import LAYERS
+from src.enums.settings import CollectorMode
 from src.utils.scryfall import get_set_data, get_card_data
 from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors
 from src.utils.strings import normalize_str, msg_error, msg_success
@@ -76,9 +77,11 @@ class NormalLayout:
         self._filename = file['filename']
         self._template_file = ''
 
-        # Cache set data
+        # Cache set data, only make data request if not doing minimal collector info
         if not hasattr(self, '_set_data'):
-            self._set_data = get_set_data(scryfall.get('set')) or {}
+            self.set_data = get_set_data(scryfall.get('set')) or {}
+        else:
+            self.set_data = {}
 
         # Cache frame data
         _ = self.frame
@@ -212,7 +215,7 @@ class NormalLayout:
 
     @cached_property
     def color_identity(self) -> list:
-        return self.scryfall.get('color_identity', [])
+        return self.card.get('color_identity', [])
 
     @cached_property
     def color_indicator(self) -> str:
@@ -235,7 +238,7 @@ class NormalLayout:
 
     @cached_property
     def set(self) -> str:
-        return self.set_data.get('code', 'MTG').upper()
+        return self.scryfall.get('set', 'MTG').upper()
 
     @cached_property
     def rarity(self):
@@ -258,31 +261,33 @@ class NormalLayout:
         return cfg.lang.upper()
 
     @cached_property
-    def card_count(self) -> Optional[str]:
-        # Get the lowest number
-        least = min(
-            int(self.set_data.get('printed_size', 999999)),
-            int(self.set_data.get('baseSetSize', 999999)),
-            int(self.set_data.get('totalSetSize', 999999)),
-            int(self.set_data.get('card_count', 999999))
-        )
-        if least < int(self.collector_number):
+    def card_count(self) -> Optional[int]:
+        # Check if set data exists
+        if not cfg.collector_mode == CollectorMode.Default:
             return
-        # Ensure minimum length of 3
-        return str(least).zfill(3)
+        # Get the lowest number
+        nums = {
+            int(self.set_data.get('printed_size', 0)),
+            int(self.set_data.get('baseSetSize', 0)),
+            int(self.set_data.get('totalSetSize', 0)),
+            int(self.set_data.get('card_count', 0))
+        }
+        # Remove failed values
+        if 0 in nums:
+            nums.remove(0)
+        card_count = min(nums)
+        # Ignore card count if it's larger than collector number
+        if card_count < self.collector_number:
+            return
+        return card_count
 
     @cached_property
-    def collector_number(self) -> str:
+    def collector_number(self) -> int:
         # Ensure number exists
         if self.scryfall.get('collector_number'):
-            # Return number as a 3+ letter string
-            num = ''.join(char for char in self.scryfall['collector_number'] if char.isdigit())
-            if len(num) == 2:
-                return f"0{num}"
-            elif len(num) == 1:
-                return f"00{num}"
-            return num
-        return '000'
+            # Return number as an integer
+            return int(''.join(char for char in self.scryfall['collector_number'] if char.isdigit()))
+        return 0
 
     @cached_property
     def artist(self) -> str:
@@ -300,10 +305,13 @@ class NormalLayout:
         return self.card['artist']
 
     @cached_property
-    def collector_info_top(self) -> str:
+    def collector_data(self) -> Optional[str]:
+        """Formatted collector info line, e.g. 050/230 M"""
         if self.card_count:
-            return f"{self.collector_number}/{self.card_count} {self.rarity_letter}"
-        return f"{self.collector_number} {self.rarity_letter}"
+            return f"{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} {self.rarity_letter}"
+        if self.collector_number:
+            return f"{self.rarity_letter} {str(self.collector_number).zfill(4)}"
+        return
 
     @cached_property
     def creator(self) -> str:
@@ -340,11 +348,11 @@ class NormalLayout:
 
     @cached_property
     def is_land(self) -> bool:
-        return 'Land' in self.type_line
+        return 'Land' in self.type_line_raw
 
     @cached_property
     def is_legendary(self) -> bool:
-        return 'Legendary' in self.type_line
+        return 'Legendary' in self.type_line_raw
 
     @cached_property
     def is_nyx(self) -> bool:
@@ -357,6 +365,14 @@ class NormalLayout:
     @cached_property
     def is_colorless(self) -> bool:
         return self.frame['is_colorless']
+
+    @cached_property
+    def is_hybrid(self) -> bool:
+        return self.frame['is_hybrid']
+
+    @cached_property
+    def is_artifact(self) -> bool:
+        return 'Artifact' in self.type_line_raw
 
     @cached_property
     def is_transform(self) -> bool:
@@ -385,6 +401,10 @@ class NormalLayout:
     @cached_property
     def background(self) -> str:
         return self.frame['background']
+
+    @cached_property
+    def identity(self) -> str:
+        return self.frame['identity']
 
     """
     DOUBLE FACE PROPERTIES
@@ -605,7 +625,7 @@ class ModalDoubleFacedLayout (NormalLayout):
     @cached_property
     def card_class(self) -> str:
         # Planeswalker MDFC
-        if 'Planeswalker' in self.type_line:
+        if 'Planeswalker' in self.type_line_raw:
             if self.card['front']:
                 return con.pw_mdfc_front_class
             return con.pw_mdfc_back_class
@@ -806,26 +826,35 @@ class TokenLayout (NormalLayout):
 
     @cached_property
     def set(self) -> str:
-        return self.set_data.get('parent_set_code', '').upper()
+        # Remove T from token set
+        code = self.scryfall.get('set', 'MTG').upper()
+        if code[0] == "T":
+            code = code[1:]
+        return code
 
     @cached_property
     def rarity_letter(self) -> str:
         return 'T'
 
     @cached_property
-    def card_count(self) -> Optional[str]:
+    def card_count(self) -> Optional[int]:
+        # Check if set data exists
+        if not self.set_data:
+            return
         # Get the lowest number
-        least = min(
-            int(self.set_data.get('printed_size', 999999)),
-            int(self.set_data.get('card_count', 999999)),
-            int(self.set_data.get('tokenCount', 999999)),
-        )
-        if least == 999999:
+        nums = [
+            int(self.set_data.get('printed_size', 0)),
+            int(self.set_data.get('card_count', 0)),
+            int(self.set_data.get('tokenCount', 0)),
+        ]
+        # Remove failed values
+        if 0 in nums:
+            nums.remove(0)
+        card_count = min(nums)
+        # Ignore card count if it's larger than collector number
+        if card_count < self.collector_number:
             return
-        if least < int(self.collector_number):
-            return
-        # Ensure minimum length of 3
-        return str(least).zfill(3)
+        return card_count
 
 
 class BasicLandLayout (NormalLayout):
