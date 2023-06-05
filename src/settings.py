@@ -8,7 +8,9 @@ from configparser import ConfigParser
 
 # Local Imports
 from src.constants import con
+from src.enums.settings import ExpansionSymbolMode, CollectorMode, BorderColor, OutputFiletype, ScryfallSorting
 from src.utils.objects import Singleton
+from src.utils.strings import StrEnum
 from src.utils.types_templates import TemplateDetails
 from src.utils.files import verify_config_fields
 
@@ -28,56 +30,66 @@ class Config:
 		Load the config values
 		"""
 		# APP - FILES
-		self.output_filetype = self.file['APP.FILES']['Output.Filetype']
 		self.save_artist_name = self.file.getboolean('APP.FILES', 'Save.Artist.Name')
 		self.overwrite_duplicate = self.file.getboolean('APP.FILES', 'Overwrite.Duplicate')
+		self.output_filetype = self.get_option('APP.FILES', 'Output.Filetype', OutputFiletype, OutputFiletype.JPG)
+
+		# APP - DATA
+		self.lang = self.file['APP.DATA'].get('Scryfall.Language', 'en')
+		self.scry_ascending = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
+		self.scry_sorting = self.get_option('APP.DATA', 'Scryfall.Sorting', ScryfallSorting, ScryfallSorting.Released)
+
+		# APP - TEXT
+		self.targeted_replace = self.file.getboolean('APP.TEXT', 'Targeted.Replace')
+		self.force_english_formatting = self.file.getboolean('APP.TEXT', "Force.English.Formatting")
 
 		# APP - RENDER
 		self.skip_failed = self.file.getboolean('APP.RENDER', 'Skip.Failed')
-		self.targeted_replace = self.file.getboolean('APP.RENDER', 'Targeted.Replace')
-		self.force_english_formatting = self.file.getboolean('APP.RENDER', "Force.English.Formatting")
-
-		# APP - DATA
-		self.scry_ascending = self.file['APP.DATA']['Scryfall.Ascending']
-		self.scry_sorting = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
+		self.render_snow = self.file.getboolean('APP.RENDER', 'Render.Snow')
+		self.render_miracle = self.file.getboolean('APP.RENDER', 'Render.Miracle')
+		self.render_basic = self.file.getboolean('APP.RENDER', 'Render.Basic')
 
 		# APP - SYSTEM
 		self.refresh_plugins = self.file.getboolean('APP.SYSTEM', 'Refresh.Plugins')
 		self.test_mode = self.file.getboolean('APP.SYSTEM', 'Test.Mode')
 
-		# TEXT settings
-		self.lang = self.file['BASE.TEXT']['Language']
+		# BASE - TEXT
 		self.flavor_divider = self.file.getboolean('BASE.TEXT', 'Flavor.Divider')
 		self.remove_flavor = self.file.getboolean('BASE.TEXT', 'No.Flavor.Text')
 		self.remove_reminder = self.file.getboolean('BASE.TEXT', 'No.Reminder.Text')
-		self.real_collector = self.file.getboolean('BASE.TEXT', 'True.Collector.Info')
+		self.collector_mode = self.get_option('BASE.TEXT', 'Collector.Mode', CollectorMode)
 
-		# SYMBOLS settings
-		self.symbol_mode = self.file['BASE.SYMBOLS']['Symbol.Mode']
+		# BASE - SYMBOLS
 		self.symbol_default = self.file['BASE.SYMBOLS']['Default.Symbol']
 		self.symbol_force_default = self.file.getboolean('BASE.SYMBOLS', 'Force.Default.Symbol')
 		self.symbol_stroke = int(self.file['BASE.SYMBOLS']['Symbol.Stroke.Size'])
 		self.enable_watermark = self.file.getboolean('BASE.SYMBOLS', 'Enable.Watermark')
 		self.watermark_opacity = int(self.file['BASE.SYMBOLS']['Watermark.Opacity'])
+		self.symbol_mode = self.get_option('BASE.SYMBOLS', 'Symbol.Mode', ExpansionSymbolMode, ExpansionSymbolMode.Font)
 
-		# TEMPLATES settings
+		# BASE - TEMPLATES
 		self.exit_early = self.file.getboolean('BASE.TEMPLATES', 'Manual.Edit')
 		self.import_scryfall_scan = self.file.getboolean('BASE.TEMPLATES', 'Import.Scryfall.Scan')
-		self.border_color = self.file['BASE.TEMPLATES']['Border.Color']
-		self.render_snow = self.file.getboolean('BASE.TEMPLATES', 'Render.Snow')
-		self.render_miracle = self.file.getboolean('BASE.TEMPLATES', 'Render.Miracle')
-		self.render_basic = self.file.getboolean('BASE.TEMPLATES', 'Render.Basic')
+		self.border_color = self.get_option('BASE.TEMPLATES', 'Border.Color', BorderColor, BorderColor.Black)
 
-	def get_default_symbol(self) -> Union[str, dict, list[dict]]:
+	"""
+	METHODS
+	"""
+
+	def get_option(self, group: str, key: str, enum_class: type[StrEnum], default: str = "default"):
 		"""
-		Gets the default expansion symbol set by the user, or the 'MTG' fallback symbol if not found.
-		@return: Symbol character string or dict/list notation.
+		Returns the current value of an "options" setting if that option exists in its StrEnum class.
+		Otherwise, returns the default value of that StrEnum class.
+		@param group: Group (section) to access within the config file.
+		@param key: Key to access within the setting group (section).
+		@param enum_class: StrEnum class representing the options of this setting.
+		@param default: Default value to return if current value is invalid.
+		@return: Validated current value, or default value.
 		"""
-		return con.set_symbols.get(
-			self.symbol_default, con.set_symbols.get(
-				'MTG', con.set_symbol_fallback
-			)
-		)
+		option = self.file[group].get(key, default)
+		if enum_class.contains(option):
+			return option
+		return default
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
 		"""
@@ -95,6 +107,21 @@ class Config:
 				return self.file[section][key]
 		return default
 
+	def get_default_symbol(self) -> Union[str, dict, list[dict]]:
+		"""
+		Gets the default expansion symbol set by the user, or the 'MTG' fallback symbol if not found.
+		@return: Symbol character string or dict/list notation.
+		"""
+		return con.set_symbols.get(
+			self.symbol_default, con.set_symbols.get(
+				'MTG', con.set_symbol_fallback
+			)
+		)
+
+	"""
+	LOAD SETTINGS
+	"""
+
 	def load(self, template: Optional[TemplateDetails] = None):
 		"""
 		Reload the config file and define new values
@@ -103,19 +130,20 @@ class Config:
 		if hasattr(self, 'file'):
 			del self.file
 
-		# Check if we're using a template ini file
-		template_ini = template['config_path'].replace('json', 'ini').replace('Back', 'Front') if template else None
-		template_json = template['config_path'].replace('Back', 'Front') if template else None
-		if template_ini and os.path.exists(template_ini) and not self.test_mode:
-			conf = template_ini
-		else:
-			conf = con.path_config_ini_base
+		# Check if we're using a template config
+		conf = con.path_config_ini_base
+		if hasattr(self, 'test_mode') and not self.test_mode and template:
+			# Check if the template config exists
+			template_ini = template['config_path'].replace('json', 'ini').replace('Back', 'Front') if template else None
+			template_json = template['config_path'].replace('Back', 'Front') if template else None
+			if template_ini and os.path.isfile(template_ini):
+				# Use template ini and validate its contents
+				verify_config_fields(template_ini, template_json)
+				conf = template_ini
 
-		# Validate ini file contents
-		verify_config_fields(conf, con.path_config_json_base)
+		# Validate app and base ini contents
 		verify_config_fields(con.path_config_ini_app, con.path_config_json_app)
-		if template_ini and os.path.exists(template_ini) and not self.test_mode:
-			verify_config_fields(conf, template_json)
+		verify_config_fields(conf, con.path_config_json_base)
 
 		# Load necessary files
 		self.file = ConfigParser(allow_no_value=True)
