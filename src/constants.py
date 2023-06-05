@@ -9,7 +9,7 @@ from threading import Lock
 
 # Local Imports
 from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
-from src.utils.enums_layers import LAYERS
+from src.enums.layers import LAYERS
 from src.utils.exceptions import PS_EXCEPTIONS
 from src.utils.objects import Singleton, PhotoshopHandler
 
@@ -246,6 +246,27 @@ class Constants:
             ]
         }
 
+        # Masks
+        self.masks = {
+            2: [LAYERS.HALF],
+            3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
+            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
+        }
+
+        # Pinline colors
+        self.pinline_colors = {
+            'W': [246, 246, 239],
+            'U': [0, 117, 190],
+            'B': [39, 38, 36],
+            'R': [239, 56, 39],
+            'G': [0, 123, 67],
+            'Gold': [246, 210, 98],
+            'Land': [174, 151, 135],
+            'Artifact': [230, 236, 242],
+            'Colorless': [230, 236, 242],
+            'Vehicle': [77, 45, 5]
+        }
+
         # Watermark colors
         self.watermark_colors = {
             'W': [183, 157, 88],
@@ -257,6 +278,26 @@ class Constants:
             'Land': [94, 84, 72],
             'Artifact': [100, 125, 134],
             'Colorless': [100, 125, 134]
+        }
+
+        # Mana colors
+        self.mana_colors = {
+            'primary': [0, 0, 0],
+            'secondary': [255, 255, 255],
+            'c': [204, 194, 193],
+            'w': [255, 251, 214],
+            'u': [170, 224, 250],
+            'b': [204, 194, 193],
+            'r': [249, 169, 143],
+            'g': [154, 211, 175],
+            'bh': [159, 146, 143],
+            'c_i': [0, 0, 0],
+            'w_i': [0, 0, 0],
+            'u_i': [0, 0, 0],
+            'b_i': [0, 0, 0],
+            'r_i': [0, 0, 0],
+            'g_i': [0, 0, 0],
+            'bh_i': [0, 0, 0]
         }
 
         # Import watermark library
@@ -289,26 +330,6 @@ class Constants:
         self.rarity_special = "special"
         self.rarity_bonus = "bonus"
 
-        # Symbol colors
-        self.clr_primary = {'r': 0, 'g': 0, 'b': 0}
-        self.clr_secondary = {'r': 255, 'g': 255, 'b': 255}
-        self.clr_c = {'r': 204, 'g': 194, 'b': 193}
-        self.clr_w = {'r': 255, 'g': 251, 'b': 214}
-        self.clr_u = {'r': 170, 'g': 224, 'b': 250}
-        self.clr_b = {'r': 204, 'g': 194, 'b': 193}
-        self.clr_bh = {'r': 159, 'g': 146, 'b': 143}
-        self.clr_r = {'r': 249, 'g': 169, 'b': 143}
-        self.clr_g = {'r': 154, 'g': 211, 'b': 175}
-
-        # Inner Symbol colors
-        self.clri_c = self.clr_primary.copy()
-        self.clri_w = self.clr_primary.copy()
-        self.clri_u = self.clr_primary.copy()
-        self.clri_b = self.clr_primary.copy()
-        self.clri_bh = self.clr_primary.copy()
-        self.clri_r = self.clr_primary.copy()
-        self.clri_g = self.clr_primary.copy()
-
         # HTTP Header for requests
         self.http_header = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) "
@@ -321,10 +342,6 @@ class Constants:
 
         # Track timed checks
         self.times = []
-
-        # Version compatibility features
-        self.version_webp = '23.2.0'
-        self.version_targeted_replace = '22.0.0'
 
     """
     UTILITY
