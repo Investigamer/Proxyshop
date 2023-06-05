@@ -6,29 +6,32 @@
             "id": "1JNOzvuzcX3HayKJG34d_vs8KnG7GrHU1"
         },
         "Classic": {
-            "class": "NormalClassicTemplate",
+            "class": "ClassicTemplate",
             "file": "normal-classic.psd",
             "id": "1XqoqfopB-euMNkZ461n5Z9Z0h0zq0tw1"
         },
         "Classic Remastered": {
             "class": "ClassicRemasteredTemplate",
-            "file": "classic-remastered.psb",
-            "id": "TBA"
+            "file": "classic-remastered.psd",
+            "id": "1R1hicGEgxRQnYMLTRVJE4oya92dhJxaY"
         },
         "Fullart": {
-            "class": "NormalFullartTemplate",
-            "file": "normal-fullart.psd",
-            "id": "15KLVbd9U5klYUNu6ULG0q2xcAavUoV5y"
+            "class": "FullartTemplate",
+            "file": "normal.psd"
         },
         "Extended": {
-            "class": "NormalExtendedTemplate",
+            "class": "ExtendedTemplate",
             "file": "normal-extended.psd",
             "id": "1pROEod7I37syF7lFLP3j9DP4PTgcE-bc"
+        },
+        "Extended Dark": {
+            "class": "ExtendedDarkTemplate",
+            "file": "normal-extended.psd"
         },
         "Etched": {
             "class": "EtchedTemplate",
             "file": "etched.psd",
-            "id": "TBA"
+            "id": "1lLBcFNe3BuF5aAJWMCpCAc0oeX7abdpi"
         },
         "Invention": {
             "class": "InventionTemplate",
@@ -37,18 +40,17 @@
         },
         "Stargazing": {
             "class": "StargazingTemplate",
-            "file": "stargazing.psd",
-            "id": "12xhxqIVeHnaBrGURrxwmFAsfUS4t0rO9"
+            "file": "normal.psd"
         },
         "Expedition": {
             "class": "ExpeditionTemplate",
             "file": "znrexp.psd",
             "id": "1d40Xy5KrmC1OZf-8AfkU7DSlKnPrWr2y"
         },
-        "Womens Day": {
-            "class": "WomensDayTemplate",
-            "file": "womensday.psd",
-            "id": "1Wld2GJu9w9NX77gFzHeLseELeaCaDfqE"
+        "Borderless": {
+            "class": "BorderlessTemplate",
+            "file": "borderless.psd",
+            "id": "1GiW4rXSOznj7BJut0rTM3L9cZwSGXa1t"
         },
         "Miracle": {
             "class": "MiracleTemplate",
@@ -64,6 +66,11 @@
             "class": "UniversesBeyondTemplate",
             "file": "universes-beyond.psd",
             "id": "1wdn4NELA5N-25zq4DcumiNfMdY9H2ojd"
+        },
+        "Lord of the Rings": {
+            "class": "LOTRTemplate",
+            "file": "lord-of-the-rings.psd",
+            "id": "1wfZNdMhR9ndFi9x-wuro8r4gr40Xgsfx"
         }
     },
     "transform_front": {
@@ -71,6 +78,10 @@
             "class": "TransformTemplate",
             "file": "tf-front.psd",
             "id": "1F44D7_CKrXLAV4yzTi_HLO9bsUAgDzgX"
+        },
+        "Classic Remastered": {
+            "class": "ClassicRemasteredTemplate",
+            "file": "classic-remastered.psd"
         },
         "Universes Beyond": {
             "class": "UniversesBeyondTemplate",
@@ -82,6 +93,10 @@
             "class": "TransformTemplate",
             "file": "tf-back.psd",
             "id": "1QCwNqHRphAcFLw1RDf_rUwef_jRxKA9Q"
+        },
+        "Classic Remastered": {
+            "class": "ClassicRemasteredTemplate",
+            "file": "classic-remastered.psd"
         },
         "Universes Beyond": {
             "class": "UniversesBeyondTemplate",

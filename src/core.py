@@ -94,7 +94,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
     data: dict[str, list[TemplateDetails]] = {}
 
     # Load the built-in templates
-    with open(os.path.join(con.path_data, "app_manifest.json"), encoding="utf-8") as f:
+    with open(os.path.join(con.path_data, "app_templates.json"), encoding="utf-8") as f:
         app_json = json.load(f)
 
     # Build a TemplateDetails for each template
