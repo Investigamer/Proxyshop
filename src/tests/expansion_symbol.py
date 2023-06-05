@@ -7,6 +7,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
+import requests
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
@@ -20,8 +21,8 @@ from src.constants import con
 con.headless = True
 from src import helpers as psd
 from src.settings import cfg
-from src.utils.enums_photoshop import Alignment
-from src.utils.enums_layers import LAYERS
+from src.enums.photoshop import Alignment
+from src.enums.layers import LAYERS
 
 # Generate rarity folders if they don't exist
 Path(os.path.join(con.path_tests, "symbols/common")).mkdir(mode=511, parents=True, exist_ok=True)
@@ -70,7 +71,7 @@ class TestTemplate:
 
     def __init__(self, layout: TestLayout):
         self.layout = layout
-        self._expansion_symbol = psd.getLayer('Expansion Symbol', self.text_layers)
+        self._expansion_symbol = psd.getLayer('Expansion Symbol', self.text_group)
         self.expansion_symbol()
 
     @cached_property
@@ -78,7 +79,7 @@ class TestTemplate:
         return ps.Application()
 
     @cached_property
-    def text_layers(self):
+    def text_group(self):
         return psd.getLayerSet('Text')
 
     """
@@ -96,12 +97,12 @@ class TestTemplate:
     @cached_property
     def expansion_reference_layer(self):
         # Expansion symbol reference layer
-        return psd.getLayer(LAYERS.EXPANSION_REFERENCE, self.text_layers)
+        return psd.getLayer(LAYERS.EXPANSION_REFERENCE, self.text_group)
 
     @cached_property
     def expansion_symbol_layer(self) -> Optional[ArtLayer]:
         # Expansion symbol layer
-        return psd.getLayer(LAYERS.EXPANSION_SYMBOL, self.text_layers)
+        return psd.getLayer(LAYERS.EXPANSION_SYMBOL, self.text_group)
 
     def expansion_symbol(self) -> None:
         """
@@ -114,7 +115,7 @@ class TestTemplate:
         # Create a group for generated layers, clear style
         group = self.app.activeDocument.layerSets.add()
         group.move(self.expansion_symbol_layer, ps.ElementPlacement.PlaceAfter)
-        psd.clear_layer_style(self.expansion_symbol_layer)
+        psd.clear_layer_fx(self.expansion_symbol_layer)
         self.create_expansion_symbol(group)
 
         # Merge and refresh cache
@@ -172,12 +173,12 @@ class TestTemplate:
             # Rarity background fill
             if lay.get('fill') == 'rarity' and lay.get('gradient'):
                 # Apply fill before rarity
-                psd.rasterize_layer_style(current_layer)
-                fill_layer = psd.fill_expansion_symbol(current_layer, psd.rgb_black())
+                psd.rasterize_layer_fx(current_layer)
+                fill_layer = psd.fill_empty_area(current_layer, psd.rgb_black())
                 psd.apply_fx(fill_layer, [lay['gradient']])
             elif lay.get('fill'):
-                psd.rasterize_layer_style(current_layer)
-                fill_layer = psd.fill_expansion_symbol(current_layer, lay['fill'])
+                psd.rasterize_layer_fx(current_layer)
+                fill_layer = psd.fill_empty_area(current_layer, lay['fill'])
 
             # Merge if there is a filled layer
             if fill_layer:
@@ -229,10 +230,65 @@ def big_symbol_test(number: int = 260, rarities: Optional[list] = None):
 
 
 """
+SYMBOL LIBRARY TESTS
+"""
+
+
+def get_missing_sets() -> dict[str, dict]:
+    # Make a GET request to the API endpoint
+    sets = requests.get('https://api.scryfall.com/sets').json()
+
+    # Grab our existing symbol library
+    symbols: list[str] = [n.lower() for n in list(con.set_symbols.keys())]
+
+    # Create an empty dictionary to store the final result
+    result = {}
+
+    # Iterate through each set in the JSON data
+    for n in sets['data']:
+        set_type = n['set_type']
+        code = n['code']
+        parent_code = n.get('parent_set_code')
+
+        # Skip this set if we have it in the symbol library
+        if code in symbols:
+            continue
+
+        # Skip token sets
+        if set_type == 'token':
+            continue
+
+        # Skip fake sets (promo, memorabilia, art series, etc)
+        if parent_code and parent_code == code[1:]:
+            continue
+
+        # Check if the set_type is already a key in the final dictionary
+        if set_type not in result:
+            result[set_type] = {}
+
+        # Add a new key-value pair to the value dictionary
+        result[set_type][code] = parent_code
+
+    return result
+
+
+missing = get_missing_sets()
+for name, group in missing.items():
+    print(
+        f'==='
+        f'{name.upper()} SETS MISSING'
+        f'==='
+    )
+    for code, parent in group.items():
+        print(f"{code} ({parent})" if parent else code)
+    print('\n')
+
+
+"""
 RUN TEST HERE
 """
 
-# Open the document
+"""# Open the document
 app = ps.Application()
 app.open(os.path.join(con.path_tests, 'expansion_symbol_test.psd'))
 
@@ -242,3 +298,4 @@ test_target_symbol('MOC', rarities=['common', 'uncommon', 'rare', 'mythic'])
 # TEST LAST X SYMBOLS
 # big_symbol_test(4)
 print("All tests completed!")
+"""

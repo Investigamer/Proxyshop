@@ -16,7 +16,7 @@ con.headless = True
 from src.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
 from src.layouts import NormalLayout
 from src.utils.scryfall import get_card_data
-from src.utils.enums_layers import LAYERS
+from src.enums.layers import LAYERS
 
 # TODO: Implement actual pytest assertions?
 test_cases = {

@@ -16,24 +16,26 @@ import json
 import colorama
 from colorama import Fore
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    LayerKind
+    DialogModes
 )
 
 # Local Imports
 from src.constants import con
-from src.utils.objects import PhotoshopHandler
-
+from src.helpers.document import convert_points_to_pixels
+from src.helpers.layers import getLayer, getLayerSet, merge_layers
+from src.helpers.masks import copy_layer_mask
+from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
 con.headless = True
-import src.helpers as psd
 
-app = PhotoshopHandler()
-cID = app.charIDToTypeID
-sID = app.stringIDToTypeID
-
+app = con.app
+cID = app.charIDtoTypeID
+sID = app.stringIDtoTypeID
+NO_DIALOG = DialogModes.DisplayNoDialogs
 
 """
 TEMPLATE TESTING UTILITIES
@@ -55,10 +57,10 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
         groups.remove(r)
     for g in groups:
         # Enable new color
-        psd.getLayer(new, g).visible = True
+        getLayer(new, g).visible = True
         # Disable old color
         if old:
-            psd.getLayer(old, g).visible = False
+            getLayer(old, g).visible = False
 
 
 def make_duals(
@@ -74,28 +76,61 @@ def make_duals(
     @return:
     """
     duals = ["WU", "WB", "RW", "GW", "UB", "UR", "GU", "BR", "BG", "RG"]
-    group = psd.getLayerSet(name)
-    mask_top = psd.getLayer(mask_top, group) if mask_top else None
-    mask_bottom = psd.getLayer(mask_bottom, group) if mask_bottom else None
-    ref = psd.getLayer("W", group)
+    group = getLayerSet(name)
+    mask_top = getLayer(mask_top, group) if mask_top else None
+    mask_bottom = getLayer(mask_bottom, group) if mask_bottom else None
+    ref = getLayer("W", group)
 
     # Loop through each dual
     for dual in duals:
         # Change layer visibility
-        top = psd.getLayer(dual[0], group).duplicate(ref, ElementPlacement.PlaceBefore)
-        bottom = psd.getLayer(dual[1], group).duplicate(top, ElementPlacement.PlaceAfter)
+        top = getLayer(dual[0], group).duplicate(ref, ElementPlacement.PlaceBefore)
+        bottom = getLayer(dual[1], group).duplicate(top, ElementPlacement.PlaceAfter)
         top.visible = True
         bottom.visible = True
 
         # Enable masks
         if mask_top:
-            psd.copy_layer_mask(mask_top, top)
+            copy_layer_mask(mask_top, top)
         if mask_bottom:
-            psd.copy_layer_mask(mask_bottom, bottom)
+            copy_layer_mask(mask_bottom, bottom)
 
         # Merge the layers and rename
-        new_layer = psd.merge_layers([top, bottom])
+        new_layer = merge_layers([top, bottom])
         new_layer.name = dual
+
+
+def create_blended_layer(
+    colors: Union[str, list[str]],
+    group: LayerSet,
+    masks: Union[None, ArtLayer, list[ArtLayer]] = None
+):
+    """
+    Create a multicolor layer using a gradient mask.
+    @param colors: Colors to use.
+    @param group: Group to look for the color layers within.
+    @param masks: Layers containing a gradient mask.
+    """
+    if not masks:
+        # No mask provided
+        masks = [getLayer("Mask")]
+    elif isinstance(masks, ArtLayer):
+        # Single layer provided
+        masks = [masks]
+    layers: list[ArtLayer] = []
+
+    # Enable each layer color
+    for i, color in enumerate(colors):
+        layer = getLayer(color, group)
+        layer.visible = True
+
+        # Position the new layer and add a mask to previous, if previous layer exists
+        if layers:
+            layer.move(layers[i-1], ElementPlacement.PlaceAfter)
+            copy_layer_mask(masks[i-1], layers[i-1])
+
+        # Add to the layer list
+        layers.append(layer)
 
 
 """
@@ -109,7 +144,8 @@ def test_execution_time(
     iterations=1000,
     args=None,
     args_old=None,
-    check_result=True
+    check_result=True,
+    reset_func: Optional[Callable] = None
 ) -> None:
     """
     Test the execution time of a new function against an older function.
@@ -118,6 +154,8 @@ def test_execution_time(
     @param iterations: How many times to run these functions, higher means better sample size.
     @param args: Args to pass to the newer function, and older function unless specified in args_old.
     @param args_old: Args to pass to the older function.
+    @param check_result: Whether to check if results match.
+    @param reset_func: Optional function to call to reset app state between actions.
     """
     # Test configuration
     if not args:
@@ -145,6 +183,8 @@ def test_execution_time(
         s = perf_counter()
         results[0]['value'] = new_func(*args)
         results[0]['times'].append(perf_counter()-s)
+        if reset_func:
+            reset_func()
     results[0]['average'] = sum(results[0]['times'])/len(results[0]['times'])
 
     # Test old functionality
@@ -152,6 +192,8 @@ def test_execution_time(
         s = perf_counter()
         results[1]['value'] = old_func(*args_old)
         results[1]['times'].append(perf_counter()-s)
+        if reset_func:
+            reset_func()
     results[1]['average'] = sum(results[1]['times'])/len(results[1]['times'])
 
     # Report results
@@ -160,33 +202,21 @@ def test_execution_time(
 
     # Compare results
     final = sorted(results, key=itemgetter('average'))
-    print(f"{Fore.GREEN}The {final[0]['type']} method is faster by {final[1]['average']-final[0]['average']} seconds!")
+    slower = final[1]['average']
+    faster = final[0]['average']
+    delta = slower - faster
+    percent = round(delta/((slower + faster)/2) * 100, 2)
+    print(f"{Fore.GREEN}The {final[0]['type']} method is {percent}% faster!")
     if check_result:
         print(f"Results check: {Fore.GREEN+'SUCCESS' if final[0]['value'] == final[1]['value'] else Fore.RED+'FAILED'}")
-        print(final[0]['value'])
-        print(final[1]['value'])
+        if final[0]['value']:
+            print(final[0]['value'])
+            print(final[1]['value'])
 
 
 """
 ACTION DESCRIPTOR/GETTER HELPERS
 """
-
-
-def get_text_key(layer: ArtLayer):
-    """
-    Get the textKey action reference from a TextLayer.
-    @param layer: ArtLayer with "kind" of TextLayer.
-    @return:
-    """
-    # Ensure a valid layer object
-    if not isinstance(layer, ArtLayer):
-        raise Exception(f"Did not receive a valid layer!")
-    if layer.kind != LayerKind.TextLayer:
-        raise Exception(f"'{layer.name}' layer is not a TextLayer!")
-    reference = ActionReference()
-    reference.putIdentifier(sID('layer'), layer.id)
-    descriptor = app.executeActionGet(reference)
-    return descriptor.getObjectValue(sID('textKey'))
 
 
 def check_if_needed(key, keys_stored):
@@ -309,8 +339,8 @@ def get_textbox_bounds_alternate(layer: ArtLayer) -> list[int]:
     text_key = get_text_key(layer)
 
     # Establish the X and Y coordinates of the box
-    x_scale, y_scale = psd.get_text_scale_factor(text_key=text_key, axis=['xx', 'yy'])
-    click_point = text_key.getObjectValue(sID('textClickPoint'))
+    x_scale, y_scale = get_text_scale_factor(text_key=text_key, axis=['xx', 'yy'])
+    click_point = text_key.getObject(sID('textClickPoint'))
     x_pos = click_point.getUnitDoubleValue(sID('horizontal')) * x_scale
     y_pos = click_point.getUnitDoubleValue(sID('vertical')) * y_scale
 
@@ -319,10 +349,10 @@ def get_textbox_bounds_alternate(layer: ArtLayer) -> list[int]:
     bounds = shape.getObjectValue(sID('bounds'))
 
     return [
-        int(psd.convert_points_to_pixels((bounds.getUnitDoubleValue(sID('left')) * x_scale) + x_pos)),
-        int(psd.convert_points_to_pixels((bounds.getUnitDoubleValue(sID('top')) * y_scale) + y_pos)),
-        int(psd.convert_points_to_pixels((bounds.getUnitDoubleValue(sID('right')) * x_scale) + x_pos)),
-        int(psd.convert_points_to_pixels((bounds.getUnitDoubleValue(sID('bottom')) * y_scale) + y_pos))
+        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('left')) * x_scale) + x_pos)),
+        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('top')) * y_scale) + y_pos)),
+        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('right')) * x_scale) + x_pos)),
+        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('bottom')) * y_scale) + y_pos))
     ]
 
 
@@ -345,3 +375,43 @@ def get_differing_dict(d1: dict, d2: dict):
         elif val != d2[key]:
             new_dict[key] = [val, d2[key]]
     return new_dict
+
+
+"""
+COMBINING TEXT ITEMS
+"""
+
+
+def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[str] = " "):
+    """
+    Append the "from_layer" contents to the end of "to_layer" contents with optional separator.
+    Preserves the complete style range formatting of both text contents.
+    @param from_layer: TextLayer to pull contents from.
+    @param to_layer: TextLayer to append the contents of from_layer to.
+    @param sep: Optional separator to place between them.
+    """
+    # Grab the text key of each layer
+    from_tk = get_text_key(from_layer)
+    to_tk = get_text_key(to_layer)
+
+    # Grab the style range of each layer and establish our offset
+    from_range = from_tk.getList(sID("textStyleRange"))
+    to_range = to_tk.getList(sID("textStyleRange"))
+    offset = len(sep) if sep else 0
+
+    # For each item in the "from" style range, update the position and apply style to target
+    for i in range(from_range.count):
+        from_style = from_range.getObjectValue(i)
+        id_from = from_style.getInteger(sID("from"))
+        id_to = from_style.getInteger(sID("to"))
+        from_style.putInteger(sID("from"), id_from + len(to_tk.getString(sID("textKey"))) + (offset if i != 0 else 0))
+        from_style.putInteger(sID("to"), id_to + len(to_tk.getString(sID("textKey"))) + offset)
+        to_range.putObject(sID("textStyleRange"), from_style)
+
+    # Combine the contents and apply the updated style range
+    contents = str(to_tk.getString(sID("textKey")) + sep + from_tk.getString(sID("textKey")))
+    to_tk.putString(sID("textKey"), contents)
+    to_tk.putList(sID("textStyleRange"), to_range)
+
+    # Apply the updated text key to the target layer
+    apply_text_key(to_layer, to_tk)
