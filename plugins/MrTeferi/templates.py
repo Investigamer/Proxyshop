@@ -1,18 +1,22 @@
 """
 MRTEFERI TEMPLATES
 """
+# Standard Library
 from functools import cached_property
 from typing import Optional, Callable
 
+# Third Party
+from photoshop.api._artlayer import ArtLayer
+
+# Local Imports
+from src.templates import (
+    NormalTemplate,
+    BasicLandTemplate
+)
 from actions import pencilsketch, sketch
-import src.templates as temp
+from src.enums.layers import LAYERS
 from src.settings import cfg
 import src.helpers as psd
-from src.utils.enums_layers import LAYERS
-
-from photoshop.api._artlayer import ArtLayer
-import photoshop.api as ps
-app = ps.Application()
 
 
 """
@@ -20,16 +24,16 @@ NORMAL TEMPLATES
 """
 
 
-class SketchTemplate (temp.NormalTemplate):
+class SketchTemplate (NormalTemplate):
     """
     Sketch showcase from MH2
     Original PSD by Nelynes
     """
     template_suffix = "Sketch"
 
-    @property
-    def name_shifted(self) -> bool:
-        return False
+    """
+    TOGGLE
+    """
 
     @property
     def is_nyx(self) -> bool:
@@ -38,6 +42,10 @@ class SketchTemplate (temp.NormalTemplate):
     @property
     def is_companion(self) -> bool:
         return False
+
+    """
+    SKETCH ACTION
+    """
 
     @property
     def art_action(self) -> Optional[Callable]:
@@ -82,12 +90,16 @@ class SketchTemplate (temp.NormalTemplate):
         }
 
 
-class KaldheimTemplate (temp.NormalTemplate):
+class KaldheimTemplate (NormalTemplate):
     """
     Kaldheim viking legendary showcase.
     Original Template by FeuerAmeise
     """
     template_suffix = "Kaldheim"
+
+    """
+    TOGGLE
+    """
 
     @property
     def is_nyx(self) -> bool:
@@ -96,6 +108,10 @@ class KaldheimTemplate (temp.NormalTemplate):
     @property
     def is_legendary(self) -> bool:
         return False
+
+    """
+    LAYERS
+    """
 
     @property
     def twins_layer(self) -> Optional[ArtLayer]:
@@ -107,12 +123,14 @@ class KaldheimTemplate (temp.NormalTemplate):
 
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
+        # Enable vehicle support
         if "Vehicle" in self.layout.type_line:
             return psd.getLayer("Vehicle", LAYERS.PT_BOX)
         return psd.getLayer(self.twins, LAYERS.PT_BOX)
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
+        # Enable vehicle support
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
         if "Vehicle" in self.layout.type_line:
@@ -120,7 +138,7 @@ class KaldheimTemplate (temp.NormalTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
-class CrimsonFangTemplate (temp.NormalTemplate):
+class CrimsonFangTemplate (NormalTemplate):
     """
     The crimson vow showcase template.
     Original template by michayggdrasil
@@ -128,6 +146,10 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     Transform is kinda experimental.
     """
     template_suffix = "Fang"
+
+    """
+    TOGGLE
+    """
 
     @property
     def is_nyx(self) -> bool:
@@ -141,37 +163,45 @@ class CrimsonFangTemplate (temp.NormalTemplate):
     def background(self):
         return self.pinlines
 
+    """
+    LAYERS
+    """
+
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         # Pinlines
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
-        if self.name_shifted and not self.is_front:
+        if self.is_name_shifted and not self.is_front:
             return psd.getLayer(self.pinlines, "MDFC " + LAYERS.PINLINES_TEXTBOX)
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
     @cached_property
     def transform_icon(self) -> Optional[ArtLayer]:
-        if self.name_shifted and self.is_front:
-            return psd.getLayer("tf-front", self.text_layers)
-        elif self.name_shifted:
-            return psd.getLayer("tf-back", self.text_layers)
+        if self.is_name_shifted and self.is_front:
+            return psd.getLayer("tf-front", self.text_group)
+        elif self.is_name_shifted:
+            return psd.getLayer("tf-back", self.text_group)
         return
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
 
         # Add transform if necessary
-        if self.name_shifted and self.transform_icon:
-            psd.getLayer("Button", self.text_layers).visible = True
+        if self.is_name_shifted and self.transform_icon:
+            psd.getLayer("Button", self.text_group).visible = True
             self.transform_icon.visible = True
 
 
-class PhyrexianTemplate (temp.NormalTemplate):
+class PhyrexianTemplate (NormalTemplate):
     """
     From the Phyrexian secret lair promo
     """
     template_suffix = "Phyrexian"
+
+    """
+    TOGGLE
+    """
 
     @property
     def is_nyx(self) -> bool:
@@ -180,6 +210,10 @@ class PhyrexianTemplate (temp.NormalTemplate):
     @property
     def is_companion(self) -> bool:
         return False
+
+    """
+    LAYERS
+    """
 
     @property
     def twins_layer(self) -> Optional[ArtLayer]:
@@ -190,7 +224,7 @@ class PhyrexianTemplate (temp.NormalTemplate):
         return
 
 
-class DoubleFeatureTemplate (temp.NormalTemplate):
+class DoubleFeatureTemplate (NormalTemplate):
     """
     Midnight Hunt / Vow Double Feature Showcase
     Original assets from Warpdandy's Proximity Template
@@ -198,6 +232,10 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     """
     template_suffix = "Double Feature"
 
+    """
+    TOGGLE
+    """
+
     @property
     def is_nyx(self) -> bool:
         return False
@@ -205,6 +243,10 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
     @property
     def is_companion(self) -> bool:
         return False
+
+    """
+    LAYERS
+    """
 
     @property
     def twins_layer(self) -> Optional[ArtLayer]:
@@ -216,36 +258,7 @@ class DoubleFeatureTemplate (temp.NormalTemplate):
 
     @property
     def background_layer(self) -> Optional[ArtLayer]:
-        return psd.getLayer(self.layout.pinlines, LAYERS.BACKGROUND)
-
-
-class MaleMPCTemplate (temp.NormalTemplate):
-    """
-    MaleMPC's extended black box template.
-    """
-    template_suffix = "Extended Black"
-
-    @cached_property
-    def pinlines_layer_bottom(self) -> Optional[ArtLayer]:
-        if self.is_land:
-            return psd.getLayer(self.pinlines, "Lower Land Pinlines")
-        return psd.getLayer(self.pinlines, "Lower Pinlines")
-
-    def enable_frame_layers(self):
-
-        # Hide pinlines and shadow if legendary
-        super().enable_frame_layers()
-
-        # Lower pinlines
-        self.pinlines_layer_bottom.visible = True
-
-        # Content aware fill
-        psd.content_fill_empty_area(self.art_layer)
-
-    def enable_crown(self):
-        psd.enable_mask(psd.getLayer(LAYERS.SHADOWS))
-        psd.enable_mask(self.pinlines_layer.parent)
-        super().enable_crown()
+        return psd.getLayer(self.pinlines, LAYERS.BACKGROUND)
 
 
 """
@@ -253,7 +266,7 @@ CLASSIC TEMPLATE VARIANTS
 """
 
 
-class ColorshiftedTemplate (temp.NormalTemplate):
+class ColorshiftedTemplate (NormalTemplate):
     """
     Planar Chaos era colorshifted template
     Rendered from CC and MSE assets. Most titleboxes are built into pinlines.
@@ -261,9 +274,29 @@ class ColorshiftedTemplate (temp.NormalTemplate):
     """
     template_suffix = "Shifted"
 
-    def __init__(self, layout):
-        cfg.real_collector = False
-        super().__init__(layout)
+    """
+    TOGGLE
+    """
+
+    @property
+    def is_nyx(self) -> bool:
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        return False
+
+    @property
+    def is_land(self) -> bool:
+        return False
+
+    @property
+    def is_colorless(self) -> bool:
+        return False
+
+    """
+    LAYERS
+    """
 
     @cached_property
     def twins_layer(self) -> Optional[ArtLayer]:
@@ -286,31 +319,20 @@ class ColorshiftedTemplate (temp.NormalTemplate):
             return psd.getLayer(self.twins, LAYERS.PT_BOX)
         return psd.getLayerSet(LAYERS.PT_BOX)
 
-    @property
-    def is_nyx(self) -> bool:
-        return False
+    """
+    METHODS
+    """
 
-    @property
-    def is_companion(self) -> bool:
-        return False
+    def collector_info(self):
+        # Artist and set layer
+        artist_layer = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
-    @property
-    def is_land(self) -> bool:
-        return False
-
-    @property
-    def is_colorless(self) -> bool:
-        return False
-
-    def enable_frame_layers(self):
-
-        # White brush and artist for black border
+        # Switch to white brush and artist name
         if self.layout.pinlines[0:1] == "B" and len(self.pinlines) < 3:
-            psd.getLayer("Artist", self.legal_group).textItem.color = psd.rgb_white()
+            artist_layer.textItem.color = psd.rgb_white()
             psd.getLayer("Brush B", self.legal_group).visible = False
             psd.getLayer("Brush W", self.legal_group).visible = True
-
-        super().enable_frame_layers()
 
 
 """
@@ -318,19 +340,17 @@ BASIC LAND TEMPLATES
 """
 
 
-class BasicLandDarkMode (temp.BasicLandTemplate):
+class BasicLandDarkMode (BasicLandTemplate):
     """
     Basic land Dark Mode
     Credit to Vittorio Masia (Sid)
     """
     template_suffix = "Dark"
 
+    @cached_property
+    def is_content_aware_enabled(self):
+        return True
+
     def collector_info(self):
         # Collector info only has artist
         psd.replace_text(psd.getLayer(LAYERS.ARTIST, self.legal_group), "Artist", self.layout.artist)
-
-    def load_artwork(self):
-        super().load_artwork()
-
-        # Content aware fill
-        psd.content_fill_empty_area(self.art_layer)

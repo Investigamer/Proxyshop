@@ -5,11 +5,6 @@
             "file": "sketch.psd",
             "id": "1LxhqeaFFYBPcEAC1kJ2W94lzeTYry19w"
         },
-        "Male MPC": {
-            "class": "MaleMPCTemplate",
-            "file": "male-mpc.psd",
-            "id": "1YYQpLqZJAHnseNZMX6NLUvqf3jhXQ8wy"
-        },
         "Kaldheim": {
             "class": "KaldheimTemplate",
             "file": "kaldheim.psd",
