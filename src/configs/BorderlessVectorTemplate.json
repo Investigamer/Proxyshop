@@ -1,0 +1,15 @@
+[
+  {
+    "type": "title",
+    "title": "Frame Options"
+  },
+  {
+    "type": "options",
+    "title": "[b]Textbox Size[/b]",
+    "desc": "Governs the height of the textbox. Automatic is considered experimental and may produce inconsistent results until further testing.\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Textbox.Size",
+    "options": ["Tall", "Normal", "Medium", "Short", "Automatic"],
+    "default": "Tall"
+  }
+]

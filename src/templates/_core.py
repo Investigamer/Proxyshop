@@ -466,8 +466,8 @@ class BaseTemplate:
     @cached_property
     def art_reference(self) -> ArtLayer:
         """Reference frame used to scale and position the art layer."""
-        # Check if art provided is vertically oriented
-        if self.is_art_vertical:
+        # Check if art provided is vertically oriented or vertical fullart is enabled on a fullart template
+        if self.is_art_vertical or (self.is_fullart and cfg.vertical_fullart):
             # Check if we have a valid vertical art frame
             if layer := psd.getLayer(self.art_frame_vertical):
                 return layer
@@ -520,7 +520,8 @@ class BaseTemplate:
 
         # Perform content aware fill if needed
         if self.is_content_aware_enabled:
-            psd.content_aware_fill_edges(self.art_layer)
+            action = psd.generative_fill_edges if cfg.generative_fill else psd.content_aware_fill_edges
+            action(self.art_layer)
 
     def paste_scryfall_scan(
         self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
@@ -1186,9 +1187,7 @@ class NormalTemplate (StarterTemplate):
             self.enable_crown()
 
     def enable_crown(self) -> None:
-        """
-        Enable the Legendary crown
-        """
+        """Enable the Legendary crown."""
         self.crown_layer.visible = True
         if isinstance(self.border_group, LayerSet):
             # Swap Normal border for Legendary border
@@ -1204,9 +1203,7 @@ class NormalTemplate (StarterTemplate):
                 self.companion_layer.visible = True
 
     def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
-        """
-        Enable the hollow legendary crown for this card given layer groups for the crown and pinlines.
-        """
+        """Enable the hollow legendary crown."""
         if not shadows:
             shadows = psd.getLayer(LAYERS.SHADOWS)
         psd.enable_mask(self.crown_layer.parent)
@@ -1242,14 +1239,14 @@ class NormalVectorTemplate (NormalTemplate):
     @cached_property
     def pinlines_action(self) -> Union[psd.create_color_layer, psd.create_gradient_layer]:
         """Function to call to generate pinline colors. Usually to generate a solid color or gradient layer."""
-        return psd.create_color_layer if isinstance(self.pinlines_colors[0], int) else psd.create_gradient_layer
+        return psd.create_color_layer if isinstance(self.pinlines_colors, SolidColor) else psd.create_gradient_layer
 
     """
     COLORS
     """
 
     @cached_property
-    def pinlines_colors(self) -> Optional[list[Union[int, dict]]]:
+    def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(self.pinlines)
 
@@ -1306,6 +1303,11 @@ class NormalVectorTemplate (NormalTemplate):
     def crown_group(self) -> LayerSet:
         """Group containing Legendary Crown texture layers."""
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN)
+
+    @cached_property
+    def pt_group(self) -> Optional[LayerSet]:
+        """Group containing PT Box texture layers."""
+        return psd.getLayerSet(LAYERS.PT_BOX)
 
     @cached_property
     def mask_group(self) -> Optional[LayerSet]:
@@ -1369,10 +1371,9 @@ class NormalVectorTemplate (NormalTemplate):
             self.color_indicator_layer.visible = True
 
         # Generate a solid color or gradient layer for each pinline group
-        for group in self.pinlines_groups:
-            if group:
-                group.visible = True
-                self.pinlines_action(self.pinlines_colors, group)
+        for group in [g for g in self.pinlines_groups if g]:
+            group.visible = True
+            self.pinlines_action(self.pinlines_colors, group)
 
         # Twins, supports color blending
         if self.twins_group:

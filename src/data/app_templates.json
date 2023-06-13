@@ -52,6 +52,11 @@
             "file": "borderless.psd",
             "id": "1GiW4rXSOznj7BJut0rTM3L9cZwSGXa1t"
         },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd",
+            "id": "1gMCdUO5NILN4nnAzXR6SyVNmqlVXS54N"
+        },
         "Miracle": {
             "class": "MiracleTemplate",
             "file": "miracle.psd",
@@ -86,6 +91,10 @@
         "Universes Beyond": {
             "class": "UniversesBeyondTemplate",
             "file": "universes-beyond.psd"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "transform_back": {
@@ -101,6 +110,10 @@
         "Universes Beyond": {
             "class": "UniversesBeyondTemplate",
             "file": "universes-beyond.psd"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "mdfc_front": {

@@ -6,15 +6,17 @@ from functools import cached_property
 from typing import Optional, Union
 
 # Third Party Imports
-from photoshop.api import AnchorPosition
+from photoshop.api import AnchorPosition, SolidColor, ElementPlacement
 from photoshop.api._layerSet import ArtLayer, LayerSet
 
 # Local Imports
+from src.helpers import get_line_count
 from src.templates._core import (
     StarterTemplate,
     NormalTemplate,
     NormalEssentialsTemplate,
-    DynamicVectorTemplate, NormalVectorTemplate
+    DynamicVectorTemplate,
+    NormalVectorTemplate
 )
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
@@ -476,7 +478,7 @@ class EtchedTemplate (NormalVectorTemplate):
     """
 
     @cached_property
-    def pinlines_colors(self) -> Optional[list[Union[int, dict]]]:
+    def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         # Use Artifact color even for colored artifacts
         if self.is_artifact:
             return psd.get_pinline_gradient(LAYERS.ARTIFACT)
@@ -555,7 +557,7 @@ class ClassicRemasteredTemplate (DynamicVectorTemplate):
         return self.layout.background
 
     @cached_property
-    def pinlines_colors(self) -> Optional[list[Union[int, dict]]]:
+    def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         # Only apply pinlines for lands and artifacts
         if self.is_land or self.is_artifact:
             if not self.identity or len(self.identity) >= self.color_limit:
@@ -751,7 +753,7 @@ class UniversesBeyondTemplate (DynamicVectorTemplate):
         }
 
     @cached_property
-    def crown_colors(self) -> Optional[list[Union[int, dict]]]:
+    def crown_colors(self) -> Union[SolidColor, list[dict]]:
         # Use Solid Color or Gradient adjustment layer for colors
         return psd.get_pinline_gradient(self.pinlines, color_map=self.crown_color_map)
 
@@ -811,7 +813,6 @@ class UniversesBeyondTemplate (DynamicVectorTemplate):
         self.pinlines_action(self.pinlines_colors, self.crown_group)
 
         # Enable Legendary pinline connector
-        print(type(self.pinlines_shape.parent))
         psd.getLayerSet(LAYERS.LEGENDARY, self.pinlines_shape.parent).visible = True
 
 
@@ -858,22 +859,18 @@ class LOTRTemplate (NormalVectorTemplate):
         }
 
     @cached_property
-    def twins_colors(self) -> Optional[list[Union[int, dict]]]:
+    def twins_colors(self) -> Union[SolidColor, list[dict]]:
         # Use Solid Color or Gradient adjustment layer for colors
         return psd.get_pinline_gradient(self.twins, color_map=self.dark_color_map)
 
     @cached_property
-    def pt_colors(self) -> Optional[list[Union[int, dict]]]:
+    def pt_colors(self) -> Union[SolidColor, list[dict]]:
         # Use Solid Color or Gradient adjustment layer for colors
         return psd.get_pinline_gradient(self.twins, color_map=self.dark_color_map)
 
     """
     GROUPS
     """
-
-    @cached_property
-    def pt_group(self) -> Optional[LayerSet]:
-        return psd.getLayerSet(LAYERS.PT_BOX)
 
     @cached_property
     def pinlines_groups(self) -> list[LayerSet]:
@@ -919,3 +916,333 @@ class LOTRTemplate (NormalVectorTemplate):
         # Background layer, supports color blending
         if self.background_group:
             self.create_blended_layer(group=self.background_group, colors=self.pinlines)
+
+
+class BorderlessVectorTemplate (DynamicVectorTemplate):
+    """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
+    template_suffix = "Borderless"
+
+    """
+    DETAILS
+    """
+
+    @cached_property
+    def size(self) -> str:
+        """Layer name associated with the size of the textbox."""
+        size = str(cfg.get_setting(
+            section="FRAME",
+            key="Textbox.Size",
+            default="Tall",
+            is_bool=False
+        ))
+        if size == "Automatic":
+            # Set up our test layer and test text
+            test_layer = psd.getLayer(self.text_layer_rules_name, [self.text_group, "Tall"])
+            test_text = self.layout.oracle_text
+            if self.layout.flavor_text:
+                test_text += f'\r{self.layout.flavor_text}'
+            test_layer.textItem.contents = test_text.replace('\n', '\r')
+
+            # Get the number of lines in our test text and decide what size
+            num = get_line_count(test_layer)
+            if num < 5:
+                return "Short"
+            if num < 6:
+                return "Medium"
+            if num < 7:
+                return "Normal"
+            return "Tall"
+        return size
+
+    @cached_property
+    def type(self) -> str:
+        """Layer name associated with the frame type."""
+        if self.is_transform and self.is_front:
+            return LAYERS.TRANSFORM_FRONT
+        if self.is_transform:
+            return LAYERS.TRANSFORM_BACK
+        return LAYERS.NORMAL
+
+    @cached_property
+    def mask(self) -> str:
+        """Layer name associated with the overall frame mask."""
+        if self.is_transform:
+            return f"{self.size} {self.type}"
+        return self.size
+
+    @cached_property
+    def art_frame(self) -> str:
+        # Use different positioning based on textbox size
+        return f"{LAYERS.ART_FRAME} {self.size}"
+
+    @cached_property
+    def twins_action(self) -> Union[psd.create_color_layer, psd.create_gradient_layer]:
+        """Function to call to generate twins colors. Hybrid cards allow dual color twins."""
+        return psd.create_color_layer if isinstance(self.twins_colors, SolidColor) else psd.create_gradient_layer
+
+    """
+    TOGGLE
+    """
+
+    @property
+    def is_fullart(self) -> bool:
+        return True
+
+    @property
+    def is_content_aware_enabled(self) -> bool:
+        return True
+
+    """
+    COLORS
+    """
+
+    @cached_property
+    def dark_color_map(self) -> dict:
+        return {
+            'W': "958676",
+            'U': "13699d",
+            'B': "332f2c",
+            'R': "a7493c",
+            'G': "2f572c",
+            'Gold': "8d7b48",
+            'Land': "7c6a57",
+            'Artifact': "5d6b73",
+            'Colorless': "686767"
+        }
+
+    @cached_property
+    def crown_color_map(self) -> dict:
+        return {
+            'W': "f8f4f0",
+            'U': "006dae",
+            'B': "393431",
+            'R': "de3c23",
+            'G': "006d42",
+            'Gold': "efd16b",
+            'Land': "a59684",
+            'Artifact': "b5c5cd",
+            'Colorless': "d6d6dc"
+        }
+
+    @cached_property
+    def twins_colors(self) -> Union[SolidColor, list[dict]]:
+        # Use Solid Color or Gradient adjustment layer for Twins colors
+        return psd.get_pinline_gradient(
+            # Use right-half color on Twins for hybrid
+            self.pinlines[1] if self.is_hybrid else self.twins,
+            color_map=self.dark_color_map
+        )
+
+    @cached_property
+    def pt_colors(self) -> Union[SolidColor, list[dict]]:
+        # Use Solid Color or Gradient adjustment layer for PT colors
+        return psd.get_pinline_gradient(
+            # Use right-half color on PT for hybrid
+            self.pinlines[1] if self.is_hybrid else self.twins,
+            color_map=self.dark_color_map
+        )
+
+    @cached_property
+    def textbox_colors(self) -> Union[SolidColor, list[dict]]:
+        # Use Solid Color or Gradient adjustment layer for Textbox colors
+        return psd.get_pinline_gradient(self.pinlines, color_map=self.dark_color_map)
+
+    @cached_property
+    def crown_colors(self) -> Union[SolidColor, list[dict]]:
+        # Use Solid Color or Gradient adjustment layer for Crown colors
+        return psd.get_pinline_gradient(self.pinlines, color_map=self.crown_color_map)
+
+    """
+    GROUPS
+    """
+
+    @cached_property
+    def crown_group(self) -> LayerSet:
+        # Need to get the inner group so textured overlay can be applied above the colors
+        return psd.getLayerSet(LAYERS.LEGENDARY_CROWN, LAYERS.LEGENDARY_CROWN)
+
+    """
+    TEXT LAYERS
+    """
+
+    @cached_property
+    def text_layer_rules_name(self) -> str:
+        """Calculate the name of this layer separately, so we can use it for automatic textbox sizing."""
+        if self.is_creature:
+            # Is a creature, Flipside P/T?
+            return LAYERS.RULES_TEXT_CREATURE_FLIP if (
+                    self.is_transform and self.is_flipside_creature
+            ) else LAYERS.RULES_TEXT_CREATURE
+
+        # Not a creature, Flipside P/T?
+        self.text_layer_pt.opacity = 0
+        return LAYERS.RULES_TEXT_NONCREATURE_FLIP if (
+                self.is_transform and self.is_flipside_creature
+        ) else LAYERS.RULES_TEXT_NONCREATURE
+
+    @cached_property
+    def text_layer_rules(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.text_layer_rules_name, [self.text_group, self.size])
+
+    """
+    REFERENCES
+    """
+
+    @cached_property
+    def textbox_reference(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.size, [self.text_group, LAYERS.TEXTBOX_REFERENCE])
+
+    """
+    VECTOR SHAPES
+    """
+
+    @cached_property
+    def textbox_shape(self) -> Optional[LayerSet]:
+        # Enable TF Front addition if required
+        if self.is_transform and self.is_front:
+            psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.textbox_group, LAYERS.SHAPE]).visible = True
+        return psd.getLayer(self.size, [self.textbox_group, LAYERS.SHAPE])
+
+    @cached_property
+    def pinlines_shapes(self) -> list[Union[ArtLayer, LayerSet]]:
+        # Enable TF Front addition if required
+        if self.is_transform and self.is_front:
+            psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX]).visible = True
+        # Shape for card name, typeline, and textbox pinline
+        return [
+            psd.getLayerSet(
+                LAYERS.NORMAL if not self.is_transform else LAYERS.TRANSFORM,
+                [self.pinlines_group, LAYERS.SHAPE, LAYERS.NAME]
+            ),
+            psd.getLayer(self.size, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TYPE_LINE]),
+            psd.getLayer(self.size, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX])
+        ]
+
+    @cached_property
+    def twins_shapes(self) -> list[Union[ArtLayer, LayerSet]]:
+        # Card Name and Typeline box
+        return [
+            psd.getLayer(
+                LAYERS.NORMAL if not self.is_transform else LAYERS.TRANSFORM,
+                [self.twins_group, LAYERS.SHAPE, LAYERS.NAME]
+            ),
+            psd.getLayer(self.size, [self.twins_group, LAYERS.SHAPE, LAYERS.TYPE_LINE])
+        ]
+
+    """
+    MASKS
+    """
+
+    @cached_property
+    def border_mask(self) -> Optional[ArtLayer]:
+        if self.is_transform and self.is_front:
+            return psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.mask_group, LAYERS.BORDER])
+        return
+
+    @cached_property
+    def pinlines_mask(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.mask, [self.mask_group, LAYERS.PINLINES])
+
+    """
+    ADJUSTMENTS
+    """
+
+    @cached_property
+    def back_adjustment_layer(self) -> ArtLayer:
+        """Adjustment layer that darkens layers for the back side of double faced cards."""
+        return psd.getLayer(LAYERS.BACK, LAYERS.EFFECTS)
+
+    """
+    METHODS
+    """
+
+    def enable_frame_layers(self) -> None:
+
+        # Generate a solid color or gradient layer for PT Box
+        if self.is_creature and self.pt_group:
+            self.pt_group.visible = True
+            psd.create_color_layer(self.pt_colors, self.pt_group)
+
+        # Color Indicator, doesn't natively support color blending
+        if self.is_type_shifted and self.color_indicator_layer:
+            self.color_indicator_layer.visible = True
+
+        # Generate a solid color or gradient layer for each pinline group
+        for group in [g for g in self.pinlines_groups if g]:
+            group.visible = True
+            self.pinlines_action(self.pinlines_colors, group)
+
+        # Generate a solid color or gradient layer for Twins
+        if self.twins_group:
+            self.twins_action(self.twins_colors, self.twins_group)
+
+        # Generate a solid color or gradient layer for Twins
+        if self.textbox_group:
+            self.pinlines_action(self.textbox_colors, self.textbox_group)
+
+        # Legendary crown
+        if self.is_legendary:
+            self.enable_crown()
+
+        # Border mask
+        if self.border_mask:
+            psd.copy_layer_mask(self.border_mask, self.border_group)
+
+        # Twins Shape
+        for shape in self.twins_shapes:
+            shape.visible = True
+
+        # Pinlines Shape
+        for shape in self.pinlines_shapes:
+            shape.visible = True
+        psd.copy_layer_mask(self.pinlines_mask, self.pinlines_group)
+        psd.apply_mask_to_layer_fx(self.pinlines_group)
+
+        # Textbox Shape
+        if self.textbox_shape:
+            self.textbox_shape.visible = True
+
+        # Add Transform related layers
+        if self.is_transform:
+            self.enable_transform_layers()
+
+    def post_text_layers(self) -> None:
+
+        # Align the typeline, expansion symbol, and color indicator on the type bar
+        psd.disable_layer_fx(self.text_layer_type)
+        psd.align_vertical(self.text_layer_type, self.pinlines_shapes[1])
+        psd.enable_layer_fx(self.text_layer_type)
+        psd.align_vertical(self.expansion_symbol_layer, self.pinlines_shapes[1])
+        if self.is_type_shifted and self.color_indicator_layer:
+            psd.align_vertical(self.color_indicator_layer, self.pinlines_shapes[1])
+        self.docref.selection.deselect()
+
+    def enable_crown(self) -> None:
+
+        # Enable Legendary Crown group and layers
+        self.crown_group.visible = True
+        self.pinlines_action(self.crown_colors, self.crown_group)
+        psd.enable_vector_mask(self.pinlines_group)
+        psd.copy_layer_mask(self.pinlines_mask, self.crown_group.parent)
+
+    def enable_transform_layers(self):
+
+        # Enable transform icon and circle backing
+        psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
+        self.transform_icon.visible = True
+
+        # Enable backside brightness shift
+        if not self.is_front:
+
+            # Add effect for textbox
+            textbox_adj = self.back_adjustment_layer.duplicate(self.textbox_group, ElementPlacement.PlaceInside)
+            textbox_adj.grouped = True
+
+            # Add effect for twins
+            twins_adj = self.back_adjustment_layer.duplicate(self.twins_group, ElementPlacement.PlaceInside)
+            twins_adj.grouped = True
+
+            # Add effect for PT Box
+            if self.is_creature:
+                pt_adj = self.back_adjustment_layer.duplicate(self.pt_group, ElementPlacement.PlaceInside)
+                pt_adj.grouped = True
