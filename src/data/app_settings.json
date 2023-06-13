@@ -115,6 +115,22 @@
     "default": 1
   },
   {
+    "type": "bool",
+    "title": "[b]Enable Generative Fill[/b]",
+    "desc": "When enabled, fullart and extended templates will fill empty space using Generative Fill instead of Content Aware Fill. This feature will not work unless running the Photoshop BETA version.\n[b](Default: False)[/b]",
+    "section": "APP.RENDER",
+    "key": "Generative.Fill",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Always use vertical framing on Fullart Templates[/b]",
+    "desc": "When enabled, Fullart templates will frame all art using the vertical 'fullart' frame, even when horizontal art is provided. \n[b](Default: False)[/b]",
+    "section": "APP.RENDER",
+    "key": "Vertical.Fullart",
+    "default": 0
+  },
+  {
     "type": "title",
     "title": "System Settings"
   },

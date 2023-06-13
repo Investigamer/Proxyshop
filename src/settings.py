@@ -48,6 +48,8 @@ class Config:
 		self.render_snow = self.file.getboolean('APP.RENDER', 'Render.Snow')
 		self.render_miracle = self.file.getboolean('APP.RENDER', 'Render.Miracle')
 		self.render_basic = self.file.getboolean('APP.RENDER', 'Render.Basic')
+		self.generative_fill = self.file.getboolean('APP.RENDER', 'Generative.Fill')
+		self.vertical_fullart = self.file.getboolean('APP.RENDER', 'Vertical.Fullart')
 
 		# APP - SYSTEM
 		self.refresh_plugins = self.file.getboolean('APP.SYSTEM', 'Refresh.Plugins')
