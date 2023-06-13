@@ -5,14 +5,24 @@ DESIGN HELPERs
 from typing import Optional
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, RasterizeType, ActionReference, BlendMode, SolidColor
+from photoshop.api import (
+    DialogModes,
+    ActionDescriptor,
+    RasterizeType,
+    ActionReference,
+    BlendMode,
+    SolidColor,
+    ElementPlacement,
+    SaveOptions
+)
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
 
 
 # Local Imports
 from src.constants import con
-from src.helpers.layers import select_layer_pixels
-from src.helpers.colors import rgb_black
+from src.helpers.layers import select_layer_pixels, select_layers, smart_layer, edit_smart_layer
+from src.helpers.colors import rgb_black, fill_layer_primary
 from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
@@ -72,9 +82,7 @@ def fill_empty_area(reference: ArtLayer, color: Optional[SolidColor] = None) -> 
 
 def content_aware_fill_edges(layer: Optional[ArtLayer] = None) -> None:
     """
-    Helper function intended to streamline the workflow of making extended art cards.
-    This script rasterizes the active layer and fills all empty pixels in the canvas
-    on the layer using content-aware fill.
+    Rasterizes a given layer (or active layer) and fills remaining pixels using content-aware fill.
     @param layer: Layer to use for the content aware fill. Uses active if not provided.
     """
     # Set active layer if needed, then rasterize
@@ -99,12 +107,87 @@ def content_aware_fill_edges(layer: Optional[ArtLayer] = None) -> None:
     selection.smooth(4)
 
     # Content aware fill
+    content_aware_fill()
+    selection.deselect()
+
+
+def content_aware_fill() -> None:
+    """Fills the current selection using content aware fill."""
     desc = ActionDescriptor()
     desc.putEnumerated(sID("using"), sID("fillContents"), sID("contentAware"))
     desc.putUnitDouble(sID("opacity"), sID("percentUnit"), 100)
     desc.putEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
     app.executeAction(sID("fill"), desc, NO_DIALOG)
+
+
+def generative_fill_edges(layer: Optional[ArtLayer] = None) -> None:
+    """
+    Rasterizes a given layer (or active layer) and fills remaining pixels using AI powered generative fill.
+    @param layer: Layer to use for the generative fill. Uses active if not provided.
+    """
+    # Set active layer if needed, then rasterize
+    docref: Document = app.activeDocument
+    if layer:
+        docref.activeLayer = layer
+    else:
+        layer = docref.activeLayer
+    docref.activeLayer.rasterize(RasterizeType.EntireLayer)
+
+    # Create a fill layer the size of the document
+    fill_layer: ArtLayer = docref.artLayers.add()
+    fill_layer.move(layer, ElementPlacement.PlaceAfter)
+    fill_layer_primary()
+    fill_layer.opacity = 0
+    select_layers([layer, fill_layer])
+    smart = smart_layer()
+    edit_smart_layer(smart)
+
+    # Select pixels of active layer and invert
+    docref = app.activeDocument
+    select_layer_pixels(docref.activeLayer)
+    selection = docref.selection
+    selection.invert()
+
+    # Guard against no selection made
+    try:
+        _ = selection.bounds
+    except PS_EXCEPTIONS:
+        return
+
+    # Expand and smooth selection
+    selection.expand(8)
+    selection.smooth(4)
+
+    # Call Generative fill
+    generative_fill()
     selection.deselect()
+    docref.close(SaveOptions.SaveChanges)
+
+
+def generative_fill() -> None:
+    """Call Photoshop's AI powered "Generative Fill" on the current selection."""
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    desc3 = ActionDescriptor()
+    ref1.putEnumerated(sID("document"), sID("ordinal"), sID("targetEnum"))
+    desc1.putReference(sID("target"), ref1)
+    desc1.putString(sID("prompt"), """""")
+    desc1.putString(sID("serviceID"), """clio""")
+    desc1.putEnumerated(sID("mode"), sID("syntheticFillMode"), sID("inpaint"))
+    desc3.putString(sID("gi_PROMPT"), """""")
+    desc3.putString(sID("gi_MODE"), """ginp""")
+    desc3.putInteger(sID("gi_SEED"), -1)
+    desc3.putInteger(sID("gi_NUM_STEPS"), -1)
+    desc3.putInteger(sID("gi_GUIDANCE"), 6)
+    desc3.putInteger(sID("gi_SIMILARITY"), 0)
+    desc3.putBoolean(sID("gi_CROP"), False)
+    desc3.putBoolean(sID("gi_DILATE"), False)
+    desc3.putInteger(sID("gi_CONTENT_PRESERVE"), 0)
+    desc3.putBoolean(sID("gi_ENABLE_PROMPT_FILTER"), True)
+    desc2.putObject(sID("clio"), sID("clio"), desc3)
+    desc1.putObject(sID("serviceOptionsList"), sID("target"), desc2)
+    app.Executeaction(sID("syntheticFill"), desc1, NO_DIALOG)
 
 
 def repair_edges(edge: int = 6) -> None:
