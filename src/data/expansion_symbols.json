@@ -83,6 +83,7 @@
     "DD2": "",
     "CON": "",
     "DDC": "",
+    "DVD": "",
     "ARB": "",
     "M10": [
         {
@@ -483,7 +484,9 @@
             "fill": "black",
             "common-fill": "black",
             "common-color": "white",
-            "common-stroke": ["black", 6]
+            "common-stroke": {
+                "color": "black"
+            }
         }
     ],
     "CM2": [
@@ -670,9 +673,14 @@
         {
             "char": "",
             "fill": "white",
-            "stroke": ["black", 4],
+            "stroke": {
+                "weight": 4
+            },
             "common-fill": "white",
-            "common-stroke": ["black", 4]
+            "common-stroke": {
+                "common": "black",
+                "weight": 4
+            }
         },
         {
             "char": "",
@@ -807,9 +815,13 @@
         {
             "char": "",
             "fill": "white",
-            "stroke": ["black", 4],
+            "stroke": {
+                "weight": 4
+            },
             "common-fill": "white",
-            "common-stroke": ["white", 4],
+            "common-stroke": {
+                "weight": 4
+            },
             "gradient": {
                 "rotation": 0,
                 "scale": 100
@@ -839,6 +851,8 @@
     "SLX": "SLD",
     "SLC": "SLD",
     "SLU": "SLD",
+    "HTR": "SLD",
+    "HTR17": "SLD",
     "BCORE": "\uE612",
     "OVNT": "SLD",
     "J21": "",
@@ -851,8 +865,9 @@
         {
             "char": "",
             "rarity": false,
-            "stroke": ["black", 4],
-            "common-stroke": ["black", 6],
+            "common-stroke": {
+                "color": "black"
+            },
             "common-color": "white"
         }
     ],
@@ -956,9 +971,10 @@
             "char": "",
             "rarity": false,
             "color": "white",
-            "stroke": ["black", 6],
             "common-color": "white",
-            "common-stroke": ["black", 6]
+            "common-stroke": {
+                "color": "black"
+            }
         },
         {
             "char": ""
@@ -971,7 +987,10 @@
             "color": "white",
             "stroke": false,
             "common-color": "white",
-            "common-stroke": ["black", 3]
+            "common-stroke": {
+                "color": "black",
+                "weight": 3
+            }
         },
         {
             "char": "",
@@ -1029,7 +1048,9 @@
         },
         {
             "char": "",
-            "stroke": ["white", 6],
+            "stroke": {
+                "color": "white"
+            },
             "rarity": false,
             "fill": false,
             "common-fill": false
@@ -1045,8 +1066,9 @@
         },
         {
             "char": "",
-            "stroke": ["white", 6],
-            "common-stroke": ["white", 6],
+            "stroke": {
+                "color": "white"
+            },
             "rarity": false
         }
     ],
@@ -1099,9 +1121,7 @@
                 "style": "in"
             },
             "common-stroke": {
-                "color": "white",
-                "weight": 6,
-                "style": "out"
+                "color": "white"
             }
         },
         {
@@ -1109,9 +1129,7 @@
             "rarity": false,
             "stroke": false,
             "common-stroke": {
-                "color": "white",
-                "weight": 6,
-                "style": "outside"
+                "color": "white"
             }
         },
         {
@@ -1119,12 +1137,10 @@
             "rarity": false,
             "stroke": {
                 "color": "black",
-                "weight": 6,
                 "style": "center"
             },
             "common-stroke": {
                 "color": "white",
-                "weight": 6,
                 "style": "center"
             }
         }
@@ -1166,8 +1182,13 @@
             "char": "",
             "fill": "white",
             "common-fill": "white",
-            "stroke": ["white", 4],
-            "common-stroke": ["white", 4]
+            "stroke": {
+                "color": "white",
+                "weight": 4
+            },
+            "common-stroke": {
+                "weight": 4
+            }
         }
     ],
     "MOM": "",
@@ -1176,8 +1197,9 @@
             "char": "\uEA63",
             "color": "white",
             "common-color": "white",
-            "stroke": ["black", 6],
-            "common-stroke": ["black", 6],
+            "common-stroke": {
+                "color": "black"
+            },
             "rarity": false
         },
         {
@@ -1200,8 +1222,12 @@
     "LTR": [
         {
             "char": "\uEA65",
-            "stroke": ["black", 4],
-            "common-stroke": ["white", 4],
+            "stroke": {
+                "weight": 4
+            },
+            "common-stroke": {
+                "weight": 4
+            },
             "gradient": {
                 "rotation": 135,
                 "scale": 100,
@@ -1232,8 +1258,12 @@
         },
         {
             "char": "\uEA64",
-            "stroke": ["black", 4],
-            "common-stroke": ["white", 4],
+            "stroke": {
+                "weight": 4
+            },
+            "common-stroke": {
+                "weight": 4
+            },
             "fill": "black",
             "common-fill": "white"
         }
@@ -1263,8 +1293,12 @@
         },
         {
             "char": "",
-            "stroke": ["black", 1],
-            "common-stroke": ["white", 1],
+            "stroke": {
+                "weight": 1
+            },
+            "common-stroke": {
+                "weight": 1
+            },
             "rarity": false
         }
     ],
