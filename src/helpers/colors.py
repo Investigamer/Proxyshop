@@ -19,6 +19,22 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 """
+CONVERTING COLOR
+"""
+
+
+def hex_to_rgb(color: str) -> list[int]:
+    """
+    Convert a hexadecimal color code into RGB values.
+    @param color: Hexadecimal color code, e.g. #F5D676
+    @return: Color in RGB list notation.
+    """
+    if '#' in color:
+        color = color[1:]
+    return [int(color[i:i+2], 16) for i in (0, 2, 4)]
+
+
+"""
 GETTING COLOR
 """
 
@@ -101,6 +117,8 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
             # Named color
             if color in con.colors:
                 return get_color(con.colors[color])
+            # Hexadecimal
+            return get_rgb(*hex_to_rgb(color))
         if isinstance(color, list):
             # List notation
             if len(color) == 3:
@@ -153,11 +171,11 @@ def apply_cmyk(action: ActionDescriptor, color: SolidColor) -> None:
     @param color: SolidColor object matching CMYK model.
     """
     ad = ActionDescriptor()
-    ad.putDouble(cID("Cyn "), color.cmyk.cyan)
-    ad.putDouble(cID("Mgnt"), color.cmyk.magenta)
-    ad.putDouble(cID("Ylw "), color.cmyk.yellow)
-    ad.putDouble(cID("Blck"), color.cmyk.black)
-    action.putObject(cID("Clr "), cID("CMYC"), ad)
+    ad.putDouble(sID("cyan"), color.cmyk.cyan)
+    ad.putDouble(sID("magenta"), color.cmyk.magenta)
+    ad.putDouble(cID("yellowColor"), color.cmyk.yellow)
+    ad.putDouble(cID("black"), color.cmyk.black)
+    action.putObject(sID("color"), sID("CMYKColorClass"), ad)
 
 
 def apply_color(action: ActionDescriptor, color: SolidColor) -> None:
@@ -194,7 +212,14 @@ def add_color_to_gradient(
     action_list.putObject(sID("colorStop"), action)
 
 
-def get_pinline_gradient(colors: str, color_map: Optional[dict] = None) -> list[dict]:
+def fill_layer_primary():
+    """Fill active layer using foreground color."""
+    desc1 = ActionDescriptor()
+    desc1.putEnumerated(sID("using"), sID("fillContents"), sID("foregroundColor"))
+    app.executeAction(sID("fill"), desc1, NO_DIALOG)
+
+
+def get_pinline_gradient(colors: str, color_map: Optional[dict] = None) -> Union[SolidColor, list[dict]]:
     """
     Return a gradient color list notation for some given pinline colors.
     @param colors: Pinline colors to produce a gradient.
@@ -207,37 +232,37 @@ def get_pinline_gradient(colors: str, color_map: Optional[dict] = None) -> list[
 
     # Return our colors
     if not colors:
-        return color_map.get('Artifact', [0, 0, 0])
+        return get_color(color_map.get('Artifact', [0, 0, 0]))
     if len(colors) == 1:
-        return color_map.get(colors, [0, 0, 0])
+        return get_color(color_map.get(colors, [0, 0, 0]))
     if len(colors) == 2:
         return [
             {
-                'color': color_map.get(colors[0], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
                 'location': 1638, 'midpoint': 50
             },
             {
-                'color': color_map.get(colors[1], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
                 'location': 2458, 'midpoint': 50,
             }
         ]
     if len(colors) == 3:
         return [
             {
-                'color': color_map.get(colors[0], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
                 'location': 1065, 'midpoint': 50
             },
             {
-                'color': color_map.get(colors[1], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
                 'location': 1475, 'midpoint': 50
             },
             {
-                'color': color_map.get(colors[1], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
                 'location': 2621, 'midpoint': 50
             },
             {
-                'color': color_map.get(colors[2], [0, 0, 0]),
+                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
                 'location': 3031, 'midpoint': 50
             }
         ]
-    return color_map.get(colors, [0, 0, 0])
+    return get_color(color_map.get(colors, [0, 0, 0]))
