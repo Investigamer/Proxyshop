@@ -220,6 +220,17 @@ def smart_layer(layer: Union[ArtLayer, LayerSet] = None) -> ArtLayer:
     return app.activeDocument.activeLayer
 
 
+def edit_smart_layer(layer: ArtLayer):
+    """
+    Opens the contents of a given smart layer (as a separate document) for editing.
+    @param layer: Smart layer to open for editing.
+    """
+    desc1 = ActionDescriptor()
+    desc1.putInteger(sID("documentID"), app.activeDocument.id)
+    desc1.putInteger(sID("layerID"), layer.id)
+    app.executeAction(sID("placedLayerEditContents"), desc1, NO_DIALOG)
+
+
 """
 LAYER LOCKING
 """
@@ -324,9 +335,9 @@ def select_layer_bounds(layer: ArtLayer = None):
     ])
 
 
-def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
+def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
     """
-    Select pixels of the active layer.
+    Select pixels of the active layer, or a target layer.
     @param layer: Layer to select. Uses active layer if not provided.
     """
     des1 = ActionDescriptor()
@@ -339,3 +350,22 @@ def select_layer_pixels(layer: Optional[ArtLayer]) -> None:
         ref2.putIdentifier(sID("layer"), layer.id)
     des1.putReference(sID("to"), ref2)
     app.executeAction(sID("set"), des1, NO_DIALOG)
+
+
+def select_vector_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
+    """
+    Select pixels of the active vector layer, or a target layer.
+    @param layer: Layer to select. Uses active layer if not provided.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref1.putProperty(sID("channel"), sID("selection"))
+    desc1.putReference(sID("target"), ref1)
+    ref2.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
+    if layer:
+        ref2.putIdentifier(sID("layer"), layer.id)
+    desc1.putReference(sID("to"), ref2)
+    desc1.putInteger(sID("version"), 1)
+    desc1.putBoolean(sID("vectorMaskParams"), True)
+    app.executeaction(sID("set"), desc1, NO_DIALOG)
