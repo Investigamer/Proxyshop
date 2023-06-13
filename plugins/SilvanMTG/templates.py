@@ -22,23 +22,27 @@ class SilvanExtendedTemplate (ExtendedTemplate):
 
     @property
     def background_layer(self) -> Optional[ArtLayer]:
+
         # Background
         if self.is_nyx:
             return psd.getLayer(self.background, LAYERS.NYX)
-        if self.background == "Colorless":
+        if self.background == LAYERS.COLORLESS:
             return
         return psd.getLayer(self.background, LAYERS.BACKGROUND)
 
     def enable_crown(self) -> None:
+
         # Add background mask
         super().enable_crown()
         psd.enable_mask(self.background_layer.parent)
 
     def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
+
         # Mask shadows overlaying hollow crown
-        super().enable_hollow_crown()
-        if shadows := psd.getLayer("Shadows Light", "Shadows"):
-            psd.enable_mask(shadows)
+        psd.enable_mask(self.crown_layer.parent)
+        psd.enable_mask(self.pinlines_layer.parent)
+        psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW).visible = True
+        psd.enable_mask(psd.getLayer("Shadows Light", LAYERS.SHADOWS))
 
 
 """
