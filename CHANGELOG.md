@@ -1,3 +1,67 @@
+## v1.9.0 (2023-06-13)
+
+### Feat
+
+- **templates**: New Template: Borderless Vector, our most advanced template yet
+- **settings**: Added Generative Fill setting that replaces content aware fill when supported, and Vertical Fullart which forces Fullart templates to always use vertical framing
+- **GUI**: Added new "Tools" tab, for various app utilities
+- **templates**: New templates: ClassicRemastered (credit to iDerp), Etched (credit to Warpdandy, Kyle of CC, and myself), Lord of the Rings (credit to Tupinambá). Updated Normal Fullart, Stargazing, and Universes Beyond. Renamed WomensDay -> Borderless, NormalClassic -> Classic, NormalExtended -> Extended, NormalFullart -> Fullart
+- **templates**: Separated templates.py into full templates module, delineated by template types. Added new utility template classes: NormalEssentials, NormalVectorTemplate, and DynamicVectorTemplate
+- **setting**: Added new setting: Collector Mode, changes how collector info is rendered. Also added get_option for processing valid multi-choice options
+- **templates**: New templates: Etched and Classic Remastered
+
+### Fix
+
+- **divider**: Improved positioning of flavor divider when layer effects are present
+- **constants**: Update Photoshop refreshing mechanism to avoid more error conditions, added new module for tracking MTG related constants like rarities
+- **SilvanExtendedTemplate**: Fix crash caused by inserting hollow crown
+- **scryfall**: Fix exclusion check to ensure playable memorabilia like 30A isn't excluded
+- **helpers**: Fix SolidColor being instantiated as a default parameter, added copy_layer_effects helper function
+- **frame_logic**: Added case for gold land cards like Thran Portal
+- **expansion_symbol**: Improve both A25 and MOM expansion symbols
+- **main**: Refactored the render pipeline to fix some common Photoshop issues and implemented a launch diagnostic system that detects if the required fonts are installed and Photoshop can be reached by the app
+- **layouts**: Fix missing set code on basic lands
+- **expansion_symbol**: Fix SVG symbol filename mismatch for VOW
+
+### Refactor
+
+- **main**: Add Tools tab to build procedure, moved expansion symbol library update to on_start call
+- **env**: Added kivy_logging and photoshop_version as private ENV's, pending functionality
+- **create_color_layer**: Updated to recieve a SolidColor object
+- **colors**: Added new colors helper functions: hex_to_rgb, fill_layer_primary
+- **exceptions**: Improved code readability
+- **expansion_symbols.json**: Transitioned to dictionary notation for all stroke definitions, in preparation for eventually moving to YAML
+- **generative_fill**: Added two new design helper funtions: generative_fill, generative_fill_edges
+- **document**: Added new document helper function: pixels_to_points
+- **layers**: Add new layers helper functions: edit_smart_layer, select_vector_layer_pixels
+- **expansion_symbol**: Improved readability of code and added robust default value generation
+- **masks**: Add new masks helper function: apply_mask_to_layer_fx
+- **align**: Use select_layer_bounds for alignment selection
+- **text**: Add new text helper function: get_line_count
+- **format_text**: Refactored text scaling to use DPI scaling methods of PhotoshopHandler, updated the SymbolMapper to use a dictionary instead of disperate attributes of the constants object, allowing creators to assign a custom color map easier
+- **helpers**: Separate helpers.py into entire module divided by Photoshop scope
+- **configs**: Add config json for ClassicRemasteredTemplate, updated config json for BasicLandClassic, Invention, and NormalClassic templates
+- **SilvanMTG**: Updated plugin to utilize the new content aware fill naming conventions
+- **MaleMPCTemplate**: Deprecated the MaleMPC template, pending addition to the base app as "Extended Dark", a small modification to the Extended template
+- **main**: Remove download step for app template manifest, disabled Kivy debugger log
+- **constants**: Added dictionaries for layer maks and pinline colors, removed some deprecated variables
+- **layouts**: Updated logic for 'card_count', 'collector_number', and 'collector_data'. Added 'identity', 'is_artifact', and 'is_hybrid'
+- **frame_logic**: Updated frame_logic to return 'is_hybrd' value, added contains_frame_colors function for testing frame layer names given
+- **previews**: Update preview image naming for updated template naming conventions
+- **app_templates**: app_manifest.json -> app_templates.json
+- **enums**: Created new directory for delineating enums, created new enums for settings values
+- **strings**: Remove deprecated ps_version_check, add method for StrEnum to check if the class "contains" a string
+- **types**: Add is_hybrid to FrameDetails type
+- **types**: Add LayerContainer type for objects that can contain artLayer or layerSet objects
+- **PhotoshopHandler**: Add scale_by_height and scale_by_width to get a dimension scaled based on DPI ratio
+- **photoshop**: Move Photoshop version checks to app object
+- **format_text**: Improve scale_text_right_overlap, scale_text_left_overlap, and scale_text_to_fit_textbox functions
+- **photoshop**: Update Photoshop enums to only make typeID conversion when an Enum is accessed, added DescriptorEnum parent class
+- **fonts**: Added font utility functions for determining what necessary fonts are installed at launch
+- **photoshop**: Update Photoshop application object to better control over Photoshop communication
+- **scryfall**: Moved scryfall exception decorator to new exceptions util, added get_photoshop_error_message to exceptions util for choosing correct Photoshop error
+- **strings**: Added string utility for appending bulletpoints to each line in a string
+
 ## v1.8.0 (2023-04-27)
 
 ### Feat
