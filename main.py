@@ -13,18 +13,18 @@ from pathlib import Path
 from threading import Event
 from time import perf_counter
 from typing import Union, Optional, Callable
-from _ctypes import COMError
 
 # Third-party Imports
 from photoshop import api as ps
-from photoshop.api import PhotoshopPythonAPIError
 from photoshop.api._document import Document
 
-# Kivy logging
+# Environment variables
+from src.env import ENV_VERSION, ENV_DEV_MODE
 environ["KIVY_NO_CONSOLELOG"] = "1"
 
 # Kivy Imports
 from kivy.app import App
+from kivy.metrics import dp
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.factory import Factory
@@ -37,11 +37,11 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 
 # Local Imports
-from src.env import ENV_VERSION, ENV_DEV_MODE
-from src.utils.exceptions import get_photoshop_error_message
+from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
 from src.utils.files import remove_config_file
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
+from src.gui.tools import ToolsLayout
 from src.gui.utils import HoverBehavior, HoverButton, GUI
 from src.gui.settings import SettingsPopup
 from src.update import download_s3
@@ -59,11 +59,10 @@ from src.utils.fonts import get_missing_fonts
 from src.utils.strings import msg_success, msg_error, msg_warn, get_bullet_points
 
 # App configuration
-Config.set('graphics', 'width', '800')
-Config.set('graphics', 'height', '800')
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 Config.remove_option('input', 'wm_pen')
 Config.remove_option('input', 'wm_touch')
+Config.set('kivy', 'log_level', 'error')
 Config.write()
 
 # Core vars
@@ -75,18 +74,14 @@ BASE CONTAINERS
 
 
 class ProxyshopPanels(BoxLayout):
-    """
-    Container for overall app
-    """
+    """Container for overall app."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 class AppTabs(TabbedPanel):
-    """
-    Container for both render and creator tabs
-    """
+    """Container for both render and creator tabs."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -94,23 +89,28 @@ class AppTabs(TabbedPanel):
 
 
 class MainTab(TabbedPanelItem):
-    """
-    Container for the main render tab
-    """
+    """Container for the main render tab."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 class CreatorTab(TabbedPanelItem):
-    """
-    Custom card creator tab
-    """
+    """Custom card creator tab."""
 
     def __init__(self, **kwargs):
         self.text = "Custom Creator"
         super().__init__(**kwargs)
         self.add_widget(CreatorPanels())
+
+
+class ToolsTab(TabbedPanelItem):
+    """Utility tools tab."""
+
+    def __init__(self, **kwargs):
+        self.text = "Custom Creator"
+        super().__init__(**kwargs)
+        self.add_widget(ToolsLayout())
 
 
 """
@@ -119,9 +119,7 @@ MAIN APP
 
 
 class ProxyshopApp(App):
-    """
-    Our main app class
-    """
+    """Proxyshop's main Kivy App class that initiates render procedures and manages user settings."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -132,28 +130,31 @@ class ProxyshopApp(App):
         self._result = False
 
     """
-    KIVY PROPERTIES
+    APP PROPERTIES
     """
 
     @property
     def title(self) -> str:
+        """App name displayed at the top of the application window."""
         return f"Proxyshop v{ENV_VERSION}"
 
     @property
     def icon(self) -> str:
+        """Icon displayed in the task bar and the corner of the window."""
         return osp.join(con.path_img, 'proxyshop.png')
 
     @property
-    def cont_padding(self) -> int:
-        return 10
+    def cont_padding(self) -> float:
+        """Padding for the main app container."""
+        return dp(10)
 
     """
-    SETTABLE PROPERTIES
+    RENDERING PROPERTIES
     """
 
     @property
     def templates_selected(self) -> dict[str, str]:
-        # Tracks the templates chosen by the user
+        """Tracks the templates currently selected by the user."""
         return self._templates_selected
 
     @templates_selected.setter
@@ -162,36 +163,30 @@ class ProxyshopApp(App):
 
     @property
     def current_render(self):
+        """Tracks the current template class being used for rendering."""
         return self._current_render
 
     @current_render.setter
     def current_render(self, value):
         self._current_render = value
 
-    """
-    TRACKING CURRENT RENDEr
-    """
-
     @property
     def docref(self) -> Optional[Document]:
-        # Tracks the currently open Photoshop document
+        """Tracks the currently open Photoshop document."""
         if self.current_render and hasattr(self.current_render, 'docref'):
             return self.current_render.docref or None
         return None
 
     @property
     def cancel_render(self) -> Optional[Event]:
-        # Tracks the current render threading Event
+        """Tracks the current render threading Event."""
         if self.current_render and hasattr(self.current_render, 'event'):
             return self.current_render.event or None
         return None
 
-    """
-    DYNAMIC PROPERTIES
-    """
-
     @property
     def timer(self) -> float:
+        """Returns the current system time as a float to use as a timer comparison."""
         return perf_counter()
 
     """
@@ -205,8 +200,8 @@ class ProxyshopApp(App):
         @param func: Function being wrapped.
         @return: The result of the wrapped function.
         """
-
         def wrapper(self, *args):
+            con.app.refresh_app()
             self.reset(disable_buttons=True, clear_console=True)
             result = func(self, *args)
             self.reset(enable_buttons=True, close_document=True)
@@ -310,7 +305,7 @@ class ProxyshopApp(App):
                     return files
                 # No files selected
                 return
-            except (COMError, PhotoshopPythonAPIError) as e:
+            except PS_EXCEPTIONS as e:
                 # Photoshop is busy or unresponsive, try again?
                 if not console.await_choice(
                         Event(), get_photoshop_error_message(e),
@@ -320,9 +315,7 @@ class ProxyshopApp(App):
                     return
 
     def close_document(self) -> None:
-        """
-        Close Photoshop document if open.
-        """
+        """Close Photoshop document if open."""
         try:
             # Close and set null
             if self.docref and isinstance(self.docref, Document):
@@ -340,10 +333,7 @@ class ProxyshopApp(App):
 
     @render_process_wrapper
     def render_target(self) -> None:
-        """
-        Open the file select dialog in Photoshop and pass the selected arts to render_all.
-        """
-        # Select target art files
+        """Open the file select dialog in Photoshop and pass the selected arts to render_all."""
         self.disable_buttons()
         app = ps.Application()
         if not (files := self.select_art(app)):
@@ -524,9 +514,7 @@ class ProxyshopApp(App):
             # Card finished
             self.reset()
 
-    def start_render(
-            self, template: TemplateDetails, card: CardLayout
-    ) -> bool:
+    def start_render(self, template: TemplateDetails, card: CardLayout) -> bool:
         """
         Execute a render job using a given template and layout object.
         @param template: Template details containing class, plugin, etc.
@@ -577,34 +565,28 @@ class ProxyshopApp(App):
     """
 
     def disable_buttons(self) -> None:
-        """
-        Disable buttons while render process running.
-        """
+        """Disable buttons while render process running."""
         if cfg.test_mode:
             self.root.ids.test_all.disabled = True
             self.root.ids.test_all_deep.disabled = True
             self.root.ids.test_target.disabled = True
-            console.ids.update_btn.disabled = True
         else:
             self.root.ids.rend_targ_btn.disabled = True
             self.root.ids.rend_all_btn.disabled = True
             self.root.ids.app_settings_btn.disabled = True
-            console.ids.update_btn.disabled = True
+        console.ids.update_btn.disabled = True
 
     def enable_buttons(self) -> None:
-        """
-        Re-enable buttons after render process completed.
-        """
+        """Enable buttons after render process completes."""
         if cfg.test_mode:
             self.root.ids.test_all.disabled = False
             self.root.ids.test_all_deep.disabled = False
             self.root.ids.test_target.disabled = False
-            console.ids.update_btn.disabled = False
         else:
             self.root.ids.rend_targ_btn.disabled = False
             self.root.ids.rend_all_btn.disabled = False
             self.root.ids.app_settings_btn.disabled = False
-            console.ids.update_btn.disabled = False
+        console.ids.update_btn.disabled = False
 
     """
     GUI METHODS
@@ -612,26 +594,32 @@ class ProxyshopApp(App):
 
     @staticmethod
     async def open_app_settings() -> None:
-        """
-        Opens a settings panel for global or template specific configs.
-        """
+        """Open the settings panel for app system and base configs."""
         cfg_panel = SettingsPopup()
         cfg_panel.open()
 
     def build(self) -> Union[TestApp, ProxyshopPanels]:
-        """
-        Build the app for display.
-        """
+        """Build the app for display."""
         layout = TestApp() if cfg.test_mode else ProxyshopPanels()
         layout.add_widget(console)
         return layout
 
     def on_start(self):
-        """
-        Fired after build is fired.
-        Run a diagnostic check to see what works.
-        """
+        """Fired after build is fired. Run a diagnostic check to see what works."""
         console.update(msg_success("--- STATUS ---"))
+
+        # Update symbol library
+        try:
+            if not ENV_DEV_MODE:
+                # Download updated library via Amazon S3 and update global constants
+                if not download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'expansion_symbols.json'):
+                    raise OSError("Amazon S3 download failed to write data to disk!")
+                con.reload()
+            console.update(f"Expansion Symbols ... {msg_success('Library updated!')}")
+        except Exception as e:
+            # Encountered an error while updating
+            console.update(f"Expansion Symbols ... {msg_warn('Library update failed!')}")
+            console.log_exception(e)
 
         # Check Photoshop status
         result = con.refresh_photoshop()
@@ -640,7 +628,7 @@ class ProxyshopApp(App):
             console.log_exception(result)
             console.update(f"Photoshop ... {msg_error('Cannot make connection with Photoshop!')}\n"
                            f"Check [b]logs/error.txt[/b] for more details.")
-            console.update(msg_warn('Cannot test fonts without Photoshop.'))
+            console.update(f"Fonts ... {msg_warn('Cannot test fonts without Photoshop.')}")
             return
         # Photoshop test passed
         console.update(f"Photoshop ... {msg_success('Connection established!')}")
@@ -654,9 +642,7 @@ class ProxyshopApp(App):
         console.update(f"Fonts ... {msg_success('All essential fonts installed!')}")
 
     def on_stop(self):
-        """
-        Called when the app is closed.
-        """
+        """Called when the app is closed."""
         if self.cancel_render and isinstance(self.cancel_render, Event):
             self.cancel_render.set()
 
@@ -666,15 +652,8 @@ TEMPLATE MODULES
 """
 
 
-class TemplateTabContainer(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
 class TemplateModule(TabbedPanel):
-    """
-    Container for our template tabs
-    """
+    """Module that loads template tabs."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -701,10 +680,16 @@ class TemplateModule(TabbedPanel):
             self.add_widget(tab)
 
 
+class TemplateTabContainer(BoxLayout):
+    """Container that holds template list within each tab."""
+
+
+class TemplateView(ScrollView):
+    """Scrollable viewport for template list."""
+
+
 class TemplateList(GridLayout):
-    """
-    Builds a listbox of templates based on a given type
-    """
+    """Builds a list of templates from a certain template type."""
 
     def __init__(self, temps: list[TemplateDetails], preview: Image, **kwargs):
         super().__init__(**kwargs)
@@ -713,10 +698,7 @@ class TemplateList(GridLayout):
         self.add_template_rows()
 
     def add_template_rows(self):
-        """
-        Add a row for each template in this list.
-        """
-        # Track missing templates
+        """Add a row for each template in this list."""
         missing = []
 
         # Create a list of buttons
@@ -737,27 +719,13 @@ class TemplateList(GridLayout):
             self.add_widget(row)
 
     def reload_template_rows(self):
-        """
-        Remove existing rows and generate new ones using current template data.
-        """
-        # Remove existing rows
+        """Remove existing rows and generate new ones using current template data."""
         self.clear_widgets()
         self.add_template_rows()
 
 
-class TemplateView(ScrollView):
-    """
-    Scrollable viewport for template lists
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
 class TemplateRow(BoxLayout):
-    """
-    Row containing template selector and governing buttons.
-    """
+    """Row containing template selector and governing buttons."""
 
     def __init__(self, template: TemplateDetails, preview: Image, **kwargs):
         super().__init__(**kwargs)
@@ -784,19 +752,14 @@ class TemplateRow(BoxLayout):
         GUI.template_btn_cfg[self.type][self.name] = self.ids.settings_button
 
     def default_settings_button_check(self) -> None:
-        """
-        Checks the existence of the config file and enables/disables the reset default settings button.
-        """
-        if not osp.isfile(self.template['config_path'].replace('.json', '.ini')):
-            self.ids.reset_default_button.disabled = True
-        else:
-            self.ids.reset_default_button.disabled = False
+        """Checks for a template's config file and enables/disables the reset settings button."""
+        self.ids.reset_default_button.disabled = True if (
+            not osp.isfile(self.template['config_path'].replace('.json', '.ini'))
+        ) else False
 
 
 class TemplateSettingsButton(HoverButton):
-    """
-    Opens the settings panel for a given template.
-    """
+    """Opens the settings panel for a given template."""
 
     async def open_settings(self):
         cfg_panel = SettingsPopup(self.parent.template)
@@ -805,9 +768,7 @@ class TemplateSettingsButton(HoverButton):
 
 
 class TemplateResetDefaultButton(HoverButton):
-    """
-    Opens the settings panel for a given template.
-    """
+    """Deletes the ini config file for a given template (resets its settings to default)."""
 
     async def reset_default(self):
         # Remove the config file and alert the user
@@ -820,14 +781,6 @@ if __name__ == '__main__':
     # Kivy packaging for PyInstaller
     if hasattr(sys, '_MEIPASS'):
         resource_add_path(osp.join(sys._MEIPASS))
-
-    # Update symbol library and manifest
-    try:
-        if not ENV_DEV_MODE:
-            download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'expansion_symbols.json')
-            con.reload()
-    except Exception as err:
-        print(err)
 
     # Ensure mandatory folders are created
     Path(osp.join(con.cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
