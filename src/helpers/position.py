@@ -10,7 +10,7 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src.constants import con
 from src.helpers.bounds import get_layer_dimensions, get_text_layer_dimensions
-from src.helpers.layers import select_layer_pixels, select_layer_bounds
+from src.helpers.layers import select_layer_bounds
 from src.enums.photoshop import Alignment
 
 # QOL Definitions
@@ -39,7 +39,7 @@ def align(
     """
     # Optionally create a selection based on given reference
     if reference:
-        select_layer_pixels(reference)
+        select_layer_bounds(reference)
 
     # Optionally make a given layer the active layer
     if layer:
