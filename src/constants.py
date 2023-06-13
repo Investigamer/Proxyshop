@@ -3,36 +3,35 @@ GLOBAL CONSTANTS MODULE
 """
 # Standard Library Imports
 import os
-from os import path as osp
 import json
+from os import path as osp
 from threading import Lock
+from typing import Optional
 
 # Local Imports
 from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
 from src.enums.layers import LAYERS
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.objects import Singleton, PhotoshopHandler
 
 
 # Global app-wide constants class
 class Constants:
     """
-    Stores global constants that affect the behavior of the app.
-    Can be changed within a template class to affect rendering behavior.
+    Stores global constants that control app behavior.
+    Can be modified within a template class to adjust rendering behavior.
     """
     __metaclass__ = Singleton
+    app = PhotoshopHandler()
 
     def __init__(self):
         # Initialize the values
-        self.app = None
         self.refresh_photoshop()
         self.load_values()
 
     def load_values(self):
-        """
-        Loads default values across the board.
-        Called between renders to remove any changes made by templates.
-        """
+        """Loads default values. Called at launch and between renders to remove any changes made by templates."""
+
         # Consistent paths used by the app
         self.cwd = os.getcwd()
         self.path_src = osp.join(self.cwd, 'src')
@@ -322,14 +321,6 @@ class Constants:
         self.flavor_text_lead = 4.4
         self.flavor_text_lead_divider = 7
 
-        # Card rarities
-        self.rarity_common = "common"
-        self.rarity_uncommon = "uncommon"
-        self.rarity_rare = "rare"
-        self.rarity_mythic = "mythic"
-        self.rarity_special = "special"
-        self.rarity_bonus = "bonus"
-
         # HTTP Header for requests
         self.http_header = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) "
@@ -348,39 +339,26 @@ class Constants:
     """
 
     def reload(self):
-        """
-        Reloads default values
-        """
+        """Reloads default attribute values."""
         self.load_values()
 
-    def refresh_photoshop(self):
-        """
-        Attempts to refresh the Photoshop object.
-        """
+    def refresh_photoshop(self) -> Optional[Exception]:
+        """Attempts to refresh the Photoshop object."""
         try:
-            if isinstance(self.app, PhotoshopHandler):
-                self.app.refresh_app()
-                return
-            self.app = PhotoshopHandler()
+            self.app.refresh_app()
         except PS_EXCEPTIONS as e:
-            self.app = None
-            if 'busy' in str(e).lower():
-                return OSError("Photoshop appears to be busy currently!\n"
-                               "Ensure no dialog windows are open in Photoshop and there are no actions "
-                               "currently being performed such as using the text tool.")
-            return OSError("Make sure Photoshop is installed properly!\n"
-                           "If it is installed, check the FAQ for troubleshooting steps.")
+            # Photoshop is either busy or unresponsive
+            return OSError(get_photoshop_error_message(e))
+        return
 
     """
     VERSION TRACKER
     """
 
     def get_version_tracker(self) -> dict:
-        """
-        Get the current version tracker dict.
-        """
-        # Write a blank version tracker if not found
+        """Get the current version tracker dict."""
         if not osp.isfile(self.path_version_tracker):
+            # Write a blank version tracker if not found
             with open(self.path_version_tracker, "w", encoding="utf-8") as f:
                 json.dump({}, f, indent=4)
 
@@ -393,9 +371,7 @@ class Constants:
                 return {}
 
     def update_version_tracker(self):
-        """
-        Updates the version tracker json with current dict.
-        """
+        """Updates the version tracker json with current dict."""
         with open(self.path_version_tracker, "w", encoding="utf-8") as vt:
             json.dump(self.versions, vt, indent=4)
 

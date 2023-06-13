@@ -5,17 +5,14 @@ OBJECT UTILITIES
 from functools import cache
 from typing import Union
 
-from _ctypes import COMError
-
 # Third Party
 from photoshop.api import Application, Units
 from packaging.version import parse
+from src.utils.exceptions import PS_EXCEPTIONS
 
 
 class Singleton(type):
-    """
-    Maintains a single instance of any child class.
-    """
+    """Maintains a single instance of any child class."""
     _instances: dict = {}
 
     def __call__(cls, *args, **kwargs):
@@ -35,11 +32,12 @@ class PhotoshopHandler(Application):
     _instance = None
 
     def __new__(cls) -> 'PhotoshopHandler':
-        """
-        Always return the same Photoshop Application instance on successive calls.
-        """
+        """Always return the same Photoshop Application instance on successive calls."""
         if cls._instance is None or not cls._instance.is_running():
-            cls._instance = super().__new__(cls)
+            try:
+                cls._instance = super().__new__(cls)
+            except PS_EXCEPTIONS:
+                cls._instance = super(Application, cls).__new__(cls)
         return cls._instance
 
     """
@@ -47,9 +45,7 @@ class PhotoshopHandler(Application):
     """
 
     def refresh_app(self):
-        """
-        Replace the existing Photoshop Application instance with a new one.
-        """
+        """Replace the existing Photoshop Application instance with a new one."""
         if not self.is_running():
             super(PhotoshopHandler, self).__init__()
         try:
@@ -60,21 +56,19 @@ class PhotoshopHandler(Application):
 
     @classmethod
     def is_running(cls) -> bool:
-        """
-        Check if the current Photoshop Application instance is still valid.
-        """
+        """Check if the current Photoshop Application instance is still valid."""
         try:
             _ = cls._instance.version
-            return True
-        except (AttributeError, COMError):
+        except PS_EXCEPTIONS:
             return False
+        return True
 
     """
-    CACHED CONVERSION METHODS
+    CONVERTING CHARACTER ID
     """
 
     @cache
-    def charIDToTypeID(self, index: str):
+    def charIDToTypeID(self, index: str) -> int:
         """
         Caching handler for charIDToTypeID.
         @param index: ID to convert to TypeID.
@@ -82,7 +76,34 @@ class PhotoshopHandler(Application):
         return super().charIDToTypeID(index)
 
     @cache
-    def stringIDToTypeID(self, index: str):
+    def CharIDToTypeID(self, index: str) -> int:
+        """Utility definition redirecting to charIDToTypeID."""
+        return self.charIDToTypeID(index)
+
+    @cache
+    def cID(self, index: str) -> int:
+        """Shorthand for charIDToTypeID."""
+        return self.stringIDToTypeID(index)
+
+    @cache
+    def typeIDToCharID(self, index: int) -> str:
+        """
+        Caching handler for typeIDToCharID.
+        @param index: ID to convert to CharID.
+        """
+        return self.typeIDToCharID(index)
+
+    @cache
+    def t2c(self, index: int) -> str:
+        """Shorthand for typeIDToCharID."""
+        return self.typeIDToCharID(index)
+
+    """
+    CONVERTING STRING ID
+    """
+
+    @cache
+    def stringIDToTypeID(self, index: str) -> int:
         """
         Caching handler for stringIDToTypeID.
         @param index: ID to convert to TypeID.
@@ -90,20 +111,27 @@ class PhotoshopHandler(Application):
         return super().stringIDToTypeID(index)
 
     @cache
-    def CharIDToTypeID(self, index: str):
-        """
-        Caching handler for charIDToTypeID.
-        @param index: ID to convert to TypeID.
-        """
-        return super().charIDToTypeID(index)
+    def StringIDToTypeID(self, index: str) -> int:
+        """Utility definition redirecting to stringIDTotypeID."""
+        return super().stringIDToTypeID(index)
 
     @cache
-    def StringIDToTypeID(self, index: str):
+    def sID(self, index: str) -> int:
+        """Shorthand for stringIDToTypeID."""
+        return self.stringIDToTypeID(index)
+
+    @cache
+    def typeIDToStringID(self, index: int) -> str:
         """
-        Caching handler for StringIDToTypeID.
-        @param index: ID to convert to TypeID.
+        Caching handler for typeIDToStringID.
+        @param index: ID to convert to StringID.
         """
-        return super().stringIDToTypeID(index)
+        return self.typeIDToStringID(index)
+
+    @cache
+    def t2s(self, index: int) -> str:
+        """Shorthand for typeIDToStringID."""
+        return self.typeIDToStringID(index)
 
     """
     VERSION CHECKS
@@ -113,22 +141,30 @@ class PhotoshopHandler(Application):
     def supports_target_text_replace(self) -> bool:
         """
         Checks if Photoshop version supports targeted text replacement.
-        @return: True if it does, otherwise False.
+        @return: True if supported.
         """
         return self.version_meets_requirement('22.0.0')
 
     @cache
     def supports_webp(self) -> bool:
         """
-        Checks if Photoshop version supports targeted text replacement.
-        @return: True if it does, otherwise False.
+        Checks if Photoshop version supports WEBP files.
+        @return: True if supported.
         """
         return self.version_meets_requirement('23.2.0')
+
+    @cache
+    def supports_generative_fill(self) -> bool:
+        """
+        Checks if Photoshop version supports Generative Fill.
+        @return: True if supported.
+        """
+        return self.version_meets_requirement('24.6.0')
 
     def version_meets_requirement(self, value: str) -> bool:
         """
         Checks if Photoshop version meets or exceeds required value.
-        @return: True if it does, otherwise false.
+        @return: True if supported.
         """
         if parse(self.version) >= parse(value):
             return True

@@ -86,7 +86,7 @@ class LAYERS (StrEnum):
     FULL = "Full"
     NORMAL = "Normal"
 
-    # borders
+    # Borders
     BORDER = "Border"
     NORMAL_BORDER = "Normal Border"
     LEGENDARY_BORDER = "Legendary Border"
@@ -97,6 +97,9 @@ class LAYERS (StrEnum):
 
     # Vectors
     SHAPE = "Shape"
+
+    # Effects
+    EFFECTS = "Effects"
 
     # Masks
     MASKS = "Masks"
@@ -189,7 +192,7 @@ class LAYERS (StrEnum):
     PLANESWALKER_ART_FRAME = "Planeswalker Art Frame"
     SCRYFALL_SCAN_FRAME = "Scryfall Scan Frame"
 
-    # Transform
+    # Double Faced
     MDFC = "MDFC"
     TRANSFORM = "Transform"
     TRANSFORM_FRONT = "TF Front"
@@ -206,8 +209,10 @@ class LAYERS (StrEnum):
     DFC_FAN = "fandfc"
     DFC_MELD = "meld"
 
-    # mdfc
+    # Orientation
     TOP = "Top"
     BOTTOM = "Bottom"
     LEFT = "Left"
     RIGHT = "Right"
+    BACK = "Back"
+    FRONT = "Front"
