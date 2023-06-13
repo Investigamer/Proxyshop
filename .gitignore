@@ -159,7 +159,8 @@ cython_debug/
 # Temporary logging directory
 /logs
 # PSD templates directory
-/templates
+/templates/*
+!/templates/tools
 # For personal testing
 /testing.py
 # User generated data files
