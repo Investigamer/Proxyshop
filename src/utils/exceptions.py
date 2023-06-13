@@ -15,9 +15,8 @@ PS_EXCEPTIONS = (
 
 
 class ScryfallError(Exception):
-    """
-    Exception representing a failure to retrieve Scryfall data.
-    """
+    """Exception representing a failure to retrieve Scryfall data."""
+
     def __init__(
         self,
         url: Optional[str] = None,
@@ -33,15 +32,13 @@ class ScryfallError(Exception):
         number = f"{{{number}}} " if number else ''
         lang = f"<{lang}>" if lang else ''
 
-        # Check if no values passed
-        if not any([url, name, code, number, lang]):
-            message = f"Scryfall request failed"
-        else:
-            message = f"Couldn't find card: {name}{code}{number}{lang}\n" \
-                      f"Scryfall: {url or 'Request Rejected'}"
-
-        # Build the message
-        super().__init__(message)
+        # Pass the correct message
+        super().__init__(
+            f"Scryfall request failed"
+        ) if not any([url, name, code, number, lang]) else (
+            f"Couldn't find card: {name}{code}{number}{lang}\n"
+            f"Scryfall: {url or 'Request Rejected'}"
+        )
 
 
 """
