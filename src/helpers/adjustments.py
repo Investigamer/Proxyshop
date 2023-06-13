@@ -8,7 +8,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
-from src.helpers.colors import get_color, apply_color, add_color_to_gradient
+from src.helpers.colors import get_color, apply_color, add_color_to_gradient, rgb_black
 
 # QOL Definitions
 app = con.app
@@ -31,7 +31,7 @@ def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
 
 
 def create_color_layer(
-    color: Union[str, list, SolidColor],
+    color: SolidColor,
     layer: Union[ArtLayer, LayerSet, None] = None,
     mask: bool = True
 ) -> ArtLayer:
@@ -52,7 +52,7 @@ def create_color_layer(
     desc1.putReference(sID("target"), ref1)
     desc2.putBoolean(sID("group"), mask)
     desc2.putEnumerated(sID("color"), sID("color"), sID("blue"))
-    apply_color(desc3, get_color(color))
+    apply_color(desc3, color)
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
     desc1.putObject(sID("using"), sID("contentLayer"), desc2)
     app.Executeaction(sID("make"), desc1, NO_DIALOG)
@@ -96,7 +96,7 @@ def create_gradient_layer(
     for c in colors:
         add_color_to_gradient(
             color_list,
-            get_color(c.get('color', [0, 0, 0])),
+            get_color(c.get('color', rgb_black())),
             int(c.get('location', 0)),
             int(c.get('midpoint', 50))
         )
