@@ -26,13 +26,15 @@ from photoshop.api import (
 
 # Local Imports
 from src.constants import con
-from src.helpers.document import convert_points_to_pixels
+from src.helpers.document import points_to_pixels, get_leaf_layers, get_layer_tree
 from src.helpers.layers import getLayer, getLayerSet, merge_layers
 from src.helpers.masks import copy_layer_mask
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
+from src.utils.objects import PhotoshopHandler
+
 con.headless = True
 
-app = con.app
+app: PhotoshopHandler = con.app
 cID = app.charIDtoTypeID
 sID = app.stringIDtoTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
@@ -349,10 +351,10 @@ def get_textbox_bounds_alternate(layer: ArtLayer) -> list[int]:
     bounds = shape.getObjectValue(sID('bounds'))
 
     return [
-        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('left')) * x_scale) + x_pos)),
-        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('top')) * y_scale) + y_pos)),
-        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('right')) * x_scale) + x_pos)),
-        int(convert_points_to_pixels((bounds.getUnitDoubleValue(sID('bottom')) * y_scale) + y_pos))
+        int(points_to_pixels((bounds.getUnitDoubleValue(sID('left')) * x_scale) + x_pos)),
+        int(points_to_pixels((bounds.getUnitDoubleValue(sID('top')) * y_scale) + y_pos)),
+        int(points_to_pixels((bounds.getUnitDoubleValue(sID('right')) * x_scale) + x_pos)),
+        int(points_to_pixels((bounds.getUnitDoubleValue(sID('bottom')) * y_scale) + y_pos))
     ]
 
 
