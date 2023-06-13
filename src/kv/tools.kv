@@ -1,0 +1,20 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+
+<ToolsLayout>:
+    orientation: "vertical"
+    padding: 5
+    spacing: 0
+    canvas:
+        Color:
+            rgb: get_color_from_hex("#141414")
+        Rectangle:
+            size: self.size
+            pos: self.pos
+    HoverButton:
+        id: generate_showcases
+        text: "Generate Showcase Images"
+        options: []
+        font_size: sp(24)
+        background_color: get_color_from_hex("#376aa3")
+        font_name: get_font("Beleren Small Caps.ttf")
+        on_press: Thread(target=root.generate_showcases, daemon=True).start()

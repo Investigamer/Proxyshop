@@ -5,7 +5,7 @@
 <Console>:
     id: console
     orientation: "horizontal"
-    padding: 10
+    padding: dp(10)
     canvas:
         Color:
             rgba: get_color_from_hex("#666666")
@@ -13,7 +13,7 @@
             size: root.size
             pos: root.pos
     BoxLayout:
-        padding: 10,10,10,10
+        padding: dp(10),dp(10),dp(10),dp(10)
         size_hint: 4, 1
         canvas:
             Color:
@@ -37,7 +37,7 @@
                     padding: (0,0)
                     size_hint: (1,None)
                     markup: True
-                    font_size: 18
+                    font_size: sp(20)
                     text_size: (self.width, None)
                     size: self.texture_size
                     text_autoupdate: True
@@ -46,8 +46,8 @@
     ConsoleControls:
         id: console_controls
         orientation: "vertical"
-        spacing: 4
-        padding: 10
+        spacing: dp(4)
+        padding: dp(10)
         canvas:
             Color:
                 rgba: get_color_from_hex("#252525")
@@ -57,26 +57,26 @@
         HoverButton:
             id: continue_btn
             size_hint_y: None
-            height: 40
+            height: dp(40)
             options: ["Go for it!", "Hurry up!", "Do it!", "Let's go!", "Next!"]
             hover_color: "#4a5f8a"
             on_press: console.signal(True)
             disabled: True
             text: "Continue"
-            font_size: 20
+            font_size: sp(20)
             background_normal: ""
             background_disabled_normal: ""
             background_color: get_color_from_hex("#283c5e")
         HoverButton:
             id: cancel_btn
             size_hint_y: None
-            height: 40
+            height: dp(40)
             options: ["STOP!", "End it now!", "No more!", "QUIT!", "Quiddit!", "Enough!"]
             hover_color: "#8a4a50"
             on_press: console.signal(False)
             disabled: True
             text: "Cancel"
-            font_size: 20
+            font_size: sp(20)
             background_normal: ""
             background_disabled_normal: ""
             background_color: get_color_from_hex("#63272d")
@@ -85,13 +85,13 @@
         HoverButton:
             id: update_btn
             size_hint_y: None
-            height: 40
+            height: dp(40)
             options: ["UPDATE"]
             hover_color: "#4a5f8a"
             on_press: ak.start(console.check_for_updates())
             disabled: False
             text: "Update"
-            font_size: 20
+            font_size: sp(20)
             background_normal: ""
             background_disabled_normal: ""
             background_color: get_color_from_hex("#283c5e")

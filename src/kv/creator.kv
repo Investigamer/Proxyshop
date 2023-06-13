@@ -5,8 +5,8 @@
 
 <CreatorPanels>:
     do_default_tab: False
-    tab_width: 120
-    tab_height: 30
+    tab_width: dp(120)
+    tab_height: dp(30)
     tab_spacing: 0
 
 <CreatorNormalLayout>:
@@ -21,15 +21,15 @@
             hint_text: "Card Name"
             multiline: False
             size_hint_x: 2
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: mana_cost
             hint_text: "{1}{W}{U}{B}{R}{G}"
             multiline: False
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: color_identity
             hint_text: "WUBRG"
@@ -37,13 +37,13 @@
             multiline: False
             halign: "center"
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
     BoxLayout:
         orientation: "horizontal"
         size_hint_y: 2
         InputItem:
             id: oracle_text
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "Rules text"
     BoxLayout:
@@ -51,7 +51,7 @@
         size_hint: (1, 2)
         InputItem:
             id: flavor_text
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRgIt.ttf", "Roboto-Italic")
             hint_text: "Flavor text"
     BoxLayout:
@@ -62,9 +62,9 @@
             text: "Type — Subtype"
             size_hint_x: 5
             multiline: False
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
     BoxLayout:
         size_hint_y: .75
         orientation: "horizontal"
@@ -93,7 +93,7 @@
             id: keywords
             hint_text: "Keyword,Keyword 2"
             multiline: False
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         ThreeNumInput:
             id: power
             hint_text: "1"
@@ -120,7 +120,7 @@
             size_hint_x: 2.5
             multiline: False
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         Spinner:
             id: rarity
             text: "Common"
@@ -133,7 +133,7 @@
         HoverButton:
             id: render_norm
             text: "Render Custom"
-            font_size: 16
+            font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
             on_press: Thread(target=root.render, args=(app,), daemon=True).start()
@@ -150,15 +150,15 @@
             hint_text: "Card Name"
             multiline: False
             size_hint_x: 2
-            font_size: 20
+            font_size: sp(16)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: mana_cost
             hint_text: "{1}{W}{U}{B}{R}{G}"
             multiline: False
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: color_identity
             hint_text: "WUBRG"
@@ -166,13 +166,13 @@
             multiline: False
             halign: "center"
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
     BoxLayout:
         orientation: "horizontal"
         size_hint_y: 1
         NoEnterInputItem:
             id: line_1
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "This is a static ability."
     BoxLayout:
@@ -181,7 +181,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_2
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "+1: This ability increases loyalty."
     BoxLayout:
@@ -189,7 +189,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_3
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "-1: This ability decreases loyalty."
     BoxLayout:
@@ -198,7 +198,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_4
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "0: Planeswalkers need at least 2 ability lines."
     BoxLayout:
@@ -209,16 +209,16 @@
             text: "Legendary Planeswalker — Jace"
             size_hint_x: 4
             multiline: False
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: keywords
             hint_text: "Keyword,Keyword 2"
             size_hint_x: 3.15
             multiline: False
             halign: "center"
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         ThreeNumInput:
             id: loyalty
             hint_text: "6"
@@ -256,7 +256,7 @@
             size_hint_x: 2.5
             multiline: False
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         Spinner:
             id: rarity
             text: "Common"
@@ -270,7 +270,7 @@
             id: render_pw
             size_hint_x: 1.2
             text: "Render Custom"
-            font_size: 16
+            font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
             on_press: Thread(target=root.render, args=(app,), daemon=True).start()
@@ -287,15 +287,15 @@
             hint_text: "Card Name"
             multiline: False
             size_hint_x: 2
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: mana_cost
             hint_text: "{1}{W}{U}{B}{R}{G}"
             multiline: False
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: color_identity
             hint_text: "WUBRG"
@@ -303,13 +303,13 @@
             multiline: False
             halign: "center"
             font_name: get_font("PlantinMTProRg.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
     BoxLayout:
         orientation: "horizontal"
         size_hint_y: 1
         NoEnterInputItem:
             id: line_1
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "First line"
     BoxLayout:
@@ -318,7 +318,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_2
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "Second line"
     BoxLayout:
@@ -326,7 +326,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_3
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "Third line [optional]"
     BoxLayout:
@@ -335,7 +335,7 @@
         size_hint_y: 1
         NoEnterInputItem:
             id: line_4
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("PlantinMTProRg.ttf")
             hint_text: "Fourth line [optional]"
     BoxLayout:
@@ -346,16 +346,16 @@
             text: "Enchantment — Saga"
             size_hint_x: 5
             multiline: False
-            font_size: 20
+            font_size: sp(20)
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         InputItem:
             id: keywords
             hint_text: "Keyword,Keyword 2"
             size_hint_x: 2.34
             multiline: False
             halign: "center"
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
     BoxLayout:
         size_hint_y: .75
         orientation: "horizontal"
@@ -386,7 +386,7 @@
             size_hint_x: 2.5
             multiline: False
             font_name: get_font("Beleren-Bold.ttf")
-            padding: [6, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 6, 0]
+            padding: [dp(6), self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), dp(6), 0]
         Spinner:
             id: rarity
             text: "Common"
@@ -400,7 +400,7 @@
             id: render_saga
             size_hint_x: 1.2
             text: "Render Custom"
-            font_size: 16
+            font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
             on_press: Thread(target=root.render, args=(app,), daemon=True).start()
