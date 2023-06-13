@@ -9,3 +9,9 @@ google_key = ""
 # Cloudfront URL serving S3 File Cache
 # Example: https://rhider460kdg6.cloudfront.net
 amazon_key = ""
+
+# Enable or disable kivy logging
+kivy_logging = False
+
+# Change this to 2023, 2022, etc. to specify Photoshop version
+photoshop_version = None
