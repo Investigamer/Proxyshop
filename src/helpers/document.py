@@ -205,12 +205,22 @@ OTHER UTILITIES
 """
 
 
-def convert_points_to_pixels(number: Union[int, float]) -> float:
+def points_to_pixels(number: Union[int, float]) -> float:
     """
-    Converts a given number in points units to pixel units.
+    Converts a given number in point units to pixel units.
+    @param number: Number represented in point units.
     @return: Float representing the given value in pixel units.
     """
     return (app.activeDocument.resolution / 72) * number
+
+
+def pixels_to_points(number: Union[int, float]) -> float:
+    """
+    Converts a given number in pixel units to point units.
+    @param number: Number represented in pixel units.
+    @return: Float representing the given value in point units.
+    """
+    return number / (app.activeDocument.resolution / 72)
 
 
 def check_active_document() -> bool:
