@@ -1,8 +1,8 @@
 # Proxyshop
 Proxyshop is a Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
-If you need help with this app, join our discord: https://discord.gg/magicproxies
+If you need help with this app, join our discord: https://discord.gg/magicproxies. 
 
-<div style="text-align: center;">
+<center>
   <a href="https://discord.gg/magicproxies">
     <img alt="Discord" src="https://img.shields.io/discord/889831317066358815?label=Discord&style=plastic">
   </a>
@@ -10,7 +10,8 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
   <img alt="GitHub" src="https://img.shields.io/github/license/MrTeferi/MTG-Proxyshop?color=1082C2&style=plastic">
   <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CC 2015--2023-informational?style=plastic">
   <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-yellow?style=plastic">
-</div>
+  <a href="https://patreon.com/mpcfill"><img alt="PATREON" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dendel%26type%3Dpatrons&style=plastic" /></a>
+</center>
 
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
@@ -72,6 +73,9 @@ poetry shell
 py main.py
 ```
 
+# How can I support Proxyshop?
+Feel free to [join our discord](http://discord.gg/magicproxies) and participate in the `#Proxyshop` channel where we are constantly brainstorming and testing new features, dropping beta releases, and sharing new plugins and templates. Also, please consider supporting [our Patreon](http://patreon.com/mpcfill) which pays for S3 + Cloudfront hosting of Proxyshop templates and allows us the freedom to work on the app, as well as other applications like MPC Autofill, MTG Art Downloader, and more!
+
 # FAQ
 
 <details>
@@ -79,8 +83,8 @@ py main.py
     How do I change the set symbol to something else?
 </summary>
 
-#### Default Mode or Classic Mode
-* Under "Symbol Render Mode", ensure Default Mode or Classic Mode is enabled in Global Settings, or in the Settings for the template you wish to customize.
+#### Font Mode
+* Under "Symbol Render Mode", ensure "Font" Mode is enabled in Global Settings, or in the Settings for the template you wish to customize.
 * Head over to https://keyrune.andrewgioia.com/cheatsheet.html, choose a symbol.
 * Copy the **set code** of the symbol you want, it'll be the 2-4 letters after "ss-" in the code next to the symbol, for example SOI (Shadows Over Innistrad).
 * In the same settings panel, enter this code for the "Default Symbol" setting.

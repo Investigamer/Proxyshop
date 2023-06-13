@@ -21,6 +21,9 @@ DIST_SRC = os.path.join(DIST, 'src')
 DATA = os.path.join(SRC, 'data')
 DIST_DATA = os.path.join(DIST_SRC, 'data')
 
+TEMPS = os.path.join(CWD, 'templates')
+DIST_TEMPS = os.path.join(DIST, 'templates')
+
 PLUGINS = os.path.join(CWD, 'plugins')
 DIST_PLUGINS = os.path.join(DIST, 'plugins')
 
@@ -30,7 +33,7 @@ files = [
     {'src': os.path.join(CWD, 'config.ini'), 'dst': os.path.join(DIST, 'config.ini')},
     {'src': os.path.join(CWD, 'LICENSE'), 'dst': os.path.join(DIST, 'LICENSE')},
     {'src': os.path.join(CWD, 'README.md'), 'dst': os.path.join(DIST, 'README.md')},
-    # --- PROXYSHOP DIRECTORY
+    # --- SOURCE DIRECTORY
     {'src': os.path.join(DATA, 'tests.json'), 'dst': os.path.join(DIST_DATA, 'tests.json')},
     {'src': os.path.join(DATA, 'app_templates.json'), 'dst': os.path.join(DIST_DATA, 'app_templates.json')},
     {'src': os.path.join(DATA, 'expansion_symbols.json'), 'dst': os.path.join(DIST_DATA, 'expansion_symbols.json')},
@@ -43,10 +46,12 @@ files = [
 folders = [
     # --- WORKING DIRECTORY
     {'src': os.path.join(CWD, "fonts"), 'dst': os.path.join(DIST, 'fonts')},
-    # --- PROXYSHOP DIRECTORY
+    # --- SOURCE DIRECTORY
     {'src': os.path.join(SRC, "kv"), 'dst': os.path.join(DIST_SRC, 'kv')},
     {'src': os.path.join(SRC, "img"), 'dst': os.path.join(DIST_SRC, 'img')},
     {'src': os.path.join(SRC, "configs"), 'dst': os.path.join(DIST_SRC, 'configs')},
+    # --- TEMPLATE TOOLS
+    {'src': os.path.join(TEMPS, 'tools'), 'dst': os.path.join(DIST_TEMPS, 'tools')},
     # --- PLUGINS DIRECTORY
     {'src': os.path.join(PLUGINS, "MrTeferi"), 'dst': os.path.join(DIST_PLUGINS, 'MrTeferi')},
     {'src': os.path.join(PLUGINS, "SilvanMTG"), 'dst': os.path.join(DIST_PLUGINS, 'SilvanMTG')},
