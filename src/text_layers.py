@@ -22,6 +22,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
+from src.helpers import clear_layer_fx
 from src.helpers.bounds import get_text_layer_bounds, get_layer_dimensions
 from src.helpers.colors import get_text_layer_color, apply_color
 from src.helpers.layers import select_layer_bounds
@@ -510,7 +511,9 @@ class FormattedTextArea (FormattedTextField):
         Inserts and correctly positions flavor text divider.
         """
         # Create a flavor-text-only layer to reference
-        flavor_test = self.layer.duplicate()
+        ref = self.layer.duplicate()
+        clear_layer_fx(ref)
+        flavor_test = ref.duplicate()
         app.activeDocument.activeLayer = flavor_test
         ft.format_flavor_text(self.flavor_text_updated)
         flavor_replace = flavor_test.textItem.contents
@@ -518,10 +521,11 @@ class FormattedTextArea (FormattedTextField):
 
         # Established two separate layers: contents and flavor, each rasterized
         self.layer.visible = False
-        layer_text_contents = self.layer.duplicate()
+        ref.visible = False
+        layer_text_contents = ref.duplicate()
         replace_text_robust(layer_text_contents, flavor_replace, "")
         layer_text_contents.rasterize(RasterizeType.EntireLayer)
-        layer_flavor_text = self.layer.duplicate()
+        layer_flavor_text = ref.duplicate()
         layer_flavor_text.rasterize(RasterizeType.EntireLayer)
         select_layer_bounds(layer_text_contents)
         app.activeDocument.activeLayer = layer_flavor_text
@@ -529,14 +533,16 @@ class FormattedTextArea (FormattedTextField):
         app.activeDocument.selection.clear()
         app.activeDocument.selection.deselect()
         self.layer.visible = True
+        ref.visible = True
 
         # Move flavor text to bottom, then position divider
-        layer_flavor_text.translate(0, get_text_layer_bounds(self.layer)[3] - layer_flavor_text.bounds[3])
+        layer_flavor_text.translate(0, get_text_layer_bounds(ref)[3] - layer_flavor_text.bounds[3])
         position_between_layers(self.divider, layer_text_contents, layer_flavor_text)
 
         # Remove reference layers
         layer_text_contents.remove()
         layer_flavor_text.remove()
+        ref.remove()
 
     def execute(self):
 
