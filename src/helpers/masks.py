@@ -42,6 +42,24 @@ def copy_layer_mask(
     app.ExecuteAction(sID("make"), desc255, DialogModes.DisplayNoDialogs)
 
 
+def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
+    """
+    Sets the layer mask to apply only to layer effects in blending options.
+    @param layer: ArtLayer or LayerSet object.
+    """
+    if not layer:
+        layer = app.activeDocument.activeLayer
+    ref = ActionReference()
+    ref.putIdentifier(sID("layer"), layer.id)
+    desc = app.executeActionGet(ref)
+    layer_fx = desc.getObjectValue(sID('layerEffects'))
+    layer_fx.putBoolean(sID("layerMaskAsGlobalMask"), True)
+    desc = ActionDescriptor()
+    desc.putReference(sID("target"), ref)
+    desc.PutObject(sID("to"), sID("layer"), layer_fx)
+    app.Executeaction(sID("set"), desc,  NO_DIALOG)
+
+
 def set_layer_mask(
     layer: Union[ArtLayer, LayerSet, None] = None,
     visible: bool = True
