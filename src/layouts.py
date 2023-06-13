@@ -13,6 +13,7 @@ from src.core import retrieve_card_info
 from src.constants import con
 from src.settings import cfg
 from src.utils.regex import Reg
+from src.enums.mtg import Rarity
 from src.enums.layers import LAYERS
 from src.enums.settings import CollectorMode
 from src.utils.scryfall import get_set_data, get_card_data
@@ -207,11 +208,11 @@ class NormalLayout:
 
     @cached_property
     def power(self) -> str:
-        return self.card.get('power', None)
+        return self.card.get('power')
 
     @cached_property
     def toughness(self) -> str:
-        return self.card.get('toughness', None)
+        return self.card.get('toughness')
 
     @cached_property
     def color_identity(self) -> list:
@@ -219,11 +220,11 @@ class NormalLayout:
 
     @cached_property
     def color_indicator(self) -> str:
-        return get_ordered_colors(self.card.get('color_indicator', None))
+        return get_ordered_colors(self.card.get('color_indicator'))
 
     @cached_property
     def loyalty(self) -> str:
-        return self.card.get('loyalty', None)
+        return self.card.get('loyalty')
 
     @cached_property
     def scryfall_scan(self) -> Optional[str]:
@@ -242,7 +243,7 @@ class NormalLayout:
 
     @cached_property
     def rarity(self):
-        if self.rarity_raw not in ['common', 'uncommon', 'rare', 'mythic']:
+        if self.rarity_raw not in [Rarity.C, Rarity.U, Rarity.R, Rarity.M]:
             return 'mythic'
         return self.rarity_raw
 

@@ -7,11 +7,11 @@ from typing import Optional, Union
 # Third Party Imports
 from photoshop.api import SolidColor, DialogModes
 
-
 # Local Imports
+from src.enums.mtg import Rarity
 from src.settings import cfg
 from src.constants import con
-from src.helpers.colors import get_color
+from src.helpers.colors import get_color, rgb_black, rgb_white
 from src.utils.types_photoshop import (
     EffectStroke,
     EffectDropShadow,
@@ -32,87 +32,65 @@ def process_expansion_symbol_info(symbol: Union[str, list], rarity: str) -> Opti
     @param rarity: Rarity of the symbol.
     @return: List of dicts containing information about this symbol.
     """
-    # Ref not defined unless explicit
-    symbols = []
+    # Define symbol layer list based on data type provided
     if isinstance(symbol, str):
         # Symbol as a string only
-        symbol = {
-            'char': symbol,
-            'scale': 1,
-            'stroke': format_symbol_fx_stroke([
-                # Stroke outline action
-                'white' if rarity == con.rarity_common else 'black',
-                cfg.symbol_stroke
-            ])
-        }
-        if rarity != con.rarity_common:
-            # Gradient overlay action
-            symbol['rarity'] = True
-            symbol['gradient'] = format_symbol_fx_gradient(rarity)
-        symbols.append(symbol)
+        return [get_default_symbol_dict(symbol, rarity)]
     elif isinstance(symbol, dict):
         # Single layered symbol
-        symbols.append(format_expansion_symbol_dict(symbol, rarity))
+        return [format_expansion_symbol_dict(symbol, rarity)]
     elif isinstance(symbol, list):
         # Multilayered symbol
-        for sym in symbol:
-            symbols.append(format_expansion_symbol_dict(sym, rarity))
-    else:
-        # Unsupported data type, return default symbol
-        return process_expansion_symbol_info(cfg.get_default_symbol(), rarity)
-    return symbols
+        return [format_expansion_symbol_dict(sym, rarity) for sym in symbol]
+    # Unsupported data type, return default symbol
+    return process_expansion_symbol_info(cfg.get_default_symbol(), rarity)
 
 
 def format_expansion_symbol_dict(sym: dict, rarity: str) -> dict:
-    # Required attributes
+    """
+    Returns a formatted symbol effects dictionary using a dictionary notation from the symbol library.
+    @param sym: Symbol dictionary notation from symbol library.
+    @param rarity: Rarity of the symbol.
+    @return: Formatted layer effects dictionary.
+    """
+    # Establish initial rarity-neutral values
     symbol: dict = {
         'char': sym['char'],
-        'rarity': sym.get('rarity', True)
+        'rarity': sym.get('rarity', bool(sym.get('fill') != 'rarity')),
+        'scale': sym['scale'] if isinstance(sym.get('scale'), (int, float)) else 1,
+        'drop-shadow': format_symbol_fx_drop_shadow(sym.get('drop-shadow')) if sym.get('drop-shadow') else None
     }
 
-    # Scale attribute [Optional]
-    if any(isinstance(sym.get('scale'), t) for t in [int, float]):
-        symbol['scale'] = sym['scale']
-
-    # Drop shadow attribute [Optional]
-    if sym.get('drop-shadow'):
-        symbol['drop-shadow'] = format_symbol_fx_drop_shadow(sym.get('drop-shadow'))
-
-    # Uncommon only attributes
-    if rarity != con.rarity_common:
-        if 'stroke' not in sym or sym['stroke']:
-            # Stroke definition - Optional, must be explicitly disabled
-            symbol['stroke'] = format_symbol_fx_stroke(
-                sym.get('stroke', ['black', cfg.symbol_stroke])
-            )
-        if sym.get('color'):
-            # Color definition - Optional
-            symbol['color'] = get_color(sym['color'])
-        if sym.get('fill'):
-            # Background fill definition - Optional
-            symbol['fill'] = format_symbol_fx_fill(sym['fill'], rarity) if sym['fill'] != 'rarity' else 'rarity'
-        if sym.get('rarity', True) or symbol.get('fill') == 'rarity':
-            # Generate gradient FX by default
-            symbol['gradient'] = format_symbol_fx_gradient(
-                rarity,
-                sym.get('gradient')
-            )
-            # Only enable if rarity fill not enabled
-            symbol['rarity'] = sym.get('rarity', bool(symbol.get('fill') != 'rarity'))
-        return symbol
-
-    # Common only attributes
-    if 'common-stroke' not in sym or sym['common-stroke']:
+    # Non-common attributes
+    if rarity != Rarity.C:
         # Stroke definition - Optional, must be explicitly disabled
         symbol['stroke'] = format_symbol_fx_stroke(
-            sym.get('common-stroke', ['white', cfg.symbol_stroke])
-        )
-    if sym.get('common-color'):
-        # Color definition [Optional]
-        symbol['color'] = get_color(sym.get('common-color', 'black'))
-    if sym.get('common-fill'):
-        # Background fill definition [Optional]
-        symbol['fill'] = get_color(sym.get('common-fill', 'white'))
+            sym.get('stroke', ['black', cfg.symbol_stroke]), rarity
+        ) if 'stroke' not in sym or sym['stroke'] else None
+
+        # Color definition - Optional
+        symbol['color'] = get_color(sym.get('color')) if sym.get('color') else None
+
+        # Background fill [Default: Disabled]
+        symbol['fill'] = (
+            format_symbol_fx_fill(sym['fill'], rarity) if sym['fill'] != 'rarity' else 'rarity'
+        ) if sym.get('fill') else None
+
+        # Rarity Gradient Overlay [Default: Enabled]
+        if sym.get('rarity', True) or symbol.get('fill') == 'rarity':
+            symbol['gradient'] = format_symbol_fx_gradient(rarity, sym.get('gradient'))
+        return symbol
+
+    # Stroke definition [Default: White]
+    symbol['stroke'] = format_symbol_fx_stroke(sym.get('common-stroke'), rarity) if (
+            sym.get('common-stroke') is not False
+    ) else None
+
+    # Color definition [Default: Black]
+    symbol['color'] = get_color(sym.get('common-color', 'black')) if sym.get('common-color') else None
+
+    # Background fill definition [Default: Disabled]
+    symbol['fill'] = get_color(sym.get('common-fill', 'white')) if sym.get('common-fill') else None
     return symbol
 
 
@@ -136,31 +114,33 @@ def format_symbol_fx_fill(fx: Union[str, list, dict], rarity: str) -> Optional[S
     return
 
 
-def format_symbol_fx_stroke(fx: Union[bool, list, dict]) -> Optional[EffectStroke]:
+def format_symbol_fx_stroke(fx: Union[bool, list, dict], rarity: str) -> Optional[EffectStroke]:
     """
     Produces a correct dictionary for layer effects type: stroke.
     @param fx: The stroke definition we were given by the user.
+    @param rarity: The rarity of this symbol.
     @return: Formatted stroke definition for this effect.
     """
     # Layer effects details notation
     if isinstance(fx, dict):
         return {
             'type': 'stroke',
-            'weight': int(fx.get('weight') or fx.get('size', cfg.symbol_stroke)),
-            'color': get_color(fx.get('color', [0, 0, 0])),
+            'weight': int(fx.get('weight', cfg.symbol_stroke)),
+            'color': get_color(fx.get('color', [255, 255, 255] if rarity == Rarity.C else [0, 0, 0])),
             'opacity': int(fx.get('opacity', 100)),
             'style': fx.get('style', 'out')
         }
     # Simple [color, weight] notation
     if isinstance(fx, list):
+        weight = cfg.symbol_stroke if fx[1] == 'default' else int(fx[1])
         return {
             'type': 'stroke',
-            'weight': int(fx[1]),
+            'weight': weight,
             'color': get_color(fx[0]),
-            'opacity': int(100),
+            'opacity': 100,
             'style': 'out'
         }
-    return
+    return get_default_stroke(rarity)
 
 
 def format_symbol_fx_drop_shadow(fx: Union[bool, dict]) -> Optional[EffectDropShadow]:
@@ -256,4 +236,58 @@ def format_symbol_fx_gradient(
         'rotation': gradient.get('rotation', 45),
         'opacity': gradient.get('opacity', 100),
         'colors': gradient_colors
+    }
+
+
+"""
+DEFAULT FX DEFINITIONS
+"""
+
+
+def get_default_symbol_dict(char: str, rarity: str):
+    """
+    Takes in a symbol character and rarity, returns a default configured symbol dict.
+    @param char: Symbol character to use.
+    @param rarity: Rarity to configure for.
+    @return: Symbol info dictionary.
+    """
+    return {
+        'char': char,
+        'scale': 1,
+        'stroke': get_default_stroke(rarity),
+        'rarity': True if rarity != Rarity.C else False,
+        'gradient': get_default_gradient(rarity)
+    }
+
+
+def get_default_gradient(rarity: str) -> Optional[EffectGradientOverlay]:
+    """
+    Return the gradient overlay layer effects dictionary for a given rarity.
+    @param rarity: Rarity of the symbol.
+    @return: Gradient Overlay FX dictionary.
+    """
+    if rarity == Rarity.C:
+        return
+    return {
+        'type': 'gradient-overlay',
+        'size': 4096,
+        'scale': 70,
+        'rotation': 45,
+        'opacity': 100,
+        'colors': con.rarity_gradients.get(rarity[0])
+    }
+
+
+def get_default_stroke(rarity: str) -> EffectStroke:
+    """
+    Return the symbol stroke layer effects dictionary for a given rarity.
+    @param rarity: Rarity of the symbol.
+    @return: Stroke FX dictionary.
+    """
+    return {
+        'type': 'stroke',
+        'weight': cfg.symbol_stroke,
+        'color': rgb_black() if rarity != Rarity.C else rgb_white(),
+        'opacity': 100,
+        'style': 'out'
     }
