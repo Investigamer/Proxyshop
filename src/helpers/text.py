@@ -10,6 +10,7 @@ from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.constants import con
+from src.helpers import pixels_to_points, get_layer_dimensions
 from src.settings import cfg
 
 # QOL Definitions
@@ -46,6 +47,15 @@ def apply_text_key(text_layer, text_key) -> None:
     action.putReference(sID("target"), ref)
     action.putObject(sID("to"), sID("textLayer"), text_key)
     app.executeAction(sID("set"), action, DialogModes.DisplayNoDialogs)
+
+
+def get_line_count(layer: Optional[ArtLayer] = None) -> int:
+    """
+    Get the number of lines in a paragraph text layer.
+    @param layer: Text layer that contains a paragraph TextItem.
+    @return: Number of lines in the TextItem.
+    """
+    return round(pixels_to_points(get_layer_dimensions(layer)['height']) / layer.textItem.leading)
 
 
 """
