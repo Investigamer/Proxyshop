@@ -2,7 +2,7 @@
 Proxyshop is a Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
 If you need help with this app, join our discord: https://discord.gg/magicproxies. 
 
-<center>
+<div align="center">
   <a href="https://discord.gg/magicproxies">
     <img alt="Discord" src="https://img.shields.io/discord/889831317066358815?label=Discord&style=plastic">
   </a>
@@ -11,7 +11,7 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
   <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CC 2015--2023-informational?style=plastic">
   <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-yellow?style=plastic">
   <a href="https://patreon.com/mpcfill"><img alt="PATREON" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dendel%26type%3Dpatrons&style=plastic" /></a>
-</center>
+</div>
 
 ![img1](https://i.imgur.com/OJrXeqj.jpg)
 
