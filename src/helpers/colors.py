@@ -173,8 +173,8 @@ def apply_cmyk(action: ActionDescriptor, color: SolidColor) -> None:
     ad = ActionDescriptor()
     ad.putDouble(sID("cyan"), color.cmyk.cyan)
     ad.putDouble(sID("magenta"), color.cmyk.magenta)
-    ad.putDouble(cID("yellowColor"), color.cmyk.yellow)
-    ad.putDouble(cID("black"), color.cmyk.black)
+    ad.putDouble(sID("yellowColor"), color.cmyk.yellow)
+    ad.putDouble(sID("black"), color.cmyk.black)
     action.putObject(sID("color"), sID("CMYKColorClass"), ad)
 
 
