@@ -32,7 +32,7 @@ card_types = {
     "Planeswalker": ["planeswalker"],
     "PW MDFC": ["pw_mdfc_front", "pw_mdfc_back"],
     "PW TF": ["pw_tf_front", "pw_tf_back"],
-    "Basic Land": ["basic"],
+    "Basic": ["basic"],
     "Ixalan": ["ixalan"],
     "Mutate": ["mutate"],
     "Prototype": ["prototype"],
@@ -40,6 +40,7 @@ card_types = {
     "Leveler": ["leveler"],
     "Saga": ["saga"],
     "Class": ["class"],
+    "Token": ["token"],
     "Miracle": ["miracle"],
     "Snow": ["snow"],
     "Planar": ["planar"]
