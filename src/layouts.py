@@ -17,7 +17,7 @@ from src.enums.mtg import Rarity
 from src.enums.layers import LAYERS
 from src.enums.settings import CollectorMode
 from src.utils.scryfall import get_set_data, get_card_data
-from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors
+from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors, get_special_rarity
 from src.utils.strings import normalize_str, msg_error, msg_success
 
 
@@ -243,9 +243,9 @@ class NormalLayout:
 
     @cached_property
     def rarity(self):
-        if self.rarity_raw not in [Rarity.C, Rarity.U, Rarity.R, Rarity.M]:
-            return 'mythic'
-        return self.rarity_raw
+        if self.rarity_raw in [Rarity.C, Rarity.U, Rarity.R, Rarity.M]:
+            return self.rarity_raw
+        return get_special_rarity(self.rarity_raw, self.scryfall)
 
     @cached_property
     def rarity_raw(self) -> str:
@@ -253,7 +253,7 @@ class NormalLayout:
 
     @cached_property
     def rarity_letter(self) -> str:
-        return self.rarity[0:1].upper()
+        return self.rarity_raw[0:1].upper()
 
     @cached_property
     def lang(self) -> str:
@@ -276,6 +276,9 @@ class NormalLayout:
         # Remove failed values
         if 0 in nums:
             nums.remove(0)
+        # Check for empty list
+        if not nums:
+            return
         card_count = min(nums)
         # Ignore card count if it's larger than collector number
         if card_count < self.collector_number:
@@ -479,12 +482,17 @@ class NormalLayout:
             return con.mutate_class
         elif "Miracle" in self.frame_effects and cfg.render_miracle:
             return con.miracle_class
-        elif "Prototype" in self.keywords:
-            return con.prototype_class
         elif "Snow" in self.card['type_line'] and cfg.render_snow:
             # frame_effects doesn't contain "snow" for pre-KHM snow cards
             return con.snow_class
         return con.normal_class
+
+
+class PrototypeLayout (NormalLayout):
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.prototype_class
 
 
 class TransformLayout (NormalLayout):
@@ -927,6 +935,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     "adventure": AdventureLayout,
     "leveler": LevelerLayout,
     "saga": SagaLayout,
+    "prototype": PrototypeLayout,
     "class": ClassLayout,
     "planar": PlanarLayout,
     "token": TokenLayout,
