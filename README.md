@@ -34,8 +34,8 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
   * The next set of tabs are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Womens Day" for normal cards, "Silvan Extended" for MDFC, "Extended" for Planeswalker cards.
   * The Global Settings button will bring up settings to change for the entire app, clicking the Settings button next to a specific template will change the settings for that template explicitly. Please note after clicking this, the settings of that template become decoupled from the Global Settings and will need to be changed here from now on.
 * Hit **Render All** to render every card art in the `art` folder. Hit **Render Target** to render one specific card.
-* Art file names should be structured like `<CARDNAME>.jpg`. You can optionally specify the card's set code in square brackets: 
-`<CARDNAME> [<SET>].jpg`. You can specify artist name in parentheses: `<CARDNAME> (<ARTIST NAME>).jpg`. Currently supported 
+* Art file names should be structured like `<CARDNAME>.jpg`. To gain more control over what version of the card is pulled from Scryfall, you can optionally specify the card's set code in square brackets: 
+`<CARDNAME> [<SET>].jpg`. If you do provide set code, you can also specify the collector number using curly brackets to obtain an exact print within that set: `<CARDNAME> [<SET>] {<NUM>}.jpg`. You can specify artist name (cosmetic change only) in parentheses: `<CARDNAME> (<ARTIST NAME>).jpg`. Currently supported 
 filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
 * During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
 
