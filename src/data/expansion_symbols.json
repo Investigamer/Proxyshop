@@ -1,5 +1,4 @@
 {
-    "OLGC": "",
     "MTG": "",
     "LEA": "",
     "LEB": "",
@@ -719,20 +718,20 @@
             "common-fill": "white"
         }
     ],
-    "JGP": "",
-    "G99": "\uE607",
-    "G00": "",
-    "G01": "",
-    "G02": "",
-    "G03": "",
-    "G04": "",
-    "G05": "",
-    "G06": "",
-    "G07": "",
-    "G08": "",
-    "G09": "",
-    "G10": "",
-    "G11": "",
+    "JGP": "DCI",
+    "G99": "",
+    "G00": "DCI",
+    "G01": "DCI",
+    "G02": "DCI",
+    "G03": "DCI",
+    "G04": "DCI",
+    "G05": "DCI",
+    "G06": "DCI",
+    "G07": "DCI",
+    "G08": "DCI",
+    "G09": "DCI",
+    "G10": "DCI",
+    "G11": "DCI",
     "J12": "SLD",
     "J13": "SLD",
     "J14": "SLD",
@@ -803,6 +802,16 @@
             "common-fill": "white"
         }
     ],
+    "TSB": [
+        {
+            "char": "",
+            "fill": "white",
+            "stroke": {
+                "color": "white"
+            },
+            "common-fill": "white"
+        }
+    ],
     "STX": [
         {
             "char": "",
@@ -853,9 +862,10 @@
     "SLU": "SLD",
     "HTR": "SLD",
     "HTR17": "SLD",
-    "BCORE": "\uE612",
     "OVNT": "SLD",
+    "OLGC": "SLD",
     "J21": "",
+    "BCORE": "",
     "MID": [
         {
             "char": "",
@@ -949,6 +959,55 @@
             }
         }
     ],
+    "Y23": [
+        {
+            "char": "",
+            "fill": "black",
+            "common-fill": "white",
+            "gradient": {
+                "rotation": 25,
+                "scale": 60,
+                "colors": {
+                    "u": [
+                        {
+                            "color": [98, 110, 119],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [199, 225, 241],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ],
+                    "r": [
+                        {
+                            "color": [146, 116, 67],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [213, 180, 109],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ],
+                    "m": [
+                        {
+                            "color": [192, 55, 38],
+                            "location": 0,
+                            "midpoint": 50
+                        },
+                        {
+                            "color": [245, 149, 29],
+                            "location": 2776,
+                            "midpoint": 78
+                        }
+                    ]
+                }
+            }
+        }
+    ],
     "CC2": [
         {
             "char": "",
@@ -956,7 +1015,7 @@
             "common-fill": "white"
         }
     ],
-    "HED": "",
+    "HED": "SLD",
     "SNC": [
         {
             "char": "",
