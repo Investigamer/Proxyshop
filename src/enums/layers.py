@@ -97,6 +97,7 @@ class LAYERS (StrEnum):
 
     # Vectors
     SHAPE = "Shape"
+    TEXTLESS = "Textless"
 
     # Effects
     EFFECTS = "Effects"
@@ -122,6 +123,7 @@ class LAYERS (StrEnum):
     NAME = "Card Name"
     NAME_SHIFT = "Card Name Shift"
     NAME_ADVENTURE = "Card Name - Adventure"
+    NICKNAME = "Nickname"
     TYPE_LINE = "Typeline"
     TYPE_LINE_SHIFT = "Typeline Shift"
     TYPE_LINE_ADVENTURE = "Typeline - Adventure"
@@ -201,6 +203,8 @@ class LAYERS (StrEnum):
     TF_BACK = "tf-back"
     MDFC_FRONT = "mdfc-front"
     MDFC_BACK = "mdfc-back"
+    MODAL_FRONT = "MDFC Front"
+    MODAL_BACK = "MDFC Back"
     DFC_MOONELDRAZI = "mooneldrazidfc"
     DFC_COMPASSLAND = "compasslanddfc"
     DFC_ORIGINPW = "originpwdfc"
