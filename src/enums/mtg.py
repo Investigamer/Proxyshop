@@ -12,3 +12,4 @@ class Rarity(StrEnum):
     M = "mythic"
     S = "special"
     B = "bonus"
+    T = "timeshifted"

@@ -4,6 +4,7 @@ FRAME LOGIC MODULE
 # Standard Library Imports
 from typing import Union, Optional
 
+from src.enums.mtg import Rarity
 # Local Imports
 from src.utils.types_cards import FrameDetails
 from src.enums.layers import LAYERS
@@ -460,3 +461,28 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
 
     # Return the processed details
     return result
+
+
+"""
+SPECIAL CARD UTILITIES
+"""
+
+
+def get_special_rarity(rarity: str, card: dict) -> str:
+    """
+    Control for special rarities.
+    @param rarity: Provided rarity string.
+    @param card: Card data from Scryfall.
+    @return: Proper rarity string for generating symbol.
+    """
+    if rarity == Rarity.S:
+        # Timeshifted cards
+        if card.get('frame') == '1997':
+            return Rarity.T
+        # Championship cards
+        if 'Champion' in card.get('set_name'):
+            return Rarity.M
+        # Case like Prismatic Piper
+        return Rarity.C
+    # Bonus cards / other
+    return Rarity.M

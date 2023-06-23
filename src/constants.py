@@ -8,6 +8,8 @@ from os import path as osp
 from threading import Lock
 from typing import Optional
 
+import yaml
+
 # Local Imports
 from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
 from src.enums.layers import LAYERS
@@ -52,8 +54,8 @@ class Constants:
         self.path_scryfall_scan = osp.join(self.path_logs, "card.jpg")
         self.path_watermarks = osp.join(self.path_data, 'watermarks.json')
         self.path_version_tracker = osp.join(self.path_data, 'version_tracker.json')
-        self.path_expansion_symbols = osp.join(self.path_data, 'expansion_symbols.json')
-        self.path_custom_symbols = osp.join(self.path_data, "custom_symbols.json")
+        self.path_expansion_symbols = osp.join(self.path_data, 'symbols.yaml')
+        self.path_custom_symbols = osp.join(self.path_data, "custom_symbols.yaml")
 
         # Locking handlers for multithreading
         self.lock_file_open = Lock()
@@ -242,6 +244,23 @@ class Constants:
                     "location": 4096,
                     "midpoint": 50
                 }
+            ],
+            't': [
+                {
+                    "color": [98, 45, 118],
+                    "location": 0,
+                    "midpoint": 50
+                },
+                {
+                    "color": [191, 153, 195],
+                    "location": 2048,
+                    "midpoint": 50
+                },
+                {
+                    "color": [98, 45, 118],
+                    "location": 4096,
+                    "midpoint": 50
+                }
             ]
         }
 
@@ -386,7 +405,7 @@ class Constants:
         """
         # Import expansion symbol library
         with open(self.path_expansion_symbols, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
+            return yaml.load(f, yaml.Loader)
 
     def get_custom_symbols(self) -> dict:
         """
@@ -395,7 +414,7 @@ class Constants:
         """
         # Check for a custom expansion symbol library
         if not osp.exists(self.path_custom_symbols):
-            with open(osp.join(self.path_data, "custom_symbols.json"), "w", encoding="utf-8-sig") as f:
+            with open(self.path_custom_symbols, "w", encoding="utf-8-sig") as f:
                 json.dump({}, f, indent=4)
 
         # Pull the custom expansion symbol library

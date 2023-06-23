@@ -36,7 +36,7 @@ files = [
     # --- SOURCE DIRECTORY
     {'src': os.path.join(DATA, 'tests.json'), 'dst': os.path.join(DIST_DATA, 'tests.json')},
     {'src': os.path.join(DATA, 'app_templates.json'), 'dst': os.path.join(DIST_DATA, 'app_templates.json')},
-    {'src': os.path.join(DATA, 'expansion_symbols.json'), 'dst': os.path.join(DIST_DATA, 'expansion_symbols.json')},
+    {'src': os.path.join(DATA, 'symbols.yaml'), 'dst': os.path.join(DIST_DATA, 'symbols.yaml')},
     {'src': os.path.join(DATA, 'watermarks.json'), 'dst': os.path.join(DIST_DATA, 'watermarks.json')},
     {'src': os.path.join(DATA, 'app_settings.json'), 'dst': os.path.join(DIST_DATA, 'app_settings.json')},
     {'src': os.path.join(DATA, 'base_settings.json'), 'dst': os.path.join(DIST_DATA, 'base_settings.json')},
