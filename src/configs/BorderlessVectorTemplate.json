@@ -11,5 +11,21 @@
     "key": "Textbox.Size",
     "options": ["Tall", "Normal", "Medium", "Short", "Automatic"],
     "default": "Tall"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Render Textless[/b]",
+    "desc": "When enabled, card will be rendered with only a name and type box and no textbox or other text elements.\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Textless",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Use Nickname[/b]",
+    "desc": "When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually.\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Nickname",
+    "default": 0
   }
 ]

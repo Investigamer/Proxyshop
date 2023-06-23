@@ -6,10 +6,16 @@ from functools import cached_property
 from typing import Optional, Union
 
 # Third Party Imports
-from photoshop.api import AnchorPosition, SolidColor, ElementPlacement
+from photoshop.api import (
+    AnchorPosition,
+    SolidColor,
+    ElementPlacement
+)
 from photoshop.api._layerSet import ArtLayer, LayerSet
 
 # Local Imports
+from src.enums.photoshop import Alignment
+from src.enums.settings import ExpansionSymbolMode
 from src.helpers import get_line_count
 from src.templates._core import (
     StarterTemplate,
@@ -922,6 +928,11 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
     template_suffix = "Borderless"
 
+    def __init__(self, layout):
+        if not cfg.exit_early:
+            cfg.exit_early = self.is_nickname
+        super().__init__(layout)
+
     """
     DETAILS
     """
@@ -936,6 +947,10 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
             is_bool=False
         ))
         if size == "Automatic":
+            # Check for textless
+            if self.is_textless:
+                return "Short"
+
             # Set up our test layer and test text
             test_layer = psd.getLayer(self.text_layer_rules_name, [self.text_group, "Tall"])
             test_text = self.layout.oracle_text
@@ -959,14 +974,14 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         """Layer name associated with the frame type."""
         if self.is_transform and self.is_front:
             return LAYERS.TRANSFORM_FRONT
-        if self.is_transform:
+        if self.is_transform or self.is_mdfc:
             return LAYERS.TRANSFORM_BACK
         return LAYERS.NORMAL
 
     @cached_property
     def mask(self) -> str:
         """Layer name associated with the overall frame mask."""
-        if self.is_transform:
+        if self.is_transform or self.is_mdfc:
             return f"{self.size} {self.type}"
         return self.size
 
@@ -991,6 +1006,25 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     @property
     def is_content_aware_enabled(self) -> bool:
         return True
+
+    @cached_property
+    def is_token(self) -> bool:
+        """Return True if this is a Token card."""
+        return bool('Token' in self.layout.type_line_raw)
+
+    @cached_property
+    def is_textless(self) -> bool:
+        """Return True if this a textless render."""
+        if cfg.get_setting(section="FRAME", key="Textless", default=False):
+            return True
+        if not any([self.layout.oracle_text, self.layout.flavor_text]):
+            return True
+        return False
+
+    @cached_property
+    def is_nickname(self) -> bool:
+        """Return True if this a nickname render."""
+        return cfg.get_setting(section="FRAME", key="Nickname", default=False)
 
     """
     COLORS
@@ -1029,7 +1063,7 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         # Use Solid Color or Gradient adjustment layer for Twins colors
         return psd.get_pinline_gradient(
             # Use right-half color on Twins for hybrid
-            self.pinlines[1] if self.is_hybrid else self.twins,
+            self.pinlines if self.is_hybrid else self.twins,
             color_map=self.dark_color_map
         )
 
@@ -1057,9 +1091,19 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     """
 
     @cached_property
+    def pt_group(self) -> Optional[LayerSet]:
+        if self.is_textless and cfg.symbol_mode == ExpansionSymbolMode.Disabled:
+            return psd.getLayerSet(f"{LAYERS.PT_BOX} {LAYERS.TEXTLESS}")
+        return super().pt_group
+
+    @cached_property
     def crown_group(self) -> LayerSet:
         # Need to get the inner group so textured overlay can be applied above the colors
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN, LAYERS.LEGENDARY_CROWN)
+
+    @cached_property
+    def nickname_group(self) -> LayerSet:
+        return psd.getLayerSet(LAYERS.NICKNAME)
 
     """
     TEXT LAYERS
@@ -1084,6 +1128,16 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     def text_layer_rules(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.text_layer_rules_name, [self.text_group, self.size])
 
+    @cached_property
+    def text_layer_name(self) -> Optional[ArtLayer]:
+        # Add support for nickname
+        if self.is_nickname:
+            layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
+            psd.getLayer(LAYERS.NAME, self.text_group).textItem.contents = "ENTER NAME HERE"
+            layer.visible = True
+            return layer
+        return super().text_layer_name
+
     """
     REFERENCES
     """
@@ -1098,6 +1152,9 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
 
     @cached_property
     def textbox_shape(self) -> Optional[LayerSet]:
+        # Return None if textless
+        if self.is_textless:
+            return
         # Enable TF Front addition if required
         if self.is_transform and self.is_front:
             psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.textbox_group, LAYERS.SHAPE]).visible = True
@@ -1105,29 +1162,52 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
 
     @cached_property
     def pinlines_shapes(self) -> list[Union[ArtLayer, LayerSet]]:
-        # Enable TF Front addition if required
-        if self.is_transform and self.is_front:
-            psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX]).visible = True
-        # Shape for card name, typeline, and textbox pinline
-        return [
-            psd.getLayerSet(
-                LAYERS.NORMAL if not self.is_transform else LAYERS.TRANSFORM,
-                [self.pinlines_group, LAYERS.SHAPE, LAYERS.NAME]
-            ),
-            psd.getLayer(self.size, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TYPE_LINE]),
-            psd.getLayer(self.size, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX])
+        # Choose the name pinline
+        if self.is_transform:
+            name = LAYERS.TRANSFORM
+        elif self.is_mdfc:
+            name = LAYERS.MDFC
+        else:
+            name = LAYERS.NORMAL
+        layers = [
+            psd.getLayerSet(name, [self.pinlines_group, LAYERS.SHAPE, LAYERS.NAME]),
+            psd.getLayer(
+                LAYERS.TEXTLESS if self.is_textless else self.size,
+                [self.pinlines_group, LAYERS.SHAPE, LAYERS.TYPE_LINE]),
         ]
+        # Add nickname if needed
+        if self.is_nickname:
+            layers.append(psd.getLayerSet(
+                LAYERS.NICKNAME, [self.crown_group if self.is_legendary else self.pinlines_group, LAYERS.SHAPE])
+            )
+        # If textless return just the name and title
+        if self.is_textless:
+            return layers
+        # Add TF Front addition if required
+        if self.is_transform and self.is_front:
+            layers.append(psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX]))
+        # Add the textbox
+        return [*layers, psd.getLayer(self.size, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX])]
 
     @cached_property
     def twins_shapes(self) -> list[Union[ArtLayer, LayerSet]]:
         # Card Name and Typeline box
         return [
             psd.getLayer(
-                LAYERS.NORMAL if not self.is_transform else LAYERS.TRANSFORM,
-                [self.twins_group, LAYERS.SHAPE, LAYERS.NAME]
-            ),
-            psd.getLayer(self.size, [self.twins_group, LAYERS.SHAPE, LAYERS.TYPE_LINE])
+                LAYERS.TRANSFORM if self.is_transform or self.is_mdfc else LAYERS.NORMAL,
+                [self.twins_group, LAYERS.SHAPE, LAYERS.NAME]),
+            psd.getLayer(
+                LAYERS.TEXTLESS if self.is_textless else self.size,
+                [self.twins_group, LAYERS.SHAPE, LAYERS.TYPE_LINE])
         ]
+
+    @cached_property
+    def nickname_shape(self) -> ArtLayer:
+        # Nickname box
+        return psd.getLayer(
+            LAYERS.LEGENDARY if self.is_legendary else LAYERS.NORMAL,
+            [self.nickname_group, LAYERS.SHAPE]
+        )
 
     """
     MASKS
@@ -1135,12 +1215,19 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
 
     @cached_property
     def border_mask(self) -> Optional[ArtLayer]:
+        # Check for textless
+        if self.is_textless:
+            return psd.getLayer(LAYERS.TEXTLESS, [self.mask_group, LAYERS.BORDER])
         if self.is_transform and self.is_front:
             return psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.mask_group, LAYERS.BORDER])
         return
 
     @cached_property
     def pinlines_mask(self) -> Optional[ArtLayer]:
+        # Check for textless
+        if self.is_textless:
+            addendum = f" {LAYERS.TRANSFORM}" if self.is_transform or self.is_mdfc else ""
+            return psd.getLayer(LAYERS.TEXTLESS + addendum, [self.mask_group, LAYERS.PINLINES])
         return psd.getLayer(self.mask, [self.mask_group, LAYERS.PINLINES])
 
     """
@@ -1159,11 +1246,14 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     def enable_frame_layers(self) -> None:
 
         # Generate a solid color or gradient layer for PT Box
-        if self.is_creature and self.pt_group:
+        if self.is_creature and self.pt_group and not (
+            self.is_textless and cfg.symbol_mode != ExpansionSymbolMode.Disabled
+        ):
             self.pt_group.visible = True
             psd.create_color_layer(self.pt_colors, self.pt_group)
 
-        # Color Indicator, doesn't natively support color blending
+        # Color Indicator, simple rasterized layer
+        # TODO: Create vector-based color indicator
         if self.is_type_shifted and self.color_indicator_layer:
             self.color_indicator_layer.visible = True
 
@@ -1176,7 +1266,7 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         if self.twins_group:
             self.twins_action(self.twins_colors, self.twins_group)
 
-        # Generate a solid color or gradient layer for Twins
+        # Generate a solid color or gradient layer for Textbox
         if self.textbox_group:
             self.pinlines_action(self.textbox_colors, self.textbox_group)
 
@@ -1206,16 +1296,107 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         if self.is_transform:
             self.enable_transform_layers()
 
+        # Add MDFC related layers
+        if self.is_mdfc:
+            self.enable_mdfc_layers()
+
+        # Add Token shadow
+        if self.is_token:
+            psd.getLayer('Token', self.text_group).visible = True
+
+        # Add nickname backdrop
+        if self.is_nickname:
+            self.nickname_shape.visible = True
+            self.twins_action(self.twins_colors, self.nickname_group)
+
+    def basic_text_layers(self) -> None:
+        """Add essential text layers: Mana cost, Card name, Typeline."""
+        self.text.extend([
+            text_classes.FormattedTextField(
+                layer = self.text_layer_mana,
+                contents = self.layout.mana_cost
+            ),
+            text_classes.ScaledTextField(
+                layer = self.text_layer_type,
+                contents = f"{self.layout.type_line} — {self.layout.power}/{self.layout.toughness}" if all([
+                    self.is_textless, self.is_creature, cfg.symbol_mode != ExpansionSymbolMode.Disabled
+                ]) else self.layout.type_line,
+                reference = psd.getLayer(LAYERS.PT_BOX, [self.pt_group, LAYERS.SHAPE]) if all([
+                    self.is_textless, self.is_creature, cfg.symbol_mode == ExpansionSymbolMode.Disabled
+                ]) else self.expansion_symbol_layer
+            )
+        ])
+
+        # Add nickname or regular name
+        if not self.is_nickname:
+            self.text.append(
+                text_classes.ScaledTextField(
+                    layer = self.text_layer_name,
+                    contents = self.layout.name,
+                    reference = self.text_layer_mana
+                ))
+        else:
+            self.text.append(
+                text_classes.ScaledWidthTextField(
+                    layer = self.text_layer_name,
+                    contents = self.layout.name,
+                    reference = self.nickname_shape
+                )
+            )
+
+    def rules_text_and_pt_layers(self) -> None:
+
+        # Only add PT layer if textless
+        if self.is_textless:
+            # Make positioning adjustments
+            if self.color_indicator_layer:
+                self.color_indicator_layer.translate(-10, 0)
+            self.text_layer_type.translate(-10, 0)
+
+            if self.is_creature and cfg.symbol_mode == ExpansionSymbolMode.Disabled:
+                # Align PT text
+                psd.align(Alignment.CenterHorizontal, self.text_layer_pt, self.pt_group)
+                psd.align(Alignment.CenterVertical, self.text_layer_pt)
+                self.docref.selection.deselect()
+
+                # Add PT text
+                self.text.append(
+                    text_classes.TextField(
+                        layer=self.text_layer_pt,
+                        contents=f"{self.layout.power}/{self.layout.toughness}"
+                    )
+                )
+            else:
+                # Adjust expansion symbol over
+                self.text_layer_pt.visible = False
+                self.expansion_symbol_layer.translate(10, 0)
+            return
+        super().rules_text_and_pt_layers()
+
     def post_text_layers(self) -> None:
 
         # Align the typeline, expansion symbol, and color indicator on the type bar
         psd.disable_layer_fx(self.text_layer_type)
         psd.align_vertical(self.text_layer_type, self.pinlines_shapes[1])
         psd.enable_layer_fx(self.text_layer_type)
-        psd.align_vertical(self.expansion_symbol_layer, self.pinlines_shapes[1])
-        if self.is_type_shifted and self.color_indicator_layer:
-            psd.align_vertical(self.color_indicator_layer, self.pinlines_shapes[1])
+        if cfg.symbol_mode != ExpansionSymbolMode.Disabled:
+            psd.align_vertical(self.expansion_symbol_layer)
+        if self.color_indicator_layer:
+            psd.align_vertical(self.color_indicator_layer)
         self.docref.selection.deselect()
+
+        # Token adjustments
+        if self.is_token:
+            psd.align(Alignment.CenterHorizontal, self.text_layer_name, self.twins_shapes[0])
+            self.docref.selection.deselect()
+            psd.set_font(self.text_layer_name, con.font_subtext)
+
+        # Nickname adjustments
+        if self.is_nickname:
+            psd.disable_layer_fx(self.text_layer_name)
+            psd.align(Alignment.CenterVertical, self.text_layer_name, self.nickname_shape)
+            self.docref.selection.deselect()
+            psd.enable_layer_fx(self.text_layer_name)
 
     def enable_crown(self) -> None:
 
@@ -1224,6 +1405,10 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         self.pinlines_action(self.crown_colors, self.crown_group)
         psd.enable_vector_mask(self.pinlines_group)
         psd.copy_layer_mask(self.pinlines_mask, self.crown_group.parent)
+
+        # Change to nickname effects if needed
+        if self.is_nickname:
+            psd.copy_layer_fx(psd.getLayer(LAYERS.NICKNAME, LAYERS.EFFECTS), self.crown_group.parent)
 
     def enable_transform_layers(self):
 
@@ -1246,3 +1431,17 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
             if self.is_creature:
                 pt_adj = self.back_adjustment_layer.duplicate(self.pt_group, ElementPlacement.PlaceInside)
                 pt_adj.grouped = True
+
+    def enable_mdfc_layers(self):
+
+        # Resize the textbox reference
+        psd.select_layer_bounds(psd.getLayer(LAYERS.MDFC, self.textbox_reference.parent))
+        self.textbox_reference.visible = True
+        self.active_layer = self.textbox_reference
+        self.docref.selection.clear()
+        self.docref.selection.deselect()
+        self.textbox_reference.visible = False
+
+        # Enable MDFC group
+        self.dfc_group.visible = True
+        super().enable_mdfc_layers()

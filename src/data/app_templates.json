@@ -121,6 +121,10 @@
             "class": "MDFCTemplate",
             "file": "mdfc-front.psd",
             "id": "1qND_rcc2FuV3mXDb1Sh9qZ2fNG_PEdqP"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "mdfc_back": {
@@ -128,6 +132,10 @@
             "class": "MDFCTemplate",
             "file": "mdfc-back.psd",
             "id": "1LePVD7a9tZRmxIEFL2V1g6K29AvRErQ_"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "ixalan": {
@@ -256,6 +264,10 @@
             "class": "TokenTemplate",
             "file": "token.psd",
             "id": "16uJhHm97_nZEFwysCfcfFWZr7m0k5pxm"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "basic": {
