@@ -16,6 +16,7 @@ from photoshop.api import (
     RasterizeType
 )
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
@@ -412,6 +413,8 @@ def ensure_visible_reference(reference: ArtLayer) -> bool:
     @param reference: Reference layer that might be a TextLayer.
     @return: True if it was empty previously, False if it was always visible.
     """
+    if isinstance(reference, LayerSet):
+        return False
     if reference.kind is LayerKind.TextLayer:
         if reference.textItem.contents in ("", " "):
             reference.textItem.contents = "."
