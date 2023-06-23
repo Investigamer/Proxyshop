@@ -835,9 +835,12 @@ class BaseTemplate:
         """
         Reset the document, purge the cache, end await.
         """
-        if self.docref:
-            psd.reset_document()
-            self.app.purge(4)
+        try:
+            if self.docref:
+                psd.reset_document()
+                self.app.purge(4)
+        except PS_EXCEPTIONS:
+            pass
         console.end_await()
 
     def run_tasks(
@@ -1402,6 +1405,18 @@ class DynamicVectorTemplate(NormalVectorTemplate):
     """The NormalVectorTemplate with added support for multiple frame types like MDFC and Transform."""
 
     """
+    GROUPS
+    """
+
+    @cached_property
+    def dfc_group(self) -> Optional[LayerSet]:
+        # MDFC Text Group
+        return psd.getLayerSet(
+            LAYERS.MODAL_FRONT if self.is_front else LAYERS.MODAL_BACK,
+            self.text_group
+        )
+
+    """
     LAYERS
     """
 
@@ -1430,6 +1445,16 @@ class DynamicVectorTemplate(NormalVectorTemplate):
         if self.is_transform and self.is_flipside_creature:
             return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE_FLIP, self.text_group)
         return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE, self.text_group)
+
+    @cached_property
+    def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
+        """The back face card type."""
+        return psd.getLayer(LAYERS.LEFT, self.dfc_group)
+
+    @cached_property
+    def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
+        """The back face mana cost or land tap ability."""
+        return psd.getLayer(LAYERS.RIGHT, self.dfc_group)
 
     """
     VECTOR SHAPE LAYERS
@@ -1484,6 +1509,10 @@ class DynamicVectorTemplate(NormalVectorTemplate):
         if self.is_transform:
             self.enable_transform_layers()
 
+        # Add MDFC related layers
+        if self.is_mdfc:
+            self.enable_mdfc_layers()
+
     def rules_text_and_pt_layers(self) -> None:
         super().rules_text_and_pt_layers()
 
@@ -1491,8 +1520,12 @@ class DynamicVectorTemplate(NormalVectorTemplate):
         if self.is_transform:
             self.transform_text_layers()
 
+        # Add MDFC related text
+        if self.is_mdfc:
+            self.mdfc_text_layers()
+
     def transform_text_layers(self):
-        """Adds and modifies text layers needed for a transform-type card."""
+        """Adds and modifies text layers required by transform cards."""
 
         if self.is_front and self.is_flipside_creature:
             # Add flipside Power/Toughness
@@ -1512,8 +1545,25 @@ class DynamicVectorTemplate(NormalVectorTemplate):
                 self.text_layer_type.textItem.color = psd.rgb_white()
                 self.text_layer_pt.textItem.color = psd.rgb_white()
 
+    def mdfc_text_layers(self):
+        """Adds and modifies text layers required by modal double faced cards."""
+
+        # Add mdfc text layers
+        self.text.extend([
+            text_classes.FormattedTextField(
+                layer = self.text_layer_mdfc_right,
+                contents = self.layout.other_face_right
+            ),
+            text_classes.ScaledTextField(
+                layer = self.text_layer_mdfc_left,
+                contents = self.layout.other_face_left,
+                reference = self.text_layer_mdfc_right,
+            )
+        ])
+
     def enable_transform_layers(self):
-        """Enable layers that are required by Transform cards."""
+        """Enable layers that are required by transform cards."""
+
         # Enable transform icon and circle backing
         psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
         self.transform_icon.visible = True
@@ -1521,3 +1571,16 @@ class DynamicVectorTemplate(NormalVectorTemplate):
         # Add border mask for textbox cutout
         if self.is_front:
             psd.copy_layer_mask(psd.getLayer(LAYERS.TRANSFORM_FRONT, self.mask_group), self.border_layer)
+
+    def enable_mdfc_layers(self):
+        """Enable layers that are required by modal double faced cards."""
+
+        # MDFC elements at the top and bottom of the card
+        psd.getLayer(
+            self.twins,
+            psd.getLayerSet(LAYERS.TOP, self.dfc_group)
+        ).visible = True
+        psd.getLayer(
+            self.layout.other_face_twins,
+            psd.getLayerSet(LAYERS.BOTTOM, self.dfc_group)
+        ).visible = True
