@@ -229,3 +229,17 @@ def update_text_layer_size(
 
     # Increase the size
     set_text_size(size=(factor*layer.textItem.size)+change)
+
+
+"""
+FONTS
+"""
+
+
+def set_font(layer: ArtLayer, font_name: str) -> None:
+    """
+    Set the font of a given TextItem layer using a given name.
+    @param layer: ArtLayer containing TextItem.
+    @param font_name:  Name of the font to set.
+    """
+    layer.textItem.font = app.fonts.getByName(font_name).postScriptName
