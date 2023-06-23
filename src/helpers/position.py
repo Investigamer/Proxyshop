@@ -33,7 +33,7 @@ def align(
     """
     Align the currently active layer to current selection, vertically or horizontally.
     Used with align_vertical() or align_horizontal().
-    @param align_type: "AdCV" vertical, "AdCH" horizontal.
+    @param align_type: Alignment type to use.
     @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
     @param reference: Reference to align the layer within. Uses current selection if not provided.
     """
@@ -56,13 +56,9 @@ def align(
 
 def align_vertical(
     layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[ArtLayer] = None
+    reference: Optional[Union[ArtLayer, LayerSet]] = None
 ) -> None:
-    """
-    Align the currently active layer vertically with respect to the current selection.
-    @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
-    @param reference: Reference to align the layer within. Uses current selection if not provided.
-    """
+    """Utility definition for passing CenterVertical to align function."""
     align(Alignment.CenterVertical, layer, reference)
 
 
@@ -70,12 +66,24 @@ def align_horizontal(
     layer: Optional[Union[ArtLayer, LayerSet]] = None,
     reference: Optional[Union[ArtLayer, LayerSet]] = None
 ) -> None:
-    """
-    Align the currently active layer horizontally with respect to the current selection.
-    @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
-    @param reference: Reference to align the layer within. Uses current selection if not provided.
-    """
+    """Utility definition for passing CenterHorizontal to align function."""
     align(Alignment.CenterHorizontal, layer, reference)
+
+
+def align_left(
+    layer: Optional[Union[ArtLayer, LayerSet]] = None,
+    reference: Optional[Union[ArtLayer, LayerSet]] = None
+) -> None:
+    """Utility definition for passing Left to align function."""
+    align(Alignment.Left, layer, reference)
+
+
+def align_right(
+    layer: Optional[Union[ArtLayer, LayerSet]] = None,
+    reference: Optional[Union[ArtLayer, LayerSet]] = None
+) -> None:
+    """Utility definition for passing Right to align function."""
+    align(Alignment.Right, layer, reference)
 
 
 """
