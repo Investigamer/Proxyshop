@@ -319,7 +319,9 @@ class ProxyshopApp(App):
         try:
             # Close and set null
             if self.docref and isinstance(self.docref, Document):
+                con.app.displayDialogs = ps.DialogModes.DisplayNoDialogs
                 self.docref.close(ps.SaveOptions.DoNotSaveChanges)
+                con.app.displayDialogs = ps.DialogModes.DisplayErrorDialogs
                 self.current_render = None
         except Exception as e:
             # Document wasn't available
@@ -612,7 +614,7 @@ class ProxyshopApp(App):
         try:
             if not ENV_DEV_MODE:
                 # Download updated library via Amazon S3 and update global constants
-                if not download_s3(osp.join(con.path_data, 'expansion_symbols.json'), 'expansion_symbols.json'):
+                if not download_s3(osp.join(con.path_data, 'symbols.yaml'), 'symbols.yaml'):
                     raise OSError("Amazon S3 download failed to write data to disk!")
                 con.reload()
             console.update(f"Expansion Symbols ... {msg_success('Library updated!')}")
@@ -665,7 +667,7 @@ class TemplateModule(TabbedPanel):
             # Get the list of templates for this type
             temps = templates[layout[0]]
             if len(temps) < 2:
-                return
+                continue
 
             # Add tab
             scroll_box = TemplateView()

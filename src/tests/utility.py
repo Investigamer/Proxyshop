@@ -26,7 +26,7 @@ from photoshop.api import (
 
 # Local Imports
 from src.constants import con
-from src.helpers.document import points_to_pixels, get_leaf_layers, get_layer_tree
+from src.helpers.document import points_to_pixels
 from src.helpers.layers import getLayer, getLayerSet, merge_layers
 from src.helpers.masks import copy_layer_mask
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
