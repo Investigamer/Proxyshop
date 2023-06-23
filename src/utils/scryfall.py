@@ -327,7 +327,7 @@ def check_playable_card(card_json: dict) -> bool:
     """
     if card_json.get('set_type') in ["minigame"]:
         return False
-    if card_json.get('layout') in ['art_series']:
+    if card_json.get('layout') in ['art_series', 'reversible_card']:
         return False
     return True
 
