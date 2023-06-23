@@ -231,6 +231,13 @@ def edit_smart_layer(layer: ArtLayer):
     app.executeAction(sID("placedLayerEditContents"), desc1, NO_DIALOG)
 
 
+def unpack_smart_layer(layer: Optional[ArtLayer] = None):
+    """Converts a smart layer back into its separate components."""
+    if layer:
+        app.activeDocument.activeLayer = layer
+    app.ExecuteAction(sID("placedLayerConvertToLayers"), None, NO_DIALOG)
+
+
 """
 LAYER LOCKING
 """
