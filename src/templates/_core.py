@@ -600,8 +600,8 @@ class BaseTemplate:
     def collector_info_authentic(self) -> None:
         """Called to generate realistic collector info."""
         # Hide basic layers
-        psd.getLayer(LAYERS.ARTIST, self.legal_group).visible = False
-        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
+        psd.getLayer(LAYERS.ARTIST, self.legal_group).opacity = 0
+        psd.getLayer(LAYERS.SET, self.legal_group).opacity = 0
 
         # Get the collector layers
         collector_group = psd.getLayerSet(LAYERS.COLLECTOR, LAYERS.LEGAL)
