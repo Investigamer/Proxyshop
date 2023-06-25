@@ -6,11 +6,11 @@
   {
     "type": "options",
     "title": "[b]Textbox Size[/b]",
-    "desc": "Governs the height of the textbox. Automatic is considered experimental and may produce inconsistent results until further testing.\n[b](Default: False)[/b]",
+    "desc": "Governs the height of the textbox. Automatic will use a size proportional to the number of lines in card text.\n[b](Default: Automatic)[/b]",
     "section": "FRAME",
     "key": "Textbox.Size",
     "options": ["Tall", "Normal", "Medium", "Short", "Automatic"],
-    "default": "Tall"
+    "default": "Automatic"
   },
   {
     "type": "bool",
