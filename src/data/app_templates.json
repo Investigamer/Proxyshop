@@ -290,6 +290,10 @@
             "class": "BasicLandUnstableTemplate",
             "file": "basic-unstable.psd",
             "id": "141JNEiPJEG2FVMosUuNSamwQ_AMGphY7"
+        },
+        "Borderless Vector": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
         }
     },
     "planar": {
