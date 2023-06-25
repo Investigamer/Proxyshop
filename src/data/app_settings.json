@@ -15,10 +15,10 @@
   {
     "type": "bool",
     "title": "[b]Save Artist Name[/b]",
-    "desc": "Include artist in rendered file name, e.g. Assassinate (Kev Walker).jpg\n[b](Default: True)[/b]",
+    "desc": "Include artist in rendered file name, e.g. Assassinate (Kev Walker).jpg\n[b](Default: False)[/b]",
     "section": "APP.FILES",
     "key": "Save.Artist.Name",
-    "default": 1
+    "default": 0
   },
   {
     "type": "bool",

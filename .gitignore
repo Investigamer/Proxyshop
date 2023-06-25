@@ -178,6 +178,7 @@ cython_debug/
 # All plugin templates
 /plugins/*/templates/*
 # User generated config files
+/config.ini
 /src/configs/*.ini
 # User generated plugin config files
 /plugins/*/configs/*.ini

@@ -30,7 +30,6 @@ DIST_PLUGINS = os.path.join(DIST, 'plugins')
 # All individual files that need to be copied upon pyinstaller completion
 files = [
     # --- WORKING DIRECTORY
-    {'src': os.path.join(CWD, 'config.ini'), 'dst': os.path.join(DIST, 'config.ini')},
     {'src': os.path.join(CWD, 'LICENSE'), 'dst': os.path.join(DIST, 'LICENSE')},
     {'src': os.path.join(CWD, 'README.md'), 'dst': os.path.join(DIST, 'README.md')},
     # --- SOURCE DIRECTORY
