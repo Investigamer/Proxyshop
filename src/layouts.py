@@ -900,7 +900,8 @@ class BasicLandLayout (NormalLayout):
 
     def __init__(self, scryfall: dict,  file: dict, **kwargs):
         # Add artist and creator to Scryfall data
-        scryfall['artist'] = file.get('artist') or 'Unknown'
+        if not scryfall.get('artist'):
+            scryfall['artist'] = file.get('artist') or 'Unknown'
         super().__init__(scryfall, file, **kwargs)
 
     @property
