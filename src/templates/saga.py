@@ -70,7 +70,7 @@ class SagaTemplate (NormalTemplate):
     """
 
     @cached_property
-    def transform_icon(self) -> Optional[ArtLayer]:
+    def transform_icon_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.layout.transform_icon, [self.text_group, 'tf-front'])
 
     """
@@ -87,7 +87,7 @@ class SagaTemplate (NormalTemplate):
         if self.layout.other_face:
             # Icon
             psd.getLayerSet('Circle', self.text_group).visible = True
-            self.transform_icon.visible = True
+            self.transform_icon_layer.visible = True
 
             # Nameplate
             psd.enable_mask(self.twins_layer.parent)

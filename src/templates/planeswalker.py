@@ -460,13 +460,13 @@ class PlaneswalkerTransformTemplate (PlaneswalkerTemplate):
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
     @cached_property
-    def transform_icon(self) -> Optional[ArtLayer]:
+    def transform_icon_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.layout.transform_icon, self.dfc_group)
 
     def enable_frame_layers(self):
         # Add the transform icon
         super().enable_frame_layers()
-        self.transform_icon.visible = True
+        self.transform_icon_layer.visible = True
 
 
 class PlaneswalkerTransformExtendedTemplate (PlaneswalkerTransformTemplate):

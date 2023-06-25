@@ -177,7 +177,7 @@ class CrimsonFangTemplate (NormalTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
     @cached_property
-    def transform_icon(self) -> Optional[ArtLayer]:
+    def transform_icon_layer(self) -> Optional[ArtLayer]:
         if self.is_name_shifted and self.is_front:
             return psd.getLayer("tf-front", self.text_group)
         elif self.is_name_shifted:
@@ -188,9 +188,9 @@ class CrimsonFangTemplate (NormalTemplate):
         super().enable_frame_layers()
 
         # Add transform if necessary
-        if self.is_name_shifted and self.transform_icon:
+        if self.is_name_shifted and self.transform_icon_layer:
             psd.getLayer("Button", self.text_group).visible = True
-            self.transform_icon.visible = True
+            self.transform_icon_layer.visible = True
 
 
 class PhyrexianTemplate (NormalTemplate):

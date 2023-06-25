@@ -10,9 +10,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._core import BaseTemplate
-from src.enums.settings import CollectorMode
 from src.enums.layers import LAYERS
-from src.layouts import CardLayout
 from src.settings import cfg
 import src.helpers as psd
 
@@ -22,12 +20,6 @@ class BasicLandTemplate (BaseTemplate):
     * Basic land template with no text and icons (aside from legal group), just a layer for each of the eleven
     basic land types.
     """
-
-    def __init__(self, layout: CardLayout):
-        # Only allow Minimal or Artist Only mode
-        if cfg.collector_mode not in [CollectorMode.Minimal, CollectorMode.ArtistOnly]:
-            cfg.collector_mode = CollectorMode.Minimal
-        super().__init__(layout)
 
     @property
     def art_frame(self) -> str:
@@ -75,6 +67,10 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
     """
     template_suffix = "Unstable"
 
+    @property
+    def is_fullart(self) -> bool:
+        return True
+
     def expansion_symbol(self):
         pass
 
@@ -84,3 +80,7 @@ class BasicLandTherosTemplate (BasicLandTemplate):
     * Fullart basic land template introduced in Theros: Beyond Death.
     """
     template_suffix = "Theros"
+
+    @property
+    def is_fullart(self) -> bool:
+        return True

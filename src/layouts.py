@@ -13,8 +13,7 @@ from src.core import retrieve_card_info
 from src.constants import con
 from src.settings import cfg
 from src.utils.regex import Reg
-from src.enums.mtg import Rarity
-from src.enums.layers import LAYERS
+from src.enums.mtg import Rarity, TransformIcons
 from src.enums.settings import CollectorMode
 from src.utils.scryfall import get_set_data, get_card_data
 from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors, get_special_rarity
@@ -67,9 +66,8 @@ LAYOUT CLASSES
 
 
 class NormalLayout:
-    """
-    Defines unified properties for all cards.
-    """
+    """Defines unified properties for all cards and serves as the layout for any M15 style typical card."""
+
     def __init__(self, scryfall: dict, file: dict, **kwargs):
 
         # Establish core properties
@@ -79,10 +77,7 @@ class NormalLayout:
         self._template_file = ''
 
         # Cache set data, only make data request if not doing minimal collector info
-        if not hasattr(self, '_set_data'):
-            self.set_data = get_set_data(scryfall.get('set')) or {}
-        else:
-            self.set_data = {}
+        self.set_data = get_set_data(scryfall.get('set')) or {}
 
         # Cache frame data
         _ = self.frame
@@ -473,13 +468,9 @@ class NormalLayout:
 
     @cached_property
     def card_class(self) -> str:
-        """
-        Set the card's class (finer grained than layout). Used when selecting a template.
-        """
+        """Establish the card's template class type."""
         if "Planeswalker" in self.card['type_line']:
             return con.planeswalker_class
-        elif "Mutate" in self.keywords:
-            return con.mutate_class
         elif "Miracle" in self.frame_effects and cfg.render_miracle:
             return con.miracle_class
         elif "Snow" in self.card['type_line'] and cfg.render_snow:
@@ -488,17 +479,71 @@ class NormalLayout:
         return con.normal_class
 
 
+class MutateLayout (NormalLayout):
+    """Mutate card layout introduced in Ikoria: Lair of Behemoths."""
+
+    @cached_property
+    def mutate_text(self) -> str:
+        """Correctly formatted mutate ability text."""
+        split_rules_text = self.card.get('oracle_text', '').split("\n")
+        return split_rules_text[0]
+
+    @cached_property
+    def oracle_text(self) -> str:
+        # Remove the mutate ability text
+        split_rules_text = self.card.get('oracle_text', '').split("\n")
+        return "\n".join(split_rules_text[1:])
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.mutate_class
+
+
 class PrototypeLayout (NormalLayout):
+    """Prototype card layout, introduced in The Brothers' War."""
 
     @cached_property
     def card_class(self) -> str:
         return con.prototype_class
 
+    """
+    PROTOTYPE PROPERTIES
+    """
+
+    @cached_property
+    def proto_details(self) -> dict:
+        # Split self.oracle_text between prototype text and rules text
+        split_rules_text = self.card.get('oracle_text').split("\n")
+
+        # Set up the prototype elements
+        match = Reg.PROTOTYPE.match(split_rules_text[0])
+        return {
+            'oracle_text': "\n".join(split_rules_text[1:]),
+            'mana_cost': match[1],
+            'pt': match[2]
+        }
+
+    @cached_property
+    def oracle_text(self) -> str:
+        return self.proto_details['oracle_text']
+
+    @cached_property
+    def proto_mana_cost(self) -> str:
+        return self.proto_details['mana_cost']
+
+    @cached_property
+    def proto_pt(self) -> str:
+        return self.proto_details['pt']
+
+    @cached_property
+    def proto_color(self) -> Optional[str]:
+        if len(self.color_identity) > 0:
+            return self.color_identity[0]
+        return "Artifact"
+
 
 class TransformLayout (NormalLayout):
-    """
-    Used for transform cards
-    """
+    """Transform card layout, introduced in Innistrad block."""
 
     @cached_property
     def card_class(self) -> str:
@@ -513,7 +558,7 @@ class TransformLayout (NormalLayout):
         # Normal transform
         if not self.card['front']:
             # Is back face an Ixalan land?
-            if self.transform_icon == LAYERS.DFC_COMPASSLAND:
+            if self.transform_icon == TransformIcons.COMPASSLAND:
                 return con.ixalan_class
             return con.transform_back_class
         return con.transform_front_class
@@ -536,7 +581,7 @@ class TransformLayout (NormalLayout):
         for effect in self.scryfall.get('frame_effects', []):
             if effect in con.transform_icons:
                 return effect
-        return 'land' if 'Land' in self.type_line_raw else LAYERS.DFC_SUNMOON
+        return 'land' if 'Land' in self.type_line_raw else TransformIcons.SUNMOON
 
     """
     SAGA
@@ -571,9 +616,7 @@ class TransformLayout (NormalLayout):
 
 
 class MeldLayout (NormalLayout):
-    """
-    Used for Meld cards
-    """
+    """Meld card layout introduced in Eldritch Moon."""
 
     @cached_property
     def card_class(self) -> str:
@@ -627,9 +670,7 @@ class MeldLayout (NormalLayout):
 
 
 class ModalDoubleFacedLayout (NormalLayout):
-    """
-    Used for Modal Double Faced cards
-    """
+    """Modal Double Faced card layout, introduced in Zendikar Rising."""
 
     @cached_property
     def card_class(self) -> str:
@@ -674,9 +715,7 @@ class ModalDoubleFacedLayout (NormalLayout):
 
 
 class AdventureLayout (NormalLayout):
-    """
-    Used for Adventure cards
-    """
+    """Adventure card layout, introduced in Throne of Eldraine."""
 
     @cached_property
     def card_class(self) -> str:
@@ -697,9 +736,7 @@ class AdventureLayout (NormalLayout):
 
 
 class LevelerLayout (NormalLayout):
-    """
-    Used for Leveler cards
-    """
+    """Leveler card layout, introduced in Rise of the Eldrazi."""
 
     @cached_property
     def card_class(self) -> str:
@@ -745,9 +782,7 @@ class LevelerLayout (NormalLayout):
 
 
 class SagaLayout (NormalLayout):
-    """
-    Used for Saga cards
-    """
+    """Saga card layout, introduced in Dominaria."""
 
     @cached_property
     def card_class(self) -> str:
@@ -775,9 +810,7 @@ class SagaLayout (NormalLayout):
 
 
 class ClassLayout (NormalLayout):
-    """
-    Used for Class cards.
-    """
+    """Class card layout, introduced in Adventures in the Forgotten Realms."""
 
     @cached_property
     def card_class(self) -> str:
@@ -811,9 +844,7 @@ class ClassLayout (NormalLayout):
 
 
 class PlanarLayout (NormalLayout):
-    """
-    Used for Planar cards.
-    """
+    """Planar card layout, introduced in Planechase block."""
 
     @cached_property
     def card_class(self) -> str:
@@ -821,9 +852,7 @@ class PlanarLayout (NormalLayout):
 
 
 class TokenLayout (NormalLayout):
-    """
-    Used for Token cards.
-    """
+    """Token card layout for token game pieces."""
 
     @property
     def display_name(self):
@@ -867,49 +896,17 @@ class TokenLayout (NormalLayout):
 
 
 class BasicLandLayout (NormalLayout):
-    """
-    No special data entry, just a basic land
-    """
+    """Basic Land card layout."""
+
     def __init__(self, scryfall: dict,  file: dict, **kwargs):
         # Add artist and creator to Scryfall data
-        scryfall['artist'] = file['artist'] or 'Unknown'
-
-        # Assign empty set data
-        self._set_data = {}
+        scryfall['artist'] = file.get('artist') or 'Unknown'
         super().__init__(scryfall, file, **kwargs)
 
     @property
     def card_class(self) -> str:
         # Always use basic land
         return con.basic_class
-
-    @cached_property
-    def set(self) -> str:
-        return self.scryfall.get('set', 'MTG')
-
-    """
-    BOOL
-    """
-
-    @property
-    def is_creature(self):
-        return False
-
-    @property
-    def is_land(self):
-        return True
-
-    @property
-    def is_nyx(self):
-        return False
-
-    @property
-    def is_companion(self):
-        return False
-
-    @property
-    def is_legendary(self):
-        return False
 
 
 # Types
@@ -920,6 +917,8 @@ CardLayout = Union[
     AdventureLayout,
     LevelerLayout,
     SagaLayout,
+    MutateLayout,
+    PrototypeLayout,
     ClassLayout,
     PlanarLayout,
     TokenLayout,
@@ -935,6 +934,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     "adventure": AdventureLayout,
     "leveler": LevelerLayout,
     "saga": SagaLayout,
+    "mutate": MutateLayout,
     "prototype": PrototypeLayout,
     "class": ClassLayout,
     "planar": PlanarLayout,

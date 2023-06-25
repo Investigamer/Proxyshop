@@ -157,31 +157,8 @@ class Constants:
             "{CHAOS}": "?"
         }
 
-        # Basic land dictionary
-        self.basic_land_names = [
-            "plains",
-            "island",
-            "swamp",
-            "mountain",
-            "forest",
-            "wastes",
-            "snowcoveredplains",
-            "snowcoveredisland",
-            "snowcoveredswamp",
-            "snowcoveredmountain",
-            "snowcoveredforest"
-        ]
-
-        # Layer names and transform icons
+        # Layer names
         self.layers = LAYERS
-        self.transform_icons = [
-            LAYERS.DFC_COMPASSLAND,
-            LAYERS.DFC_MOONELDRAZI,
-            LAYERS.DFC_ORIGINPW,
-            LAYERS.DFC_CONVERT,
-            LAYERS.DFC_SUNMOON,
-            LAYERS.DFC_FAN
-        ]
 
         # Color reference dictionary
         self.colors = {

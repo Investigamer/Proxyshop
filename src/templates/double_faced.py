@@ -11,6 +11,7 @@ from photoshop.api.application import ArtLayer
 # Local Imports
 from src.templates._core import NormalTemplate
 from src.enums.photoshop import Alignment
+from src.enums.mtg import TransformIcons
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
 import src.helpers as psd
@@ -47,13 +48,13 @@ class TransformTemplate (NormalTemplate):
 
     def enable_frame_layers(self):
         # Add transform icon
-        if self.transform_icon:
-            self.transform_icon.visible = True
+        if self.transform_icon_layer:
+            self.transform_icon_layer.visible = True
         super().enable_frame_layers()
 
     def basic_text_layers(self):
         # For eldrazi cards: Rules text, typeline, and power/toughness have black text
-        if self.layout.transform_icon == LAYERS.DFC_MOONELDRAZI:
+        if self.layout.transform_icon == TransformIcons.MOONELDRAZI:
             self.text_layer_name.textItem.color = psd.rgb_black()
             self.text_layer_type.textItem.color = psd.rgb_black()
             self.text_layer_pt.textItem.color = psd.rgb_black()

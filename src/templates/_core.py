@@ -24,6 +24,7 @@ from photoshop.api._document import Document
 # Local Imports
 from src.env.__console__ import console, Console
 from src.frame_logic import contains_frame_colors
+from src.enums.mtg import TransformIcons
 import src.format_text as ft
 from src.constants import con
 from src.layouts import CardLayout
@@ -440,7 +441,7 @@ class BaseTemplate:
         return
 
     @cached_property
-    def transform_icon(self) -> Optional[ArtLayer]:
+    def transform_icon_layer(self) -> Optional[ArtLayer]:
         """Transform icon layer."""
         return psd.getLayer(self.layout.transform_icon, self.dfc_group)
 
@@ -1411,8 +1412,13 @@ class DynamicVectorTemplate(NormalVectorTemplate):
     @cached_property
     def dfc_group(self) -> Optional[LayerSet]:
         # MDFC Text Group
+        if self.is_mdfc:
+            return psd.getLayerSet(
+                LAYERS.MODAL_FRONT if self.is_front else LAYERS.MODAL_BACK,
+                self.text_group
+            )
         return psd.getLayerSet(
-            LAYERS.MODAL_FRONT if self.is_front else LAYERS.MODAL_BACK,
+            LAYERS.TF_FRONT if self.is_front else LAYERS.TF_BACK,
             self.text_group
         )
 
@@ -1537,7 +1543,7 @@ class DynamicVectorTemplate(NormalVectorTemplate):
             )
         else:
             # Change Name, Type, and PT to white with shadow for non-Eldrazi backs
-            if self.transform_icon != LAYERS.DFC_MOONELDRAZI:
+            if self.layout.transform_icon != TransformIcons.MOONELDRAZI:
                 psd.enable_layer_fx(self.text_layer_name)
                 psd.enable_layer_fx(self.text_layer_type)
                 psd.enable_layer_fx(self.text_layer_pt)
@@ -1566,7 +1572,7 @@ class DynamicVectorTemplate(NormalVectorTemplate):
 
         # Enable transform icon and circle backing
         psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
-        self.transform_icon.visible = True
+        self.transform_icon_layer.visible = True
 
         # Add border mask for textbox cutout
         if self.is_front:

@@ -205,13 +205,6 @@ class LAYERS (StrEnum):
     MDFC_BACK = "mdfc-back"
     MODAL_FRONT = "MDFC Front"
     MODAL_BACK = "MDFC Back"
-    DFC_MOONELDRAZI = "mooneldrazidfc"
-    DFC_COMPASSLAND = "compasslanddfc"
-    DFC_ORIGINPW = "originpwdfc"
-    DFC_CONVERT = "convertdfc"
-    DFC_SUNMOON = "sunmoondfc"
-    DFC_FAN = "fandfc"
-    DFC_MELD = "meld"
 
     # Orientation
     TOP = "Top"

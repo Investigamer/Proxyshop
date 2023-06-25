@@ -25,13 +25,6 @@ class MutateTemplate (NormalTemplate):
     """
 
     @cached_property
-    def mutate_text(self) -> str:
-        """Correctly formatted mutate text. Also removes mutate text from oracle text."""
-        split_rules_text = self.layout.oracle_text.split("\n")
-        self.layout.oracle_text = "\n".join(split_rules_text[1:])
-        return split_rules_text[0]
-
-    @cached_property
     def text_layer_mutate(self) -> Optional[ArtLayer]:
         """Text layer containing the mutate text."""
         return psd.getLayer(LAYERS.MUTATE, self.text_group)
@@ -43,7 +36,7 @@ class MutateTemplate (NormalTemplate):
         self.text.append(
             text_classes.FormattedTextArea(
                 layer = self.text_layer_mutate,
-                contents = self.mutate_text,
+                contents = self.layout.mutate_text,
                 flavor = self.layout.flavor_text,
                 reference = psd.getLayer(LAYERS.MUTATE_REFERENCE, self.text_group),
             )

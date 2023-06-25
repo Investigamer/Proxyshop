@@ -17,6 +17,7 @@ from photoshop.api._layerSet import ArtLayer, LayerSet
 from src.enums.photoshop import Alignment
 from src.enums.settings import ExpansionSymbolMode
 from src.helpers import get_line_count
+from src.layouts import BasicLandLayout
 from src.templates._core import (
     StarterTemplate,
     NormalTemplate,
@@ -1015,9 +1016,11 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     @cached_property
     def is_textless(self) -> bool:
         """Return True if this a textless render."""
-        if cfg.get_setting(section="FRAME", key="Textless", default=False):
+        if isinstance(self.layout, BasicLandLayout):
             return True
         if not any([self.layout.oracle_text, self.layout.flavor_text]):
+            return True
+        if cfg.get_setting(section="FRAME", key="Textless", default=False):
             return True
         return False
 
@@ -1133,7 +1136,7 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         # Add support for nickname
         if self.is_nickname:
             layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
-            psd.getLayer(LAYERS.NAME, self.text_group).textItem.contents = "ENTER NAME HERE"
+            super().text_layer_name.textItem.contents = "ENTER NAME HERE"
             layer.visible = True
             return layer
         return super().text_layer_name
@@ -1414,7 +1417,7 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
 
         # Enable transform icon and circle backing
         psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
-        self.transform_icon.visible = True
+        self.transform_icon_layer.visible = True
 
         # Enable backside brightness shift
         if not self.is_front:

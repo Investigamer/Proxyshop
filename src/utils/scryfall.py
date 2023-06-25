@@ -14,6 +14,7 @@ from ratelimit import sleep_and_retry, RateLimitDecorator
 from backoff import on_exception, expo
 
 # Local Imports
+from src.enums.mtg import BASIC_LANDS
 from src.env.__console__ import console
 from src.settings import cfg
 from src.constants import con
@@ -90,9 +91,10 @@ def get_card_data(
     @return: Scryfall dict or Exception.
     """
     # Enforce Basic Land template?
-    if normalize_str(card_name, True) in con.basic_land_names and cfg.render_basic:
+    name_normalized = normalize_str(card_name, True)
+    if name_normalized in BASIC_LANDS and not card_set:
         with con.lock_func_cached:
-            return get_basic_land(card_name, card_set)
+            return get_basic_land(card_name, name_normalized, card_set)
 
     # Alternate language
     if cfg.lang != "en":
@@ -100,12 +102,13 @@ def get_card_data(
         # Query the card in alternate language
         card = get_card_unique(
             card_set=card_set, card_number=card_number, lang=cfg.lang
-        ) if card_number else get_card_search(
+        ) if card_number and card_set else get_card_search(
             card_name=card_name, card_set=card_set, lang=cfg.lang
         )
 
         # Was the result correct?
         if isinstance(card, dict):
+
             return card
         elif not cfg.test_mode:
             # Language couldn't be found
@@ -302,10 +305,11 @@ UTILITIES
 
 
 @cache
-def get_basic_land(card_name: str, set_code: Optional[str]) -> dict:
+def get_basic_land(card_name: str, name_normalized: str, set_code: Optional[str]) -> dict:
     """
     Generate fake Scryfall data from basic land.
     @param card_name: Name of the basic land card.
+    @param name_normalized: Normalized version of the name string.
     @param set_code: Desired set code for the basic land.
     @return: Fake scryfall data.
     """
@@ -315,7 +319,9 @@ def get_basic_land(card_name: str, set_code: Optional[str]) -> dict:
         'layout': 'basic',
         'rarity': 'common',
         'collector_number': None,
-        'printed_count': None
+        'printed_count': None,
+        'type_line': BASIC_LANDS.get(
+            name_normalized, 'Basic Land')
     }
 
 
@@ -332,23 +338,31 @@ def check_playable_card(card_json: dict) -> bool:
     return True
 
 
-def process_scryfall_data(card_json: dict) -> dict:
+def process_scryfall_data(data: dict) -> dict:
     """
     Process any additional required data before sending it to the layout object.
-    @param card_json: Unprocessed scryfall data.
+    @param data: Unprocessed scryfall data.
     @return: Processed scryfall data.
     """
+    # Add Basic Land layout
+    if any([n in data.get('type_line') for n in ['Basic Land', 'Basic Snow Land']]) and cfg.render_basic:
+        data['layout'] = 'basic'
+
+    # Add Mutate layout
+    if 'Mutate' in data.get('keywords', []):
+        data['layout'] = 'mutate'
+
     # Lookup faces for Meld card
-    if card_json['layout'] == "meld":
+    if data['layout'] == 'meld':
         # Add list of faces to the JSON data
-        card_json['faces'] = []
-        for part in card_json['all_parts']:
+        data['faces'] = []
+        for part in data.get('all_parts', []):
             # Ignore tokens and other objects
-            if part['component'] in ('meld_part', 'meld_result'):
+            if part.get('component') in ('meld_part', 'meld_result'):
                 # Grab the card face data, add component type, insert it
-                data = requests.get(part["uri"], headers=con.http_header).json()
-                data['component'] = part['component']
-                card_json["faces"].append(data)
+                res = requests.get(part['uri'], headers=con.http_header).json()
+                res['component'] = part['component']
+                data['faces'].append(res)
 
     # Return updated data
-    return card_json
+    return data
