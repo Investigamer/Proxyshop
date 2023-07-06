@@ -9,10 +9,10 @@ from photoshop.api import DialogModes, ActionReference, ElementPlacement, Raster
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
-
 # Local Imports
 from src.constants import con
 from src.helpers.document import undo_action
+from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
 app = con.app
@@ -30,7 +30,10 @@ def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> list[int, int, in
     reference = ActionReference()
     reference.putIdentifier(sID('layer'), layer.id)
     descriptor = app.executeActionGet(reference)
-    bounds = descriptor.getObjectValue(sID('boundsNoEffects'))
+    try:
+        bounds = descriptor.getObjectValue(sID('boundsNoEffects'))
+    except PS_EXCEPTIONS:
+        bounds = descriptor.getObjectValue(sID('bounds'))
     return [
         bounds.getInteger(sID('left')),
         bounds.getInteger(sID('top')),
@@ -45,9 +48,15 @@ def get_dimensions_from_bounds(bounds: list) -> dict[str: Union[float, int]]:
     @param bounds: List of bounds given.
     @return: Dict containing eight and width.
     """
+    width = int(bounds[2]-bounds[0])
+    height = int(bounds[3]-bounds[1])
     return {
-        'width': int(bounds[2]-bounds[0]),
-        'height': int(bounds[3]-bounds[1]),
+        'width': width,
+        'height': height,
+        'center_x': (width / 2) + bounds[0],
+        'center_y': (height / 2) + bounds[1],
+        'left': bounds[0], 'right': bounds[2],
+        'top': bounds[1], 'bottom': bounds[3]
     }
 
 
@@ -141,8 +150,8 @@ def get_textbox_dimensions(layer: ArtLayer):
 
 def get_text_layer_dimensions(layer, legacy: bool = False) -> dict[str: Union[int, float]]:
     """
-    Return an object with the specified text layer's width and height, which is achieved by rasterising
-    the layer and computing its width and height from its bounds.
+    Return an object with the specified text layer's width and height, on some versions of Photoshop
+    a text layer must be rasterized before pulling accessing its true bounds.
     @param layer: Layer to get the dimensions of.
     @param legacy: Force old way for legacy text layers.
     @return: Dict containing height and width of the given layer.
@@ -150,7 +159,7 @@ def get_text_layer_dimensions(layer, legacy: bool = False) -> dict[str: Union[in
     if legacy or int(app.version[0:2]) < 21:
         layer_copy = layer.duplicate(app.activeDocument, ElementPlacement.PlaceInside)
         layer_copy.rasterize(RasterizeType.TextContents)
-        dimensions = get_layer_dimensions(layer_copy)
+        dimensions = get_dimensions_from_bounds(layer_copy.bounds)
         layer_copy.remove()
         return dimensions
-    return get_layer_dimensions(layer)
+    return get_dimensions_from_bounds(layer.bounds)
