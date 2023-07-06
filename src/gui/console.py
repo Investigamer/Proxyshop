@@ -233,8 +233,13 @@ class Console(BoxLayout):
         if cfg.skip_failed:
             self.update(f"{msg}\n{self.message_skipping}")
             return True
+        # Previous error already handled
+        if thr.is_set():
+            return False
+        # Wait for user response
         if self.await_choice(thr, msg, end):
             return True
+        # Relay the cancellation
         self.update(self.message_cancel)
         return False
 
@@ -304,9 +309,7 @@ class Console(BoxLayout):
     """
 
     def end_await(self) -> None:
-        """
-        Clears the console of any procedures awaiting a response.
-        """
+        """Clears the console of any procedures awaiting a response."""
         # Set the waiting flag
         self.waiting = False
 
@@ -315,9 +318,7 @@ class Console(BoxLayout):
             return
 
     def start_await(self) -> None:
-        """
-        Starts an await loop that finishes when waiting is flagged as False.
-        """
+        """Starts an await loop that finishes when waiting is flagged as False."""
         # Set initial running and waiting flags
         self.waiting = True
         self.running = True
@@ -355,10 +356,7 @@ class Console(BoxLayout):
 
     @staticmethod
     async def check_for_updates():
-        """
-        Open updater Popup.
-        """
-        # We are Authenticated
+        """Open updater Popup."""
         Updater = UpdatePopup()
         Updater.open()
         await ak.run_in_thread(Updater.check_for_updates, daemon=True)
@@ -366,12 +364,8 @@ class Console(BoxLayout):
 
 
 class ConsoleOutput(Label):
-    """
-    Label displaying console output.
-    """
+    """Label displaying console output."""
 
 
 class ConsoleControls(BoxLayout):
-    """
-    Layout containing console control.
-    """
+    """Layout containing console control."""
