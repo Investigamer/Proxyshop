@@ -6,6 +6,7 @@ from src.utils.strings import StrEnum
 
 class Rarity(StrEnum):
     """Card rarities."""
+
     C = "common"
     U = "uncommon"
     R = "rare"
@@ -17,8 +18,10 @@ class Rarity(StrEnum):
 
 class TransformIcons(StrEnum):
     """Transform icon names."""
+
     MOONELDRAZI = "mooneldrazidfc"
     COMPASSLAND = "compasslanddfc"
+    UPSIDEDOWN = "upsidedowndfc"
     ORIGINPW = "originpwdfc"
     CONVERT = "convertdfc"
     SUNMOON = "sunmoondfc"
@@ -40,3 +43,13 @@ BASIC_LANDS = {
     "snowcoveredmountain": "Basic Snow Land — Mountain",
     "snowcoveredforest": "Basic Snow Land — Forest"
 }
+
+
+# Abilities that aren't italicize, despite fitting the pattern
+non_italics_abilities = [
+    "Boast",  # Kaldheim
+    "Forecast",  # Dissension
+    "Gotcha",  # Unhinged
+    "Visit",  # Unfinity
+    "Whack", "Doodle", "Buzz"  # Unstable
+]
