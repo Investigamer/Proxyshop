@@ -19,6 +19,7 @@ import requests
 
 # Local Imports
 from src.constants import con
+from src.utils.files import decompress_file
 from src.utils.regex import Reg
 
 
@@ -232,7 +233,12 @@ def download_file(
                     current += int(chunk_size)
                     callback(current, total)
         if path and file != path:
+            # Rename TMP file
             shutil.move(file, path)
+            # Decompress zipped file
+            if path[-3:] == '.7z':
+                with con.lock_decompress:
+                    decompress_file(path)
     except IOError as e:
         print(e, file=sys.stderr)
         return False
