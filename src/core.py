@@ -16,12 +16,12 @@ from multiprocessing import cpu_count
 import requests
 
 # Local Imports
-from src import update
 from src.constants import con
 from src.settings import cfg
 from src.utils.modules import get_loaded_module
 from src.utils.regex import Reg
 from src.utils.types_cards import CardDetails
+from src.utils.download import download_s3, download_google
 from src.utils.types_templates import TemplateDetails, TemplateUpdate
 
 # All Template types
@@ -39,6 +39,7 @@ card_types = {
     "Adventure": ["adventure"],
     "Leveler": ["leveler"],
     "Saga": ["saga"],
+    "Split": ["split"],
     "Class": ["class"],
     "Token": ["token"],
     "Miracle": ["miracle"],
@@ -387,12 +388,15 @@ def update_template(temp: TemplateUpdate, callback: Callable) -> bool:
     @return: True if succeeded, False if failed.
     """
     try:
+        # Adjust to 7z if needed
+        file_path = temp['path'].replace('.psd', '.7z') if '.7z' in temp['filename'] else temp['path']
+
         # Download using Google Drive
-        result = update.download_google(temp['id'], temp['path'], callback)
+        result = download_google(temp['id'], file_path, callback)
         if not result:
             # Google Drive failed, download from Amazon S3
             url = f"{temp['plugin']}/{temp['filename']}" if temp['plugin'] else temp['filename']
-            result = update.download_s3(temp['path'], url, callback)
+            result = download_s3(file_path, url, callback)
         if not result:
             # All Downloads failed
             raise ConnectionError(f"Downloading '{temp['name']} ({temp['type']})' was unsuccessful!")

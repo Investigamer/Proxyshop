@@ -14,3 +14,4 @@ from src.templates.mutate import *
 from src.templates.classes import *
 from src.templates.prototype import *
 from src.templates.planar import *
+from src.templates.split import *

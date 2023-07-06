@@ -26,6 +26,7 @@ environ["KIVY_NO_CONSOLELOG"] = "1"
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.config import Config
+from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.uix.image import Image
@@ -44,7 +45,6 @@ from src.gui.dev import TestApp
 from src.gui.tools import ToolsLayout
 from src.gui.utils import HoverBehavior, HoverButton, GUI
 from src.gui.settings import SettingsPopup
-from src.update import download_s3
 from src.constants import con
 from src.core import (
     card_types,
@@ -54,9 +54,15 @@ from src.core import (
     get_template_class
 )
 from src.settings import cfg
-from src.layouts import CardLayout, layout_map, assign_layout
+from src.utils.download import download_s3
 from src.utils.fonts import get_missing_fonts
-from src.utils.strings import msg_success, msg_error, msg_warn, get_bullet_points
+from src.layouts import CardLayout, layout_map, assign_layout, join_dual_card_layouts
+from src.utils.strings import (
+    get_bullet_points,
+    msg_success,
+    msg_error,
+    msg_warn
+)
 
 # App configuration
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
@@ -360,9 +366,12 @@ class ProxyshopApp(App):
         with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
             cards = pool.map(assign_layout, files)
 
+        # Join dual card layouts
+        cards = join_dual_card_layouts(list(cards))
+
         # Remove failed strings
         layouts: dict = {}
-        for c in list(cards):
+        for c in cards:
             layouts.setdefault(
                 'failed' if isinstance(c, str) else c.card_class, []
             ).append(c)
@@ -593,6 +602,11 @@ class ProxyshopApp(App):
     """
     GUI METHODS
     """
+
+    def toggle_window_locked(self):
+        """Toggle whether to pin the window above all other windows."""
+        window: Window = self.root_window
+        window.always_on_top = not window.always_on_top
 
     @staticmethod
     async def open_app_settings() -> None:

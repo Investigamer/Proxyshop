@@ -190,6 +190,7 @@ class LAYERS (StrEnum):
     # Art Frames
     ART_FRAME = "Art Frame"
     FULL_ART_FRAME = "Full Art Frame"
+    BORDERLESS_FRAME = "Borderless Frame"
     BASIC_ART_FRAME = "Basic Art Frame"
     PLANESWALKER_ART_FRAME = "Planeswalker Art Frame"
     SCRYFALL_SCAN_FRAME = "Scryfall Scan Frame"

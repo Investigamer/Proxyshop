@@ -10,6 +10,7 @@ from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.constants import con
+from src.enums.layers import LAYERS
 
 # QOL Definitions
 app = con.app
@@ -219,16 +220,25 @@ def fill_layer_primary():
     app.executeAction(sID("fill"), desc1, NO_DIALOG)
 
 
-def get_pinline_gradient(colors: str, color_map: Optional[dict] = None) -> Union[SolidColor, list[dict]]:
+def get_pinline_gradient(
+        colors: str,
+        color_map: Optional[dict] = None,
+        location_map: dict = None
+) -> Union[SolidColor, list[dict]]:
     """
     Return a gradient color list notation for some given pinline colors.
     @param colors: Pinline colors to produce a gradient.
     @param color_map: Color map to color the pinlines.
+    @param location_map: Location map to position gradients.
     @return: Gradient color list notation.
     """
     # Establish the color_map
     if not color_map:
         color_map = con.pinline_colors
+
+    # Establish the location map
+    if not location_map:
+        location_map = con.gradient_locations
 
     # Return our colors
     if not colors:
@@ -239,30 +249,57 @@ def get_pinline_gradient(colors: str, color_map: Optional[dict] = None) -> Union
         return [
             {
                 'color': get_color(color_map.get(colors[0], [0, 0, 0])),
-                'location': 1638, 'midpoint': 50
+                'location': location_map[2][0] * 4096, 'midpoint': 50
             },
             {
                 'color': get_color(color_map.get(colors[1], [0, 0, 0])),
-                'location': 2458, 'midpoint': 50,
+                'location': location_map[2][1] * 4096, 'midpoint': 50,
             }
         ]
     if len(colors) == 3:
         return [
             {
                 'color': get_color(color_map.get(colors[0], [0, 0, 0])),
-                'location': 1065, 'midpoint': 50
+                'location': location_map[3][0] * 4096, 'midpoint': 50
             },
             {
                 'color': get_color(color_map.get(colors[1], [0, 0, 0])),
-                'location': 1475, 'midpoint': 50
+                'location': location_map[3][1] * 4096, 'midpoint': 50
             },
             {
                 'color': get_color(color_map.get(colors[1], [0, 0, 0])),
-                'location': 2621, 'midpoint': 50
+                'location': location_map[3][2] * 4096, 'midpoint': 50
             },
             {
                 'color': get_color(color_map.get(colors[2], [0, 0, 0])),
-                'location': 3031, 'midpoint': 50
+                'location': location_map[3][3] * 4096, 'midpoint': 50
+            }
+        ]
+    if len(colors) == 4 and colors not in [LAYERS.LAND, LAYERS.GOLD]:
+        return [
+            {
+                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
+                'location': location_map[4][0] * 4096, 'midpoint': 50
+            },
+            {
+                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'location': location_map[4][1] * 4096, 'midpoint': 50
+            },
+            {
+                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'location': location_map[4][2] * 4096, 'midpoint': 50
+            },
+            {
+                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
+                'location': location_map[4][3] * 4096, 'midpoint': 50
+            },
+            {
+                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
+                'location': location_map[4][4] * 4096, 'midpoint': 50
+            },
+            {
+                'color': get_color(color_map.get(colors[3], [0, 0, 0])),
+                'location': location_map[4][5] * 4096, 'midpoint': 50
             }
         ]
     return get_color(color_map.get(colors, [0, 0, 0]))
