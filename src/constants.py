@@ -60,6 +60,7 @@ class Constants:
         # Locking handlers for multithreading
         self.lock_file_open = Lock()
         self.lock_func_cached = Lock()
+        self.lock_decompress = Lock()
 
         # Import version tracker
         self.versions = self.get_version_tracker()
@@ -81,6 +82,7 @@ class Constants:
         self.saga_class = "saga"
         self.class_class = "class"
         self.miracle_class = "miracle"
+        self.split_class = "split"
         self.planeswalker_class = "planeswalker"
         self.pw_tf_front_class = "pw_tf_front"
         self.pw_tf_back_class = "pw_tf_back"
@@ -246,6 +248,14 @@ class Constants:
             2: [LAYERS.HALF],
             3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
             4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
+        }
+
+        # Gradients
+        self.gradient_locations = {
+            2: [.40, .60],
+            3: [.26, .36, .64, .74],
+            4: [.20, .30, .45, .55, .70, .80],
+            5: [.20, .25, .35, .45, .55, .65, .75, .80]
         }
 
         # Pinline colors

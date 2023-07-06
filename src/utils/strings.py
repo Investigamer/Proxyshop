@@ -2,7 +2,7 @@
 Utility Helpers Module
 """
 # Standard Library Imports
-from enum import Enum
+from enum import Enum, EnumMeta
 from functools import cached_property
 from typing import Union, Optional
 import unicodedata
@@ -14,16 +14,18 @@ STRING CLASSES
 """
 
 
-class StrEnum(str, Enum):
-    """
-    Enum where the value is always a string.
-    """
+class StrEnumMeta(EnumMeta):
+    """Metaclass for StrEnum."""
+
+    def __contains__(cls, item: str):
+        return item in cls._value2member_map_
+
+
+class StrEnum(str, Enum, metaclass=StrEnumMeta):
+    """Enum where the value is always a string."""
+
     def __str__(self) -> str:
         return self.value
-
-    @classmethod
-    def contains(cls, item):
-        return item in cls._value2member_map_
 
     @cached_property
     def value(self) -> str:

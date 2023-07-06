@@ -14,7 +14,7 @@ from ratelimit import sleep_and_retry, RateLimitDecorator
 from backoff import on_exception, expo
 
 # Local Imports
-from src.enums.mtg import BASIC_LANDS
+from src.enums.mtg import BASIC_LANDS, TransformIcons
 from src.env.__console__ import console
 from src.settings import cfg
 from src.constants import con
@@ -96,28 +96,28 @@ def get_card_data(
         with con.lock_func_cached:
             return get_basic_land(card_name, name_normalized, card_set)
 
-    # Alternate language
-    if cfg.lang != "en":
+    # Establish Scryfall fetch action
+    action = get_card_unique if card_number else get_card_search
+    params = [card_set, card_number] if card_number else [card_name, card_set]
 
-        # Query the card in alternate language
-        card = get_card_unique(
-            card_set=card_set, card_number=card_number, lang=cfg.lang
-        ) if card_number and card_set else get_card_search(
-            card_name=card_name, card_set=card_set, lang=cfg.lang
-        )
+    # Query the card in alternate language
+    if cfg.lang != "en":
+        card = action(*params, lang=cfg.lang)
 
         # Was the result correct?
         if isinstance(card, dict):
-
-            return card
+            card['name_normalized'] = name_normalized
+            return process_scryfall_data(card)
         elif not cfg.test_mode:
             # Language couldn't be found
             console.update(msg_warn(f"Reverting to English: [b]{card_name}[/b]"))
 
     # Query the card in English
-    if card_number:
-        return get_card_unique(card_set=card_set, card_number=card_number)
-    return get_card_search(card_name=card_name, card_set=card_set)
+    card = action(*params)
+    if isinstance(card, dict):
+        card['name_normalized'] = name_normalized
+        return process_scryfall_data(card)
+    return card
 
 
 def get_set_data(card_set: str) -> Optional[dict]:
@@ -192,7 +192,7 @@ def get_card_unique(
 
     # Ensure playable card was returned
     if card.get('object') != 'error' and check_playable_card(card):
-        return process_scryfall_data(card)
+        return card
     return ScryfallError(url, code=card_set, number=card_number, lang=lang)
 
 
@@ -215,10 +215,10 @@ def get_card_search(
         url = f"https://api.scryfall.com/cards/search",
         headers=con.http_header,
         params={
-            'unique': 'prints',
+            'unique': cfg.scry_unique,
             'order': cfg.scry_sorting,
             'dir': 'asc' if cfg.scry_ascending else 'desc',
-            'include_extras': True,
+            'include_extras': cfg.scry_extras,
             'q': f'!"{card_name}"'
                  f" lang:{lang}"
                  f"{f' set:{card_set.lower()}' if card_set else ''}"
@@ -231,7 +231,7 @@ def get_card_search(
     # Check for a playable card
     for c in card.get('data', []):
         if check_playable_card(c):
-            return process_scryfall_data(c)
+            return c
 
     # No playable results
     return ScryfallError(url, name=card_name, code=card_set, lang=lang)
@@ -345,24 +345,60 @@ def process_scryfall_data(data: dict) -> dict:
     @return: Processed scryfall data.
     """
     # Add Basic Land layout
-    if any([n in data.get('type_line') for n in ['Basic Land', 'Basic Snow Land']]) and cfg.render_basic:
+    if any([n in data.get('type_line', '') for n in ['Basic Land', 'Basic Snow Land']]) and cfg.render_basic:
         data['layout'] = 'basic'
+        return data
+
+    # Modify meld card data to fit transform layout
+    if data['layout'] == 'meld':
+        # Ignore tokens and other objects
+        front, back = [], None
+        for part in data.get('all_parts', []):
+            if part.get('component') == 'meld_part':
+                front.append(part)
+            if part.get('component') == 'meld_result':
+                back = part
+
+        # Figure out if card is a front or a back
+        faces = [front[0], back] if (
+            data['name_normalized'] == normalize_str(back['name'], True) or
+            normalize_str(front[0]['name']) == data['name_normalized']
+        ) else [front[1], back]
+
+        # Pull JSON data for each face and set object to card_face
+        data['card_faces'] = [
+            {**requests.get(n['uri'], headers=con.http_header).json(), 'object': 'card_face'}
+            for n in faces
+        ]
+
+        # Add meld transform icon if none provided
+        if not any([bool(n in TransformIcons) for n in data.get('frame_effects', [])]):
+            data.setdefault('frame_effects', []).append(TransformIcons.MELD)
+        data['layout'] = 'transform'
+
+    # Check for alternate MDFC / Transform layouts
+    if 'card_faces' in data:
+        # Select the corresponding face
+        card = data['card_faces'][0] if (
+            normalize_str(data['card_faces'][0]['name'], True) == data['name_normalized']
+        ) else data['card_faces'][1]
+        # Transform / MDFC Planeswalker layout
+        if 'Planeswalker' in card['type_line']:
+            data['layout'] = 'planeswalker_tf' if data['layout'] == 'transform' else 'planeswalker_mdfc'
+        # Transform Saga layout
+        if 'Saga' in card['type_line']:
+            data['layout'] = 'saga'
+        return data
 
     # Add Mutate layout
     if 'Mutate' in data.get('keywords', []):
         data['layout'] = 'mutate'
+        return data
 
-    # Lookup faces for Meld card
-    if data['layout'] == 'meld':
-        # Add list of faces to the JSON data
-        data['faces'] = []
-        for part in data.get('all_parts', []):
-            # Ignore tokens and other objects
-            if part.get('component') in ('meld_part', 'meld_result'):
-                # Grab the card face data, add component type, insert it
-                res = requests.get(part['uri'], headers=con.http_header).json()
-                res['component'] = part['component']
-                data['faces'].append(res)
+    # Add Planeswalker layout
+    if 'Planeswalker' in data.get('type_line', ''):
+        data['layout'] = 'planeswalker'
+        return data
 
     # Return updated data
     return data

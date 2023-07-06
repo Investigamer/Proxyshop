@@ -93,5 +93,11 @@
     ],
     "planar": [
         ["Pools of Becoming", "Planar"]
+    ],
+    "token": [
+        ["Zombie [TMBS]", "No Text"],
+        ["Treasure [TSNC]", "One Line"],
+        ["Rock [TCMR]", "Multiline"],
+        ["Human Cleric [TELD]", "Multicolor"]
     ]
 }

@@ -87,7 +87,7 @@
     "desc": "Transparency value of the watermark, 0 being invisible 100 being fully visible.\n[b](Default: 40)[/b]",
     "section": "BASE.SYMBOLS",
     "key": "Watermark.Opacity",
-    "default": 40
+    "default": 30
   },
   {
     "type": "title",

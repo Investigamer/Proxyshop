@@ -8,7 +8,8 @@ from configparser import ConfigParser
 
 # Local Imports
 from src.constants import con
-from src.enums.settings import ExpansionSymbolMode, CollectorMode, BorderColor, OutputFiletype, ScryfallSorting
+from src.enums.settings import ExpansionSymbolMode, CollectorMode, BorderColor, OutputFiletype, ScryfallSorting, \
+	ScryfallUnique
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
 from src.utils.types_templates import TemplateDetails
@@ -38,6 +39,8 @@ class Config:
 		self.lang = self.file['APP.DATA'].get('Scryfall.Language', 'en')
 		self.scry_ascending = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
 		self.scry_sorting = self.get_option('APP.DATA', 'Scryfall.Sorting', ScryfallSorting, ScryfallSorting.Released)
+		self.scry_extras = self.file.getboolean('APP.DATA', 'Scryfall.Extras')
+		self.scry_unique = self.get_option('APP.DATA', 'Scryfall.Unique', ScryfallUnique, ScryfallUnique.Arts)
 
 		# APP - TEXT
 		self.targeted_replace = self.file.getboolean('APP.TEXT', 'Targeted.Replace')
@@ -89,7 +92,7 @@ class Config:
 		@return: Validated current value, or default value.
 		"""
 		option = self.file[group].get(key, default)
-		if enum_class.contains(option):
+		if option in enum_class:
 			return option
 		return default
 

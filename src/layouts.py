@@ -60,6 +60,36 @@ def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
     return msg_error(name_failed, reason="Layout incompatible")
 
 
+def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
+    """
+    Join any layout objects that are dual sides of the same card, i.e. Split cards.
+    @param layouts: List of layout objects (or strings which are skipped).
+    @return: List of layouts, with split layouts joined.
+    """
+    # Check if we have any split cards
+    normal: list[Union[str, CardLayout]] = [n for n in layouts if isinstance(n, str) or n.card_class != con.split_class]
+    split: list[SplitLayout] = [n for n in layouts if not isinstance(n, str) and n.card_class == con.split_class]
+    if not split:
+        return normal
+
+    # Join any identical split cards
+    skip, add = [], []
+    for card in split:
+        if card in skip:
+            continue
+        for c in split:
+            if c == card:
+                continue
+            if str(c) == str(card):
+                if normalize_str(card.name[0]) == normalize_str(card.file['name']):
+                    card.filename.append(c.filename[0])
+                else:
+                    card.filename.insert(0, c.filename[0])
+                skip.extend([card, c])
+        add.append(card)
+    return [*normal, *add]
+
+
 """
 LAYOUT CLASSES
 """
@@ -178,10 +208,8 @@ class NormalLayout:
     def oracle_text(self) -> str:
         # Alt lang?
         if self.lang != 'EN' and 'printed_text' in self.card:
-            return self.card['printed_text'].replace(
-                "\u2212", "-") if 'Planeswalker' in self.type_line_raw else self.card['printed_text']
-        return self.card['oracle_text'].replace(
-            "\u2212", "-") if 'Planeswalker' in self.type_line_raw else self.card['oracle_text']
+            return self.card['printed_text']
+        return self.card['oracle_text']
 
     @cached_property
     def oracle_text_raw(self) -> str:
@@ -338,7 +366,7 @@ class NormalLayout:
         return self.card.get('watermark')
 
     """
-    BOOL
+    BOOL PROPERTIES
     """
 
     @cached_property
@@ -424,8 +452,12 @@ class NormalLayout:
         return
 
     @cached_property
-    def transform_icon(self) -> Optional[str]:
-        return
+    def transform_icon(self) -> str:
+        # Look for the transform icon
+        for effect in self.frame_effects:
+            if effect in TransformIcons:
+                return effect
+        return TransformIcons.UPSIDEDOWN if self.is_land else TransformIcons.SUNMOON
 
     @cached_property
     def other_face_power(self) -> Optional[str]:
@@ -469,9 +501,7 @@ class NormalLayout:
     @cached_property
     def card_class(self) -> str:
         """Establish the card's template class type."""
-        if "Planeswalker" in self.card['type_line']:
-            return con.planeswalker_class
-        elif "Miracle" in self.frame_effects and cfg.render_miracle:
+        if "Miracle" in self.frame_effects and cfg.render_miracle:
             return con.miracle_class
         elif "Snow" in self.card['type_line'] and cfg.render_snow:
             # frame_effects doesn't contain "snow" for pre-KHM snow cards
@@ -542,19 +572,63 @@ class PrototypeLayout (NormalLayout):
         return "Artifact"
 
 
+class PlaneswalkerLayout(NormalLayout):
+    """Planeswalker card layout introduced in Lorwyn block."""
+
+    @cached_property
+    def card_class(self) -> str:
+        return con.planeswalker_class
+
+    @cached_property
+    def oracle_text(self) -> str:
+        if self.lang != 'EN' and 'printed_text' in self.card:
+            return self.card['printed_text'].replace("\u2212", "-")
+        return self.card['oracle_text'].replace("\u2212", "-")
+
+
+class PlaneswalkerTransformLayout(PlaneswalkerLayout):
+    """Transform version of the Planeswalker card layout introduced in Innistrad block."""
+
+    @cached_property
+    def card_class(self) -> str:
+        # Front or back?
+        if not self.card['front']:
+            return con.pw_tf_back_class
+        return con.pw_tf_front_class
+
+    """
+    BOOL PROPERTIES
+    """
+
+    @property
+    def is_transform(self) -> bool:
+        return True
+
+
+class PlaneswalkerMDFCLayout(PlaneswalkerLayout):
+    """MDFC version of the Planeswalker card layout introduced in Kaldheim."""
+
+    @cached_property
+    def card_class(self) -> str:
+        # Front or back?
+        if not self.card['front']:
+            return con.pw_mdfc_back_class
+        return con.pw_mdfc_front_class
+
+    """
+    BOOL PROPERTIES
+    """
+
+    @property
+    def is_mdfc(self) -> bool:
+        return True
+
+
 class TransformLayout (NormalLayout):
     """Transform card layout, introduced in Innistrad block."""
 
     @cached_property
     def card_class(self) -> str:
-        # Planeswalker transform
-        if 'Planeswalker' in self.card['type_line']:
-            if self.card['front']:
-                return con.pw_tf_front_class
-            return con.pw_tf_back_class
-        # Saga transform
-        if 'Saga' in self.card['type_line']:
-            return con.saga_class
         # Normal transform
         if not self.card['front']:
             # Is back face an Ixalan land?
@@ -567,106 +641,9 @@ class TransformLayout (NormalLayout):
     BOOL PROPERTIES
     """
 
-    @cached_property
+    @property
     def is_transform(self) -> bool:
         return True
-
-    """
-    OVERWRITE
-    """
-
-    @cached_property
-    def transform_icon(self) -> str:
-        # Look for the transform icon
-        for effect in self.scryfall.get('frame_effects', []):
-            if effect in con.transform_icons:
-                return effect
-        return 'land' if 'Land' in self.type_line_raw else TransformIcons.SUNMOON
-
-    """
-    SAGA
-    """
-
-    @cached_property
-    def saga_lines(self) -> list[dict]:
-        # Not a saga?
-        if 'Saga' not in self.type_line_raw:
-            return []
-        # Unpack oracle text into saga lines
-        abilities: list[dict] = []
-        for i, line in enumerate(self.oracle_text.split("\n")[1:]):
-            # Check if this is a full ability line
-            if " \u2014 " in line:
-                icons, text = line.split(" \u2014 ", 1)
-                abilities.append({
-                    "text": text,
-                    "icons": icons.split(", ")
-                })
-                continue
-            # Add to the previous line
-            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
-        return abilities
-
-    @cached_property
-    def saga_description(self) -> str:
-        # Not a saga?
-        if 'Saga' not in self.type_line_raw:
-            return ''
-        return self.oracle_text.split("\n")[0]
-
-
-class MeldLayout (NormalLayout):
-    """Meld card layout introduced in Eldritch Moon."""
-
-    @cached_property
-    def card_class(self) -> str:
-        # Planeswalker transform
-        if 'Planeswalker' in self.card['type_line']:
-            if self.card['front']:
-                return con.pw_tf_front_class
-            return con.pw_tf_back_class
-        # Normal transform
-        if self.card['front']:
-            return con.transform_front_class
-        return con.transform_back_class
-
-    """
-    BOOL PROPERTIES
-    """
-
-    @cached_property
-    def is_transform(self) -> bool:
-        return True
-
-    """
-    OVERWRITE
-    """
-
-    @cached_property
-    def card(self) -> dict:
-        for face in self.scryfall['faces']:
-            if normalize_str(face['name']) == normalize_str(self.scryfall['name']):
-                if face['component'] == 'meld_result':
-                    face['front'] = False
-                    return face
-                face['front'] = True
-                return face
-
-    @cached_property
-    def other_face(self) -> Optional[dict]:
-        if self.card['front']:
-            for face in self.scryfall['faces']:
-                if face['component'] == 'meld_result':
-                    return face
-        return {}
-
-    @cached_property
-    def transform_icon(self) -> str:
-        # Look for the transform icon
-        for effect in self.card.get('frame_effects', []):
-            if effect in con.transform_icons:
-                return effect
-        return 'meld'
 
 
 class ModalDoubleFacedLayout (NormalLayout):
@@ -674,12 +651,6 @@ class ModalDoubleFacedLayout (NormalLayout):
 
     @cached_property
     def card_class(self) -> str:
-        # Planeswalker MDFC
-        if 'Planeswalker' in self.type_line_raw:
-            if self.card['front']:
-                return con.pw_mdfc_front_class
-            return con.pw_mdfc_back_class
-        # Normal MDFC
         if self.card['front']:
             return con.mdfc_front_class
         return con.mdfc_back_class
@@ -688,7 +659,7 @@ class ModalDoubleFacedLayout (NormalLayout):
     BOOL PROPERTIES
     """
 
-    @cached_property
+    @property
     def is_mdfc(self) -> bool:
         return True
 
@@ -706,12 +677,8 @@ class ModalDoubleFacedLayout (NormalLayout):
             if text.count('\n') > num_breaks:
                 text = text.split('\n', num_breaks + 1)
                 text.pop()
-                text = '\n'.join(text)
-        else:
-            text = self.card['oracle_text']
-
-        # Planeswalker?
-        return text.replace("\u2212", "-") if 'Planeswalker' in self.type_line_raw else text
+                return '\n'.join(text)
+        return self.card['oracle_text']
 
 
 class AdventureLayout (NormalLayout):
@@ -722,7 +689,7 @@ class AdventureLayout (NormalLayout):
         return con.adventure_class
 
     """
-    Unique Properties
+    ADVENTURE PROPERTIES
     """
 
     @cached_property
@@ -743,7 +710,7 @@ class LevelerLayout (NormalLayout):
         return con.leveler_class
 
     """
-    Unique Properties
+    LEVELER PROPERTIES
     """
 
     @cached_property
@@ -789,23 +756,37 @@ class SagaLayout (NormalLayout):
         return con.saga_class
 
     """
-    Unique Properties
+    BOOL PROPERTIES
     """
 
     @cached_property
-    def saga_lines(self) -> list:
+    def is_transform(self) -> bool:
+        return bool('card_faces' in self.scryfall)
+
+    """
+    SAGA PROPERTIES
+    """
+
+    @cached_property
+    def saga_lines(self) -> list[dict]:
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
         for i, line in enumerate(self.oracle_text.split("\n")[1:]):
-            icons, text = line.split(" \u2014 ", 1)
-            abilities.append({
-                "text": text,
-                "icons": icons.split(", ")
-            })
+            # Check if this is a full ability line
+            if "\u2014" in line:
+                icons, text = line.split("\u2014", 1)
+                abilities.append({
+                    "text": text.strip(),
+                    "icons": icons.strip().split(", ")
+                })
+                continue
+            # Add to the previous line
+            abilities[-1]['text'] += f"\n{line}"
         return abilities
 
     @cached_property
     def saga_description(self) -> str:
+        # Not a saga?
         return self.oracle_text.split("\n")[0]
 
 
@@ -817,7 +798,7 @@ class ClassLayout (NormalLayout):
         return con.class_class
 
     """
-    Unique Properties
+    CLASS PROPERTIES
     """
 
     @cached_property
@@ -827,8 +808,7 @@ class ClassLayout (NormalLayout):
         abilities: list[dict] = [{'text': lines[1], "cost": None, "level": 1}]
 
         # Set up the dynamic lines
-        lines = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]
-        for line in lines:
+        for line in ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]:
             # Try to match this line to a class ability
             details = Reg.CLASS.match(line)
             if details and len(details.groups()) >= 3:
@@ -839,28 +819,202 @@ class ClassLayout (NormalLayout):
                 })
                 continue
             # Otherwise add line to the previous ability
-            abilities[-1]['text'] = f"{abilities[-1]['text']}\n{line}"
+            abilities[-1]['text'] += f"\n{line}"
         return abilities
 
 
 class PlanarLayout (NormalLayout):
     """Planar card layout, introduced in Planechase block."""
 
-    @cached_property
+    @property
     def card_class(self) -> str:
         return con.planar_class
+
+
+class SplitLayout (NormalLayout):
+    """Split card layout, introduced in Invasion."""
+
+    def __init__(self, scryfall, file):
+        super().__init__(scryfall, file)
+        self._filename = [file['filename']]
+
+    def __str__(self):
+        return f"{self.scryfall.get('name', '')} [{self.set}] {{{self.collector_number}}}"
+
+    @property
+    def display_name(self):
+        return f"{self.name[0]} // {self.name[1]}"
+
+    @property
+    def filename(self) -> list[str]:
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = value
+
+    @property
+    def card_class(self) -> str:
+        return con.split_class
+
+    @cached_property
+    def card(self) -> list[dict]:
+        return [c for c in self.scryfall.get('card_faces', [])]
+
+    @cached_property
+    def color_identity(self) -> list:
+        return self.scryfall.get('color_identity', [])
+
+    @cached_property
+    def color_indicator(self) -> str:
+        return get_ordered_colors(self.scryfall.get('color_indicator'))
+
+    @cached_property
+    def name_raw(self) -> str:
+        return f"{self.name[0]} _ {self.name[1]}"
+
+    """
+    IMAGES
+    """
+
+    @cached_property
+    def scryfall_scan(self) -> Optional[str]:
+        if 'image_uris' in self.scryfall:
+            if 'large' in self.scryfall['image_uris']:
+                return self.scryfall['image_uris']['large']
+        return
+
+    """
+    COLLECTOR INFO
+    """
+
+    @cached_property
+    def artist(self) -> str:
+        # Custom artist given?
+        if self.file.get('artist'):
+            return self.file['artist']
+        if "&" in self.scryfall['artist']:
+            count = []
+            # John Smith & Jane Smith => John & Jane Smith
+            for w in self.scryfall['artist'].split(" "):
+                if w in count:
+                    count.remove(w)
+                count.append(w)
+            return " ".join(count)
+        return self.scryfall['artist']
+
+    @cached_property
+    def watermark(self) -> list[str]:
+        return [c.get('watermark', '') for c in self.card]
+
+    """
+    TEXT PROPERTIES
+    """
+
+    @cached_property
+    def name(self) -> list[str]:
+        return [c.get('name', '') for c in self.card]
+
+    @cached_property
+    def type_line(self) -> list[str]:
+        return [c.get('type_line', '') for c in self.card]
+
+    @cached_property
+    def mana_cost(self) -> list[str]:
+        return [c.get('mana_cost', '') for c in self.card]
+
+    @cached_property
+    def oracle_text(self) -> list[str]:
+        text = []
+        for t in [c.get('oracle_text', '') for c in self.card]:
+            if 'Fuse' in self.keywords:
+                t = ''.join(t.split('\n')[:-1])
+            text.append(t)
+        return text
+
+    @cached_property
+    def flavor_text(self) -> list[str]:
+        return [c.get('flavor_text', '') for c in self.card]
+
+    @cached_property
+    def power(self) -> Optional[str]:
+        return
+
+    @cached_property
+    def toughness(self) -> Optional[str]:
+        return
+
+    """
+    BOOL PROPERTIES
+    """
+
+    @cached_property
+    def is_creature(self) -> bool:
+        return False
+
+    @cached_property
+    def is_land(self) -> bool:
+        return False
+
+    @cached_property
+    def is_legendary(self) -> bool:
+        return False
+
+    @cached_property
+    def is_nyx(self) -> bool:
+        return False
+
+    @cached_property
+    def is_companion(self) -> bool:
+        return False
+
+    @cached_property
+    def is_colorless(self) -> bool:
+        return False
+
+    @cached_property
+    def is_artifact(self) -> bool:
+        return False
+
+    @cached_property
+    def is_hybrid(self) -> list[bool]:
+        return [f['is_hybrid'] for f in self.frame]
+
+    """
+    FRAME DETAILS
+    """
+
+    @cached_property
+    def frame(self) -> list[FrameDetails]:
+        return [get_frame_details(c) for c in self.card]
+
+    @cached_property
+    def pinlines(self) -> list[str]:
+        return [f['pinlines'] for f in self.frame]
+
+    @cached_property
+    def twins(self) -> list[str]:
+        return [f['twins'] for f in self.frame]
+
+    @cached_property
+    def background(self) -> list[str]:
+        return [f['background'] for f in self.frame]
+
+    @cached_property
+    def identity(self) -> list[str]:
+        return [f['identity'] for f in self.frame]
 
 
 class TokenLayout (NormalLayout):
     """Token card layout for token game pieces."""
 
     @property
-    def display_name(self):
-        return f"{self.name} Token"
-
-    @cached_property
     def card_class(self) -> str:
         return con.token_class
+
+    @property
+    def display_name(self):
+        return f"{self.name} Token"
 
     @cached_property
     def set(self) -> str:
@@ -906,7 +1060,6 @@ class BasicLandLayout (NormalLayout):
 
     @property
     def card_class(self) -> str:
-        # Always use basic land
         return con.basic_class
 
 
@@ -921,9 +1074,9 @@ CardLayout = Union[
     MutateLayout,
     PrototypeLayout,
     ClassLayout,
+    SplitLayout,
     PlanarLayout,
     TokenLayout,
-    MeldLayout,
     BasicLandLayout
 ]
 
@@ -937,10 +1090,13 @@ layout_map: dict[str, Type[CardLayout]] = {
     "saga": SagaLayout,
     "mutate": MutateLayout,
     "prototype": PrototypeLayout,
+    "planeswalker": PlaneswalkerLayout,
+    "planeswalker_tf": PlaneswalkerTransformLayout,
+    "planeswalker_mdfc": PlaneswalkerMDFCLayout,
+    "split": SplitLayout,
     "class": ClassLayout,
     "planar": PlanarLayout,
     "token": TokenLayout,
     "emblem": TokenLayout,
-    "meld": MeldLayout,
     'basic': BasicLandLayout
 }

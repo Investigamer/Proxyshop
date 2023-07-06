@@ -25,6 +25,11 @@ class ScryfallSorting (StrEnum):
     Artist = "artist"
 
 
+class ScryfallUnique (StrEnum):
+    Prints = "prints"
+    Arts = "arts"
+
+
 """
 BASE SETTINGS
 """

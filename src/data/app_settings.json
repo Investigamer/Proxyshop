@@ -34,7 +34,7 @@
   },
   {
     "type": "options",
-    "title": "[b]Language[/b]",
+    "title": "[b]Scryfall Language[/b]",
     "desc": "A scryfall supported language code to look for alternate language text.\nPhyrexian is not supported at this time.\n[b](Default: en)[/b]",
     "section": "APP.DATA",
     "key": "Scryfall.Language",
@@ -53,10 +53,27 @@
   {
     "type": "bool",
     "title": "[b]Scryfall Search Ascending[/b]",
-    "desc": "When pulling card from Scryfall, search ascending instead of descending.\nFor example, in order of 'released', ascending would be oldest to newest.\n[b](Default: False)[/b]",
+    "desc": "When pulling cards from Scryfall, search ascending instead of descending.\nFor example, in order of 'released', ascending would be oldest to newest.\n[b](Default: False)[/b]",
     "section": "APP.DATA",
     "key": "Scryfall.Ascending",
     "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Scryfall Include Extras[/b]",
+    "desc": "When pulling cards from Scryfall, allow extras like promo prints, funny sets, etc.\n[b](Default: False)[/b]",
+    "section": "APP.DATA",
+    "key": "Scryfall.Extras",
+    "default": 0
+  },
+  {
+    "type": "options",
+    "title": "[b]Scryfall Unique[/b]",
+    "desc": "Whether Scryfall should return card data for all unique arts, or all unique prints.\n[b](Default: 'arts')[/b]",
+    "section": "APP.DATA",
+    "key": "Scryfall.Unique",
+    "options": ["arts", "prints"],
+    "default": "arts"
   },
   {
     "type": "title",
