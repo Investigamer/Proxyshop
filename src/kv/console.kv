@@ -1,6 +1,7 @@
 #:import HoverButton src.gui.utils.HoverButton
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import ScrollView kivy.uix.scrollview.ScrollView
+#:import webbrowser webbrowser
 #:import ak asynckivy
 <Console>:
     id: console
@@ -54,6 +55,24 @@
             Rectangle:
                 size: self.width,self.height
                 pos: self.pos
+        BoxLayout:
+            size_hint_y: None
+            height: dp(30)
+            orientation: "horizontal"
+            ToggleButton:
+                text: "📌"
+                font_name: get_font("seguiemj.ttf")
+                on_press: app.toggle_window_locked()
+            HoverButton:
+                text: "🌍"
+                options: []
+                font_name: get_font("seguiemj.ttf")
+                on_release: webbrowser.open('https://github.com/MrTeferi/Proxyshop')
+            HoverButton:
+                text: "❔"
+                options: []
+                font_name: get_font("seguiemj.ttf")
+                on_release: webbrowser.open('https://discord.gg/magicproxies')
         HoverButton:
             id: continue_btn
             size_hint_y: None
@@ -80,8 +99,6 @@
             background_normal: ""
             background_disabled_normal: ""
             background_color: get_color_from_hex("#63272d")
-        Label:
-            text: ""
         HoverButton:
             id: update_btn
             size_hint_y: None
@@ -95,3 +112,5 @@
             background_normal: ""
             background_disabled_normal: ""
             background_color: get_color_from_hex("#283c5e")
+        Label:
+            text: ""
