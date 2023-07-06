@@ -42,12 +42,17 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Fix abilities that include a newline
         return Reg.PLANESWALKER.findall(self.layout.oracle_text)
 
-    @property
-    def art_frame(self):
+    @cached_property
+    def art_frame_vertical(self):
         # Name of art reference layer
         if self.is_colorless:
-            return LAYERS.FULL_ART_FRAME
-        return LAYERS.PLANESWALKER_ART_FRAME
+            return LAYERS.BORDERLESS_FRAME
+        return LAYERS.FULL_ART_FRAME
+
+    @cached_property
+    def fill_color(self):
+        # Textbox mask fill color
+        return psd.rgb_black()
 
     """
     GROUPS
@@ -73,20 +78,28 @@ class PlaneswalkerTemplate (StarterTemplate):
     def border_group(self) -> Optional[LayerSet]:
         return psd.getLayerSet(LAYERS.BORDER, self.group)
 
-    """
-    TEXT LAYERS
-    """
+    @cached_property
+    def mask_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet(LAYERS.MASKS)
+
+    @cached_property
+    def textbox_group(self) -> Optional[LayerSet]:
+        return psd.getLayerSet("Ragged Lines", [self.group, LAYERS.TEXTBOX, "Ability Dividers"])
 
     @cached_property
     def text_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.TEXT_AND_ICONS, self.group)
 
+    """
+    TEXT LAYERS
+    """
+
     @cached_property
-    def top_ref(self) -> ArtLayer:
+    def top_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_TOP_REFERENCE, self.text_group)
 
     @cached_property
-    def adj_ref(self) -> ArtLayer:
+    def adj_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_ADJUSTMENT_REFERENCE, self.text_group)
 
     @cached_property
@@ -141,11 +154,6 @@ class PlaneswalkerTemplate (StarterTemplate):
     def color_indicator_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, [self.group, LAYERS.COLOR_INDICATOR])
 
-    @cached_property
-    def crown_layer(self) -> Optional[ArtLayer]:
-        # Crown never included
-        return
-
     """
     METHODS
     """
@@ -155,41 +163,9 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Iterate through abilities to add text layers
         for i, ability in enumerate(self.abilities):
 
-            # Get the colon index, determine if this is static or activated ability
-            colon_index = ability.find(": ")
-            if 5 > colon_index > 0:
-
-                # Determine which loyalty group to enable, and set the loyalty symbol's text
-                loyalty_graphic = psd.getLayerSet(ability[0], self.loyalty_group)
-                psd.getLayer(LAYERS.COST, loyalty_graphic).textItem.contents = ability[0:int(colon_index)]
-                ability_layer = psd.getLayer(LAYERS.ABILITY_TEXT, self.loyalty_group).duplicate()
-
-                # Add text layer, shields, and colons to list
-                self.ability_layers.append(ability_layer)
-                self.shields.append(loyalty_graphic.duplicate())
-                self.colons.append(psd.getLayer(LAYERS.COLON, self.loyalty_group).duplicate())
-                ability = ability[colon_index + 2:]
-
-            else:
-
-                # Hide default ability, switch to static
-                ability_layer = psd.getLayer(LAYERS.STATIC_TEXT, self.loyalty_group).duplicate()
-                self.ability_layers.append(ability_layer)
-                self.shields.append(None)
-                self.colons.append(None)
-
-                # Is this a double line ability?
-                if "\n" in ability:
-                    self.active_layer = ability_layer
-                    ft.space_after_paragraph(2)
-
-            # Add ability text
-            self.text.append(
-                text_classes.FormattedTextField(
-                    layer=ability_layer,
-                    contents=ability
-                )
-            )
+            # Static or activated?
+            index = ability.find(": ")
+            self.pw_add_ability(ability, index) if 5 > index > 0 else self.pw_add_ability_static(ability)
 
         # Starting loyalty
         if self.layout.loyalty:
@@ -213,10 +189,8 @@ class PlaneswalkerTemplate (StarterTemplate):
             self.color_indicator_layer.visible = True
 
     def post_text_layers(self):
-        """
-        Auto-position the ability text, colons, and shields.
-        """
-        # Core vars
+
+        # Auto-position the ability text, colons, and shields.
         spacing = self.app.scale_by_height(64)
         spaces = len(self.ability_layers) + 1
         ref_height = psd.get_layer_dimensions(self.textbox_reference)['height']
@@ -253,94 +227,124 @@ class PlaneswalkerTemplate (StarterTemplate):
             # Skip if this is a passive ability
             if self.shields[i] and self.colons[i]:
                 before = self.colons[i].bounds[1]
-                psd.align_vertical(self.colons[i], reference=ref_layer)
-                self.docref.selection.deselect()
+                psd.align_vertical(self.colons[i], ref_layer)
                 difference = self.colons[i].bounds[1] - before
                 self.shields[i].translate(0, difference)
 
         # Add the ability layer mask
         self.pw_ability_mask()
 
+    def pw_add_ability(self, text: str, index: int):
+        """
+        Add a Planeswalker ability.
+        @param text: Ability text to fill in.
+        @param index: Location of the ability colon.
+        """
+        # Determine which loyalty group to enable, and set the loyalty symbol's text
+        shield = psd.getLayerSet(text[0], self.loyalty_group)
+        psd.getLayer(LAYERS.COST, shield).textItem.contents = text[0:int(index)]
+        layer = psd.getLayer(LAYERS.ABILITY_TEXT, self.loyalty_group).duplicate()
+
+        # Add text layer, shields, and colons to list
+        self.ability_layers.append(layer)
+        if len(self.shields) > 0 and self.shields[-1]:
+            # Place each new shield above the last
+            self.shields.append(shield.duplicate(self.shields[-1], ElementPlacement.PlaceBefore))
+        else:
+            self.shields.append(shield.duplicate())
+        self.colons.append(psd.getLayer(LAYERS.COLON, self.loyalty_group).duplicate())
+
+        # Add ability text
+        self.text.append(
+            text_classes.FormattedTextField(
+                layer=layer,
+                contents=text[index + 2:]
+            )
+        )
+
+    def pw_add_ability_static(self, text: str):
+        """
+        Add a Planeswalker static ability.
+        @param text: Ability text to fill in.
+        """
+        # Hide default ability, switch to static
+        layer = psd.getLayer(LAYERS.STATIC_TEXT, self.loyalty_group).duplicate()
+        self.ability_layers.append(layer)
+        self.shields.append(None)
+        self.colons.append(None)
+
+        # Is this a double line ability?
+        if "\n" in text:
+            self.active_layer = layer
+            ft.space_after_paragraph(2)
+
+        # Add ability text
+        self.text.append(
+            text_classes.FormattedTextField(
+                layer=layer,
+                contents=text
+            )
+        )
+
     def pw_ability_mask(self):
-        """
-        Position the ragged edge ability mask.
-        """
+        """Position the ragged edge ability mask."""
 
         # Ragged line layers
-        lines = psd.getLayerSet("Ragged Lines", [self.group, LAYERS.TEXTBOX, "Ability Dividers"])
-        line1_top = psd.getLayer("Line 1 Top", lines)
-        line1_bottom = psd.getLayer("Line 1 Bottom", lines)
-        line1_top_ref = psd.getLayer("Line 1 Top Reference", lines)
-        line1_bottom_ref = psd.getLayer("Line 1 Bottom Reference", lines)
-        line1_top.visible = True
-        line1_bottom.visible = True
+        line_top = psd.getLayer(LAYERS.TOP, self.mask_group)
+        line_bottom = psd.getLayer(LAYERS.BOTTOM, self.mask_group)
 
-        # Additional for 4 Abilities
-        if len(self.ability_layers) == 4:
-            line2_top = psd.getLayer("Line 2 Top", lines)
-            line2_bottom = psd.getLayer("Line 2 Bottom", lines)
-            line2_ref = psd.getLayer("Line 2 Reference", lines)
-            line2_top.visible = True
-            line2_bottom.visible = True
-        else:
-            line2_top, line2_bottom, line2_ref = None, None, None
+        # Create our line mask pairs
+        lines: list[list[ArtLayer]] = []
+        for i in range(len(self.ability_layers)-1):
+            if lines and len(lines[-1]) == 1:
+                lines[-1].append(line_bottom.duplicate(self.textbox_group, ElementPlacement.PlaceInside))
+            else:
+                lines.append([line_top.duplicate(self.textbox_group, ElementPlacement.PlaceInside)])
 
-        # Position needed ragged lines
-        if len(self.ability_layers) > 2:
-            # 3+ Ability Planeswalker
-            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
-            self.position_divider_line([self.ability_layers[1], self.ability_layers[2]], line1_bottom, line1_bottom_ref)
-        else:
-            # 2 Ability Planeswalker
-            self.position_divider_line([self.ability_layers[0], self.ability_layers[1]], line1_top, line1_top_ref)
-        if line2_top and line2_ref:
-            # 4 Ability Planeswalker
-            self.position_divider_line([self.ability_layers[2], self.ability_layers[3]], line2_top, line2_ref)
-
-        # Fill between the ragged lines
-        if len(self.ability_layers) > 2:
-            # 3+ Ability Planeswalker
-            self.fill_between_dividers(line1_top, line1_bottom)
-        else:
-            # 2 Ability Planeswalker
-            line1_bottom.translate(0, 1000)
-            self.fill_between_dividers(line1_top, line1_bottom)
-        if line2_top and line2_bottom:
-            # 4 Ability Planeswalker
-            self.fill_between_dividers(line2_top, line2_bottom)
+        # Position and fill each pair
+        n = 0
+        for i, group in enumerate(lines):
+            # Position the top line, bottom if provided, then fill the area between
+            self.position_divider([self.ability_layers[n], self.ability_layers[n+1]], group[0])
+            if len(group) == 2:
+                self.position_divider([self.ability_layers[n+1], self.ability_layers[n+2]], group[1])
+            self.fill_between_dividers(group)
+            # Skip every other ability
+            n += 2
 
     @staticmethod
-    def position_divider_line(layers: list[ArtLayer], line: ArtLayer, line_ref: ArtLayer):
+    def position_divider(layers: list[ArtLayer], line: ArtLayer):
         """
         Positions a ragged divider line correctly.
         @param layers: Two layers to position the line between.
         @param line: Line layer to be positioned.
-        @param line_ref: Reference line layer to help position the ragged line.
         """
-        dif = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
-        ref_pos = (line_ref.bounds[3] + line_ref.bounds[1]) / 2
-        targ_pos = dif + layers[0].bounds[3]
-        line.translate(0, (targ_pos - ref_pos))
+        delta = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
+        reference_position = (line.bounds[3] + line.bounds[1]) / 2
+        target_position = delta + layers[0].bounds[3]
+        line.translate(0, (target_position - reference_position))
 
-    def fill_between_dividers(self, line1: ArtLayer, line2: ArtLayer):
+    def fill_between_dividers(self, group: list[ArtLayer]):
         """
-        Fill area between two ragged lines.
-        @param line1: The top ragged line layer.
-        @param line2: The bottom ragged line layer.
+        Fill area between two ragged lines, or a top line and the bottom of the document.
+        @param group: List containing 1 or 2 ragged lines to fill between.
         """
+        # If no second line is provided use the bottom of the document
+        bottom_bound: int = (group[1].bounds[1] if len(group) == 2 else self.docref.height) + 1
+        top_bound = group[0].bounds
+
+        # Create a new layer to fill the selection
         self.active_layer = self.docref.artLayers.add()
-        self.active_layer.move(line1, ElementPlacement.PlaceAfter)
+        self.active_layer.move(group[0], ElementPlacement.PlaceAfter)
+
+        # Select between the two points and fill
         self.docref.selection.select([
-            [line1.bounds[0] - 200, line1.bounds[3]],
-            [line1.bounds[2] + 200, line1.bounds[3]],
-            [line1.bounds[2] + 200, line2.bounds[1]],
-            [line1.bounds[0] - 200, line2.bounds[1]]
+            [top_bound[0] - 200, top_bound[3] - 1],
+            [top_bound[2] + 200, top_bound[3] - 1],
+            [top_bound[2] + 200, bottom_bound],
+            [top_bound[0] - 200, bottom_bound]
         ])
-        fill_color = psd.rgb_black()
-        self.docref.selection.expand(1)
-        self.docref.selection.fill(
-            fill_color, ColorBlendMode.NormalBlendColor, 100, False
-        )
+        self.docref.selection.fill(self.fill_color, ColorBlendMode.NormalBlendColor, 100)
         self.docref.selection.deselect()
 
 
@@ -356,8 +360,16 @@ class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
     """
 
     @property
-    def art_reference(self) -> ArtLayer:
-        return psd.getLayer(LAYERS.PLANESWALKER_ART_FRAME)
+    def art_frame(self) -> str:
+        return LAYERS.ART_FRAME
+
+    @property
+    def art_frame_vertical(self):
+        return LAYERS.FULL_ART_FRAME
+
+    @property
+    def is_fullart(self) -> bool:
+        return True
 
     @cached_property
     def is_content_aware_enabled(self):
@@ -376,6 +388,12 @@ class PlaneswalkerMDFCTemplate (PlaneswalkerTemplate):
     """
     * Adds support for MDFC functionality to the existing PlaneswalkerTemplate.
     """
+
+    @cached_property
+    def dfc_group(self) -> Optional[LayerSet]:
+        if self.face_type and self.text_group:
+            return psd.getLayerSet(self.face_type, LAYERS.MDFC)
+        return
 
     @cached_property
     def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
@@ -427,8 +445,16 @@ class PlaneswalkerMDFCExtendedTemplate (PlaneswalkerMDFCTemplate):
     template_suffix = "Extended"
 
     @property
-    def art_reference(self) -> ArtLayer:
-        return psd.getLayer(LAYERS.PLANESWALKER_ART_FRAME)
+    def art_frame(self) -> str:
+        return LAYERS.ART_FRAME
+
+    @property
+    def art_frame_vertical(self):
+        return LAYERS.FULL_ART_FRAME
+
+    @property
+    def is_fullart(self) -> bool:
+        return True
 
     @cached_property
     def is_content_aware_enabled(self):
@@ -449,6 +475,20 @@ class PlaneswalkerTransformTemplate (PlaneswalkerTemplate):
     """
     template_file_name = "pw-tf-back"
 
+    """
+    GROUPS
+    """
+
+    @cached_property
+    def dfc_group(self) -> Optional[LayerSet]:
+        if self.face_type and self.text_group:
+            return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
+        return
+
+    """
+    TEXT LAYERS
+    """
+
     @cached_property
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name is always shifted
@@ -463,6 +503,10 @@ class PlaneswalkerTransformTemplate (PlaneswalkerTemplate):
     def transform_icon_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.layout.transform_icon, self.dfc_group)
 
+    """
+    METHODS
+    """
+
     def enable_frame_layers(self):
         # Add the transform icon
         super().enable_frame_layers()
@@ -476,8 +520,16 @@ class PlaneswalkerTransformExtendedTemplate (PlaneswalkerTransformTemplate):
     template_suffix = "Extended"
 
     @property
-    def art_reference(self) -> ArtLayer:
-        return psd.getLayer(LAYERS.PLANESWALKER_ART_FRAME)
+    def art_frame(self) -> str:
+        return LAYERS.ART_FRAME
+
+    @property
+    def art_frame_vertical(self):
+        return LAYERS.FULL_ART_FRAME
+
+    @property
+    def is_fullart(self) -> bool:
+        return True
 
     @cached_property
     def is_content_aware_enabled(self):

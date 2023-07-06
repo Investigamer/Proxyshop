@@ -3,32 +3,32 @@
         "Sketch": {
             "class": "SketchTemplate",
             "file": "sketch.psd",
-            "id": "1LxhqeaFFYBPcEAC1kJ2W94lzeTYry19w"
+            "id": "1uFfDl5VUYiu77ct6rsDPBRJK0-9ap8Zb"
         },
         "Kaldheim": {
             "class": "KaldheimTemplate",
             "file": "kaldheim.psd",
-            "id": "1f0ouLgnpOSBXUuj5mvEPT1zeGPJp57Uu"
+            "id": "16XtBeZT_teePRDvythLu8JvHKjSND5TW"
         },
         "Phyrexian": {
             "class": "PhyrexianTemplate",
             "file": "phyrexian.psd",
-            "id": "1whyaQCE3o3mO1k9omJwFIH0jX7RE4Xub"
+            "id": "1mEb4BXZI1v0dqwGOwgmrHFOaytVoJlkQ"
         },
         "Colorshifted": {
             "class": "ColorshiftedTemplate",
             "file": "colorshifted.psd",
-            "id": "1NjOmqY8xg_lRZ91dlutFQTgWMgytQ6F_"
+            "id": "14-DkMK2PEoU4aNHWPxsoau_t_xAKhgb7"
         },
         "Crimson Fang": {
             "class": "CrimsonFangTemplate",
             "file": "crimson-fang.psd",
-            "id": "1cSsy5MosXFsSbxPnJT0SXldZ5IZtokm3"
+            "id": "1scPZCVzKezjrjfvGso3IejJgFBYDMvfn"
         },
         "Double Feature": {
             "class": "DoubleFeatureTemplate",
             "file": "double-feature.psd",
-            "id": "1AeGmIpKqjqNEQK8r33JXnYsoMgEepuHc"
+            "id": "1D88pzyudnGnUglWL7H-K5AlWjLPcaHfE"
         }
     },
     "transform_front": {
@@ -47,7 +47,7 @@
         "Dark Mode": {
             "class": "BasicLandDarkMode",
             "file": "basic-dark-mode.psd",
-            "id": "1LPOhN4hVYkvYbn26XeSn_YBQ2p9gB3JV"
+            "id": "1amK4tWUAXEics9kMaAL4n2zkEGdh143D"
         }
     }
 }

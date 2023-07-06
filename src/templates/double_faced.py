@@ -10,7 +10,7 @@ from photoshop.api.application import ArtLayer
 
 # Local Imports
 from src.templates._core import NormalTemplate
-from src.enums.photoshop import Alignment
+from src.enums.photoshop import Dimensions
 from src.enums.mtg import TransformIcons
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
@@ -136,9 +136,9 @@ class IxalanTemplate (NormalTemplate):
         return False
 
     @cached_property
-    def expansion_symbol_alignments(self) -> list[Alignment]:
+    def expansion_symbol_alignments(self) -> list[Dimensions]:
         # Expansion symbol is entirely centered
-        return [Alignment.CenterVertical, Alignment.CenterHorizontal]
+        return [Dimensions.CenterX, Dimensions.CenterY]
 
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:

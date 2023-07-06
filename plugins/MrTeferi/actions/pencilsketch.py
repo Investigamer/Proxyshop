@@ -4,9 +4,10 @@ Pencil Sketchify Action Module
 from threading import Event
 from typing import Union
 
+from src.constants import con
 from src.env.__console__ import console
 import photoshop.api as ps
-app = ps.Application()
+app = con.app
 cID = app.charIDToTypeID
 sID = app.stringIDToTypeID
 dialog_mode = ps.DialogModes.DisplayNoDialogs

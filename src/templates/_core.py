@@ -31,7 +31,7 @@ from src.layouts import CardLayout
 from src.settings import cfg
 import src.helpers as psd
 import src.text_layers as text_classes
-from src.enums.photoshop import Alignment
+from src.enums.photoshop import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import CollectorMode, ExpansionSymbolMode, BorderColor, OutputFiletype
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
@@ -234,7 +234,7 @@ class BaseTemplate:
         """Returns True if art provided is vertically oriented, False if it is horizontal."""
         with Image.open(self.layout.filename) as image:
             width, height = image.size
-        if height > (width * 1.2):
+        if height > (width * 1.1):
             # Vertical orientation
             return True
         # Horizontal orientation
@@ -483,6 +483,16 @@ class BaseTemplate:
         """Reference frame used to scale and position the rules text layer."""
         return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
 
+    @cached_property
+    def pt_top_reference(self) -> Optional[ArtLayer]:
+        """Reference used to get the top of the PT box."""
+        return psd.getLayer(LAYERS.PT_TOP_REFERENCE, self.text_group)
+
+    @cached_property
+    def pt_adjustment_reference(self) -> Optional[ArtLayer]:
+        """Reference used to get the location of the PT box."""
+        return psd.getLayer(LAYERS.PT_REFERENCE, self.text_group)
+
     """
     LOADING ARTWORK
     """
@@ -629,9 +639,9 @@ class BaseTemplate:
     """
 
     @property
-    def expansion_symbol_alignments(self) -> list[Alignment]:
+    def expansion_symbol_alignments(self) -> list[Dimensions]:
         """Alignments used for positioning the expansion symbol"""
-        return [Alignment.CenterVertical, Alignment.Right]
+        return [Dimensions.Right, Dimensions.CenterY]
 
     @cached_property
     def expansion_gradient_layer(self) -> Optional[ArtLayer]:
@@ -658,7 +668,6 @@ class BaseTemplate:
         # Create a group for generated layers, clear style
         group = self.app.activeDocument.layerSets.add()
         group.move(self.expansion_symbol_layer, ElementPlacement.PlaceAfter)
-        psd.clear_layer_fx(self.expansion_symbol_layer)
 
         # Call the necessary creator
         if cfg.symbol_mode in [ExpansionSymbolMode.Font, 'default']:
@@ -780,7 +789,7 @@ class BaseTemplate:
 
         # Generate the watermark
         wm = psd.import_svg(wm_path)
-        psd.frame_layer(wm, self.textbox_reference, True)
+        psd.frame_layer(wm, self.textbox_reference, smallest=True)
         wm.resize(
             wm_details.get('scale', 80),
             wm_details.get('scale', 80),
@@ -1145,8 +1154,8 @@ class NormalTemplate (StarterTemplate):
                     flavor = self.layout.flavor_text,
                     reference = self.textbox_reference,
                     divider = self.divider_layer,
-                    pt_reference = psd.getLayer(LAYERS.PT_REFERENCE, self.text_group),
-                    pt_top_reference = psd.getLayer(LAYERS.PT_TOP_REFERENCE, self.text_group),
+                    pt_reference = self.pt_adjustment_reference,
+                    pt_top_reference = self.pt_top_reference,
                     centered = self.is_centered
                 )
             ])
@@ -1480,7 +1489,7 @@ class DynamicVectorTemplate(NormalVectorTemplate):
 
     @cached_property
     def twins_shape(self) -> Optional[LayerSet]:
-        name = LAYERS.TRANSFORM if self.is_transform and self.is_front else LAYERS.NORMAL
+        name = LAYERS.TRANSFORM if self.is_transform else LAYERS.NORMAL
         return psd.getLayer(name, [self.twins_group, LAYERS.SHAPE])
 
     """
@@ -1505,11 +1514,6 @@ class DynamicVectorTemplate(NormalVectorTemplate):
         # Textbox Shape
         if self.textbox_shape:
             self.textbox_shape.visible = True
-
-        # Translucent colorless shapes
-        if self.is_colorless and self.twins_shape and self.textbox_shape:
-            psd.set_fill_opacity(60, self.twins_shape)
-            psd.set_fill_opacity(60, self.textbox_shape)
 
         # Add Transform related layers
         if self.is_transform:
@@ -1541,7 +1545,7 @@ class DynamicVectorTemplate(NormalVectorTemplate):
                     contents=str(self.layout.other_face_power) + "/" + str(self.layout.other_face_toughness)
                 )
             )
-        else:
+        elif not self.is_front:
             # Change Name, Type, and PT to white with shadow for non-Eldrazi backs
             if self.layout.transform_icon != TransformIcons.MOONELDRAZI:
                 psd.enable_layer_fx(self.text_layer_name)

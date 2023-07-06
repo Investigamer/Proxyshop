@@ -10,8 +10,8 @@ from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.templates import (
-    NormalTemplate,
-    BasicLandTemplate
+    BasicLandTemplate,
+    NormalEssentialsTemplate
 )
 from actions import pencilsketch, sketch
 from src.enums.layers import LAYERS
@@ -24,24 +24,12 @@ NORMAL TEMPLATES
 """
 
 
-class SketchTemplate (NormalTemplate):
+class SketchTemplate (NormalEssentialsTemplate):
     """
     Sketch showcase from MH2
     Original PSD by Nelynes
     """
     template_suffix = "Sketch"
-
-    """
-    TOGGLE
-    """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
 
     """
     SKETCH ACTION
@@ -90,7 +78,7 @@ class SketchTemplate (NormalTemplate):
         }
 
 
-class KaldheimTemplate (NormalTemplate):
+class KaldheimTemplate (NormalEssentialsTemplate):
     """
     Kaldheim viking legendary showcase.
     Original Template by FeuerAmeise
@@ -100,10 +88,6 @@ class KaldheimTemplate (NormalTemplate):
     """
     TOGGLE
     """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
 
     @property
     def is_legendary(self) -> bool:
@@ -138,7 +122,7 @@ class KaldheimTemplate (NormalTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
-class CrimsonFangTemplate (NormalTemplate):
+class CrimsonFangTemplate (NormalEssentialsTemplate):
     """
     The crimson vow showcase template.
     Original template by michayggdrasil
@@ -150,14 +134,6 @@ class CrimsonFangTemplate (NormalTemplate):
     """
     TOGGLE
     """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
 
     @property
     def background(self):
@@ -172,15 +148,15 @@ class CrimsonFangTemplate (NormalTemplate):
         # Pinlines
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
-        if self.is_name_shifted and not self.is_front:
+        if self.is_transform and not self.is_front:
             return psd.getLayer(self.pinlines, "MDFC " + LAYERS.PINLINES_TEXTBOX)
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
     @cached_property
     def transform_icon_layer(self) -> Optional[ArtLayer]:
-        if self.is_name_shifted and self.is_front:
+        if self.is_transform and self.is_front:
             return psd.getLayer("tf-front", self.text_group)
-        elif self.is_name_shifted:
+        elif self.is_transform:
             return psd.getLayer("tf-back", self.text_group)
         return
 
@@ -188,28 +164,16 @@ class CrimsonFangTemplate (NormalTemplate):
         super().enable_frame_layers()
 
         # Add transform if necessary
-        if self.is_name_shifted and self.transform_icon_layer:
-            psd.getLayer("Button", self.text_group).visible = True
+        if self.transform_icon_layer:
+            psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
             self.transform_icon_layer.visible = True
 
 
-class PhyrexianTemplate (NormalTemplate):
+class PhyrexianTemplate (NormalEssentialsTemplate):
     """
     From the Phyrexian secret lair promo
     """
     template_suffix = "Phyrexian"
-
-    """
-    TOGGLE
-    """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
 
     """
     LAYERS
@@ -224,25 +188,13 @@ class PhyrexianTemplate (NormalTemplate):
         return
 
 
-class DoubleFeatureTemplate (NormalTemplate):
+class DoubleFeatureTemplate (NormalEssentialsTemplate):
     """
     Midnight Hunt / Vow Double Feature Showcase
     Original assets from Warpdandy's Proximity Template
     Doesn't support companion, nyx, or twins layers.
     """
     template_suffix = "Double Feature"
-
-    """
-    TOGGLE
-    """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
 
     """
     LAYERS
@@ -266,7 +218,7 @@ CLASSIC TEMPLATE VARIANTS
 """
 
 
-class ColorshiftedTemplate (NormalTemplate):
+class ColorshiftedTemplate (NormalEssentialsTemplate):
     """
     Planar Chaos era colorshifted template
     Rendered from CC and MSE assets. Most titleboxes are built into pinlines.
@@ -277,14 +229,6 @@ class ColorshiftedTemplate (NormalTemplate):
     """
     TOGGLE
     """
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
 
     @property
     def is_land(self) -> bool:

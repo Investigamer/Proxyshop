@@ -14,7 +14,7 @@ from photoshop.api import (
 from photoshop.api._layerSet import ArtLayer, LayerSet
 
 # Local Imports
-from src.enums.photoshop import Alignment
+from src.enums.photoshop import Dimensions
 from src.enums.settings import ExpansionSymbolMode
 from src.helpers import get_line_count
 from src.layouts import BasicLandLayout
@@ -113,6 +113,11 @@ class StargazingTemplate (FullartTemplate):
         # Use glass overlay for both twins
         return
 
+    @property
+    def pt_layer(self) -> Optional[ArtLayer]:
+        # Use darker PT boxes
+        return psd.getLayer(self.twins, LAYERS.PT_BOX + ' Dark')
+
     """
     METHODS
     """
@@ -137,6 +142,10 @@ class StargazingTemplate (FullartTemplate):
         super().basic_text_layers()
         psd.enable_layer_fx(self.text_layer_name)
         self.text_layer_name.textItem.color = psd.rgb_white()
+
+    def rules_text_and_pt_layers(self) -> None:
+        super().rules_text_and_pt_layers()
+        self.text_layer_pt.textItem.color = psd.rgb_white()
 
 
 """
@@ -689,6 +698,18 @@ class ClassicRemasteredTemplate (DynamicVectorTemplate):
         return
 
     """
+    REFERENCES
+    """
+
+    @cached_property
+    def pt_top_reference(self) -> Optional[ArtLayer]:
+        return psd.getLayer(
+            f"Flipside {LAYERS.PT_TOP_REFERENCE}" if (
+                    self.is_transform and self.is_flipside_creature
+            ) else LAYERS.PT_TOP_REFERENCE, self.text_group
+        )
+
+    """
     METHODS
     """
 
@@ -809,6 +830,11 @@ class UniversesBeyondTemplate (DynamicVectorTemplate):
 
     def enable_frame_layers(self) -> None:
         super().enable_frame_layers()
+
+        # Translucent colorless shapes
+        if self.is_colorless and self.twins_shape and self.textbox_shape:
+            psd.set_fill_opacity(60, self.twins_group)
+            psd.set_fill_opacity(60, self.textbox_group)
 
         # Add mask to pinlines
         psd.copy_layer_mask(self.pinlines_mask, self.pinlines_group)
@@ -941,17 +967,20 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
     @cached_property
     def size(self) -> str:
         """Layer name associated with the size of the textbox."""
+        # Check for textless
+        if self.is_textless:
+            return "Textless"
+
+        # Get the user's preferred setting
         size = str(cfg.get_setting(
             section="FRAME",
             key="Textbox.Size",
-            default="Tall",
+            default="Automatic",
             is_bool=False
         ))
-        if size == "Automatic":
-            # Check for textless
-            if self.is_textless:
-                return "Short"
 
+        # Determine the automatic size
+        if size == "Automatic":
             # Set up our test layer and test text
             test_layer = psd.getLayer(self.text_layer_rules_name, [self.text_group, "Tall"])
             test_text = self.layout.oracle_text
@@ -1358,9 +1387,7 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
 
             if self.is_creature and cfg.symbol_mode == ExpansionSymbolMode.Disabled:
                 # Align PT text
-                psd.align(Alignment.CenterHorizontal, self.text_layer_pt, self.pt_group)
-                psd.align(Alignment.CenterVertical, self.text_layer_pt)
-                self.docref.selection.deselect()
+                psd.align_all(self.text_layer_pt, self.pt_group)
 
                 # Add PT text
                 self.text.append(
@@ -1383,22 +1410,19 @@ class BorderlessVectorTemplate (DynamicVectorTemplate):
         psd.align_vertical(self.text_layer_type, self.pinlines_shapes[1])
         psd.enable_layer_fx(self.text_layer_type)
         if cfg.symbol_mode != ExpansionSymbolMode.Disabled:
-            psd.align_vertical(self.expansion_symbol_layer)
+            psd.align_vertical(self.expansion_symbol_layer, self.pinlines_shapes[1])
         if self.color_indicator_layer:
-            psd.align_vertical(self.color_indicator_layer)
-        self.docref.selection.deselect()
+            psd.align_vertical(self.color_indicator_layer, self.pinlines_shapes[1])
 
         # Token adjustments
         if self.is_token:
-            psd.align(Alignment.CenterHorizontal, self.text_layer_name, self.twins_shapes[0])
-            self.docref.selection.deselect()
+            psd.align(Dimensions.CenterX, self.text_layer_name, self.twins_shapes[0])
             psd.set_font(self.text_layer_name, con.font_subtext)
 
         # Nickname adjustments
         if self.is_nickname:
             psd.disable_layer_fx(self.text_layer_name)
-            psd.align(Alignment.CenterVertical, self.text_layer_name, self.nickname_shape)
-            self.docref.selection.deselect()
+            psd.align(Dimensions.CenterY, self.text_layer_name, self.nickname_shape)
             psd.enable_layer_fx(self.text_layer_name)
 
     def enable_crown(self) -> None:

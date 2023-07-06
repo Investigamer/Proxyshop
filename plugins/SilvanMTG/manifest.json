@@ -3,21 +3,21 @@
         "Silvan Extended": {
             "class": "SilvanExtendedTemplate",
             "file": "extended.psd",
-            "id": "12qSjPe7W5obNWGz0H828rR8rSn9O2Kby"
+            "id": "1RloUNFCkOJE1QUwJ0YDtfysCDBYlY9kn"
         }
     },
     "mdfc_front": {
         "Silvan Extended": {
             "class": "SilvanMDFCTemplate",
             "file": "extended-mdfc-front.psd",
-            "id": "1ALesKmMQ_1icVr5gF4nsaVFsHsmdemar"
+            "id": "17ONVdUMGAv-lj0od_iNjgWT7mmW9725M"
         }
     },
     "mdfc_back": {
         "Silvan Extended": {
             "class": "SilvanMDFCTemplate",
             "file": "extended-mdfc-back.psd",
-            "id": "1XTuL2i2eFXxIy1kuoagbX6m6xQVVRd0j"
+            "id": "10sx3CLO7det1oQl3gfuBoD016bHkPQEa"
         }
     }
 }

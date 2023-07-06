@@ -2,22 +2,24 @@
 from typing import Optional, Union
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, AnchorPosition
+from photoshop.api import DialogModes, AnchorPosition
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
-
 # Local Imports
 from src.constants import con
-from src.helpers.bounds import get_layer_dimensions, get_text_layer_dimensions
-from src.helpers.layers import select_layer_bounds
-from src.enums.photoshop import Alignment
+from src.helpers.bounds import get_layer_dimensions, get_text_layer_dimensions, get_dimensions_from_bounds
+from src.enums.photoshop import Dimensions
 
 # QOL Definitions
 app = con.app
 sID = app.stringIDToTypeID
 cID = app.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+# Positioning
+positions_horizontal = [Dimensions.Left, Dimensions.Right, Dimensions.CenterX]
+positions_vertical = [Dimensions.Top, Dimensions.Bottom, Dimensions.CenterY]
 
 
 """
@@ -26,64 +28,93 @@ ALIGNMENT
 
 
 def align(
-    align_type: Alignment = Alignment.CenterHorizontal,
+    axis: Union[str, list[str], None] = None,
     layer: Optional[Union[ArtLayer, LayerSet]] = None,
     reference: Optional[Union[ArtLayer, LayerSet]] = None
 ) -> None:
     """
-    Align the currently active layer to current selection, vertically or horizontally.
-    Used with align_vertical() or align_horizontal().
-    @param align_type: Alignment type to use.
+    Align the currently active layer to current selection, vertically or horizontal.
+    @param axis: Which axis use when aligning the layer, can be provided as a single axis or list.
     @param layer: ArtLayer or LayerSet to align. Uses active layer if not provided.
     @param reference: Reference to align the layer within. Uses current selection if not provided.
     """
-    # Optionally create a selection based on given reference
-    if reference:
-        select_layer_bounds(reference)
+    # Default axis is both
+    axis = axis or [Dimensions.CenterX, Dimensions.CenterY]
 
-    # Optionally make a given layer the active layer
-    if layer:
-        app.activeDocument.activeLayer = layer
+    # Get the dimensions of the reference and layer if not provided
+    if not reference:
+        area = reference or get_dimensions_from_bounds(app.activeDocument.selection.bounds)
+    else:
+        area = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    layer = layer or app.activeDocument.activeLayer
+    item = get_layer_dimensions(layer)
 
-    # Align the current layer to selection
-    desc = ActionDescriptor()
-    ref = ActionReference()
-    ref.putEnumerated(sID('layer'), sID('ordinal'), sID('targetEnum'))
-    desc.putReference(sID('null'), ref)
-    desc.putEnumerated(sID('using'), cID('ADSt'), align_type.value)
-    app.executeAction(sID('align'), desc, NO_DIALOG)
+    # Single axis provided
+    if isinstance(axis, str):
+        x = area[axis] - item[axis] if axis in positions_horizontal else 0
+        y = area[axis] - item[axis] if axis in positions_vertical else 0
+    else:
+        x = area[axis[0]] - item[axis[0]]
+        y = area[axis[1]] - item[axis[1]]
+
+    # Shift location using the position difference
+    layer.translate(x, y)
+
+
+def align_all(
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
+) -> None:
+    """Utility definition for passing CenterX and CenterY to align function."""
+    align([Dimensions.CenterX, Dimensions.CenterY], layer, reference)
 
 
 def align_vertical(
-    layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[Union[ArtLayer, LayerSet]] = None
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
 ) -> None:
-    """Utility definition for passing CenterVertical to align function."""
-    align(Alignment.CenterVertical, layer, reference)
+    """Utility definition for passing CenterY to align function."""
+    align(Dimensions.CenterY, layer, reference)
 
 
 def align_horizontal(
-    layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[Union[ArtLayer, LayerSet]] = None
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
 ) -> None:
-    """Utility definition for passing CenterHorizontal to align function."""
-    align(Alignment.CenterHorizontal, layer, reference)
+    """Utility definition for passing CenterX to align function."""
+    align(Dimensions.CenterX, layer, reference)
 
 
 def align_left(
-    layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[Union[ArtLayer, LayerSet]] = None
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
 ) -> None:
     """Utility definition for passing Left to align function."""
-    align(Alignment.Left, layer, reference)
+    align(Dimensions.Left, layer, reference)
 
 
 def align_right(
-    layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[Union[ArtLayer, LayerSet]] = None
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
 ) -> None:
     """Utility definition for passing Right to align function."""
-    align(Alignment.Right, layer, reference)
+    align(Dimensions.Right, layer, reference)
+
+
+def align_top(
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
+) -> None:
+    """Utility definition for passing Top to align function."""
+    align(Dimensions.Top, layer, reference)
+
+
+def align_bottom(
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
+) -> None:
+    """Utility definition for passing Bottom to align function."""
+    align(Dimensions.Bottom, layer, reference)
 
 
 """
@@ -102,14 +133,14 @@ def position_between_layers(
     @param top_layer: Reference layer above the layer to be aligned.
     @param bottom_layer: Reference layer below the layer to be aligned.
     """
-    app.activeDocument.selection.select([
+    docref = app.activeDocument
+    docref.selection.select([
         [0, top_layer.bounds[3]],
-        [app.activeDocument.width, top_layer.bounds[3]],
-        [app.activeDocument.width, bottom_layer.bounds[1]],
+        [docref.width, top_layer.bounds[3]],
+        [docref.width, bottom_layer.bounds[1]],
         [0, bottom_layer.bounds[1]]
     ])
-    align_vertical(layer)
-    app.activeDocument.selection.deselect()
+    align_vertical(layer, reference=get_dimensions_from_bounds(docref.selection.bounds))
 
 
 def spread_layers_over_reference(
@@ -173,11 +204,15 @@ def frame_layer(
     reference: ArtLayer,
     smallest: bool = False,
     anchor: AnchorPosition = AnchorPosition.TopLeft,
-    alignments: Optional[list[Alignment]] = None
-) -> None:
+    alignments: Union[Dimensions, list[Dimensions], None] = None
+):
     """
-    Scale a layer equally to the bounds of a reference layer, then center the layer vertically and horizontally
-    within those bounds.
+    Scale and position a layer within the bounds of a reference layer.
+    @param layer: Layer to scale and position.
+    @param reference: Reference frame to position within.
+    @param smallest: Whether to scale to smallest or largest edge.
+    @param anchor: Anchor position for scaling the layer.
+    @param alignments: Alignments used to position the layer.
     """
     # Get layer and reference dimensions
     layer_dim = get_layer_dimensions(layer)
@@ -188,12 +223,5 @@ def frame_layer(
     scale = 100 * action((ref_dim['width'] / layer_dim['width']), (ref_dim['height'] / layer_dim['height']))
     layer.resize(scale, scale, anchor)
 
-    # Make any alignments
-    select_layer_bounds(reference)
-    app.activeDocument.activeLayer = layer
-    if alignments is None:
-        # Default alignments are center horizontal and vertical
-        alignments = [Alignment.CenterHorizontal, Alignment.CenterVertical]
-    for a in alignments:
-        align(a)
-    app.activeDocument.selection.deselect()
+    # Default alignments are center horizontal and vertical
+    align(alignments or [Dimensions.CenterX, Dimensions.CenterY], layer, ref_dim)

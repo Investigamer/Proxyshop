@@ -42,7 +42,7 @@ class SilvanExtendedTemplate (ExtendedTemplate):
         psd.enable_mask(self.crown_layer.parent)
         psd.enable_mask(self.pinlines_layer.parent)
         psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW).visible = True
-        psd.enable_mask(psd.getLayer("Shadows Light", LAYERS.SHADOWS))
+        psd.enable_mask(psd.getLayer(LAYERS.SHADOWS))
 
 
 """
