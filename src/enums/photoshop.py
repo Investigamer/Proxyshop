@@ -7,6 +7,7 @@ from typing import Literal, Union
 
 # Local Imports
 from src.constants import con
+from src.utils.strings import StrEnum
 
 
 class DescriptorEnum(Enum):
@@ -18,10 +19,20 @@ class DescriptorEnum(Enum):
         return int(con.app.stringIDToTypeID(self._value_))
 
 
+class Dimensions(StrEnum):
+    """Layer dimension descriptors."""
+    Width = 'width'
+    Height = 'height'
+    CenterX = 'center_x'
+    CenterY = 'center_y'
+    Left = 'left'
+    Right = 'right'
+    Top = 'top'
+    Bottom = 'bottom'
+
+
 class Alignment(DescriptorEnum):
-    """
-    Selection alignment descriptors.
-    """
+    """Selection alignment descriptors."""
     Top: str = 'ADSTops'
     Bottom: str = 'ADSBottoms'
     Left: str = 'ADSLefts'
@@ -31,18 +42,14 @@ class Alignment(DescriptorEnum):
 
 
 class TextAlignment(DescriptorEnum):
-    """
-    Selection alignment descriptors.
-    """
+    """Selection alignment descriptors."""
     Left: str = 'left'
     Right: str = 'right'
     Center: str = 'center'
 
 
 class Stroke(DescriptorEnum):
-    """
-    Stroke effect descriptors.
-    """
+    """Stroke effect descriptors."""
     Inside: str = 'insetFrame'
     Outside: str = 'outsetFrame'
     Center: str = 'centeredFrame'
