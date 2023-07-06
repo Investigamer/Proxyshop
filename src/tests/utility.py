@@ -21,6 +21,7 @@ from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
+    ActionList,
     DialogModes
 )
 
@@ -380,7 +381,7 @@ def get_differing_dict(d1: dict, d2: dict):
 
 
 """
-COMBINING TEXT ITEMS
+TEXT FUNCTIONS
 """
 
 
@@ -417,3 +418,97 @@ def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[s
 
     # Apply the updated text key to the target layer
     apply_text_key(to_layer, to_tk)
+
+
+def remove_text_segment(layer: ArtLayer, start: int, end: int) -> None:
+    # Establish our text key and descriptor ID's
+    app.activeDocument.activeLayer = layer
+    key: ActionDescriptor = get_text_key(layer)
+    current_text = key.getString(sID("textKey"))
+    new_text = current_text[0:start:] + current_text[end + 1::]
+    idFrom = sID("from")
+    idTo = sID("to")
+
+    # Find the range where target text exists
+    for n in [sID("textStyleRange"), sID("paragraphStyleRange")]:
+        offset = 0
+        style_ranges: list[ActionDescriptor] = []
+        text_range = key.getList(n)
+        logged = {}
+        for i in range(text_range.count):
+
+            # Each item in textStyleRange list
+            style = text_range.getObjectValue(i)
+
+            # Indexes of this range
+            i_left = style.getInteger(idFrom)
+            i_right = style.getInteger(idTo)
+
+            # Log and adjust identical ranges
+            signature = (i_left, i_right)
+            if signature in logged:
+                if not (action := logged.get(signature)):
+                    # Remove range entirely
+                    continue
+                # Adjust range with logged value
+                style.putInteger(idTo, i_left - action)
+                style.putInteger(idFrom, i_right - action)
+                style_ranges.append(style)
+                continue
+
+            # Adjust range with current offset
+            left = start - offset
+            right = end - offset
+            i_start = i_left - offset
+            i_end = i_right - offset
+
+            # Segment out of left bound
+            if i_end < left:
+                print("Segment OUT OF BOUND - LEFT", i_start, i_end, left, right)
+                logged[signature] = 0
+                style_ranges.append(style)
+                continue
+
+            # Segment out of right bound
+            if i_start > right:
+                print("Segment OUT OF BOUND - RIGHT", i_start, i_end, left, right)
+                logged[signature] = offset
+                style.putInteger(idTo, i_left - offset)
+                style.putInteger(idFrom, i_right - offset)
+                style_ranges.append(style)
+                continue
+
+            # Exclude entire segment, i.e. [[1, 2, 3, 4]]
+            if i_start >= left and i_end <= right:
+                print("Segment EXCLUDED", i_start, i_end, left, right)
+                offset += i_end - i_start + 1
+                logged[signature] = None
+                continue
+
+            # Segment has a partial match
+            if i_start >= left and right <= i_end:
+                # Exclude initial segment, i.e. [[1, 2], 3, 4]
+                offset += right - i_start + 1
+                print("Segment INITIAL", i_start, i_end, left, right)
+            elif i_start < left < i_end <= right:
+                # Exclude trailing segment, i.e. [1, 2, [3, 4]]
+                offset += i_end - left + 1
+                print("Segment TRAILING", i_start, i_end, left, right)
+            elif i_start < left and right < i_end:
+                # Exclude nested segment, i.e. [1, [2, 3, 4], 5, 6, 7]
+                offset += right - left + 1
+                print("Segment NESTED", i_start, i_end, left, right)
+
+            # Make replacement
+            logged[signature] = offset
+            style.putInteger(idTo, i_left - offset)
+            style.putInteger(idFrom, i_right - offset)
+            style_ranges.append(style)
+
+        # Apply changes
+        style_range = ActionList()
+        for r in style_ranges:
+            style_range.putObject(n, r)
+        key.putList(n, style_range)
+        key.putString(sID("textKey"), new_text)
+        apply_text_key(layer, key)

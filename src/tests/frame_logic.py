@@ -13,7 +13,8 @@ from multiprocessing import cpu_count
 # Local Imports
 from src.constants import con
 con.headless = True
-from src.layouts import TransformLayout, MeldLayout, ModalDoubleFacedLayout, layout_map
+from src.layouts import TransformLayout, ModalDoubleFacedLayout, layout_map, PlaneswalkerTransformLayout, \
+    PlaneswalkerLayout
 from src.layouts import NormalLayout
 from src.utils.scryfall import get_card_data
 from src.enums.layers import LAYERS
@@ -227,11 +228,11 @@ test_cases = {
         'frame': [LAYERS.GOLD, LAYERS.UR, LAYERS.GOLD, False, False]
     },
     'Ajani, Sleeper Agent': {
-        'layout': NormalLayout,
+        'layout': PlaneswalkerLayout,
         'frame': [LAYERS.GOLD, LAYERS.GW, LAYERS.GOLD, False, False]
     },
     'Tamiyo, Compleated Sage': {
-        'layout': NormalLayout,
+        'layout': PlaneswalkerLayout,
         'frame': [LAYERS.GOLD, LAYERS.GU, LAYERS.GOLD, False, False]
     },
 
@@ -251,8 +252,12 @@ test_cases = {
         'frame': [LAYERS.GOLD, LAYERS.RG, LAYERS.GOLD, False, False]
     },
     "Brisela, Voice of Nightmares": {
-        'layout': MeldLayout,
+        'layout': TransformLayout,
         'frame': [LAYERS.COLORLESS, LAYERS.COLORLESS, LAYERS.COLORLESS, False, True]
+    },
+    "Urza, Planeswalker": {
+        'layout': PlaneswalkerTransformLayout,
+        'frame': [LAYERS.GOLD, LAYERS.WU, LAYERS.GOLD, False, False]
     },
     "Archangel Avacyn": {
         'layout': TransformLayout,

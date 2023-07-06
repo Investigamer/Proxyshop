@@ -3,11 +3,25 @@ FILE UTILITIES
 """
 # Standard Library Imports
 import json
+import os
 import shutil
+from glob import glob
 from configparser import ConfigParser
-from os import path as osp
+from os import path as osp, makedirs
 from os import remove
 from pathlib import Path
+
+# Third Party Imports
+from tqdm import tqdm
+import py7zr
+
+# Local Imports
+from src.utils.testing import time_function
+
+
+"""
+CONFIG FILES
+"""
 
 
 def verify_config_fields(ini_file: str, json_file: str):
@@ -111,6 +125,11 @@ def remove_config_file(ini_file: str) -> bool:
     return False
 
 
+"""
+PATHS AND FILENAMES
+"""
+
+
 def ensure_path_exists(path: str):
     """
     Ensure that directories in path exists.
@@ -136,3 +155,60 @@ def get_unique_filename(path: str, name: str, ext: str, suffix: str):
         num += 1
         new_name = name + suffix.format(num)
     return new_name
+
+
+"""
+COMPRESSION
+"""
+
+
+def compress_file(file_path: str, output_dir: str):
+    # Define the output file path
+    filename = osp.basename(file_path).replace('.psd', '.7z')
+    out_file = osp.join(output_dir, filename)
+
+    # Set up the 7z compression settings
+    compression = py7zr.SevenZipFile(out_file, 'w', filters=[{"id": py7zr.FILTER_LZMA2, "preset": 9}])
+
+    # Compress the file
+    compression.write(file_path, osp.basename(file_path))
+    compression.close()
+
+
+@time_function
+def decompress_file(file_path: str):
+    with py7zr.SevenZipFile(file_path, 'r') as archive:
+        archive.extractall(path=osp.dirname(file_path))
+    os.remove(file_path)
+
+
+def compress_all(directory: str):
+    # Create "compressed" subdirectory if it doesn't exist
+    output_dir = osp.join(directory, 'compressed')
+    makedirs(output_dir, exist_ok=True)
+
+    # Get a list of all .psd files in the directory
+    files = glob(osp.join(directory, '*.psd'))
+
+    with tqdm(total=len(files), desc="Compressing files", unit="file") as pbar:
+        # Compress each file
+        for f in files:
+            pbar.set_description(os.path.basename(f))
+            compress_file(f, output_dir)
+            pbar.update()
+
+
+def compress_target(directory: str, targets: list[str]):
+    # Create "compressed" subdirectory if it doesn't exist
+    output_dir = osp.join(directory, 'compressed')
+    makedirs(output_dir, exist_ok=True)
+
+    # Get a list of all target files
+    files = [osp.join(directory, t) for t in targets]
+
+    with tqdm(total=len(files), desc="Compressing files", unit="file") as pbar:
+        # Compress each file
+        for f in files:
+            pbar.set_description(os.path.basename(f))
+            compress_file(f, output_dir)
+            pbar.update()
