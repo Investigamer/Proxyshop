@@ -36,8 +36,8 @@ class PrototypeTemplate (NormalTemplate):
     @cached_property
     def proto_manabox_layer(self) -> Optional[ArtLayer]:
         if self.layout.proto_mana_cost.count('{') == 2:
-            return psd.getLayerSet(self.layout.proto_color, LAYERS.PROTO_MANABOX_SMALL)
-        return psd.getLayerSet(self.layout.proto_color, LAYERS.PROTO_MANABOX_MEDIUM)
+            return psd.getLayer(self.layout.proto_color, LAYERS.PROTO_MANABOX_SMALL)
+        return psd.getLayer(self.layout.proto_color, LAYERS.PROTO_MANABOX_MEDIUM)
 
     @cached_property
     def proto_pt_layer(self) -> Optional[ArtLayer]:
