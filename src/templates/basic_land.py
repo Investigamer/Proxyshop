@@ -10,7 +10,6 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._core import BaseTemplate
-from src.enums.layers import LAYERS
 from src.settings import cfg
 import src.helpers as psd
 
@@ -20,10 +19,6 @@ class BasicLandTemplate (BaseTemplate):
     * Basic land template with no text and icons (aside from legal group), just a layer for each of the eleven
     basic land types.
     """
-
-    @property
-    def art_frame(self) -> str:
-        return LAYERS.BASIC_ART_FRAME
 
     @cached_property
     def text_group(self) -> Optional[LayerSet]:
@@ -69,6 +64,10 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
 
     @property
     def is_fullart(self) -> bool:
+        return True
+
+    @property
+    def is_content_aware_enabled(self) -> bool:
         return True
 
     def expansion_symbol(self):
