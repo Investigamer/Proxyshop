@@ -20,6 +20,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
+from src.enums.mtg import non_italics_abilities
 from src.helpers.bounds import (
     get_dimensions_no_effects,
     get_textbox_dimensions,
@@ -30,6 +31,7 @@ from src.helpers.colors import get_color, apply_color
 from src.helpers.layers import select_layer_pixels
 from src.helpers.position import spread_layers_over_reference
 from src.helpers.text import get_text_scale_factor
+from src.settings import cfg
 from src.utils.types_cards import CardTextSymbols, CardTextSymbolIndex
 from src.utils.regex import Reg
 
@@ -218,26 +220,21 @@ def determine_symbol_colors(symbol: str) -> list[SolidColor]:
 
 def format_symbol(
     action_list: ActionList,
-    starting_ref: ActionDescriptor,
     symbol_index: int,
     symbol_colors: list[SolidColor],
     font_size: Union[int, float]
-) -> ActionDescriptor:
+) -> None:
     """
     Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
     @param action_list: Action list to append these actions to.
-    @param starting_ref: Action reference to use at the beginning of appending actions to the action list.
     @param symbol_index: Index where the symbol begins in the text layer.
     @param symbol_colors: List of SolidColors to color this symbol's characters.
     @param font_size: Font size to apply to this symbol's characters.
-    @return: Action descriptor with all actions applied.
     """
-    current_ref = starting_ref
     for i, color in enumerate(symbol_colors):
         desc1 = ActionDescriptor()
         desc2 = ActionDescriptor()
         idTxtS = cID("TxtS")
-        action_list.putObject(cID("Txtt"), current_ref)
         desc1.putInteger(cID("From"), symbol_index + i)
         desc1.putInteger(cID("T   "), symbol_index + i + 1)
         desc2.putString(sID("fontPostScriptName"), con.font_mana)
@@ -247,53 +244,56 @@ def format_symbol(
         desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), font_size)
         apply_color(desc2, color)
         desc1.putObject(idTxtS, idTxtS, desc2)
-        current_ref = desc1
-    return current_ref
+        action_list.putObject(cID("Txtt"), desc1)
 
 
-def format_flavor_text(input_string: str) -> None:
+def format_flavor_text(input_string: str, layer: ArtLayer) -> None:
     """
     Inserts the given string into the active layer and formats it without any of the more advanced features like
     italics strings, centering, etc.
-    @param input_string: The string to insert into the active layer
+    @param input_string: The string to insert into the layer.
+    @param layer: Layer to insert flavor text.
     """
     # Is the active layer a text layer?
-    if app.activeDocument.activeLayer.kind is not LayerKind.TextLayer:
+    if layer.kind is not LayerKind.TextLayer:
         return
+    app.activeDocument.activeLayer = layer
+    scale_factor = get_text_scale_factor(layer)
 
     # Prepare action descriptor and reference variables
-    layer_font_size = app.activeDocument.activeLayer.textItem.size
+    layer_font_size = layer.textItem.size
     primary_action_descriptor = ActionDescriptor()
     primary_action_list = ActionList()
     desc119 = ActionDescriptor()
     desc26 = ActionDescriptor()
     desc25 = ActionDescriptor()
     ref101 = ActionReference()
-    idTxtS = sID("textStyle")
-    idTxLr = cID("TxLr")
-    idTo = sID("to")
-    idPnt = cID("#Pnt")
-    idTxtt = cID("Txtt")
+    textLayer = sID("textLayer")
+    textStyle = sID("textStyle")
+    pointsUnit = sID("pointsUnit")
+    styleRange = sID("textStyleRange")
 
     # Spin up the text insertion action
-    ref101.putEnumerated(idTxLr, cID("Ordn"), cID("Trgt"))
-    desc119.putReference(cID("null"), ref101)
-    primary_action_descriptor.putString(cID("Txt "), input_string)
-    desc25.putInteger(cID("From"), 0)
-    desc25.putInteger(idTo, len(input_string))
-    desc26.putString(sID("fontPostScriptName"), con.font_rules_text)
-    desc26.putString(sID("fontName"), con.font_rules_text)
-    desc26.putUnitDouble(sID("size"), idPnt, layer_font_size)
+    ref101.putEnumerated(textLayer, sID("ordinal"), sID("targetEnum"))
+    desc119.putReference(sID("target"), ref101)
+    primary_action_descriptor.putString(sID("textKey"), input_string)
+    desc25.putInteger(sID("from"), 0)
+    desc25.putInteger(sID("to"), len(input_string))
+    desc26.putString(sID("fontPostScriptName"), con.font_rules_text_italic)
+    desc26.putString(sID("fontName"), con.font_rules_text_italic)
+    desc26.putUnitDouble(sID("size"), pointsUnit, layer_font_size * scale_factor)
     desc26.putBoolean(sID("autoLeading"), False)
-    desc26.putUnitDouble(sID("leading"), idPnt, layer_font_size)
-    desc25.putObject(idTxtS, idTxtS, desc26)
-    primary_action_list.putObject(idTxtt, desc25)
-    primary_action_descriptor.putList(idTxtt, primary_action_list)
+    desc26.putUnitDouble(sID("leading"), pointsUnit, layer_font_size * scale_factor)
+    if cfg.force_english_formatting:
+        desc26.putEnumerated(sID("textLanguage"), sID("textLanguage"), sID("englishLanguage"))
+    desc25.putObject(textStyle, textStyle, desc26)
+    primary_action_list.putObject(styleRange, desc25)
+    primary_action_descriptor.putList(styleRange, primary_action_list)
 
     # Push changes to the layer, disable hyphenation
-    desc119.putObject(idTo, idTxLr, primary_action_descriptor)
+    desc119.putObject(sID("to"), textLayer, primary_action_descriptor)
     app.executeAction(sID("set"), desc119, NO_DIALOG)
-    app.activeDocument.activeLayer.textItem.hyphenation = False
+    layer.textItem.hyphenation = False
 
 
 def generate_italics(card_text: str) -> list[str]:
@@ -319,8 +319,14 @@ def generate_italics(card_text: str) -> list[str]:
 
     # Find and add ability words
     for match in Reg.TEXT_ABILITY.findall(card_text):
-        # Cover boast cards and cards like Mirrodin Besieged
-        if (f"• {match}" in card_text and card_text[0:12] != "Choose one —") or "Boast" in match:
+        # Cover Mirrodin Besieged case
+        if f"• {match}" in card_text and "choose one" not in card_text.lower():
+            continue
+        # Non-Italicized Abilities
+        if match in non_italics_abilities:
+            continue
+        # "Celebr-8000" case, number digit only
+        if match.isnumeric() and len(match) < 3:
             continue
         italic_text.append(match)
     return italic_text

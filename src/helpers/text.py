@@ -5,7 +5,7 @@ TEXT HELPERS
 from typing import Union, Optional
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference
+from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
@@ -142,6 +142,100 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str) -> None:
     desc32.putBoolean(sID("ignoreAccents"), True)
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
     app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+
+
+def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
+    """
+    Remove text up to a certain index from a TextLayer.
+    @param layer: TextLayer containing the text to modify.
+    @param idx: Index to remove up to.
+    """
+    # Establish our text key and descriptor ID's
+    app.activeDocument.activeLayer = layer
+    key: ActionDescriptor = get_text_key(layer)
+    current_text = key.getString(sID("textKey"))
+    new_text = current_text[0:idx - 1]
+    idFrom = sID("from")
+    idTo = sID("to")
+
+    # Find the range where target text exists
+    for n in [sID("textStyleRange"), sID("paragraphStyleRange")]:
+
+        # Iterate over list of style ranges
+        style_ranges: list[ActionDescriptor] = []
+        text_range = key.getList(n)
+        for i in range(text_range.count):
+
+            # Get position of this style range
+            style = text_range.getObjectValue(i)
+            i_left = style.getInteger(idFrom)
+            i_right = style.getInteger(idTo)
+
+            if idx <= i_left:
+                # Skip text ouf bounds
+                continue
+            elif i_left < idx <= i_right:
+                # Reduce "end" position
+                style.putInteger(idTo, idx - 1)
+            style_ranges.append(style)
+
+        # Apply changes
+        style_range = ActionList()
+        for r in style_ranges:
+            style_range.putObject(n, r)
+        key.putList(n, style_range)
+        key.putString(sID("textKey"), new_text)
+    apply_text_key(layer, key)
+
+
+def remove_leading_text(layer: ArtLayer, idx: int) -> None:
+    """
+    Remove text up to a certain index from a TextLayer.
+    @param layer: TextLayer containing the text to modify.
+    @param idx: Index to remove up to.
+    """
+    # Establish our text key and descriptor ID's
+    app.activeDocument.activeLayer = layer
+    key: ActionDescriptor = get_text_key(layer)
+    current_text = key.getString(sID("textKey"))
+    new_text = current_text[idx + 1:]
+    idFrom = sID("from")
+    idTo = sID("to")
+    offset = idx + 1
+
+    # Find the range where target text exists
+    for n in [sID("textStyleRange"), sID("paragraphStyleRange")]:
+
+        # Iterate over list of style ranges
+        style_ranges: list[ActionDescriptor] = []
+        text_range = key.getList(n)
+        for i in range(text_range.count):
+
+            # Get position of this style range
+            style = text_range.getObjectValue(i)
+            i_left = style.getInteger(idFrom)
+            i_right = style.getInteger(idTo)
+
+            # Compare position to excluded indexes
+            if i_right < idx:
+                # Remove entirely
+                continue
+            elif i_left < idx <= i_right:
+                # Zero "to" position
+                style.putInteger(idTo, 0)
+            else:
+                # Offset "to" position
+                style.putInteger(idTo, i_left - offset)
+            style.putInteger(idFrom, i_right - offset)
+            style_ranges.append(style)
+
+        # Apply changes
+        style_range = ActionList()
+        for r in style_ranges:
+            style_range.putObject(n, r)
+        key.putList(n, style_range)
+        key.putString(sID("textKey"), new_text)
+    apply_text_key(layer, key)
 
 
 """

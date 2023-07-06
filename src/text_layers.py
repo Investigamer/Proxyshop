@@ -17,17 +17,20 @@ from photoshop.api import (
     Justification,
     RasterizeType
 )
+from photoshop.api._document import Document
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
-from src.helpers import clear_layer_fx
 from src.helpers.bounds import get_text_layer_bounds, get_layer_dimensions
 from src.helpers.colors import get_text_layer_color, apply_color
 from src.helpers.layers import select_layer_bounds
 from src.helpers.position import position_between_layers, align_horizontal
-from src.helpers.text import get_text_scale_factor, replace_text_robust
+from src.helpers.text import (
+    get_text_scale_factor,
+    remove_trailing_text
+)
 from src.settings import cfg
 from src import format_text as ft
 
@@ -65,6 +68,10 @@ class TextField:
     PROPERTIES
     """
 
+    @property
+    def input(self) -> str:
+        return self.contents
+
     @cached_property
     def reference(self) -> Optional[ArtLayer]:
         return self.kwargs.get('reference', None)
@@ -73,9 +80,9 @@ class TextField:
     def color(self) -> SolidColor:
         return self.kwargs.get('color', get_text_layer_color(self.layer))
 
-    @property
-    def input(self) -> str:
-        return self.contents
+    @cached_property
+    def docref(self) -> Document:
+        return app.activeDocument
 
     """
     METHODS
@@ -255,176 +262,160 @@ class FormattedTextField (TextField):
         Inserts the given string into the active layer and formats it according to defined parameters with symbols
         from the NDPMTG font.
         """
-        # Prepare action descriptor and reference variables
-        primary_action_descriptor = ActionDescriptor()
-        primary_action_list = ActionList()
-        desc119 = ActionDescriptor()
-        desc26 = ActionDescriptor()
-        desc25 = ActionDescriptor()
-        ref101 = ActionReference()
-        desc141 = ActionDescriptor()
-        desc142 = ActionDescriptor()
-        desc143 = ActionDescriptor()
-        desc144 = ActionDescriptor()
-        desc145 = ActionDescriptor()
-        list13 = ActionList()
-        list14 = ActionList()
-        list15 = ActionList()
-        idkerningRange = sID("kerningRange")
-        idparagraphStyleRange = sID("paragraphStyleRange")
-        idfontPostScriptName = sID("fontPostScriptName")
-        idfirstLineIndent = sID("firstLineIndent")
-        idparagraphStyle = sID("paragraphStyle")
-        idautoLeading = sID("autoLeading")
-        idstartIndent = sID("startIndent")
-        idspaceBefore = sID("spaceBefore")
-        idleadingType = sID("leadingType")
-        idspaceAfter = sID("spaceAfter")
-        idTxtS = sID("textStyle")
-        idTxLr = sID("textLayer")
+        # Set up main descriptors and lists
+        main_descriptor = ActionDescriptor()
+        style_list = ActionList()
+        main_list = ActionList()
+
+        # Descriptor ID's
         idTo = sID("to")
-        idFntN = sID("fontName")
-        idSz = sID("size")
-        idPnt = sID("pointsUnit")
-        idLdng = sID("leading")
-        idTxtt = sID("textStyleRange")
+        size = sID("size")
         idFrom = sID("from")
+        leading = sID("leading")
+        fontName = sID("fontName")
+        textStyle = sID("textStyle")
+        pointsUnit = sID("pointsUnit")
+        spaceAfter = sID("spaceAfter")
+        autoLeading = sID("autoLeading")
+        startIndent = sID("startIndent")
+        spaceBefore = sID("spaceBefore")
+        leadingType = sID("leadingType")
+        styleRange = sID("textStyleRange")
+        paragraphStyle = sID("paragraphStyle")
+        firstLineIndent = sID("firstLineIndent")
+        fontPostScriptName = sID("fontPostScriptName")
+        paragraphStyleRange = sID("paragraphStyleRange")
 
         # Spin up the text insertion action
-        ref101.putEnumerated(idTxLr, sID("ordinal"), sID("targetEnum"))
-        desc119.putReference(cID("null"), ref101)
-        primary_action_descriptor.putString(sID("textKey"), self.input)
-        desc25.putInteger(idFrom, 0)
-        desc25.putInteger(idTo, len(self.input))
-        desc26.putString(idfontPostScriptName, con.font_rules_text)  # MPlantin default
-        desc26.putString(idFntN, con.font_rules_text)  # MPlantin default
-        desc26.putUnitDouble(idSz, idPnt, self.font_size)
-        apply_color(desc26, self.color)
-        desc26.putBoolean(idautoLeading, False)
-        desc26.putUnitDouble(idLdng, idPnt, self.font_size)
-        desc25.putObject(idTxtS, idTxtS, desc26)
-        current_layer_ref = desc25
+        main_style = ActionDescriptor()
+        main_range = ActionDescriptor()
+        main_descriptor.putString(sID("textKey"), self.input)
+        main_range.putInteger(idFrom, 0)
+        main_range.putInteger(idTo, len(self.input))
+        main_style.putString(fontPostScriptName, con.font_rules_text)  # MPlantin default
+        main_style.putString(fontName, con.font_rules_text)  # MPlantin default
+        main_style.putUnitDouble(size, pointsUnit, self.font_size)
+        apply_color(main_style, self.color)
+        main_style.putBoolean(autoLeading, False)
+        main_style.putUnitDouble(leading, pointsUnit, self.font_size)
+        main_range.putObject(textStyle, textStyle, main_style)
+        main_list.putObject(styleRange, main_range)
 
         # Bold the contents if necessary
         if self.bold_rules_text and self.flavor_index != 0:
-            bold_action1 = ActionDescriptor()
-            bold_action2 = ActionDescriptor()
+            bold_range = ActionDescriptor()
+            bold_style = ActionDescriptor()
             contents_index = len(self.input) - 1 if self.flavor_index < 0 else self.flavor_index - 1
-            primary_action_list.putObject(idTxtt, current_layer_ref)
-            bold_action1.putInteger(idFrom, 0)  # bold start index
-            bold_action1.putInteger(idTo, contents_index)  # bold end index
-            bold_action2.putString(idfontPostScriptName, con.font_rules_text_bold)
-            bold_action2.putString(idFntN, con.font_rules_text_bold)
-            bold_action2.putUnitDouble(idSz, idPnt, self.font_size)
-            apply_color(bold_action2, self.color)
-            bold_action2.putBoolean(idautoLeading, False)
-            bold_action2.putUnitDouble(idLdng, idPnt, self.font_size)
-            bold_action1.putObject(idTxtS, idTxtS, bold_action2)
-            current_layer_ref = bold_action1
+            bold_range.putInteger(idFrom, 0)  # bold start index
+            bold_range.putInteger(idTo, contents_index)  # bold end index
+            bold_style.putString(fontPostScriptName, con.font_rules_text_bold)
+            bold_style.putString(fontName, con.font_rules_text_bold)
+            bold_style.putUnitDouble(size, pointsUnit, self.font_size)
+            apply_color(bold_style, self.color)
+            bold_style.putBoolean(autoLeading, False)
+            bold_style.putUnitDouble(leading, pointsUnit, self.font_size)
+            bold_range.putObject(textStyle, textStyle, bold_style)
+            main_list.putObject(styleRange, bold_range)
 
         # Italicize text from our italics indices
-        for italics_index in self.italics_indices:
-            italics_action1 = ActionDescriptor()
-            italics_action2 = ActionDescriptor()
-            primary_action_list.putObject(idTxtt, current_layer_ref)
-            italics_action1.putInteger(idFrom, italics_index['start_index'])  # italics start index
-            italics_action1.putInteger(idTo, italics_index['end_index'])  # italics end index
-            italics_action2.putString(idfontPostScriptName, con.font_rules_text_italic)
-            italics_action2.putString(idFntN, con.font_rules_text_italic)
-            italics_action2.putUnitDouble(idSz, idPnt, self.font_size)
-            apply_color(italics_action2, self.color)
-            italics_action2.putBoolean(idautoLeading, False)
-            italics_action2.putUnitDouble(idLdng, idPnt, self.font_size)
-            italics_action1.putObject(idTxtS, idTxtS, italics_action2)
-            current_layer_ref = italics_action1
+        for i in self.italics_indices:
+            italic_range = ActionDescriptor()
+            italic_style = ActionDescriptor()
+            italic_range.putInteger(idFrom, i['start_index'])  # italics start index
+            italic_range.putInteger(idTo, i['end_index'])  # italics end index
+            italic_style.putString(fontPostScriptName, con.font_rules_text_italic)
+            italic_style.putString(fontName, con.font_rules_text_italic)
+            italic_style.putUnitDouble(size, pointsUnit, self.font_size)
+            apply_color(italic_style, self.color)
+            italic_style.putBoolean(autoLeading, False)
+            italic_style.putUnitDouble(leading, pointsUnit, self.font_size)
+            italic_range.putObject(textStyle, textStyle, italic_style)
+            main_list.putObject(styleRange, italic_range)
 
         # Format each symbol correctly
         for symbol_index in self.symbol_indices:
-            current_layer_ref = ft.format_symbol(
-                action_list=primary_action_list,
-                starting_ref=current_layer_ref,
+            ft.format_symbol(
+                action_list=main_list,
                 symbol_index=symbol_index['index'],
                 symbol_colors=symbol_index['colors'],
                 font_size=self.font_size,
             )
 
         # Insert actions for bold, italics, and symbol formatting
-        primary_action_list.putObject(idTxtt, current_layer_ref)
-        primary_action_descriptor.putList(idTxtt, primary_action_list)
+        main_descriptor.putList(styleRange, main_list)
 
         # Paragraph formatting
+        desc141 = ActionDescriptor()
+        desc142 = ActionDescriptor()
         desc141.putInteger(idFrom, 0)
         desc141.putInteger(idTo, len(self.input))  # input string length
-        desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-        desc142.putUnitDouble(idstartIndent, idPnt, 0)
-        desc142.putUnitDouble(sID("endIndent"), idPnt, 0)
-        desc142.putUnitDouble(idspaceBefore, idPnt, self.line_break_lead)
-        desc142.putUnitDouble(idspaceAfter, idPnt, 0)
+        desc142.putUnitDouble(firstLineIndent, pointsUnit, 0)
+        desc142.putUnitDouble(startIndent, pointsUnit, 0)
+        desc142.putUnitDouble(sID("endIndent"), pointsUnit, 0)
+        desc142.putUnitDouble(spaceBefore, pointsUnit, self.line_break_lead)
+        desc142.putUnitDouble(spaceAfter, pointsUnit, 0)
         desc142.putInteger(sID("dropCapMultiplier"), 1)
-        desc142.putEnumerated(idleadingType, idleadingType, sID("leadingBelow"))
-        desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-        desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
-        desc143.putBoolean(idautoLeading, False)
-        primary_action_descriptor.putList(idparagraphStyleRange, list13)
-        primary_action_descriptor.putList(idkerningRange, list14)
+        desc142.putEnumerated(leadingType, leadingType, sID("leadingBelow"))
 
         # Adjust formatting for modal card with bullet points
         if "\u2022" in self.input:
+            desc143 = ActionDescriptor()
             startIndexBullet = self.input.find("\u2022")
             endIndexBullet = self.input.rindex("\u2022")
             desc141.putInteger(idFrom, startIndexBullet)
             desc141.putInteger(idTo, endIndexBullet + 1)
-            desc142.putUnitDouble(idfirstLineIndent, idPnt, -con.modal_indent)  # negative modal indent
-            desc142.putUnitDouble(idstartIndent, idPnt, con.modal_indent)  # modal indent
-            desc142.putUnitDouble(idspaceBefore, idPnt, 1)
-            desc142.putUnitDouble(idspaceAfter, idPnt, 0)
-            desc143.putString(idfontPostScriptName, con.font_mana)  # NDPMTG default
-            desc143.putString(idFntN, con.font_rules_text)  # MPlantin default
-            desc143.putUnitDouble(idSz, idPnt, 12)
-            desc143.putBoolean(idautoLeading, False)
-            desc142.putObject(sID("defaultStyle"), idTxtS, desc143)
-            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-            list13.putObject(idparagraphStyleRange, desc141)
-            primary_action_descriptor.putList(idparagraphStyleRange, list13)
-            primary_action_descriptor.putList(idkerningRange, list14)
+            desc142.putUnitDouble(firstLineIndent, pointsUnit, -con.modal_indent)  # negative modal indent
+            desc142.putUnitDouble(startIndent, pointsUnit, con.modal_indent)  # modal indent
+            desc142.putUnitDouble(spaceBefore, pointsUnit, 1)
+            desc142.putUnitDouble(spaceAfter, pointsUnit, 0)
+            desc143.putString(fontPostScriptName, con.font_mana)  # NDPMTG default
+            desc143.putString(fontName, con.font_rules_text)  # MPlantin default
+            desc143.putUnitDouble(size, pointsUnit, 12)
+            desc143.putBoolean(autoLeading, False)
+            desc142.putObject(sID("defaultStyle"), textStyle, desc143)
+            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
+            style_list.putObject(paragraphStyleRange, desc141)
+            main_descriptor.putList(paragraphStyleRange, style_list)
 
         # Flavor text actions
         if self.flavor_index >= 0:
             # Add linebreak spacing between rules and flavor text
             desc141.putInteger(idFrom, self.flavor_index + 3)
             desc141.putInteger(idTo, self.flavor_index + 4)
-            desc142.putUnitDouble(idfirstLineIndent, idPnt, 0)
-            desc142.putUnitDouble(sID("impliedFirstLineIndent"), idPnt, 0)
-            desc142.putUnitDouble(idstartIndent, idPnt, 0)
-            desc142.putUnitDouble(sID("impliedStartIndent"), idPnt, 0)
-            desc142.putUnitDouble(idspaceBefore, idPnt, self.flavor_text_lead)  # Space between rules and flavor text
-            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-            list13.putObject(idparagraphStyleRange, desc141)
-            primary_action_descriptor.putList(idparagraphStyleRange, list13)
-            primary_action_descriptor.putList(idkerningRange, list14)
+            desc142.putUnitDouble(firstLineIndent, pointsUnit, 0)
+            desc142.putUnitDouble(sID("impliedFirstLineIndent"), pointsUnit, 0)
+            desc142.putUnitDouble(startIndent, pointsUnit, 0)
+            desc142.putUnitDouble(sID("impliedStartIndent"), pointsUnit, 0)
+            desc142.putUnitDouble(spaceBefore, pointsUnit, self.flavor_text_lead)  # Space between rules and flavor text
+            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
+            style_list.putObject(paragraphStyleRange, desc141)
+            main_descriptor.putList(paragraphStyleRange, style_list)
 
             # Adjust flavor text color
             if self.flavor_color:
-                desc144.PutInteger(sID("from"), self.flavor_index)
-                desc144.PutInteger(sID("to"), len(self.input))
-                desc145.putString(idfontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
-                desc145.putString(idFntN, con.font_rules_text_italic)  # MPlantin italic default
-                desc145.putUnitDouble(idSz, idPnt, self.font_size)
-                desc145.putBoolean(idautoLeading, False)
-                desc145.putUnitDouble(idLdng, idPnt, self.font_size)
+                colored_range = ActionList()
+                colored_style = ActionDescriptor()
+                desc145 = ActionDescriptor()
+                colored_style.PutInteger(sID("from"), self.flavor_index)
+                colored_style.PutInteger(sID("to"), len(self.input))
+                desc145.putString(fontPostScriptName, con.font_rules_text_italic)  # MPlantin italic default
+                desc145.putString(fontName, con.font_rules_text_italic)  # MPlantin italic default
+                desc145.putUnitDouble(size, pointsUnit, self.font_size)
+                desc145.putBoolean(autoLeading, False)
+                desc145.putUnitDouble(leading, pointsUnit, self.font_size)
                 apply_color(desc145, self.flavor_color)
-                desc144.PutObject(sID("textStyle"), sID("textStyle"), desc145)
-                list15.PutObject(sID("textStyleRange"), desc144)
-                primary_action_descriptor.putList(sID("textStyleRange"), list15)
+                colored_style.PutObject(sID("textStyle"), sID("textStyle"), desc145)
+                colored_range.PutObject(sID("textStyleRange"), colored_style)
+                main_descriptor.putList(sID("textStyleRange"), colored_range)
 
         # Quote actions flavor text
         if self.quote_index >= 0:
             # Adjust line break spacing if there's a line break in the flavor text
             desc141.putInteger(idFrom, self.quote_index + 3)
             desc141.putInteger(idTo, len(self.input))
-            desc142.putUnitDouble(idspaceBefore, idPnt, 0)
-            desc141.putObject(idparagraphStyle, idparagraphStyle, desc142)
-            list13.putObject(idparagraphStyleRange, desc141)
+            desc142.putUnitDouble(spaceBefore, pointsUnit, 0)
+            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
+            style_list.putObject(paragraphStyleRange, desc141)
 
             # Optional, align quote credit to right
             if self.right_align_quote and self.input.find('"\r—') >= 0:
@@ -433,22 +424,26 @@ class FormattedTextField (TextField):
                 index_end = len(self.input) - 1
 
                 # Align this part, disable justification reset
-                ft.align_formatted_text_right(list13, index_start, index_end)
+                ft.align_formatted_text_right(style_list, index_start, index_end)
 
             # Add quote actions to primary action
-            primary_action_descriptor.putList(idparagraphStyleRange, list13)
-            primary_action_descriptor.putList(idkerningRange, list14)
+            main_descriptor.putList(paragraphStyleRange, style_list)
 
         # Push changes to text layer
-        desc119.putObject(idTo, idTxLr, primary_action_descriptor)
+        textLayer = sID("textLayer")
+        ref101 = ActionReference()
+        desc119 = ActionDescriptor()
+        ref101.putEnumerated(textLayer, sID("ordinal"), sID("targetEnum"))
+        desc119.putReference(sID("target"), ref101)
+        desc119.putObject(idTo, textLayer, main_descriptor)
         app.executeAction(sID("set"), desc119, NO_DIALOG)
-        app.activeDocument.activeLayer.textItem.hyphenation = False
+        self.docref.activeLayer.textItem.hyphenation = False
 
     def execute(self):
         super().execute()
 
         # Format text
-        app.activeDocument.activeLayer = self.layer
+        self.docref.activeLayer = self.layer
         self.format_text()
         if self.contents_centered:
             self.layer.textItem.justification = Justification.Center
@@ -469,6 +464,7 @@ class FormattedTextArea (FormattedTextField):
     @cached_property
     def divider(self) -> Optional[Union[ArtLayer, LayerSet]]:
         if (divider := self.kwargs.get('divider')) and all([self.flavor_text, self.contents, cfg.flavor_divider]):
+            divider.visible = True
             return divider
         return
 
@@ -510,39 +506,21 @@ class FormattedTextArea (FormattedTextField):
         """
         Inserts and correctly positions flavor text divider.
         """
-        # Create a flavor-text-only layer to reference
-        ref = self.layer.duplicate()
-        clear_layer_fx(ref)
-        flavor_test = ref.duplicate()
-        app.activeDocument.activeLayer = flavor_test
-        ft.format_flavor_text(self.flavor_text_updated)
-        flavor_replace = flavor_test.textItem.contents
-        flavor_test.remove()
-
-        # Established two separate layers: contents and flavor, each rasterized
-        self.layer.visible = False
-        ref.visible = False
-        layer_text_contents = ref.duplicate()
-        replace_text_robust(layer_text_contents, flavor_replace, "")
-        layer_text_contents.rasterize(RasterizeType.EntireLayer)
-        layer_flavor_text = ref.duplicate()
-        layer_flavor_text.rasterize(RasterizeType.EntireLayer)
-        select_layer_bounds(layer_text_contents)
-        app.activeDocument.activeLayer = layer_flavor_text
-        app.activeDocument.selection.expand(1)
-        app.activeDocument.selection.clear()
-        app.activeDocument.selection.deselect()
-        self.layer.visible = True
-        ref.visible = True
+        # Create a reference layer with no effects
+        flavor = self.layer.duplicate()
+        rules = flavor.duplicate()
+        flavor.rasterize(RasterizeType.EntireLayer)
+        remove_trailing_text(rules, len(self.rules_text_updated) + 1)
+        select_layer_bounds(rules)
+        self.docref.activeLayer = flavor
+        self.docref.selection.clear()
 
         # Move flavor text to bottom, then position divider
-        layer_flavor_text.translate(0, get_text_layer_bounds(ref)[3] - layer_flavor_text.bounds[3])
-        position_between_layers(self.divider, layer_text_contents, layer_flavor_text)
-
-        # Remove reference layers
-        layer_text_contents.remove()
-        layer_flavor_text.remove()
-        ref.remove()
+        flavor.translate(0, get_text_layer_bounds(self.layer)[3] - flavor.bounds[3])
+        position_between_layers(self.divider, rules, flavor)
+        self.docref.selection.deselect()
+        flavor.remove()
+        rules.remove()
 
     def execute(self):
 
@@ -577,10 +555,7 @@ class FormattedTextArea (FormattedTextField):
 
         # Ensure the layer is centered horizontally if needed
         if self.contents_centered and self.flavor_centered:
-            select_layer_bounds(self.reference)
-            app.activeDocument.activeLayer = self.layer
-            align_horizontal()
-            app.activeDocument.selection.deselect()
+            align_horizontal(self.layer, self.reference)
 
         # Insert flavor divider if needed
         if self.divider:
