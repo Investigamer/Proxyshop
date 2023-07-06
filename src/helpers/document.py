@@ -321,3 +321,36 @@ def close_document() -> None:
     Close the document
     """
     app.activeDocument.close(SaveOptions.DoNotSaveChanges)
+
+
+"""
+DOCUMENT ROTATION
+"""
+
+
+def rotate_document(angle: int) -> None:
+    """
+    Rotate the document.
+    @param angle: Angle to rotate the document.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.PutEnumerated(sID("document"), sID("ordinal"), sID("first"))
+    desc1.PutReference(sID("target"), ref1)
+    desc1.PutUnitDouble(sID("angle"), sID("angleUnit"), angle)
+    app.Executeaction(sID("rotateEventEnum"), desc1, NO_DIALOG)
+
+
+def rotate_counter_clockwise() -> None:
+    """Utility definition for rotating 90 degrees counter-clockwise."""
+    rotate_document(-90)
+
+
+def rotate_clockwise() -> None:
+    """Utility definition for rotating 90 degrees clockwise."""
+    rotate_document(-90)
+
+
+def rotate_full() -> None:
+    """Utility definition for rotating a full 180 degrees."""
+    rotate_document(180)
