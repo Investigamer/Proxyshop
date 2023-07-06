@@ -30,6 +30,18 @@ class TokenTemplate(StarterTemplate):
         * Only supports a singular frame layer which is the Background layer.
     """
 
+    """
+    TOGGLE
+    """
+
+    @property
+    def is_fullart(self) -> bool:
+        return True
+
+    """
+    LAYERS
+    """
+
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
         # Background is based on Legendary toggle as well as Creature toggle
@@ -38,6 +50,10 @@ class TokenTemplate(StarterTemplate):
             LAYERS.LEGENDARY if self.is_legendary else LAYERS.NON_LEGENDARY,
             LAYERS.CREATURE if self.is_creature else LAYERS.NON_CREATURE
         ])
+
+    """
+    GROUPS
+    """
 
     @cached_property
     def textbox_group(self) -> LayerSet:
