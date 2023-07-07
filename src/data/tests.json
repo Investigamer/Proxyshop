@@ -99,5 +99,10 @@
         ["Treasure [TSNC]", "One Line"],
         ["Rock [TCMR]", "Multiline"],
         ["Human Cleric [TELD]", "Multicolor"]
+    ],
+    "split": [
+        ["Fire [UMA]", "Two Colors"],
+        ["Integrity [GRN]", "Gold"],
+        ["Flesh [DGM]", "Fuse Multicolor"]
     ]
 }
