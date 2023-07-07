@@ -7,6 +7,7 @@ from typing import Union
 
 # Third Party
 from photoshop.api import Application, Units
+from photoshop.api._core import Photoshop
 from packaging.version import parse
 from src.utils.exceptions import PS_EXCEPTIONS
 
@@ -37,7 +38,7 @@ class PhotoshopHandler(Application):
             try:
                 cls._instance = super().__new__(cls)
             except PS_EXCEPTIONS:
-                cls._instance = super(Application, cls).__new__(cls)
+                cls._instance = super(Photoshop, cls).__new__(cls)
         return cls._instance
 
     """

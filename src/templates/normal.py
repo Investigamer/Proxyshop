@@ -437,7 +437,7 @@ class ClassicTemplate (StarterTemplate):
 
         # Simple one image background, Land or Nonland
         psd.getLayer(
-            self.background,
+            self.pinlines,
             LAYERS.LAND if self.is_land else LAYERS.NONLAND
         ).visible = True
 
