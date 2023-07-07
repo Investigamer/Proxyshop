@@ -524,6 +524,9 @@ class ProxyshopApp(App):
             )
             # Card finished
             self.reset()
+            # Was the thread cancelled?
+            if self.cancel_render.is_set():
+                return
 
     def start_render(self, template: TemplateDetails, card: CardLayout) -> bool:
         """
