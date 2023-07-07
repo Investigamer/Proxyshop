@@ -1,3 +1,57 @@
+## v1.10.0 (2023-07-06)
+
+### Feat
+
+- **New-template-type:-Split-Cards**: Split cards now supported, default Split template included
+- **helpers**: New helper functions for rotate_document
+- **gui**: Add pinned to top button and link buttons to discord and github
+
+### Fix
+
+- **ClassicTemplate**: Fix incorrect backgrounds on ClassicTemplate, fix some crashes on Photoshop not connected
+- **regex**: Fix italicized ability bug with "Council's Dilemma"
+- **prototype**: Fix prototype layer select bug
+- **console**: Fix multiple cancellation prompts issue
+- **BasicLandLayout**: Ensure Artist provided by Scryfall data can be used
+- **layouts**: Allow basic lands to pull Collector Info, move text logic for prototype and mutate into layout object, implement layout checking in Scryfall utils
+- **collector_info**: Fix bug on some systems which re-enables hidden paintbrush
+- **prototype**: Fix prototype layout linkage now that Scryfall has added layout type "prototype"
+- **main**: Prevent stacking error prompts in console when missing document is closed
+- **check_playable_card**: Block broken "reversible_card" layout from Scryfall results
+- **TokenTemplate**: Add missing preview image for TokenTemplate
+- **card_types**: Add missing "Token" card type to template card_types dictionary, rename Basic Land -> Basic
+- **format_text**: Add guard clause for using LayerSet object as reference in ensure_visible_reference
+- **symbols**: Fix broken BNG common SVG, use better looking WTH symbols
+
+### Refactor
+
+- **scryfall**: Completely revamped logic for assigning card layout based on Scryfall data, added new settings for Scryfall data collection
+- **enums**: Add non_italics_abilities and update TransformIcons
+- **dimensions**: Add dimensions enum
+- **dimensions**: Add additional dimensions information to get_dimensions_from_bounds
+- **watermark**: Add support for "desparked" and "judgeacademy"
+- **download**: Move update -> utils/download, add 7z compression support
+- **basic_land**: Enable content aware fill on BasicLandUnstableTemplate
+- **token**: Enable fullart toggle on Token template
+- **compression**: Add compression functions/tests, add italicized ability test
+- **config**: Remove config.ini from repository and from built releases as it is auto-generated for the user
+- **BorderlessVector**: Make "Automatic" the default for "Textbox Size" setting
+- **templates**: Enable Borderless Vector for Basic Land type
+- **enums**: Add basic lands and transform icons to MTG enums
+- **BorderlessVectorTemplate**: Add support for MDFC, Textless, and Nickname features to BorderlessVectorTemplate
+- **DynamicVectorTemplate**: Added default functionality for MDFC card type in DynamicVectorTemplate class, added guard clause for reset function
+- **layer_names**: Add more terminology to the layer names Enum class
+- **font**: New helper function: set_font
+- **align**: Add two more align utility definitions: align_left, align_right
+- **layers**: Add helper function: unpack_smart_layer
+- **expansion_symbol**: Add support for special/bonus rarities, move to YAML symbol library
+- **expansion_symbols**: Final commit before deprecating json version
+
+### Perf
+
+- **alignment**: Vastly improved execution time of layer alignments and positioning, huge improvements to Planeswalker generation
+- **text**: Improve execution time of formatting text and positioning flavor divider
+
 ## v1.9.0 (2023-06-13)
 
 ### Feat
