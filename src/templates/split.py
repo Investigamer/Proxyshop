@@ -260,6 +260,12 @@ class SplitTemplate (BaseTemplate):
 
     def load_artwork(self) -> None:
 
+        # Check for fullart test image
+        if cfg.test_mode and self.is_fullart:
+            self.layout.filename = [osp.join(con.path_img, "test-fa.png")] * 2
+        else:
+            self.layout.filename = [self.layout.filename] * 2
+
         # Manually select a second artwork if not provided
         self.layout: SplitLayout = self.layout
         if len(self.layout.filename) == 1:
@@ -279,13 +285,9 @@ class SplitTemplate (BaseTemplate):
         # Load art for each side
         for i, ref in enumerate(self.art_reference):
 
-            # Choose image for dev_mode
-            if cfg.test_mode:
-                # Check for Fullart test image
-                dims = psd.get_layer_dimensions(ref)
-                if (dims['width'] * 1.2) < dims['height']:
-                    # Use fullart test image
-                    self.layout.filename = osp.join(con.path_img, "test-fa.png")
+            # Check for fullart test image
+            if cfg.test_mode and self.is_fullart:
+                self.layout.filename = [osp.join(con.path_img, "test-fa.png")] * 2
 
             # Paste the file into the art
             self.active_layer = self.art_layer[i]

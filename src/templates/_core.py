@@ -511,13 +511,9 @@ class BaseTemplate:
         """
         Loads the specified art file into the specified layer.
         """
-        # Choose image for dev_mode
-        if cfg.test_mode:
-            # Check for Fullart test image
-            dims = psd.get_layer_dimensions(self.art_reference)
-            if (dims['width'] * 1.2) < dims['height']:
-                # Use fullart test image
-                self.layout.filename = osp.join(con.path_img, "test-fa.png")
+        # Check for fullart test image
+        if cfg.test_mode and self.is_fullart:
+            self.layout.filename = osp.join(con.path_img, "test-fa.png")
 
         # Paste the file into the art
         self.active_layer = self.art_layer
