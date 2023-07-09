@@ -1,3 +1,11 @@
+## v1.10.1 (2023-07-09)
+
+### Fix
+
+- **console**: Fix render operation cancelled unexpectedly without console output on bad scryfall data
+- **test**: Fix test rendering not using the correct fullart image, fixed image testing for Split template
+- **test**: Fix thread not cancelling in Deep Test Target mode
+
 ## v1.10.0 (2023-07-06)
 
 ### Feat
