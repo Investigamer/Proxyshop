@@ -4,10 +4,13 @@ PROXYSHOP GUI LAUNCHER
 # Standard Library Imports
 import sys
 import json
+import datetime
 import os.path as osp
+from io import BytesIO
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
+import win32clipboard
 from os import listdir
 from pathlib import Path
 from threading import Event
@@ -17,6 +20,7 @@ from typing import Union, Optional, Callable
 # Third-party Imports
 from photoshop import api as ps
 from photoshop.api._document import Document
+from PIL import Image as PImage
 
 # Environment variables
 from src.env import ENV_VERSION, ENV_DEV_MODE
@@ -609,7 +613,30 @@ class ProxyshopApp(App):
     def toggle_window_locked(self):
         """Toggle whether to pin the window above all other windows."""
         window: Window = self.root_window
+        window.screenshot(name='screenshot.jpg')
         window.always_on_top = not window.always_on_top
+
+    def screenshot_window(self):
+        """Take a screenshot of the Kivy window."""
+        window: Window = self.root_window
+        screenshot_path = osp.join(con.cwd, "out/screenshots")
+        Path(screenshot_path).mkdir(mode=511, parents=True, exist_ok=True)
+        img_path = osp.join(screenshot_path, datetime.datetime.now().strftime("%m-%d-%Y, %H%M%S.jpg"))
+        img_path = window.screenshot(name=img_path)
+
+        # Copy image to clipboard
+        try:
+            image = PImage.open(img_path)
+            output = BytesIO()
+            image.convert("RGB").save(output, "BMP")
+            data = output.getvalue()[14:]
+            output.close()
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
+            win32clipboard.CloseClipboard()
+        except Exception as e:
+            console.log_exception(e)
 
     @staticmethod
     async def open_app_settings() -> None:

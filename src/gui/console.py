@@ -234,7 +234,7 @@ class Console(BoxLayout):
             self.update(f"{msg}\n{self.message_skipping}")
             return True
         # Previous error already handled
-        if thr.is_set():
+        if thr and thr.is_set():
             return False
         # Wait for user response
         if self.await_choice(thr, msg, end):
