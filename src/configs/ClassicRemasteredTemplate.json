@@ -15,7 +15,7 @@
   {
     "type": "bool",
     "title": "[b]Use Gold PT for Multicolor Cards[/b]",
-    "desc": "How many colors can the frame split by before the card just becomes Gold?\n[b](Default: False)[/b]",
+    "desc": "When enabled, will use Gold PT box for multicolor cards instead of the last color.\n[b](Default: False)[/b]",
     "section": "FRAME",
     "key": "Gold.PT",
     "default": 0
