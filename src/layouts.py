@@ -81,10 +81,10 @@ def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
             if c == card:
                 continue
             if str(c) == str(card):
-                if normalize_str(card.name[0]) == normalize_str(card.file['name']):
-                    card.filename.append(c.filename[0])
-                else:
-                    card.filename.insert(0, c.filename[0])
+                # Order them according to name position
+                card.filename = [*card.filename, *c.filename] if (
+                        normalize_str(card.name[0]) == normalize_str(card.file['name'])
+                ) else [*c.filename, *card.filename]
                 skip.extend([card, c])
         add.append(card)
     return [*normal, *add]

@@ -29,6 +29,9 @@ class SplitTemplate (BaseTemplate):
         * Must overwrite a lot of core functionality to navigate rendering 2 cards in one template.
     """
 
+    def __init__(self, layout: SplitLayout):
+        super().__init__(layout)
+
     """
     BOOL
     """
@@ -263,11 +266,10 @@ class SplitTemplate (BaseTemplate):
         # Check for fullart test image
         if cfg.test_mode and self.is_fullart:
             self.layout.filename = [osp.join(con.path_img, "test-fa.png")] * 2
-        else:
+        elif cfg.test_mode:
             self.layout.filename = [self.layout.filename] * 2
 
         # Manually select a second artwork if not provided
-        self.layout: SplitLayout = self.layout
         if len(self.layout.filename) == 1:
             self.console.update("Please select the second split art!")
             file = self.app.openDialog()
@@ -285,11 +287,7 @@ class SplitTemplate (BaseTemplate):
         # Load art for each side
         for i, ref in enumerate(self.art_reference):
 
-            # Check for fullart test image
-            if cfg.test_mode and self.is_fullart:
-                self.layout.filename = [osp.join(con.path_img, "test-fa.png")] * 2
-
-            # Paste the file into the art
+            # Import the file into the art layer
             self.active_layer = self.art_layer[i]
             if self.art_action:
                 psd.paste_file(self.art_layer[i], self.layout.filename[i], self.art_action, self.art_action_args)
