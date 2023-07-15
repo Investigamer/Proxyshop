@@ -88,14 +88,6 @@
     "default": 0
   },
   {
-    "type": "bool",
-    "title": "[b]Targeted Text Replacement[/b]",
-    "desc": "Try disabling this if experiencing a crash during the collector info step. Only disable if necessary!\n[b](Default: True)[/b]",
-    "section": "APP.TEXT",
-    "key": "Targeted.Replace",
-    "default": 1
-  },
-  {
     "type": "title",
     "title": "Render Settings"
   },

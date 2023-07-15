@@ -11,7 +11,7 @@ from photoshop.api._artlayer import ArtLayer
 # Local Imports
 from src.constants import con
 from src.helpers import pixels_to_points, get_layer_dimensions
-from src.settings import cfg
+from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
 app = con.app
@@ -112,13 +112,14 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     apply_text_key(layer, text_key)
 
 
-def replace_text_robust(layer: ArtLayer, find: str, replace: str) -> None:
+def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_replace: bool = True) -> None:
     """
     Replace all instances of `replace_this` in the specified layer with `replace_with`, using Photoshop's
     built-in search and replace feature. Slower than `replace_text`, but can handle multi-style strings.
     @param layer: Layer object to search through.
     @param find: Text string to search for.
     @param replace: Text string to replace matches with.
+    @param targeted_replace: Disables layer targeting if False, if True may cause a crash on older PS versions.
     """
     # Set the active layer
     app.activeDocument.activeLayer = layer
@@ -134,14 +135,17 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str) -> None:
     desc32.putString(sID("replace"), f"""{replace}""")
     desc32.putBoolean(
         sID("checkAll"),  # Targeted replace doesn't work on old PS versions
-        False if cfg.targeted_replace and app.supports_target_text_replace() else True
+        False if targeted_replace and app.supports_target_text_replace() else True
     )
     desc32.putBoolean(sID("forward"), True)
     desc32.putBoolean(sID("caseSensitive"), True)
     desc32.putBoolean(sID("wholeWord"), False)
     desc32.putBoolean(sID("ignoreAccents"), True)
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
-    app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+    try:
+        app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+    except PS_EXCEPTIONS:
+        replace_text_robust(layer, find, replace, False)
 
 
 def remove_trailing_text(layer: ArtLayer, idx: int) -> None:

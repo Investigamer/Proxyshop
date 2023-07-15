@@ -43,7 +43,6 @@ class Config:
 		self.scry_unique = self.get_option('APP.DATA', 'Scryfall.Unique', ScryfallUnique, ScryfallUnique.Arts)
 
 		# APP - TEXT
-		self.targeted_replace = self.file.getboolean('APP.TEXT', 'Targeted.Replace')
 		self.force_english_formatting = self.file.getboolean('APP.TEXT', "Force.English.Formatting")
 
 		# APP - RENDER
