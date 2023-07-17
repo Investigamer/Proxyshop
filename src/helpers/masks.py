@@ -9,7 +9,6 @@ from photoshop.api import DialogModes, ActionDescriptor, ActionReference
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
-
 # Local Imports
 from src.constants import con
 
@@ -29,17 +28,17 @@ def copy_layer_mask(
     @param layer_from: Layer to copy from.
     @param layer_to: Layer to copy to.
     """
-    desc255 = ActionDescriptor()
+    desc1 = ActionDescriptor()
     ref17 = ActionReference()
     ref18 = ActionReference()
-    desc255.putClass(sID("new"), sID("channel"))
+    desc1.putClass(sID("new"), sID("channel"))
     ref17.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
     ref17.putIdentifier(sID("layer"), layer_to.id)
-    desc255.putReference(sID("at"), ref17)
+    desc1.putReference(sID("at"), ref17)
     ref18.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
     ref18.putIdentifier(sID("layer"), layer_from.id)
-    desc255.putReference(sID("using"), ref18)
-    app.ExecuteAction(sID("make"), desc255, DialogModes.DisplayNoDialogs)
+    desc1.putReference(sID("using"), ref18)
+    app.executeAction(sID("make"), desc1, NO_DIALOG)
 
 
 def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
@@ -57,7 +56,7 @@ def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
     desc = ActionDescriptor()
     desc.putReference(sID("target"), ref)
     desc.PutObject(sID("to"), sID("layer"), layer_fx)
-    app.Executeaction(sID("set"), desc,  NO_DIALOG)
+    app.executeAction(sID("set"), desc,  NO_DIALOG)
 
 
 def set_layer_mask(
@@ -95,6 +94,20 @@ def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     @param layer: ArtLayer object.
     """
     set_layer_mask(layer, False)
+
+
+def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """
+    Removes a given layer's mask.
+    @param layer: ArtLayer ore LayerSet object, use active layer if not provided.
+    """
+    if layer:
+        app.activeDocument.activeLayer = layer
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.PutEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
+    desc1.PutReference(sID("target"), ref1)
+    app.executeAction(sID("delete"), desc1, NO_DIALOG)
 
 
 def set_layer_vector_mask(

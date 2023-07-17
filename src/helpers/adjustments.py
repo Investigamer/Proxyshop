@@ -33,13 +33,13 @@ def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
 def create_color_layer(
     color: SolidColor,
     layer: Union[ArtLayer, LayerSet, None] = None,
-    mask: bool = True
+    clipped: bool = True,
 ) -> ArtLayer:
     """
     Create a solid color adjustment layer.
     @param color: Color to use for the layer.
     @param layer: Layer to make active before creation.
-    @param mask: Whether to apply as a clipping mask to the nearest layer.
+    @param clipped: Whether to apply as a clipping mask to the nearest layer.
     @return: The new solid color adjustment layer.
     """
     if layer:
@@ -50,12 +50,12 @@ def create_color_layer(
     desc3 = ActionDescriptor()
     ref1.putClass(sID("contentLayer"))
     desc1.putReference(sID("target"), ref1)
-    desc2.putBoolean(sID("group"), mask)
+    desc2.putBoolean(sID("group"), clipped)
     desc2.putEnumerated(sID("color"), sID("color"), sID("blue"))
     apply_color(desc3, color)
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
     desc1.putObject(sID("using"), sID("contentLayer"), desc2)
-    app.Executeaction(sID("make"), desc1, NO_DIALOG)
+    app.executeAction(sID("make"), desc1, NO_DIALOG)
     return app.activeDocument.activeLayer
 
 
@@ -113,5 +113,5 @@ def create_gradient_layer(
     desc3.putObject(sID("gradient"), sID("gradientClassEvent"),  desc4)
     desc2.putObject(sID("type"), sID("gradientLayer"),  desc3)
     desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
-    app.Executeaction(sID("make"), desc1,  NO_DIALOG)
+    app.executeAction(sID("make"), desc1,  NO_DIALOG)
     return app.activeDocument.activeLayer
