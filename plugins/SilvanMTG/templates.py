@@ -34,7 +34,8 @@ class SilvanExtendedTemplate (ExtendedTemplate):
 
         # Add background mask
         super().enable_crown()
-        psd.enable_mask(self.background_layer.parent)
+        if self.background_layer:
+            psd.enable_mask(self.background_layer.parent)
 
     def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
 
