@@ -750,6 +750,15 @@ class BaseTemplate:
         expansion = cfg.symbol_default if cfg.symbol_force_default else self.layout.set
         expansion = f"{expansion}F" if expansion.lower() == 'con' else expansion  # Conflux case
         svg_path = osp.join(con.path_img, f'symbols/{expansion}/{self.layout.rarity.upper()[0]}.svg')
+
+        # SVG file exists?
+        if not osp.isfile(svg_path):
+            # Check for a recognized alternate set code
+            sym = con.set_symbols.get(expansion)
+            if isinstance(sym, str) and len(sym) >= 2:
+                svg_path = osp.join(con.path_img, f'symbols/{sym}/{self.layout.rarity.upper()[0]}.svg')
+
+        # SVG file exists?
         if not osp.isfile(svg_path):
             self.create_expansion_symbol(group)
             return
@@ -1234,7 +1243,7 @@ class NormalEssentialsTemplate (NormalTemplate):
 
 
 class NormalVectorTemplate (NormalTemplate):
-    """Normal Template using vector shape layers and automatic multicolor generation."""
+    """Normal Template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
     DETAILS
@@ -1242,7 +1251,7 @@ class NormalVectorTemplate (NormalTemplate):
 
     @cached_property
     def color_limit(self) -> int:
-        """The maximum allowed colors that should be blended plus 1"""
+        """The maximum allowed colors that should be blended plus 1."""
         return 3
 
     @cached_property
@@ -1339,13 +1348,19 @@ class NormalVectorTemplate (NormalTemplate):
     def create_blended_layer(
         self,
         group: LayerSet,
-        colors: Union[None, str, list[str]] = None
+        colors: Union[None, str, list[str]] = None,
+        masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
     ):
         """
         Either enable a single frame layer or create a multicolor layer using a gradient mask.
         @param group: Group to look for the color layers within.
         @param colors: Color layers to look for.
+        @param masks: Masks to use for blending the layers.
         """
+        # Establish our masks
+        if not masks:
+            masks = self.mask_layers
+
         # Establish our colors
         colors = colors or self.identity or self.pinlines
         if isinstance(colors, str) and not contains_frame_colors(colors):
@@ -1362,9 +1377,9 @@ class NormalVectorTemplate (NormalTemplate):
             layer.visible = True
 
             # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(self.mask_layers) >= i:
+            if layers and len(masks) >= i:
                 layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(self.mask_layers[i - 1], layers[i - 1])
+                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
 
             # Add to the layer list
             layers.append(layer)
