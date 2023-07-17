@@ -24,7 +24,7 @@ from PIL import Image as PImage
 
 # Environment variables
 from src.env import ENV_VERSION, ENV_DEV_MODE
-environ["KIVY_NO_CONSOLELOG"] = "1"
+environ["KIVY_LOG_MODE"] = "PYTHON"
 
 # Kivy Imports
 from kivy.app import App
@@ -40,6 +40,10 @@ from kivy.uix.scrollview import ScrollView
 from kivy.resources import resource_add_path
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
+from kivy.logger import Logger, LOG_LEVELS
+
+# Kivy logging
+Logger.setLevel(LOG_LEVELS['error'])
 
 # Local Imports
 from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
