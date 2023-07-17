@@ -70,7 +70,6 @@ class LAYERS (StrEnum):
     TWINS = "Name & Title Boxes"
     LEGENDARY_CROWN = "Legendary Crown"
     PINLINES_TEXTBOX = "Pinlines & Textbox"
-    PINLINES_AND_SAGA_STRIPE = "Pinlines & Saga Stripe"
     PINLINES = "Pinlines"
     LAND_PINLINES_TEXTBOX = "Land Pinlines & Textbox"
     COMPANION = "Companion"
@@ -88,6 +87,7 @@ class LAYERS (StrEnum):
 
     # Borders
     BORDER = "Border"
+    OUTLINE = "Outline"
     NORMAL_BORDER = "Normal Border"
     LEGENDARY_BORDER = "Legendary Border"
 
@@ -171,6 +171,12 @@ class LAYERS (StrEnum):
     NAME_REFERENCE_LEGENDARY = "Name Reference Legendary"
     NAME_REFERENCE = "Name Reference"
     TYPE_LINE_REFERENCE = "Typeline Reference"
+
+    # Saga
+    SAGA = "Saga"
+    PINLINES_AND_SAGA_STRIPE = "Pinlines & Saga Stripe"
+    BANNER = "Banner"
+    STRIPE = "Stripe"
 
     # Planeswalker
     FIRST_ABILITY = "First Ability"
