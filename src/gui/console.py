@@ -4,6 +4,8 @@ CONSOLE MODULES
 # Standard Library Imports
 import os
 import time
+import logging
+import traceback
 from threading import Thread, Event, Lock
 from traceback import print_tb
 from typing import Optional
@@ -14,6 +16,7 @@ import asynckivy as ak
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.logger import Logger
 
 # Local Imports
 from src.constants import con
@@ -145,16 +148,14 @@ class Console(BoxLayout):
             return
 
         # Print the error for dev testing
-        print_tb(error.__traceback__)
-        print(f"  Reason: {str(error)}")
+        Logger.exception(error)
 
         # Add to log file
         with open(os.path.join(con.path_logs, log_file), "a", encoding="utf-8") as log:
             log.write("============================================================================\n")
             log.write(f"> {self.time}\n")
             log.write("============================================================================\n")
-            print_tb(error.__traceback__, file=log)
-            log.write(f"  Reason: {str(error)}\n")
+            traceback.print_exception(error, file=log)
 
     def clear(self) -> None:
         """
