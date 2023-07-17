@@ -457,7 +457,7 @@ class NormalLayout:
         for effect in self.frame_effects:
             if effect in TransformIcons:
                 return effect
-        return TransformIcons.UPSIDEDOWN if self.is_land else TransformIcons.SUNMOON
+        return TransformIcons.UPSIDEDOWN if self.is_land else TransformIcons.CONVERT
 
     @cached_property
     def other_face_power(self) -> Optional[str]:
