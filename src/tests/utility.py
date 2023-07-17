@@ -2,12 +2,9 @@
 TESTING UTILITY
 For contributors and plugin development.
 """
-import datetime
 # Standard Library Imports
 from time import perf_counter
 from typing import Optional, Union, Callable
-
-import requests
 from _ctypes import COMError
 from operator import itemgetter
 import json
