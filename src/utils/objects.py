@@ -3,12 +3,15 @@ OBJECT UTILITIES
 """
 # Standard Library
 from functools import cache
-from typing import Union
+from typing import Union, Any
 
 # Third Party
-from photoshop.api import Application, Units
+from photoshop.api import Application, Units, DialogModes, ActionDescriptor
 from photoshop.api._core import Photoshop
 from packaging.version import parse
+
+# Local Imports
+from src.env import development
 from src.utils.exceptions import PS_EXCEPTIONS
 
 
@@ -133,6 +136,36 @@ class PhotoshopHandler(Application):
     def t2s(self, index: int) -> str:
         """Shorthand for typeIDToStringID."""
         return self.typeIDToStringID(index)
+
+    """
+    EXECUTING ACTION DESCRIPTORS
+    """
+
+    def executeAction(
+            self,
+            event_id: int,
+            descriptor: ActionDescriptor,
+            dialogs: int = DialogModes.DisplayNoDialogs
+    ) -> Any:
+        """
+        Middleware to allow all dialogs when an error occurs upon calling executeAction in development mode.
+        @param event_id: Action descriptor event ID.
+        @param descriptor: Main action descriptor tree to execute.
+        @param dialogs: DialogMode which governs whether to display dialogs.
+        """
+        if not development:
+            return super().executeAction(event_id, descriptor, dialogs)
+        # Allow error dialogs within development environment
+        return super().executeAction(event_id, descriptor, DialogModes.DisplayErrorDialogs)
+
+    def ExecuteAction(
+            self,
+            event_id: int,
+            descriptor: ActionDescriptor,
+            dialogs: int = DialogModes.DisplayNoDialogs
+    ) -> Any:
+        """Utility definition rerouting to original executeAction function."""
+        self.executeAction(event_id, descriptor, dialogs)
 
     """
     VERSION CHECKS
