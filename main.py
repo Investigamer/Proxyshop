@@ -405,7 +405,10 @@ class ProxyshopApp(App):
             # The template we'll use for this type
             template = temps[card_type].copy()
             template['loaded_class'] = get_template_class(template)
-            for card in cards:
+            self._card_count = len(cards)
+            self._render_runtime = 0
+            for index, card in enumerate(cards, start=1):
+                self._card_index = index
                 # Start render thread
                 if not self.start_render(template, card):
                     return
@@ -445,6 +448,9 @@ class ProxyshopApp(App):
 
         # Start render
         console.update()
+        self._render_runtime = 0
+        self._card_index = 1
+        self._card_count = 1
         self.start_render(template, layout)
 
     @render_process_wrapper
@@ -567,7 +573,10 @@ class ProxyshopApp(App):
 
             # Report this results
             if result and not cfg.test_mode:
-                console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
+                time_completed = int(self.timer - start_time)
+                self._render_runtime += time_completed
+                estimated_remaining = int((self._render_runtime/self._card_index) * (self._card_count - self._card_index))
+                console.update(f"[i]Time completed: {time_completed} seconds | Estimated remaining: {estimated_remaining} seconds[/i]\n")
             return result
         except Exception as e:
             # General error outside Template render process
