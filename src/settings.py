@@ -47,6 +47,7 @@ class Config:
 
 		# APP - RENDER
 		self.skip_failed = self.file.getboolean('APP.RENDER', 'Skip.Failed')
+		self.render_estimations = self.file.getboolean('APP.RENDER', 'Render.Estimations')
 		self.render_snow = self.file.getboolean('APP.RENDER', 'Render.Snow')
 		self.render_miracle = self.file.getboolean('APP.RENDER', 'Render.Miracle')
 		self.render_basic = self.file.getboolean('APP.RENDER', 'Render.Basic')

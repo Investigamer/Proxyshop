@@ -5,7 +5,7 @@ PROXYSHOP GUI LAUNCHER
 import sys
 import json
 import datetime
-import os.path as osp
+from os import path as osp, linesep
 from io import BytesIO
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
@@ -405,10 +405,9 @@ class ProxyshopApp(App):
             # The template we'll use for this type
             template = temps[card_type].copy()
             template['loaded_class'] = get_template_class(template)
-            self._card_count = len(cards)
-            self._render_runtime = 0
+            self.reset_render(len(cards))
             for index, card in enumerate(cards, start=1):
-                self._card_index = index
+                self.card_index = index
                 # Start render thread
                 if not self.start_render(template, card):
                     return
@@ -448,9 +447,7 @@ class ProxyshopApp(App):
 
         # Start render
         console.update()
-        self._render_runtime = 0
-        self._card_index = 1
-        self._card_count = 1
+        self.reset_render(1)
         self.start_render(template, layout)
 
     @render_process_wrapper
@@ -574,9 +571,10 @@ class ProxyshopApp(App):
             # Report this results
             if result and not cfg.test_mode:
                 time_completed = int(self.timer - start_time)
-                self._render_runtime += time_completed
-                estimated_remaining = int((self._render_runtime/self._card_index) * (self._card_count - self._card_index))
-                console.update(f"[i]Time completed: {time_completed} seconds | Estimated remaining: {estimated_remaining} seconds[/i]\n")
+                self.render_runtime += time_completed
+                console.update(f"[i]Time completed: {time_completed} seconds | Cards Completed: {self.card_index}/{self.card_total}[/i]{ linesep if not cfg.render_estimations else '' }")
+                if cfg.render_estimations:
+                    console.update(f"[i]Estimated remaining: {self.calculate_estimations()}[/i]\n")
             return result
         except Exception as e:
             # General error outside Template render process
@@ -590,6 +588,30 @@ class ProxyshopApp(App):
                 ),
                 exception=e
             )
+
+    """
+    RENDER METHODS
+    """
+
+    def reset_render(self, card_total: int) -> None:
+        self.render_runtime = 0
+        self.card_index = 1
+        self.card_total = card_total
+    
+    def calculate_estimations(self) -> str:
+        seconds = int((self.render_runtime/self.card_index) * (self.card_total - self.card_index))
+        d = seconds // (3600 * 24)
+        h = seconds // 3600 % 24
+        m = seconds % 3600 // 60
+        s = seconds % 3600 % 60
+        if d > 0:
+            return '{:02d}d {:02d}h {:02d}m {:02d}s'.format(d, h, m, s)
+        elif h > 0:
+            return '{:02d}h {:02d}m {:02d}s'.format(h, m, s)
+        elif m > 0:
+            return '{:02d}m {:02d}s'.format(m, s)
+        elif s > 0:
+            return '{:02d}s'.format(s)
 
     """
     UI METHODS
