@@ -101,14 +101,6 @@
   },
   {
     "type": "bool",
-    "title": "[b]Display Render Estimations[/b]",
-    "desc": "Displays rendering estimations in seconds and DD:HH:MM formats.\n[b](Default: False)[/b]",
-    "section": "APP.RENDER",
-    "key": "Render.Estimations",
-    "default": 0
-  },
-  {
-    "type": "bool",
     "title": "[b]Render Snow Cards with Snow Template[/b]",
     "desc": "When enabled, snow cards will be rendered using Snow template type.\n[b](Default: False)[/b]",
     "section": "APP.RENDER",

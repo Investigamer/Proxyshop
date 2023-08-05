@@ -571,10 +571,8 @@ class ProxyshopApp(App):
             # Report this results
             if result and not cfg.test_mode:
                 time_completed = int(self.timer - start_time)
-                self.render_runtime += time_completed
-                console.update(f"[i]Time completed: {time_completed} seconds | Cards Completed: {self.card_index}/{self.card_total}[/i]{ linesep if not cfg.render_estimations else '' }")
-                if cfg.render_estimations:
-                    console.update(f"[i]Estimated remaining: {self.calculate_estimations()}[/i]\n")
+                cards_remaining = self.card_total - self.card_index
+                console.update(f"[i]Time completed: {time_completed} seconds | Cards Remaining: {cards_remaining}[/i]")
             return result
         except Exception as e:
             # General error outside Template render process
@@ -594,24 +592,8 @@ class ProxyshopApp(App):
     """
 
     def reset_render(self, card_total: int) -> None:
-        self.render_runtime = 0
         self.card_index = 1
         self.card_total = card_total
-    
-    def calculate_estimations(self) -> str:
-        seconds = int((self.render_runtime/self.card_index) * (self.card_total - self.card_index))
-        d = seconds // (3600 * 24)
-        h = seconds // 3600 % 24
-        m = seconds % 3600 // 60
-        s = seconds % 3600 % 60
-        if d > 0:
-            return '{:02d}d {:02d}h {:02d}m {:02d}s'.format(d, h, m, s)
-        elif h > 0:
-            return '{:02d}h {:02d}m {:02d}s'.format(h, m, s)
-        elif m > 0:
-            return '{:02d}m {:02d}s'.format(m, s)
-        elif s > 0:
-            return '{:02d}s'.format(s)
 
     """
     UI METHODS
