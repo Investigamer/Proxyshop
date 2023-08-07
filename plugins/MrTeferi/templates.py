@@ -9,10 +9,9 @@ from typing import Optional, Callable
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates import (
-    BasicLandTemplate,
-    NormalEssentialsTemplate
-)
+from src.templates._core import NormalEssentialsTemplate
+from src.templates._mods import TransformMod
+from src.templates.basic_land import BasicLandTemplate
 from actions import pencilsketch, sketch
 from src.enums.layers import LAYERS
 from src.settings import cfg
@@ -37,6 +36,9 @@ class SketchTemplate (NormalEssentialsTemplate):
 
     @property
     def art_action(self) -> Optional[Callable]:
+        # Skip action if in test mode
+        if cfg.test_mode:
+            return
         action = cfg.get_setting(
             section="ACTION",
             key="Sketch.Action",
@@ -51,7 +53,8 @@ class SketchTemplate (NormalEssentialsTemplate):
 
     @property
     def art_action_args(self) -> Optional[dict]:
-        if not self.art_action == pencilsketch.run:
+        # Skip if in test mode or using quick sketch
+        if cfg.test_mode or not self.art_action == pencilsketch.run:
             return
         return {
             'thr': self.event,
@@ -122,7 +125,7 @@ class KaldheimTemplate (NormalEssentialsTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
-class CrimsonFangTemplate (NormalEssentialsTemplate):
+class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
     """
     The crimson vow showcase template.
     Original template by michayggdrasil
@@ -132,12 +135,22 @@ class CrimsonFangTemplate (NormalEssentialsTemplate):
     template_suffix = "Fang"
 
     """
-    TOGGLE
+    DETAILS
     """
 
     @property
     def background(self):
+        # Use pinlines colors for background
         return self.pinlines
+
+    """
+    TOGGLE
+    """
+
+    @property
+    def is_flipside_creature(self) -> bool:
+        # No flipside PT support
+        return False
 
     """
     LAYERS
@@ -145,28 +158,21 @@ class CrimsonFangTemplate (NormalEssentialsTemplate):
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
-        # Pinlines
+        # Support backside colors
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
         if self.is_transform and not self.is_front:
             return psd.getLayer(self.pinlines, "MDFC " + LAYERS.PINLINES_TEXTBOX)
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
-    @cached_property
-    def transform_icon_layer(self) -> Optional[ArtLayer]:
-        if self.is_transform and self.is_front:
-            return psd.getLayer("tf-front", self.text_group)
-        elif self.is_transform:
-            return psd.getLayer("tf-back", self.text_group)
-        return
+    def enable_transform_layers(self):
+        # Enable circle backing
+        psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
+        super().enable_transform_layers()
 
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add transform if necessary
-        if self.transform_icon_layer:
-            psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
-            self.transform_icon_layer.visible = True
+    def text_layers_transform(self) -> None:
+        # No text layer changes
+        pass
 
 
 class PhyrexianTemplate (NormalEssentialsTemplate):
@@ -221,7 +227,7 @@ CLASSIC TEMPLATE VARIANTS
 class ColorshiftedTemplate (NormalEssentialsTemplate):
     """
     Planar Chaos era colorshifted template
-    Rendered from CC and MSE assets. Most titleboxes are built into pinlines.
+    Rendered from CC and MSE assets. Most title boxes are built into pinlines.
     Doesn't support special layers for nyx, companion, land, or colorless.
     """
     template_suffix = "Shifted"

@@ -14,7 +14,7 @@
     "desc": "Only works with advanced action, adds rough lines (and render time).\n[b](Default: False)[/b]",
     "section": "ACTION",
     "key": "Rough.Sketch.Lines",
-    "default": "0"
+    "default": 0
   },
   {
     "type": "bool",
@@ -22,7 +22,7 @@
     "desc": "Only works with advanced action, adds draft sketch lines (and render time).\n[b](Default: False)[/b]",
     "section": "ACTION",
     "key": "Draft.Sketch.Lines",
-    "default": "0"
+    "default": 0
   },
   {
     "type": "bool",
@@ -30,7 +30,7 @@
     "desc": "Only works with advanced action, renders sketch image without color.\n[b](Default: False)[/b]",
     "section": "ACTION",
     "key": "Black.And.White",
-    "default": "0"
+    "default": 0
   },
   {
     "type": "bool",
@@ -38,6 +38,6 @@
     "desc": "Pause rendering at the end of the sketch effect for manual intervention.\n[b](Default: False)[/b]",
     "section": "ACTION",
     "key": "Sketch.Manual.Editing",
-    "default": "0"
+    "default": 0
   }
 ]
