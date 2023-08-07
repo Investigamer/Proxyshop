@@ -60,7 +60,7 @@ class SplitTemplate (BaseTemplate):
 
     @cached_property
     def fuse_pinlines(self) -> str:
-        return self.layout.pinlines[0] + self.layout.pinlines[1]
+        return self.pinlines[0] + self.pinlines[1]
 
     @cached_property
     def fuse_textbox_colors(self) -> str:
@@ -90,7 +90,7 @@ class SplitTemplate (BaseTemplate):
             {**con.gradient_locations.copy(), 2: [.28, .33]},
             {**con.gradient_locations.copy(), 2: [.71, .76]}
         ]
-        return [psd.get_pinline_gradient(p, location_map=locations[i]) for i, p in enumerate(self.layout.pinlines)]
+        return [psd.get_pinline_gradient(p, location_map=locations[i]) for i, p in enumerate(self.pinlines)]
 
     @cached_property
     def pinlines_action(self) -> list[Union[psd.create_color_layer, psd.create_gradient_layer]]:
@@ -187,13 +187,13 @@ class SplitTemplate (BaseTemplate):
         return [psd.getLayer(LAYERS.MANA_COST, [self.card_groups[i], LAYERS.TEXT_AND_ICONS]) for i in range(2)]
 
     @cached_property
-    def expansion_reference_layer_right(self) -> None:
+    def expansion_reference_right(self) -> None:
         return psd.getLayer(LAYERS.EXPANSION_REFERENCE, [LAYERS.RIGHT, LAYERS.TEXT_AND_ICONS])
 
     @cached_property
     def expansion_symbols(self) -> list[ArtLayer]:
-        layer = self.expansion_symbol_layer.duplicate(self.expansion_reference_layer_right, ElementPlacement.PlaceAfter)
-        psd.align_right(layer, self.expansion_reference_layer_right)
+        layer = self.expansion_symbol_layer.duplicate(self.expansion_reference_right, ElementPlacement.PlaceAfter)
+        psd.align_right(layer, self.expansion_reference_right)
         return [self.expansion_symbol_layer, layer]
 
     @cached_property
@@ -210,15 +210,15 @@ class SplitTemplate (BaseTemplate):
 
     @cached_property
     def background_layer(self) -> list[ArtLayer]:
-        return [psd.getLayer(b, LAYERS.BACKGROUND) for b in self.layout.background]
+        return [psd.getLayer(b, LAYERS.BACKGROUND) for b in self.background]
 
     @cached_property
     def twins_layer(self) -> list[ArtLayer]:
-        return [psd.getLayer(t, LAYERS.TWINS) for t in self.layout.twins]
+        return [psd.getLayer(t, LAYERS.TWINS) for t in self.twins]
 
     @cached_property
     def textbox_layer(self) -> list[ArtLayer]:
-        return [psd.getLayer(t, LAYERS.TEXTBOX) for t in self.layout.pinlines]
+        return [psd.getLayer(t, LAYERS.TEXTBOX) for t in self.pinlines]
 
     @cached_property
     def mask_layers(self) -> list[ArtLayer]:
@@ -231,15 +231,14 @@ class SplitTemplate (BaseTemplate):
     def create_blended_layer(
         self,
         group: LayerSet,
-        colors: Union[None, str, list[str]] = None
-    ):
+        colors: Union[str, list[str]]
+    ) -> None:
         """
         Either enable a single frame layer or create a multicolor layer using a gradient mask.
         @param group: Group to look for the color layers within.
         @param colors: Color layers to look for.
         """
         # Establish our colors
-        colors = colors or self.identity or self.pinlines
         if isinstance(colors, str) and not contains_frame_colors(colors):
             # Received a color string that isn't a frame color combination
             colors = [colors]
@@ -314,10 +313,10 @@ class SplitTemplate (BaseTemplate):
 
             # Decide what colors to use
             colors = []
-            if len(self.layout.pinlines[i]) == 2:
-                colors.extend([con.watermark_colors[c] for c in self.layout.pinlines[i] if c in con.watermark_colors])
-            elif self.layout.pinlines[i] in con.watermark_colors:
-                colors.append(con.watermark_colors[self.layout.pinlines[i]])
+            if len(self.pinlines[i]) == 2:
+                colors.extend([self.watermark_color_map[c] for c in self.pinlines[i] if c in self.watermark_color_map])
+            elif self.pinlines[i] in self.watermark_color_map:
+                colors.append(self.watermark_color_map[self.pinlines[i]])
 
             # Check for valid reference, valid colors, valid text layers group for placement
             if not self.textbox_reference or not colors:
@@ -420,14 +419,18 @@ class SplitTemplate (BaseTemplate):
             self.docref.selection.deselect()
 
             # Apply pinlines
-            self.pinlines_action[i](self.pinlines_colors[i], self.pinlines_groups[i])
+            self.pinlines_action[i](self.pinlines_colors[i], layer=self.pinlines_groups[i])
 
         # Fuse addone
         if self.is_fuse:
             psd.getLayer(LAYERS.BORDER + ' Fuse').visible = True
             self.fuse_group.visible = True
-            self.fuse_pinlines_action(self.fuse_pinline_colors, self.fuse_pinlines_group)
-            self.create_blended_layer(self.fuse_textbox_group, self.fuse_textbox_colors)
+            self.fuse_pinlines_action(
+                self.fuse_pinline_colors,
+                layer=self.fuse_pinlines_group)
+            self.create_blended_layer(
+                group=self.fuse_textbox_group,
+                colors=self.fuse_textbox_colors)
 
     def post_text_layers(self) -> None:
         psd.rotate_counter_clockwise()
