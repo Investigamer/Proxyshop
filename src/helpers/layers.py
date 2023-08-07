@@ -5,7 +5,7 @@ PHOTOSHOP HELPER FUNCTIONS
 from typing import Optional, Union
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, BlendMode
+from photoshop.api import DialogModes, ActionDescriptor, ActionReference, BlendMode, LayerKind
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -202,6 +202,16 @@ def duplicate_group(name: str):
     return app.activeDocument.activeLayer
 
 
+def merge_group(group: Optional[LayerSet] = None):
+    """
+    Merges a layer set into a single layer.
+    @param group: Layer set to merge. Merges active if not provided.
+    """
+    if group:
+        app.activeDocument.activeLayer = group
+    app.executeaction(sID("mergeLayersNew"), None, NO_DIALOG)
+
+
 """
 SMART LAYERS
 """
@@ -347,6 +357,8 @@ def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
     Select pixels of the active layer, or a target layer.
     @param layer: Layer to select. Uses active layer if not provided.
     """
+    if layer and layer.kind == LayerKind.SolidFillLayer:
+        return select_vector_layer_pixels(layer)
     des1 = ActionDescriptor()
     ref1 = ActionReference()
     ref2 = ActionReference()
