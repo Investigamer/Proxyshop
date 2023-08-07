@@ -42,10 +42,9 @@ def align(
     axis = axis or [Dimensions.CenterX, Dimensions.CenterY]
 
     # Get the dimensions of the reference and layer if not provided
-    if not reference:
-        area = reference or get_dimensions_from_bounds(app.activeDocument.selection.bounds)
-    else:
-        area = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    area = get_dimensions_from_bounds(app.activeDocument.selection.bounds) if not reference else (
+        reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    )
     layer = layer or app.activeDocument.activeLayer
     item = get_layer_dimensions(layer)
 
@@ -141,6 +140,19 @@ def position_between_layers(
         [0, bottom_layer.bounds[1]]
     ])
     align_vertical(layer, reference=get_dimensions_from_bounds(docref.selection.bounds))
+
+
+def position_dividers(
+    dividers: list[Union[ArtLayer, LayerSet]],
+    layers: list[Union[ArtLayer, LayerSet]]
+) -> None:
+    """
+    Positions a list of dividers between a list of layers.
+    @param dividers: Divider layers to position, should contain 1 fewer objects than layers param.
+    @param layers: Layers to position the dividers between.
+    """
+    for i in range(len(layers) - 1):
+        position_between_layers(dividers[i], layers[i], layers[i + 1])
 
 
 def spread_layers_over_reference(
