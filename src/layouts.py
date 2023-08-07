@@ -623,22 +623,24 @@ class PlaneswalkerLayout(NormalLayout):
     def pw_abilities(self) -> list[dict]:
         """Processes Planeswalker text into usable ability data."""
         lines = Reg.PLANESWALKER.findall(self.oracle_text_raw)
+        en_lines = lines.copy()
 
         # Process alternate language lines if needed
         if self.lang != 'EN' and 'printed_text' in self.card:
+
+            # Separate alternate language lines
             alt_lines = self.oracle_text.split('\n')
             new_lines: list[str] = []
             for line in lines:
-                # Alternate language list empty?
-                if not alt_lines:
+
+                # Ensure number of breaks matches alternate text
+                breaks = line.count('\n') + 1
+                if not alt_lines or not (len(alt_lines) >= breaks):
+                    new_lines = lines
                     break
 
-                # Count number of separate lines and validate length
-                breaks = line.count('\n')
-                breaks = breaks if (len(alt_lines) >= breaks + 1) else 0
-
                 # Slice and add lines
-                new_lines.extend(alt_lines[:breaks])
+                new_lines.append('\n'.join(alt_lines[:breaks]))
                 alt_lines = alt_lines[breaks:]
 
             # Replace with alternate language lines
@@ -646,13 +648,13 @@ class PlaneswalkerLayout(NormalLayout):
 
         # Create list of ability dictionaries
         abilities: list[dict] = []
-        for line in lines:
-            index = line.find(": ")
+        for i, line in enumerate(lines):
+            index = en_lines[i].find(": ")
             abilities.append({
                 # Activated ability
                 'text': line[index + 2:],
-                'icon': line[0],
-                'cost': line[0:index]
+                'icon': en_lines[i][0],
+                'cost': en_lines[i][0:index]
             } if 5 > index > 0 else {
                 # Static ability
                 'text': line,
