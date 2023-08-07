@@ -2,6 +2,8 @@
 TEMPLATES MODULE
 """
 from src.templates._core import *
+from src.templates._mods import *
+from src.templates._vector import *
 from src.templates.normal import *
 from src.templates.planeswalker import *
 from src.templates.basic_land import *
