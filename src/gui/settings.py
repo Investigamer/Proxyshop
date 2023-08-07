@@ -7,6 +7,8 @@ from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
+import kivy.utils as utils
+from kivy.uix.colorpicker import ColorPicker
 from kivy.config import ConfigParser
 from kivy.core.window import Window
 from kivy.metrics import dp
@@ -19,7 +21,8 @@ from kivy.uix.settings import (
     SettingOptions,
     SettingSpacer,
     SettingNumeric,
-    SettingString
+    SettingString,
+    SettingColor
 )
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
@@ -38,6 +41,38 @@ from src.utils.files import (
 """
 AESTHETIC CLASSES
 """
+
+
+class FormattedSettingColor(SettingColor):
+    """Create custom SettingColor class to allow Markup in title."""
+    def _create_popup(self, instance):
+        # create popup layout
+        content = BoxLayout(orientation='vertical', spacing='5dp')
+        popup_width = min(0.95 * Window.width, dp(500))
+        self.popup = popup = Popup(
+            title=self.title, content=content, size_hint=(None, 0.9),
+            width=popup_width)
+        popup.children[0].children[-1].markup = True
+
+        self.colorpicker = colorpicker = ColorPicker(color=utils.get_color_from_hex(self.value))
+        colorpicker.bind(on_color=self._validate)
+
+        self.colorpicker = colorpicker
+        content.add_widget(colorpicker)
+        content.add_widget(SettingSpacer())
+
+        # 2 buttons are created for accept or cancel the current value
+        btnlayout = BoxLayout(size_hint_y=None, height='50dp', spacing='5dp')
+        btn = Button(text='Ok')
+        btn.bind(on_release=self._validate)
+        btnlayout.add_widget(btn)
+        btn = Button(text='Cancel')
+        btn.bind(on_release=self._dismiss)
+        btnlayout.add_widget(btn)
+        content.add_widget(btnlayout)
+
+        # all done, open the popup !
+        popup.open()
 
 
 class FormattedSettingString(SettingString):
@@ -322,4 +357,5 @@ class SettingsPopup(ModalView):
         s.register_type('options', FormattedSettingOptions)
         s.register_type('string', FormattedSettingString)
         s.register_type('numeric', FormattedSettingNumeric)
+        s.register_type('color', FormattedSettingColor)
         return s
