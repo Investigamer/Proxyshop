@@ -29,7 +29,7 @@ from src.helpers.layers import select_layer_bounds
 from src.helpers.position import position_between_layers, align_horizontal
 from src.helpers.text import (
     get_text_scale_factor,
-    remove_trailing_text
+    remove_trailing_text, set_composer_single_line
 )
 from src.settings import cfg
 from src import format_text as ft
@@ -58,6 +58,7 @@ class TextField:
         # Mandatory attributes
         self.kwargs = kwargs
         self.layer = layer
+        self.layer.visible = True
         self.contents = contents.replace("\n", "\r")
 
         # Change to English formatting if needed
@@ -92,7 +93,6 @@ class TextField:
         """
         Executes all text actions.
         """
-        self.layer.visible = True
         self.layer.textItem.contents = self.input
         self.layer.textItem.color = self.color
 
@@ -437,7 +437,10 @@ class FormattedTextField (TextField):
         desc119.putReference(sID("target"), ref101)
         desc119.putObject(idTo, textLayer, main_descriptor)
         app.executeAction(sID("set"), desc119, NO_DIALOG)
+
+        # Disable hyphenation and set text composer
         self.docref.activeLayer.textItem.hyphenation = False
+        set_composer_single_line(self.layer)
 
     def execute(self):
         super().execute()
@@ -511,8 +514,10 @@ class FormattedTextArea (FormattedTextField):
         rules = flavor.duplicate()
         flavor.rasterize(RasterizeType.EntireLayer)
         remove_trailing_text(rules, len(self.rules_text_updated) + 1)
+        rules.rasterize(RasterizeType.EntireLayer)
         select_layer_bounds(rules)
         self.docref.activeLayer = flavor
+        self.docref.selection.expand(2)
         self.docref.selection.clear()
 
         # Move flavor text to bottom, then position divider
@@ -526,11 +531,13 @@ class FormattedTextArea (FormattedTextField):
 
         # Skip if both are empty
         if not self.contents and not self.flavor_text:
+            self.layer.visible = False
             return
 
         # Fix height overflow before formatting text
         if self.fix_overflow_height and self.reference:
-            self.layer.textItem.contents = self.contents + "\r" + self.flavor_text
+            contents = self.contents if not self.flavor_text else str(self.contents + "\r" + self.flavor_text)
+            self.layer.textItem.contents = contents
             ft.scale_text_to_fit_reference(
                 self.layer, int(get_layer_dimensions(self.reference)['height']*1.01)
             )
@@ -593,6 +600,5 @@ class CreatureFormattedTextArea (FormattedTextArea):
         if self.pt_reference and self.pt_top_reference:
             delta = ft.vertically_nudge_creature_text(self.layer, self.pt_reference, self.pt_top_reference)
             # Shift the divider as well
-            if delta and self.divider:
-                if delta < 0:
-                    self.divider.translate(0, delta)
+            if delta < 0 and self.divider:
+                self.divider.translate(0, delta)
