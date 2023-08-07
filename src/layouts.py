@@ -8,7 +8,7 @@ from os import path as osp
 from pathlib import Path
 
 # Local Imports
-from src.env.__console__ import console
+from src.console import console
 from src.core import retrieve_card_info
 from src.constants import con
 from src.settings import cfg
@@ -107,7 +107,7 @@ class NormalLayout:
         self._template_file = ''
 
         # Cache set data, only make data request if not doing minimal collector info
-        self.set_data = get_set_data(scryfall.get('set')) or {}
+        self.set_data = {} if scryfall.get('set') == 'MTG' else get_set_data(scryfall.get('set')) or {}
 
         # Cache frame data
         _ = self.frame
@@ -208,16 +208,20 @@ class NormalLayout:
     def oracle_text(self) -> str:
         # Alt lang?
         if self.lang != 'EN' and 'printed_text' in self.card:
-            return self.card['printed_text']
-        return self.card['oracle_text']
+            return self.card.get('printed_text', '')
+        return self.oracle_text_raw
 
     @cached_property
     def oracle_text_raw(self) -> str:
-        return self.card['oracle_text']
+        return self.card.get('oracle_text', '')
 
     @cached_property
     def flavor_text(self) -> str:
         return self.card.get('flavor_text', '')
+
+    @cached_property
+    def rules_text(self) -> str:
+        return (self.oracle_text or '') + (self.flavor_text or '')
 
     @cached_property
     def type_line(self) -> str:
@@ -402,6 +406,10 @@ class NormalLayout:
         return 'Artifact' in self.type_line_raw
 
     @cached_property
+    def is_vehicle(self) -> bool:
+        return 'Vehicle' in self.type_line_raw
+
+    @cached_property
     def is_transform(self) -> bool:
         return False
 
@@ -581,9 +589,73 @@ class PlaneswalkerLayout(NormalLayout):
 
     @cached_property
     def oracle_text(self) -> str:
+        """Fix Scryfall's minus character."""
         if self.lang != 'EN' and 'printed_text' in self.card:
-            return self.card['printed_text'].replace("\u2212", "-")
-        return self.card['oracle_text'].replace("\u2212", "-")
+            return self.card.get('printed_text', '').replace("\u2212", "-")
+        return self.oracle_text_raw
+
+    @cached_property
+    def oracle_text_raw(self) -> str:
+        """Fix Scryfall's minus character."""
+        return self.card.get('oracle_text', '').replace("\u2212", "-")
+
+    """
+    PLANESWALKER PROPERTIES
+    """
+
+    @cached_property
+    def pw_size(self) -> int:
+        """Returns the size of this Planeswalker layout, usually based on number of abilities."""
+        if self.name in ("Gideon Blackblade", "Comet, Stellar Pup"):
+            # Special cases, long ability box
+            return 4
+        if len(self.pw_abilities) <= 3:
+            # Shorter ability box
+            return 3
+        # Default to long ability box
+        return 4
+
+    @cached_property
+    def pw_abilities(self) -> list[dict]:
+        """Processes Planeswalker text into usable ability data."""
+        lines = Reg.PLANESWALKER.findall(self.oracle_text_raw)
+
+        # Process alternate language lines if needed
+        if self.lang != 'EN' and 'printed_text' in self.card:
+            alt_lines = self.oracle_text.split('\n')
+            new_lines: list[str] = []
+            for line in lines:
+                # Alternate language list empty?
+                if not alt_lines:
+                    break
+
+                # Count number of separate lines and validate length
+                breaks = line.count('\n')
+                breaks = breaks if (len(alt_lines) >= breaks + 1) else 0
+
+                # Slice and add lines
+                new_lines.extend(alt_lines[:breaks])
+                alt_lines = alt_lines[breaks:]
+
+            # Replace with alternate language lines
+            lines = new_lines
+
+        # Create list of ability dictionaries
+        abilities: list[dict] = []
+        for line in lines:
+            index = line.find(": ")
+            abilities.append({
+                # Activated ability
+                'text': line[index + 2:],
+                'icon': line[0],
+                'cost': line[0:index]
+            } if 5 > index > 0 else {
+                # Static ability
+                'text': line,
+                'icon': None,
+                'cost': None
+            })
+        return abilities
 
 
 class PlaneswalkerTransformLayout(PlaneswalkerLayout):
@@ -672,13 +744,13 @@ class ModalDoubleFacedLayout (NormalLayout):
 
         # In alt lang text of both sides is combined, we must separate
         if self.lang != "EN" and 'printed_text' in self.card:
-            text = self.card['printed_text']
-            num_breaks = self.card['oracle_text'].count('\n')
+            text = self.card.get('printed_text', '')
+            num_breaks = self.card.get('oracle_text', '').count('\n')
             if text.count('\n') > num_breaks:
                 text = text.split('\n', num_breaks + 1)
                 text.pop()
                 return '\n'.join(text)
-        return self.card['oracle_text']
+        return self.card.get('oracle_text', '')
 
 
 class AdventureLayout (NormalLayout):
@@ -756,6 +828,14 @@ class SagaLayout (NormalLayout):
         return con.saga_class
 
     """
+    TEXT PROPERTIES
+    """
+
+    @cached_property
+    def oracle_text(self) -> str:
+        return self.saga_text[1]
+
+    """
     BOOL PROPERTIES
     """
 
@@ -768,13 +848,22 @@ class SagaLayout (NormalLayout):
     """
 
     @cached_property
+    def saga_text(self) -> list[str, str]:
+
+        # Process text separately to avoid description text removal
+        text = self.card['printed_text'] if (
+            self.lang != 'EN' and 'printed_text' in self.card
+        ) else self.card['oracle_text']
+        return text.split('\n', 1)
+
+    @cached_property
     def saga_lines(self) -> list[dict]:
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
-        for i, line in enumerate(self.oracle_text.split("\n")[1:]):
+        for i, line in enumerate(self.oracle_text.split("\n")):
             # Check if this is a full ability line
-            if "\u2014" in line:
-                icons, text = line.split("\u2014", 1)
+            if "—" in line:
+                icons, text = line.split("—", 1)
                 abilities.append({
                     "text": text.strip(),
                     "icons": icons.strip().split(", ")
@@ -786,8 +875,8 @@ class SagaLayout (NormalLayout):
 
     @cached_property
     def saga_description(self) -> str:
-        # Not a saga?
-        return self.oracle_text.split("\n")[0]
+        # Description at the top of the Saga card
+        return self.saga_text[0]
 
 
 class ClassLayout (NormalLayout):
@@ -798,17 +887,34 @@ class ClassLayout (NormalLayout):
         return con.class_class
 
     """
+    TEXT PROPERTIES
+    """
+
+    @cached_property
+    def oracle_text(self) -> str:
+        return self.class_text[1]
+
+    """
     CLASS PROPERTIES
     """
+
+    @cached_property
+    def class_text(self) -> list[str, str]:
+
+        # Process text separately to avoid description text removal
+        text = self.card.get('printed_text', '') if (
+            self.lang != 'EN' and 'printed_text' in self.card
+        ) else self.card.get('oracle_text', '')
+        return text.split('\n', 1)
 
     @cached_property
     def class_lines(self) -> list[dict]:
         # Split the lines, add first static line
         lines = self.oracle_text.split("\n")
-        abilities: list[dict] = [{'text': lines[1], "cost": None, "level": 1}]
+        abilities: list[dict] = [{'text': lines.pop(0), "cost": None, "level": 1}]
 
         # Set up the dynamic lines
-        for line in ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)][1:]:
+        for line in ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)]:
             # Try to match this line to a class ability
             details = Reg.CLASS.match(line)
             if details and len(details.groups()) >= 3:
@@ -821,6 +927,11 @@ class ClassLayout (NormalLayout):
             # Otherwise add line to the previous ability
             abilities[-1]['text'] += f"\n{line}"
         return abilities
+
+    @cached_property
+    def class_description(self) -> str:
+        # Description at the top of the Class card
+        return self.class_text[0]
 
 
 class PlanarLayout (NormalLayout):
@@ -1063,7 +1174,7 @@ class BasicLandLayout (NormalLayout):
         return con.basic_class
 
 
-# Types
+# Any Card Layout Type
 CardLayout = Union[
     NormalLayout,
     TransformLayout,
@@ -1079,6 +1190,15 @@ CardLayout = Union[
     TokenLayout,
     BasicLandLayout
 ]
+
+
+# Planeswalker Card Layouts
+PlaneswalkerLayouts = Union[
+    PlaneswalkerLayout,
+    PlaneswalkerTransformLayout,
+    PlaneswalkerMDFCLayout
+]
+
 
 # LAYOUT MAP
 layout_map: dict[str, Type[CardLayout]] = {
