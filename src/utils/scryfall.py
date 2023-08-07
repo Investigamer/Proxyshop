@@ -112,8 +112,11 @@ def get_card_data(
             # Language couldn't be found
             console.update(msg_warn(f"Reverting to English: [b]{card_name}[/b]"))
 
-    # Query the card in English
+    # Query the card in English, retry with extras if failed
     card = action(*params)
+    if not isinstance(card, dict) and cfg.scry_extras:
+        card = action(*params, extras=True)
+    # Return valid card or return Exception
     if isinstance(card, dict):
         card['name_normalized'] = name_normalized
         return process_scryfall_data(card)
@@ -234,10 +237,6 @@ def get_card_search(
     for c in card.get('data', []):
         if check_playable_card(c):
             return c
-
-    # Retry with extras enabled if missing
-    if not cfg.scry_extras and card.get('status') == 404:
-        return get_card_search(card_name, card_set, lang, extras=True)
 
     # No playable results
     return ScryfallError(url, name=card_name, code=card_set, lang=lang)
