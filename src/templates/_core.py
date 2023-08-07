@@ -184,8 +184,7 @@ class BaseTemplate:
         if not cfg.overwrite_duplicate:
             # Generate a name that doesn't exist yet
             return sanitize_filename(
-                get_unique_filename(osp.join(con.cwd, "out"), self.layout.name_raw, f'.{cfg.output_filetype}', suffix)
-            )
+                get_unique_filename(osp.join(con.cwd, "out"), self.layout.name_raw, f'.{cfg.output_filetype}', suffix))
         return sanitize_filename(f"{self.layout.name_raw}{f' ({suffix})' if suffix else ''}")
 
     """

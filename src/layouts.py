@@ -115,9 +115,13 @@ class NormalLayout:
     def __str__(self):
         return f"{self.name} [{self.set}] {{{self.collector_number}}}"
 
-    @property
-    def display_name(self):
+    @cached_property
+    def display_name(self) -> str:
         return self.name
+
+    @cached_property
+    def input_name(self) -> str:
+        return self.file['name']
 
     """
     SETTABLE
@@ -172,7 +176,7 @@ class NormalLayout:
         # Double faced card?
         if 'card_faces' in self.scryfall:
             # First card face is the front side
-            if normalize_str(self.scryfall['card_faces'][0]['name']) == normalize_str(self.name_raw):
+            if normalize_str(self.scryfall['card_faces'][0]['name']) == normalize_str(self.input_name):
                 self.scryfall['card_faces'][0]['front'] = True
                 return self.scryfall['card_faces'][0]
             # Second card face is the back side
@@ -193,12 +197,12 @@ class NormalLayout:
     @cached_property
     def name(self) -> str:
         if self.lang != 'EN' and 'printed_name' in self.card:
-            return self.card['printed_name']
-        return self.card['name']
+            return self.card.get('printed_name', '')
+        return self.name_raw
 
     @cached_property
     def name_raw(self) -> str:
-        return self.file['name']
+        return self.card.get('name', '')
 
     @cached_property
     def mana_cost(self) -> Optional[str]:
@@ -226,23 +230,23 @@ class NormalLayout:
     @cached_property
     def type_line(self) -> str:
         if self.lang != 'EN' and 'printed_type_line' in self.card:
-            return self.card['printed_type_line']
-        return self.card['type_line']
+            return self.card.get('printed_type_line', '')
+        return self.type_line_raw
 
     @cached_property
     def type_line_raw(self) -> str:
-        return self.card['type_line']
+        return self.card.get('type_line', '')
 
     @cached_property
     def power(self) -> str:
-        return self.card.get('power')
+        return self.card.get('power', '')
 
     @cached_property
     def toughness(self) -> str:
-        return self.card.get('toughness')
+        return self.card.get('toughness', '')
 
     @cached_property
-    def color_identity(self) -> list:
+    def color_identity(self) -> list[str]:
         return self.card.get('color_identity', [])
 
     @cached_property
@@ -251,7 +255,7 @@ class NormalLayout:
 
     @cached_property
     def loyalty(self) -> str:
-        return self.card.get('loyalty')
+        return self.card.get('loyalty', '')
 
     @cached_property
     def scryfall_scan(self) -> Optional[str]:
@@ -953,16 +957,16 @@ class SplitLayout (NormalLayout):
         return f"{self.scryfall.get('name', '')} [{self.set}] {{{self.collector_number}}}"
 
     @property
-    def display_name(self):
-        return f"{self.name[0]} // {self.name[1]}"
-
-    @property
     def filename(self) -> list[str]:
         return self._filename
 
     @filename.setter
     def filename(self, value):
         self._filename = value
+
+    @cached_property
+    def display_name(self) -> str:
+        return f"{self.name[0]} // {self.name[1]}"
 
     @property
     def card_class(self) -> str:

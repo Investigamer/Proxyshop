@@ -652,8 +652,12 @@ class ProxyshopApp(App):
         layout.add_widget(console)
         return layout
 
-    def on_start(self):
+    def on_start(self) -> None:
         """Fired after build is fired. Run a diagnostic check to see what works."""
+
+        # Skip this step if building to executable
+        if hasattr(sys, '_MEIPASS'):
+            return
         console.update(msg_success("--- STATUS ---"))
 
         # Check if using latest version
