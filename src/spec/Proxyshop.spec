@@ -3,8 +3,7 @@ from kivy_deps import sdl2, glew
 block_cipher = None
 
 
-a = Analysis(['..\\Proxyshop\main.py'],
-             pathex=[],
+a = Analysis(['../../main.py'],
              binaries=[],
              datas=[],
              hiddenimports=[
@@ -23,13 +22,9 @@ a = Analysis(['..\\Proxyshop\main.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
-
-a.datas += [
-    ('fonts/Beleren Small Caps.ttf', 'fonts/Beleren Small Caps.ttf', 'DATA'),
-    ('src/img/proxyshop.png', 'src/img/proxyshop.png', 'DATA')
-]
 
 exe = EXE(pyz,
           a.scripts,
@@ -47,4 +42,4 @@ exe = EXE(pyz,
           disable_windowed_traceback=False,
           target_arch=None,
           codesign_identity=None,
-          icon='src/img/favicon.ico')
+          icon='../img/favicon.ico')
