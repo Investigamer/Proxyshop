@@ -5,45 +5,41 @@ PROXYSHOP GUI LAUNCHER
 import sys
 import json
 import datetime
+import win32clipboard
 import os.path as osp
 from io import BytesIO
-from os import environ
-from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import cpu_count
-import win32clipboard
-from os import listdir
 from pathlib import Path
 from threading import Event
 from time import perf_counter
+from os import environ, listdir
 from typing import Union, Optional, Callable
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 
 # Third-party Imports
+from PIL import Image as PImage
 from photoshop import api as ps
 from photoshop.api._document import Document
-from PIL import Image as PImage
 
 # Environment variables
-from src.env import ENV_VERSION, ENV_DEV_MODE
 environ["KIVY_LOG_MODE"] = "PYTHON"
+environ["HEADLESS"] = "False"
+from src.utils.env import ENV_VERSION, ENV_DEV_MODE
 
 # Kivy Imports
 from kivy.app import App
 from kivy.metrics import dp
-from kivy.config import Config
-from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.config import Config
 from kivy.factory import Factory
 from kivy.uix.image import Image
+from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.resources import resource_add_path
-from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
-from kivy.logger import Logger, LOG_LEVELS
-
-# Kivy logging
-Logger.setLevel(LOG_LEVELS['error'])
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 # Local Imports
 from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
@@ -59,9 +55,11 @@ from src.core import (
     get_templates,
     TemplateDetails,
     get_my_templates,
-    get_template_class
+    get_template_class,
+    check_app_version
 )
 from src.settings import cfg
+from src.console import console
 from src.utils.download import download_s3
 from src.utils.fonts import get_missing_fonts
 from src.layouts import CardLayout, layout_map, assign_layout, join_dual_card_layouts
@@ -69,13 +67,14 @@ from src.utils.strings import (
     get_bullet_points,
     msg_success,
     msg_error,
-    msg_warn
+    msg_warn,
+    msg_info
 )
 
 # App configuration
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
-Config.remove_option('input', 'wm_pen')
 Config.remove_option('input', 'wm_touch')
+Config.remove_option('input', 'wm_pen')
 Config.set('kivy', 'log_level', 'error')
 Config.write()
 
@@ -617,7 +616,6 @@ class ProxyshopApp(App):
     def toggle_window_locked(self):
         """Toggle whether to pin the window above all other windows."""
         window: Window = self.root_window
-        window.screenshot(name='screenshot.jpg')
         window.always_on_top = not window.always_on_top
 
     def screenshot_window(self):
@@ -657,6 +655,13 @@ class ProxyshopApp(App):
     def on_start(self):
         """Fired after build is fired. Run a diagnostic check to see what works."""
         console.update(msg_success("--- STATUS ---"))
+
+        # Check if using latest version
+        console.update(
+            f"Proxyshop Version ... {msg_success('Proxyshop is up to date!')}" if (
+                check_app_version()
+            ) else f"Proxyshop Version ... {msg_info('New release available!')}"
+        )
 
         # Update symbol library
         try:
@@ -828,6 +833,7 @@ class TemplateResetDefaultButton(HoverButton):
 
 
 if __name__ == '__main__':
+
     # Kivy packaging for PyInstaller
     if hasattr(sys, '_MEIPASS'):
         resource_add_path(osp.join(sys._MEIPASS))
@@ -841,9 +847,4 @@ if __name__ == '__main__':
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)
     Builder.load_file(osp.join(con.cwd, "src/kv/proxyshop.kv"))
-
-    # Imports that use console must be imported here
-    from src.env.__console__ import console
-
-    # Start app
     ProxyshopApp().run()

@@ -22,6 +22,7 @@ from src.utils.modules import get_loaded_module
 from src.utils.regex import Reg
 from src.utils.types_cards import CardDetails
 from src.utils.download import download_s3, download_google
+from src.utils.env import ENV_VERSION, ENV_API_GOOGLE
 from src.utils.types_templates import TemplateDetails, TemplateUpdate
 
 # All Template types
@@ -422,7 +423,21 @@ def gdrive_metadata(file_id: str) -> dict:
         params={
             'alt': 'json',
             'fields': 'description,name,size',
-            'key': con.google_api
+            'key': ENV_API_GOOGLE
         }
     ).json()
     return result if 'name' in result and 'size' in result else None
+
+
+def check_app_version() -> bool:
+    """
+    Check if app is the latest version.
+    @return: Return True if up to date, otherwise False.
+    """
+    try:
+        current = f"v{ENV_VERSION}"
+        response = requests.get("https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest")
+        latest = response.json().get("tag_name", current)
+        return bool(current == latest)
+    except (requests.HTTPError, json.JSONDecodeError):
+        return True
