@@ -22,9 +22,9 @@ class PlanarTemplate (StarterTemplate):
     * Planar template for Planar and Phenomenon cards introduced in the Planechase block.
     """
 
-    def __init__(self, layout: CardLayout):
+    def __init__(self, layout: CardLayout, **kwargs):
         cfg.exit_early = True
-        super().__init__(layout)
+        super().__init__(layout, **kwargs)
 
     @cached_property
     def text_layer_static_ability(self) -> ArtLayer:
