@@ -8,10 +8,11 @@ from os import path as osp
 from threading import Lock
 from typing import Optional
 
+# Third Party Imports
 import yaml
 
 # Local Imports
-from src.env import ENV_API_GOOGLE, ENV_API_AMAZON
+from src.enums.mtg import mana_color_map
 from src.enums.layers import LAYERS
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.objects import Singleton, PhotoshopHandler
@@ -64,10 +65,6 @@ class Constants:
 
         # Import version tracker
         self.versions = self.get_version_tracker()
-
-        # Import API Keys
-        self.google_api = ENV_API_GOOGLE
-        self.cloudfront_url = ENV_API_AMAZON
 
         # Card classes - finer grained than Scryfall layouts
         self.normal_class = "normal"
@@ -258,52 +255,8 @@ class Constants:
             5: [.20, .25, .35, .45, .55, .65, .75, .80]
         }
 
-        # Pinline colors
-        self.pinline_colors = {
-            'W': [246, 246, 239],
-            'U': [0, 117, 190],
-            'B': [39, 38, 36],
-            'R': [239, 56, 39],
-            'G': [0, 123, 67],
-            'Gold': [246, 210, 98],
-            'Land': [174, 151, 135],
-            'Artifact': [230, 236, 242],
-            'Colorless': [230, 236, 242],
-            'Vehicle': [77, 45, 5]
-        }
-
-        # Watermark colors
-        self.watermark_colors = {
-            'W': [183, 157, 88],
-            'U': [140, 172, 197],
-            'B': [94, 94, 94],
-            'R': [198, 109, 57],
-            'G': [89, 140, 82],
-            'Gold': [202, 179, 77],
-            'Land': [94, 84, 72],
-            'Artifact': [100, 125, 134],
-            'Colorless': [100, 125, 134]
-        }
-
         # Mana colors
-        self.mana_colors = {
-            'primary': [0, 0, 0],
-            'secondary': [255, 255, 255],
-            'c': [204, 194, 193],
-            'w': [255, 251, 214],
-            'u': [170, 224, 250],
-            'b': [204, 194, 193],
-            'r': [249, 169, 143],
-            'g': [154, 211, 175],
-            'bh': [159, 146, 143],
-            'c_i': [0, 0, 0],
-            'w_i': [0, 0, 0],
-            'u_i': [0, 0, 0],
-            'b_i': [0, 0, 0],
-            'r_i': [0, 0, 0],
-            'g_i': [0, 0, 0],
-            'bh_i': [0, 0, 0]
-        }
+        self.mana_colors = mana_color_map.copy()
 
         # Import watermark library
         self.watermarks = self.get_watermarks()
@@ -314,10 +267,10 @@ class Constants:
         self.set_symbol_fallback = ""
 
         # Font names
+        self.font_mana = "NDPMTG"
         self.font_rules_text = "PlantinMTPro-Regular"
         self.font_rules_text_bold = "PlantinMTPro-Bold"
         self.font_rules_text_italic = "PlantinMTPro-Italic"
-        self.font_mana = "NDPMTG"
         self.font_subtext = "Beleren Small Caps Bold"
         self.font_collector = "Relay-Medium"
 
