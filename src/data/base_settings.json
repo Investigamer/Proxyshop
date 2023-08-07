@@ -43,11 +43,11 @@
   {
     "type": "options",
     "title": "[b]Symbol Render Mode[/b]",
-    "desc": "Font: Renders using Keyrune font + layer effects.\nSVG: Renders using SVG files sourced from CCGHQ.\nNone: Completely disables expansion symbol.\n[b](Default: 'font')[/b]",
+    "desc": "SVG: Renders using SVG files sourced from CCGHQ.\nFont: Renders using Keyrune font + layer effects.\nNone: Completely disables expansion symbol.\n[b](Default: 'svg')[/b]",
     "section": "BASE.SYMBOLS",
     "key": "Symbol.Mode",
-    "options": ["font", "svg", "none"],
-    "default": "default"
+    "options": ["svg", "font", "none"],
+    "default": "svg"
   },
   {
     "type": "string",

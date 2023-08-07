@@ -8,8 +8,14 @@ from configparser import ConfigParser
 
 # Local Imports
 from src.constants import con
-from src.enums.settings import ExpansionSymbolMode, CollectorMode, BorderColor, OutputFiletype, ScryfallSorting, \
+from src.enums.settings import (
+	ExpansionSymbolMode,
+	CollectorMode,
+	BorderColor,
+	OutputFiletype,
+	ScryfallSorting,
 	ScryfallUnique
+)
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
 from src.utils.types_templates import TemplateDetails
@@ -33,14 +39,14 @@ class Config:
 		# APP - FILES
 		self.save_artist_name = self.file.getboolean('APP.FILES', 'Save.Artist.Name')
 		self.overwrite_duplicate = self.file.getboolean('APP.FILES', 'Overwrite.Duplicate')
-		self.output_filetype = self.get_option('APP.FILES', 'Output.Filetype', OutputFiletype, OutputFiletype.JPG)
+		self.output_filetype = self.get_option('APP.FILES', 'Output.Filetype', OutputFiletype)
 
 		# APP - DATA
 		self.lang = self.file['APP.DATA'].get('Scryfall.Language', 'en')
 		self.scry_ascending = self.file.getboolean('APP.DATA', 'Scryfall.Ascending')
-		self.scry_sorting = self.get_option('APP.DATA', 'Scryfall.Sorting', ScryfallSorting, ScryfallSorting.Released)
+		self.scry_sorting = self.get_option('APP.DATA', 'Scryfall.Sorting', ScryfallSorting)
 		self.scry_extras = self.file.getboolean('APP.DATA', 'Scryfall.Extras')
-		self.scry_unique = self.get_option('APP.DATA', 'Scryfall.Unique', ScryfallUnique, ScryfallUnique.Arts)
+		self.scry_unique = self.get_option('APP.DATA', 'Scryfall.Unique', ScryfallUnique)
 
 		# APP - TEXT
 		self.force_english_formatting = self.file.getboolean('APP.TEXT', "Force.English.Formatting")
@@ -69,30 +75,32 @@ class Config:
 		self.symbol_stroke = int(self.file['BASE.SYMBOLS']['Symbol.Stroke.Size'])
 		self.enable_watermark = self.file.getboolean('BASE.SYMBOLS', 'Enable.Watermark')
 		self.watermark_opacity = int(self.file['BASE.SYMBOLS']['Watermark.Opacity'])
-		self.symbol_mode = self.get_option('BASE.SYMBOLS', 'Symbol.Mode', ExpansionSymbolMode, ExpansionSymbolMode.Font)
+		self.symbol_mode = self.get_option('BASE.SYMBOLS', 'Symbol.Mode', ExpansionSymbolMode)
 
 		# BASE - TEMPLATES
 		self.exit_early = self.file.getboolean('BASE.TEMPLATES', 'Manual.Edit')
 		self.import_scryfall_scan = self.file.getboolean('BASE.TEMPLATES', 'Import.Scryfall.Scan')
-		self.border_color = self.get_option('BASE.TEMPLATES', 'Border.Color', BorderColor, BorderColor.Black)
+		self.border_color = self.get_option('BASE.TEMPLATES', 'Border.Color', BorderColor)
 
 	"""
 	METHODS
 	"""
 
-	def get_option(self, group: str, key: str, enum_class: type[StrEnum], default: str = "default"):
+	def get_option(self, section: str, key: str, enum_class: type[StrEnum], default: str = None):
 		"""
 		Returns the current value of an "options" setting if that option exists in its StrEnum class.
 		Otherwise, returns the default value of that StrEnum class.
-		@param group: Group (section) to access within the config file.
+		@param section: Group (section) to access within the config file.
 		@param key: Key to access within the setting group (section).
 		@param enum_class: StrEnum class representing the options of this setting.
 		@param default: Default value to return if current value is invalid.
 		@return: Validated current value, or default value.
 		"""
-		option = self.file[group].get(key, default)
-		if option in enum_class:
-			return option
+		default = default or enum_class.Default
+		if self.file.has_section(section):
+			option = self.file[section].get(key, fallback=default)
+			if option in enum_class:
+				return option
 		return default
 
 	def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
@@ -107,8 +115,8 @@ class Config:
 		if self.file.has_section(section):
 			if self.file.has_option(section, key):
 				if is_bool:
-					return self.file.getboolean(section, key)
-				return self.file[section][key]
+					return self.file.getboolean(section, key, fallback=default)
+				return self.file[section].get(key, fallback=default)
 		return default
 
 	def get_default_symbol(self) -> Union[str, dict, list[dict]]:
