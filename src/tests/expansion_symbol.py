@@ -7,7 +7,6 @@ from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
-import requests
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
@@ -15,13 +14,14 @@ import requests
 from photoshop.api._layerSet import LayerSet
 from photoshop.api.application import ArtLayer
 import photoshop.api as ps
+import requests
 
 # Local Imports
 from src.constants import con
 con.headless = True
 from src import helpers as psd
 from src.settings import cfg
-from src.enums.photoshop import Alignment
+from src.enums.photoshop import Dimensions
 from src.enums.layers import LAYERS
 
 # Generate rarity folders if they don't exist
@@ -91,11 +91,11 @@ class TestTemplate:
         return ps.AnchorPosition.MiddleRight
 
     @property
-    def expansion_symbol_alignments(self) -> list[Alignment]:
-        return [Alignment.CenterVertical, Alignment.CenterHorizontal]
+    def expansion_symbol_alignments(self) -> list[Dimensions]:
+        return [Dimensions.Right, Dimensions.CenterY]
 
     @cached_property
-    def expansion_reference_layer(self):
+    def expansion_reference(self):
         # Expansion symbol reference layer
         return psd.getLayer(LAYERS.EXPANSION_REFERENCE, self.text_group)
 
@@ -136,7 +136,7 @@ class TestTemplate:
         # Size to fit reference
         psd.frame_layer(
             self.expansion_symbol_layer,
-            self.expansion_reference_layer,
+            self.expansion_reference,
             smallest=True,
             anchor=self.expansion_symbol_anchor,
             alignments=self.expansion_symbol_alignments
@@ -270,18 +270,6 @@ def get_missing_sets() -> dict[str, dict]:
         result[set_type][code] = parent_code
 
     return result
-
-
-missing = get_missing_sets()
-for name, group in missing.items():
-    print(
-        f'==='
-        f'{name.upper()} SETS MISSING'
-        f'==='
-    )
-    for code, parent in group.items():
-        print(f"{code} ({parent})" if parent else code)
-    print('\n')
 
 
 """

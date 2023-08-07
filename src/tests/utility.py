@@ -3,37 +3,33 @@ TESTING UTILITY
 For contributors and plugin development.
 """
 # Standard Library Imports
-from time import perf_counter
-from typing import Optional, Union, Callable
+from typing import Optional, Union
 from _ctypes import COMError
-from operator import itemgetter
 import json
 
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
 # Third Party Imports
-import colorama
-from colorama import Fore
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
+    SolidColor,
     ActionList,
     DialogModes
 )
 
 # Local Imports
 from src.constants import con
+from src.helpers import get_layer_dimensions
 from src.helpers.document import points_to_pixels
-from src.helpers.layers import getLayer, getLayerSet, merge_layers
+from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds
 from src.helpers.masks import copy_layer_mask
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
 from src.utils.objects import PhotoshopHandler
-
-con.headless = True
 
 app: PhotoshopHandler = con.app
 cID = app.charIDtoTypeID
@@ -134,87 +130,6 @@ def create_blended_layer(
 
         # Add to the layer list
         layers.append(layer)
-
-
-"""
-EXECUTION TIME TESTING
-"""
-
-
-def test_execution_time(
-    new_func: Callable,
-    old_func: Callable,
-    iterations=1000,
-    args=None,
-    args_old=None,
-    check_result=True,
-    reset_func: Optional[Callable] = None
-) -> None:
-    """
-    Test the execution time of a new function against an older function.
-    @param new_func: New callable function to test.
-    @param old_func: Older callable function to compare against.
-    @param iterations: How many times to run these functions, higher means better sample size.
-    @param args: Args to pass to the newer function, and older function unless specified in args_old.
-    @param args_old: Args to pass to the older function.
-    @param check_result: Whether to check if results match.
-    @param reset_func: Optional function to call to reset app state between actions.
-    """
-    # Test configuration
-    if not args:
-        args = []
-    if not args_old:
-        args_old = args
-    colorama.init(autoreset=True)
-    results: list[dict[str, Union[None, int, float, str, list]]] = [
-        {
-            'value': None,
-            'average': 0,
-            'times': [],
-            'type': 'Newer'
-        },
-        {
-            'value': None,
-            'average': 0,
-            'times': [],
-            'type': 'Older'
-        }
-    ]
-
-    # Test new functionality
-    for i in range(iterations):
-        s = perf_counter()
-        results[0]['value'] = new_func(*args)
-        results[0]['times'].append(perf_counter()-s)
-        if reset_func:
-            reset_func()
-    results[0]['average'] = sum(results[0]['times'])/len(results[0]['times'])
-
-    # Test old functionality
-    for i in range(iterations):
-        s = perf_counter()
-        results[1]['value'] = old_func(*args_old)
-        results[1]['times'].append(perf_counter()-s)
-        if reset_func:
-            reset_func()
-    results[1]['average'] = sum(results[1]['times'])/len(results[1]['times'])
-
-    # Report results
-    for i, res in enumerate(results):
-        print(f"{res['type']} method: {res['average']}")
-
-    # Compare results
-    final = sorted(results, key=itemgetter('average'))
-    slower = final[1]['average']
-    faster = final[0]['average']
-    delta = slower - faster
-    percent = round(delta/((slower + faster)/2) * 100, 2)
-    print(f"{Fore.GREEN}The {final[0]['type']} method is {percent}% faster!")
-    if check_result:
-        print(f"Results check: {Fore.GREEN+'SUCCESS' if final[0]['value'] == final[1]['value'] else Fore.RED+'FAILED'}")
-        if final[0]['value']:
-            print(final[0]['value'])
-            print(final[1]['value'])
 
 
 """
@@ -385,6 +300,23 @@ TEXT FUNCTIONS
 """
 
 
+def apply_single_line_composer(layer: ArtLayer) -> None:
+    """
+    Set the text composer of the layer to 'Single Line Composer'.
+    @param layer: TextLayer to apply the composer to.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    ref1.PutProperty(sID("property"), sID("paragraphStyle"))
+    ref1.putIdentifier(sID("textLayer"), layer.id)
+    desc1.PutReference(sID("target"), ref1)
+    desc2.PutInteger(sID("textOverrideFeatureName"), 808464691)
+    desc2.PutBoolean(sID("textEveryLineComposer"), False)
+    desc1.PutObject(sID("to"), sID("paragraphStyle"), desc2)
+    app.Executeaction(sID("set"), desc1, NO_DIALOG)
+
+
 def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[str] = " "):
     """
     Append the "from_layer" contents to the end of "to_layer" contents with optional separator.
@@ -512,3 +444,129 @@ def remove_text_segment(layer: ArtLayer, start: int, end: int) -> None:
         key.putList(n, style_range)
         key.putString(sID("textKey"), new_text)
         apply_text_key(layer, key)
+
+
+"""
+XMP UTILS
+"""
+
+
+def xmp_remove_ancestors() -> None:
+    """Remove DocumentAncestors property from XMP data."""
+    if not app.documents:
+        # No documents open
+        app.alert("There are no open documents. Please open a file to run this script.")
+        return
+
+    # XMP data
+    app.eval_javascript('''
+        if (ExternalObject.AdobeXMPScript == undefined) {
+          ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+        }
+        var xmp = new XMPMeta( activeDocument.xmpMetadata.rawData);  
+        xmp.deleteProperty(XMPConst.NS_PHOTOSHOP, "DocumentAncestors");
+        app.activeDocument.xmpMetadata.rawData = xmp.serialize();
+    ''')
+
+
+def reset_transform_factor(layer: ArtLayer) -> None:
+    """
+    Reset the transform xx and yy factors of a given layer.
+    @param layer: TextLayer to reset transform factors for.
+    """
+    key = get_text_key(layer)
+    if key.hasKey(sID('transform')):
+
+        # Check the scale factor
+        desc = key.getObjectValue(sID("transform"))
+        xx = desc.getUnitDoubleValue(sID("xx")) if desc.hasKey(sID("xx")) else 1
+        yy = desc.getUnitDoubleValue(sID("yy")) if desc.hasKey(sID("xx")) else 1
+
+        # Fix the scale factor
+        if xx == 1 and yy == 1:
+            return
+        if xx != 1:
+            desc.putDouble(sID("xx"), 1)
+        if yy != 1:
+            desc.putDouble(sID("yy"), 1)
+
+        # Update the scale factor
+        key.putObject(sID("transform"), sID("transform"), desc)
+        apply_text_key(layer, key)
+
+
+def select_bleed():
+    doc = app.activeDocument
+    bleed = int(doc.resolution / 8)
+    doc.selection.select([
+            [bleed, bleed],
+            [doc.width - bleed, bleed],
+            [doc.width - bleed, doc.height - bleed],
+            [bleed, doc.height - bleed]
+    ])
+
+
+def create_color_shape(layer: ArtLayer, color: SolidColor) -> ArtLayer:
+    name = layer.name
+    app.activeDocument.activeLayer = layer
+    select_layer_bounds()
+
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref1.putClass(sID("path"))
+    desc1.putReference(sID("target"), ref1)
+    ref2.putProperty(sID("selectionClass"), sID("selection"))
+    desc1.putReference(sID("from"), ref2)
+    desc1.putUnitDouble(sID("tolerance"), sID("pixelsUnit"), 2.000000)
+    app.executeaction(sID("make"), desc1, NO_DIALOG)
+
+    ref1 = ActionReference()
+    desc1 = ActionDescriptor()
+    desc2 = ActionDescriptor()
+    desc3 = ActionDescriptor()
+    desc4 = ActionDescriptor()
+    ref1.putClass(sID("contentLayer"))
+    desc1.putReference(sID("target"),  ref1)
+    desc4.putDouble(sID("red"), color.rgb.red)
+    desc4.putDouble(sID("green"), color.rgb.green)
+    desc4.putDouble(sID("blue"), color.rgb.blue)
+    desc3.putObject(sID("color"), sID("RGBColor"),  desc4)
+    desc2.putObject(sID("type"), sID("solidColorLayer"),  desc3)
+    desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
+    app.executeaction(sID("make"), desc1,  NO_DIALOG)
+    app.activeDocument.activeLayer.name = name
+
+    # Check dims
+    dims = get_layer_dimensions(layer)
+    dims = (dims['width'], dims['height'])
+    new_dims = get_layer_dimensions(app.activeDocument.activeLayer)
+    new_dims = (new_dims['width'], new_dims['height'])
+    if not dims == new_dims:
+        print("DIMS CHANGED:", name)
+        print("Before:", dims)
+        print("After:", new_dims)
+
+    layer.remove()
+    app.activeDocument.activeLayer.visible = False
+    return app.activeDocument.activeLayer
+
+
+"""
+text_group = getLayerSet(LAYERS.TEXTBOX_REFERENCE, LAYERS.TEXT_AND_ICONS)
+ORANGE = [255, 172, 64]
+RED = [192, 55, 38]
+TAN = [245, 235, 210]
+BLACK = [0, 0, 0]
+
+ref_layers = [
+    (getLayer("Short", text_group), TAN),
+    (getLayer("Medium", text_group), TAN),
+    (getLayer("Normal", text_group), TAN),
+    (getLayer("Tall", text_group), TAN),
+]
+ref_layers = [n for n in ref_layers if n[0]]
+for n, c in ref_layers:
+    create_color_shape(n, get_color(c))
+print("DONE")
+"""

@@ -6,7 +6,7 @@ from os import path as osp
 
 # Local Imports
 from src.constants import con
-from src.utils.files import compress_all, compress_target
+from src.utils.files import compress_all
 
 # Template locations
 ALL_TEMPLATES = osp.join(con.cwd, 'templates')
@@ -24,7 +24,4 @@ def compress_all_templates():
 
 
 # Compress updated templates
-compress_target(ALL_TEMPLATES, [
-    "split.psd",
-    "normal.psd"
-])
+compress_all_templates()
