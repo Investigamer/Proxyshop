@@ -163,9 +163,13 @@
     },
     "saga": {
         "Normal": {
-            "class": "SagaTemplate",
-            "file": "saga.psd",
-            "id": "1K9sgMcm92ssDlJIre_c6VPqLzJPhQgat"
+            "class": "SagaVectorTemplate",
+            "file": "vertical-mode.psd",
+            "id": "1ytlBqIywu7gyTrgM9-hKj-apKe6v18Ek"
+        },
+        "Universes Beyond": {
+            "class": "UniversesBeyondSagaTemplate",
+            "file": "vertical-mode.psd"
         }
     },
     "split": {
@@ -177,9 +181,12 @@
     },
     "class": {
         "Normal": {
-            "class": "ClassTemplate",
-            "file": "class.psd",
-            "id": "1cCdSGk29_TYa3TWt2ygtcyoGXwht0KQj"
+            "class": "ClassVectorTemplate",
+            "file": "vertical-mode.psd"
+        },
+        "Universes Beyond": {
+            "class": "UniversesBeyondClassTemplate",
+            "file": "vertical-mode.psd"
         }
     },
     "miracle": {
