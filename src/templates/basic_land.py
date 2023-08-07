@@ -25,7 +25,7 @@ class BasicLandTemplate (BaseTemplate):
         return self.docref
 
     def enable_frame_layers(self):
-        psd.getLayer(self.layout.name).visible = True
+        psd.getLayer(self.layout.name_raw).visible = True
 
 
 class BasicLandClassicTemplate (BasicLandTemplate):
