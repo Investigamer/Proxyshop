@@ -28,10 +28,9 @@ from src.helpers.bounds import (
     get_text_layer_dimensions
 )
 from src.helpers.colors import get_color, apply_color
-from src.helpers.layers import select_layer_pixels
+from src.helpers.layers import select_layer_bounds
 from src.helpers.position import spread_layers_over_reference
-from src.helpers.text import get_text_scale_factor
-from src.settings import cfg
+from src.helpers.text import get_text_scale_factor, set_text_size, set_text_leading, get_font_size
 from src.utils.types_cards import CardTextSymbols, CardTextSymbolIndex
 from src.utils.regex import Reg
 
@@ -43,14 +42,13 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 class SymbolMapper:
-    """
-    Maps symbols to their corresponding colors.
-    """
-    def load(self, color_map: dict = None):
+    """Maps symbols to their corresponding colors."""
+
+    def load(self, color_map: dict = None) -> None:
         """
         Load SolidColor objects using data from the constants object.
+        @param color_map: Optional color map to use instead of the default in con.
         """
-        # Use default color map from constants if not provided
         color_map = color_map or con.mana_colors
 
         # Primary inner color (black default)
@@ -234,66 +232,17 @@ def format_symbol(
     for i, color in enumerate(symbol_colors):
         desc1 = ActionDescriptor()
         desc2 = ActionDescriptor()
-        idTxtS = cID("TxtS")
-        desc1.putInteger(cID("From"), symbol_index + i)
-        desc1.putInteger(cID("T   "), symbol_index + i + 1)
+        idTxtS = sID("textStyle")
+        desc1.putInteger(sID("from"), symbol_index + i)
+        desc1.putInteger(sID("to"), symbol_index + i + 1)
         desc2.putString(sID("fontPostScriptName"), con.font_mana)
-        desc2.putString(cID("FntN"), con.font_mana)
-        desc2.putUnitDouble(cID("Sz  "), cID("#Pnt"), font_size)
+        desc2.putString(sID("fontName"), con.font_mana)
+        desc2.putUnitDouble(sID("size"), sID("pointsUnit"), font_size)
         desc2.putBoolean(sID("autoLeading"), False)
-        desc2.putUnitDouble(cID("Ldng"), cID("#Pnt"), font_size)
+        desc2.putUnitDouble(sID("leading"), sID("pointsUnit"), font_size)
         apply_color(desc2, color)
         desc1.putObject(idTxtS, idTxtS, desc2)
-        action_list.putObject(cID("Txtt"), desc1)
-
-
-def format_flavor_text(input_string: str, layer: ArtLayer) -> None:
-    """
-    Inserts the given string into the active layer and formats it without any of the more advanced features like
-    italics strings, centering, etc.
-    @param input_string: The string to insert into the layer.
-    @param layer: Layer to insert flavor text.
-    """
-    # Is the active layer a text layer?
-    if layer.kind is not LayerKind.TextLayer:
-        return
-    app.activeDocument.activeLayer = layer
-    scale_factor = get_text_scale_factor(layer)
-
-    # Prepare action descriptor and reference variables
-    layer_font_size = layer.textItem.size
-    primary_action_descriptor = ActionDescriptor()
-    primary_action_list = ActionList()
-    desc119 = ActionDescriptor()
-    desc26 = ActionDescriptor()
-    desc25 = ActionDescriptor()
-    ref101 = ActionReference()
-    textLayer = sID("textLayer")
-    textStyle = sID("textStyle")
-    pointsUnit = sID("pointsUnit")
-    styleRange = sID("textStyleRange")
-
-    # Spin up the text insertion action
-    ref101.putEnumerated(textLayer, sID("ordinal"), sID("targetEnum"))
-    desc119.putReference(sID("target"), ref101)
-    primary_action_descriptor.putString(sID("textKey"), input_string)
-    desc25.putInteger(sID("from"), 0)
-    desc25.putInteger(sID("to"), len(input_string))
-    desc26.putString(sID("fontPostScriptName"), con.font_rules_text_italic)
-    desc26.putString(sID("fontName"), con.font_rules_text_italic)
-    desc26.putUnitDouble(sID("size"), pointsUnit, layer_font_size * scale_factor)
-    desc26.putBoolean(sID("autoLeading"), False)
-    desc26.putUnitDouble(sID("leading"), pointsUnit, layer_font_size * scale_factor)
-    if cfg.force_english_formatting:
-        desc26.putEnumerated(sID("textLanguage"), sID("textLanguage"), sID("englishLanguage"))
-    desc25.putObject(textStyle, textStyle, desc26)
-    primary_action_list.putObject(styleRange, desc25)
-    primary_action_descriptor.putList(styleRange, primary_action_list)
-
-    # Push changes to the layer, disable hyphenation
-    desc119.putObject(sID("to"), textLayer, primary_action_descriptor)
-    app.executeAction(sID("set"), desc119, NO_DIALOG)
-    layer.textItem.hyphenation = False
+        action_list.putObject(sID("textStyleRange"), desc1)
 
 
 def generate_italics(card_text: str) -> list[str]:
@@ -441,15 +390,11 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
     ref_empty = ensure_visible_reference(reference)
 
     # Obtain the correct font scale factor
-    factor = 1
-    if app.activeDocument.width != 3264:
-        factor = get_text_scale_factor(layer)
-    # On the largest document size, ensure 30 pixel gap
-    spacing = app.scale_by_width(30)
+    factor = get_text_scale_factor(layer)
 
-    # Can't find UnitValue object in python api
+    # Set starting variables
     font_size = old_size = float(layer.textItem.size) * factor
-    ref_left_bound = reference.bounds[0]
+    ref_left_bound = reference.bounds[0] - app.scale_by_dpi(30)
     layer_right_bound = layer.bounds[2]
     step, half_step = 0.4, 0.2
 
@@ -461,21 +406,21 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         return
 
     # Make our first check if scaling is necessary
-    continue_scaling = bool(layer_right_bound > (ref_left_bound - spacing))
+    continue_scaling = bool(layer_right_bound > ref_left_bound)
     if continue_scaling:
 
         # Step down the font till it clears the reference
         while continue_scaling:
             font_size -= step
-            layer.textItem.size = font_size
-            continue_scaling = bool(layer.bounds[2] > (ref_left_bound - spacing))
+            set_text_size(layer, font_size)
+            continue_scaling = bool(layer.bounds[2] > ref_left_bound)
 
         # Go up a half step and check if still in bounds
         font_size += half_step
-        layer.textItem.size = font_size
-        if layer.bounds[2] > (ref_left_bound - spacing):
+        set_text_size(layer, font_size)
+        if layer.bounds[2] > ref_left_bound:
             font_size -= half_step
-            layer.textItem.size = font_size
+            set_text_size(layer, font_size)
 
         # Shift baseline up to keep text centered vertically
         layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
@@ -498,17 +443,13 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         return
     ref_empty = ensure_visible_reference(reference)
 
-    # Obtain the correct scale factor and spacing
-    factor = 1
-    if app.activeDocument.width != 3264:
-        factor = get_text_scale_factor(layer)
-    # On the largest document size, ensure 30 pixel gap
-    spacing = app.scale_by_width(30)
+    # Obtain the correct font scale factor
+    factor = get_text_scale_factor(layer)
 
     # Set starting variables
-    font_size = old_size = layer.textItem.size * factor
+    font_size = old_size = float(layer.textItem.size) * factor
+    ref_right_bound = reference.bounds[2] + app.scale_by_dpi(30)
     ref_left_bound = reference.bounds[0]
-    ref_right_bound = reference.bounds[2]
     layer_left_bound = layer.bounds[0]
     step, half_step = 0.4, 0.2
 
@@ -520,27 +461,28 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
         return
 
     # Make our first check if scaling is necessary
-    continue_scaling = bool(ref_right_bound > (layer_left_bound - spacing))
+    continue_scaling = bool(ref_right_bound > layer_left_bound)
     if continue_scaling:
 
         # Step down the font till it clears the reference
         while continue_scaling:  # minimum 24 px gap
             font_size -= step
-            layer.textItem.size = font_size
-            continue_scaling = bool(ref_right_bound > (layer.bounds[0] - spacing))
+            set_text_size(layer, font_size)
+            continue_scaling = bool(ref_right_bound > layer.bounds[0])
 
         # Go up a half step and check if still in bounds
         font_size += half_step
-        layer.textItem.size = font_size
-        if ref_right_bound > (layer.bounds[0] - spacing):
+        set_text_size(layer, font_size)
+        if ref_right_bound > layer.bounds[0]:
             font_size -= half_step
-            layer.textItem.size = font_size
+            set_text_size(layer, font_size)
 
         # Shift baseline up to keep text centered vertically
         layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
 
     # Fix corrected reference layer
     if ref_empty:
+        # Reset reference
         reference.textItem.contents = ''
 
 
@@ -553,14 +495,15 @@ def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
         return
 
     # Get the starting font size
-    font_size = layer.textItem.size * get_text_scale_factor(layer)
+    font_size = get_font_size(layer)
+    ref_width = get_textbox_dimensions(layer)['width'] + 1
     step = 0.1
 
     # Continue to reduce the size until within the bounding box
-    while get_dimensions_no_effects(layer)['width'] > (get_textbox_dimensions(layer)['width'] + 1):
+    while get_dimensions_no_effects(layer)['width'] > ref_width:
         font_size -= step
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
+        set_text_size(layer, font_size)
+        set_text_leading(layer, font_size)
 
 
 def scale_text_to_fit_reference(
@@ -571,8 +514,7 @@ def scale_text_to_fit_reference(
     step: float = 0.4
 ) -> None:
     """
-    Resize a given text layer's contents (in 0.2 pt increments) until it fits inside a specified reference layer.
-    The resulting text layer will have equal font and lead sizes.
+    Resize a given text layer's font size/leading until it fits inside a reference layer.
     @param layer: Text layer to scale.
     @param ref: Reference layer the text should fit inside.
     @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
@@ -582,42 +524,43 @@ def scale_text_to_fit_reference(
     # Establish the dimension to use
     dim = 'height' if height else 'width'
 
-    # Establish base variables, ensure a level of spacing at the margins
+    # Establish reference dimension
     if isinstance(ref, int) or isinstance(ref, float):
-        # Only checking against fixed number
+        # Fixed number
         ref_dim = ref
     elif isinstance(ref, ArtLayer):
-        # Use a reference layer
-        if not spacing:
-            # If no spacing provided, use default
-            spacing = app.scale_by_height(64) if height else app.scale_by_width(64)
-        ref_dim = get_layer_dimensions(ref)[dim] - spacing
+        # UReference layer dimension
+        ref_dim = get_layer_dimensions(ref)[dim] - (spacing or app.scale_by_dpi(64))
     else:
         return
 
     # Cancel if we're already within expected bounds
-    if ref_dim > get_text_layer_dimensions(layer)[dim]:
+    continue_scaling = bool(ref_dim < get_text_layer_dimensions(layer)[dim])
+    if not continue_scaling:
         return
 
-    # Establish initial values
-    factor = get_text_scale_factor(layer) or 1
-    font_size = layer.textItem.size * factor
+    # Establish starting size and half step
+    # TODO: Comprehensive way to clean resized text layers so we can eliminate scale factor
+    font_size = get_font_size(layer)
     half_step = step / 2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
-    while ref_dim < get_text_layer_dimensions(layer)[dim]:
+    while continue_scaling:
         font_size -= step
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
+        set_text_size(layer, font_size)
+        set_text_leading(layer, font_size)
+        continue_scaling = bool(ref_dim < get_text_layer_dimensions(layer)[dim])
 
-    # Take a half step back up, check if still in bounds and adjust back if needed
+    # Increase by a half step
     font_size += half_step
-    layer.textItem.size = font_size
-    layer.textItem.leading = font_size
+    set_text_size(layer, font_size)
+    set_text_leading(layer, font_size)
+
+    # Revert if half step still exceeds reference
     if ref_dim < get_text_layer_dimensions(layer)[dim]:
         font_size -= half_step
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
+        set_text_size(layer, font_size)
+        set_text_leading(layer, font_size)
 
 
 def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
@@ -641,24 +584,24 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
         total_layer_height = 0
         font_size -= step
         for i, layer in enumerate(text_layers):
-            layer.textItem.size = font_size
-            layer.textItem.leading = font_size
+            set_text_size(layer, font_size)
+            set_text_leading(layer, font_size)
             total_layer_height += get_text_layer_dimensions(layer)["height"]
 
     # Check half_step
     font_size += half_step
     total_layer_height = 0
     for i, layer in enumerate(text_layers):
-        layer.textItem.size = font_size
-        layer.textItem.leading = font_size
+        set_text_size(layer, font_size)
+        set_text_leading(layer, font_size)
         total_layer_height += get_text_layer_dimensions(layer)["height"]
 
     # Compare height of all 3 elements vs total reference height
     if total_layer_height > ref_height:
         font_size -= half_step
         for i, layer in enumerate(text_layers):
-            layer.textItem.size = font_size
-            layer.textItem.leading = font_size
+            set_text_size(layer, font_size)
+            set_text_leading(layer, font_size)
 
 
 def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer) -> None:
@@ -689,7 +632,7 @@ def check_for_text_overlap(
     layer_copy = text_layer.duplicate()
     layer_copy.rasterize(RasterizeType.TextContents)
     app.activeDocument.activeLayer = layer_copy
-    select_layer_pixels(adj_reference)
+    select_layer_bounds(adj_reference)
     app.activeDocument.selection.invert()
     app.activeDocument.selection.clear()
     app.activeDocument.selection.deselect()
@@ -704,7 +647,7 @@ def vertically_nudge_creature_text(
     layer: ArtLayer,
     reference_layer: ArtLayer,
     top_reference_layer: ArtLayer
-) -> Optional[int]:
+) -> int:
     """
     Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
     determined by the given reference layers.
@@ -718,6 +661,7 @@ def vertically_nudge_creature_text(
 
         # Clear selection, remove copy, return
         return delta
+    return 0
 
 
 def vertically_nudge_pw_text(
@@ -775,8 +719,8 @@ def vertically_nudge_pw_text(
 
     # Layer gap would be too small, need to resize text then shift upward
     for lyr in text_layers:
-        lyr.textItem.size = font_size - 0.2
-        lyr.textItem.leading = font_size - 0.2
+        set_text_size(lyr, font_size - 0.2)
+        set_text_leading(lyr, font_size - 0.2)
 
     # Space apart planeswalker text evenly
     spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
