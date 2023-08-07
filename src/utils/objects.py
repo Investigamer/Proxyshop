@@ -3,7 +3,7 @@ OBJECT UTILITIES
 """
 # Standard Library
 from functools import cache
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 # Third Party
 from photoshop.api import Application, Units, DialogModes, ActionDescriptor
@@ -11,8 +11,56 @@ from photoshop.api._core import Photoshop
 from packaging.version import parse
 
 # Local Imports
-from src.env import development
+from src.utils.env import ENV_DEV_MODE
 from src.utils.exceptions import PS_EXCEPTIONS
+
+
+"""
+OBJECT UTILITY DECORATORS
+"""
+
+
+def choose_class_route(condition: bool) -> Callable:
+    """
+    A decorator that routes a method call to the current class or its parent based on a bool condition.
+    @param condition: Route to self if True, otherwise route to self's superclass.
+    @return: The wrapped function.
+    """
+
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            if condition:
+                return func(self, *args, **kwargs)
+            return getattr(super(self.__class__, self), func.__name__)(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+class classproperty:
+    """
+    A decorator for creating a class property whose value is cached.
+    @param method: Class method being decorated.
+    """
+
+    def __init__(self, method: Callable):
+        self._method = method
+        self._name = method.__name__
+
+    def __get__(self, instance, owner):
+        """
+        Computes and caches the value of a property when accessed.
+        @param instance: Instance of the class where descriptor is accessed.
+        @param owner: The class that the descriptor exists on.
+        @return: The cached value.
+        """
+        value = self._method(owner)
+        setattr(owner, self._name, value)
+        return value
+
+
+"""
+UTILITY OBJECTS
+"""
 
 
 class Singleton(type):
@@ -23,6 +71,11 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+"""
+PHOTOSHOP OBJECT WRAPPER
+"""
 
 
 class PhotoshopHandler(Application):
@@ -87,7 +140,7 @@ class PhotoshopHandler(Application):
     @cache
     def cID(self, index: str) -> int:
         """Shorthand for charIDToTypeID."""
-        return self.stringIDToTypeID(index)
+        return self.charIDToTypeID(index)
 
     @cache
     def typeIDToCharID(self, index: int) -> str:
@@ -95,7 +148,7 @@ class PhotoshopHandler(Application):
         Caching handler for typeIDToCharID.
         @param index: ID to convert to CharID.
         """
-        return self.typeIDToCharID(index)
+        return super().typeIDToCharID(index)
 
     @cache
     def t2c(self, index: int) -> str:
@@ -117,7 +170,7 @@ class PhotoshopHandler(Application):
     @cache
     def StringIDToTypeID(self, index: str) -> int:
         """Utility definition redirecting to stringIDTotypeID."""
-        return super().stringIDToTypeID(index)
+        return self.stringIDToTypeID(index)
 
     @cache
     def sID(self, index: str) -> int:
@@ -130,7 +183,7 @@ class PhotoshopHandler(Application):
         Caching handler for typeIDToStringID.
         @param index: ID to convert to StringID.
         """
-        return self.typeIDToStringID(index)
+        return super().typeIDToStringID(index)
 
     @cache
     def t2s(self, index: int) -> str:
@@ -153,7 +206,7 @@ class PhotoshopHandler(Application):
         @param descriptor: Main action descriptor tree to execute.
         @param dialogs: DialogMode which governs whether to display dialogs.
         """
-        if not development:
+        if not ENV_DEV_MODE:
             return super().executeAction(event_id, descriptor, dialogs)
         # Allow error dialogs within development environment
         return super().executeAction(event_id, descriptor, DialogModes.DisplayErrorDialogs)
@@ -208,18 +261,10 @@ class PhotoshopHandler(Application):
     DIMENSION CHECKS
     """
 
-    def scale_by_height(self, value: Union[int, float]) -> int:
+    def scale_by_dpi(self, value: Union[int, float]) -> int:
         """
-        Scales a value by comparing 1200 DPI height to current document.
-        @param value: Integer or float value to adjust by comparing document height.
+        Scales a value by comparing document DPI to ideal DPI.
+        @param value: Integer or float value to adjust by DPI ratio.
         @return: Adjusted value as an integer.
         """
-        return int((self.activeDocument.height / self.DIMS_1200[1]) * value)
-
-    def scale_by_width(self, value: Union[int, float]) -> int:
-        """
-        Scales a value by comparing 1200 DPI width to current document.
-        @param value: Integer or float value to adjust by comparing document width.
-        @return: Adjusted value as an integer.
-        """
-        return int((self.activeDocument.width / self.DIMS_1200[0]) * value)
+        return int((self.activeDocument.width / 3264) * value)
