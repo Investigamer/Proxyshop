@@ -96,6 +96,21 @@ def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     set_layer_mask(layer, False)
 
 
+def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """
+    Applies a given layer's mask.
+    @param layer: ArtLayer or LayerSet object, use active layer if not provided.
+    """
+    if layer:
+        app.activeDocument.activeLayer = layer
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    desc1.PutReference(sID("target"),  ref1)
+    desc1.PutBoolean(sID("apply"), True)
+    app.Executeaction(sID("delete"), desc1, NO_DIALOG)
+
+
 def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     """
     Removes a given layer's mask.
@@ -105,8 +120,8 @@ def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
         app.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.PutEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
-    desc1.PutReference(sID("target"), ref1)
+    ref1.putEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
+    desc1.putReference(sID("target"), ref1)
     app.executeAction(sID("delete"), desc1, NO_DIALOG)
 
 
