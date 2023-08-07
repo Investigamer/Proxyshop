@@ -1,72 +1,38 @@
 """
-CONSOLE MODULES
+* CONSOLE MODULE
 """
-# Standard Library Imports
+# Standard Library
+import logging
 import os
+import os.path as osp
 import time
 import traceback
-from threading import Thread, Event, Lock
-from typing import Optional
+from threading import Lock, Event, Thread
 from datetime import datetime as dt
-
-# Third Party Imports
-import asynckivy as ak
-from kivy.lang import Builder
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.logger import Logger
+from functools import cached_property
+from typing import Optional
 
 # Local Imports
-from src.constants import con
-from src.gui.updater import UpdatePopup
-from src.gui.utils import HoverButton
 from src.settings import cfg
+from src.constants import con
+from src.utils.env import ENV_HEADLESS
+from src.utils.objects import Singleton
 
 
-class GUIConsole(BoxLayout):
-    """GUI console handler layout."""
-    Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
-    max_lines = 250
+class TerminalConsole:
+    """Wrapper to return the correct global console object."""
+    __metaclass__ = Singleton
+    await_lock = Lock()
     running = True
     waiting = False
-    lock = Lock()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if not cfg.test_mode:
-            self.size_hint = (1, .58)
 
     """
-    Console GUI Objects
+    Logger Object
     """
 
-    @property
-    def output(self) -> 'ConsoleOutput':
-        """
-        Label where console output is stored.
-        """
-        return self.ids.console_output
-
-    @property
-    def continue_btn(self) -> HoverButton:
-        """
-        Button that continues to the next render operation.
-        """
-        return self.ids.continue_btn
-
-    @property
-    def cancel_btn(self) -> HoverButton:
-        """
-        Button that cancels the current render operation.
-        """
-        return self.ids.cancel_btn
-
-    @property
-    def update_btn(self) -> HoverButton:
-        """
-        Button that launches the updater popup.
-        """
-        return self.ids.update_btn
+    @cached_property
+    def logger(self) -> logging.Logger:
+        return logging.getLogger(__name__)
 
     """
     Reusable Strings
@@ -100,35 +66,9 @@ class GUIConsole(BoxLayout):
         """
         return dt.now().strftime("%m/%d/%Y %H:%M")
 
-    @property
-    def current_output(self) -> str:
-        """
-        GText currently contained in the console output label.
-        Remove lines from the top when the total linebreaks exceed 250.
-        """
-        output = self.output.text
-        line_count = output.count('\n') + 1
-        if line_count <= self.max_lines:
-            return output
-        return output.split('\n', line_count-self.max_lines)[-1]
-
     """
     Utility Methods
     """
-
-    def enable_buttons(self) -> None:
-        """
-        Enable both user signal buttons (Continue and Cancel).
-        """
-        self.continue_btn.disabled = False
-        self.cancel_btn.disabled = False
-
-    def disable_buttons(self) -> None:
-        """
-        Enable both user signal buttons (Continue and Cancel)
-        """
-        self.continue_btn.disabled = True
-        self.cancel_btn.disabled = True
 
     def log_exception(self, error: Exception, log_file: str = "error.txt") -> None:
         """
@@ -141,20 +81,19 @@ class GUIConsole(BoxLayout):
             return
 
         # Print the error for dev testing
-        Logger.exception(error)
+        self.logger.exception(error)
 
         # Add to log file
-        with open(os.path.join(con.path_logs, log_file), "a", encoding="utf-8") as log:
+        with open(osp.join(con.path_logs, log_file), "a", encoding="utf-8") as log:
             log.write("============================================================================\n")
             log.write(f"> {self.time}\n")
             log.write("============================================================================\n")
             traceback.print_exception(error, file=log)
 
-    def clear(self) -> None:
-        """
-        Clear the console output.
-        """
-        self.output.text = ''
+    @staticmethod
+    def clear() -> None:
+        """Clear the console output."""
+        os.system('cls')
 
     """
     Console Operations
@@ -173,8 +112,7 @@ class GUIConsole(BoxLayout):
         @param end: String to append at the end of the message, adds a newline if not provided.
         """
         # Add message to the output label
-        self.output.text = f"{self.current_output}{msg}{end}"
-        self.ids.viewport.scroll_y = 0
+        print(msg, end=end)
         if exception:
             self.log_exception(exception)
 
@@ -194,7 +132,7 @@ class GUIConsole(BoxLayout):
         @param msg: Message to add to the console output.
         @param exception: Exception to log in /logs/error.txt.
         """
-        with open(os.path.join(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
+        with open(osp.join(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
             log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
         return self.error(thr=thr, msg=msg, exception=exception)
 
@@ -252,22 +190,22 @@ class GUIConsole(BoxLayout):
         # Clear other await procedures, then begin awaiting a user signal
         self.end_await()
         self.update(msg=msg or self.message_waiting, end=end)
-        self.enable_buttons()
-        self.start_await()
+        response = input("[Y / Enter] Continue — [N] Cancel")
+
+        # Signal the choice
+        choice = True if not response or response == 'Y' else False
+        self.signal(choice)
 
         # Cancel the current thread or continue based on user signal
         if thr:
-            self.cancel_thread(thr) if not self.running else self.start_await_cancel(thr)
-        return self.running
+            self.cancel_thread(thr) if not choice else self.start_await_cancel(thr)
+        return choice
 
     def signal(self, choice: bool):
         """
         Signal the user decision to any prompts awaiting a response.
         @param choice: True if continuing, False if canceling.
         """
-        # Ensure buttons can't be spammed
-        self.disable_buttons()
-
         # Continue if True, otherwise False
         self.running = choice
 
@@ -291,7 +229,6 @@ class GUIConsole(BoxLayout):
         @param thr: Event object representing the status of the render thread.
         """
         # Await a signal from the user to cancel the operation
-        self.cancel_btn.disabled = False
         self.start_await()
 
         # Cancel the current thread if running flag set to False
@@ -308,7 +245,7 @@ class GUIConsole(BoxLayout):
         self.waiting = False
 
         # Ensure await is complete before returning
-        with self.lock:
+        with self.await_lock:
             return
 
     def start_await(self) -> None:
@@ -318,10 +255,9 @@ class GUIConsole(BoxLayout):
         self.running = True
 
         # Await can only start if others have finished
-        with self.lock:
+        with self.await_lock:
             while self.waiting:
                 time.sleep(.1)
-        self.disable_buttons()
 
     """
     Thread Management
@@ -344,22 +280,11 @@ class GUIConsole(BoxLayout):
         """
         thr.set()
 
-    """
-    Update Button
-    """
 
-    @staticmethod
-    async def check_for_updates():
-        """Open updater Popup."""
-        Updater = UpdatePopup()
-        Updater.open()
-        await ak.run_in_thread(Updater.check_for_updates, daemon=True)
-        ak.start(Updater.populate_updates())
+# Conditionally import the GUI console
+if not ENV_HEADLESS:
+    from src.gui.console import GUIConsole as Console
+else:
+    Console = TerminalConsole
 
-
-class ConsoleOutput(Label):
-    """Label displaying console output."""
-
-
-class ConsoleControls(BoxLayout):
-    """Layout containing console control."""
+console = Console()
