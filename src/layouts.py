@@ -766,18 +766,39 @@ class AdventureLayout (NormalLayout):
     def card_class(self) -> str:
         return con.adventure_class
 
+    @cached_property
+    def other_face(self) -> dict:
+        return self.scryfall['card_faces'][1]
+
     """
     ADVENTURE PROPERTIES
     """
 
     @cached_property
-    def adventure(self) -> dict:
-        return {
-            'name': self.scryfall['card_faces'][1]['name'],
-            'mana_cost': self.scryfall['card_faces'][1]['mana_cost'],
-            'type_line': self.scryfall['card_faces'][1]['type_line'],
-            'oracle_text': self.scryfall['card_faces'][1]['oracle_text']
-        }
+    def mana_adventure(self) -> str:
+        """Mana cost of the adventure side."""
+        return self.other_face['mana_cost']
+
+    @cached_property
+    def name_adventure(self) -> str:
+        """Name of the Adventure side."""
+        if self.lang != 'EN' and 'printed_name' in self.other_face:
+            return self.other_face.get('printed_name', '')
+        return self.other_face.get('name', '')
+
+    @cached_property
+    def type_line_adventure(self) -> str:
+        """Type line of the Adventure side."""
+        if self.lang != 'EN' and 'printed_type_line' in self.other_face:
+            return self.other_face.get('printed_type_line', '')
+        return self.other_face.get('type_line', '')
+
+    @cached_property
+    def oracle_text_adventure(self) -> str:
+        """Oracle text of the Adventure side."""
+        if self.lang != 'EN' and 'printed_text' in self.other_face:
+            return self.other_face.get('printed_text', '')
+        return self.other_face.get('oracle_text', '')
 
 
 class LevelerLayout (NormalLayout):
