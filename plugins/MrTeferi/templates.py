@@ -9,9 +9,7 @@ from typing import Optional, Callable
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates._core import NormalEssentialsTemplate
-from src.templates._mods import TransformMod
-from src.templates.basic_land import BasicLandTemplate
+from src.templates import NormalEssentialsTemplate, BasicLandTemplate, TransformMod
 from actions import pencilsketch, sketch
 from src.enums.layers import LAYERS
 from src.settings import cfg
@@ -303,4 +301,4 @@ class BasicLandDarkMode (BasicLandTemplate):
 
     def collector_info(self):
         # Collector info only has artist
-        psd.replace_text(psd.getLayer(LAYERS.ARTIST, self.legal_group), "Artist", self.layout.artist)
+        psd.getLayer(LAYERS.ARTIST, self.legal_group).textItem.contents = self.layout.artist

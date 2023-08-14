@@ -9,8 +9,7 @@ from typing import Optional
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates.normal import ExtendedTemplate
-from src.templates._mods import MDFCMod
+from src.templates import ExtendedTemplate, MDFCMod
 from src.enums.layers import LAYERS
 import src.helpers as psd
 
