@@ -80,8 +80,6 @@ class PlanarTemplate (StarterTemplate):
                 ),
             ])
 
-    def paste_scryfall_scan(
-        self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
-    ) -> Optional[ArtLayer]:
-        # Rotate the scan
-        return super().paste_scryfall_scan(reference_layer, True, visible)
+    def paste_scryfall_scan(self, rotate: bool = False, visible: bool = False) -> Optional[ArtLayer]:
+        """Ensure we rotate the scan for Planar cards."""
+        return super().paste_scryfall_scan(rotate=True, visible=visible)
