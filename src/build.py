@@ -1,15 +1,22 @@
 """
-SCRIPT TO BUILD PROXYSHOP AS EXE RELEASE
+* APP BUILD SCRIPT
 """
+# Standard Library
 import os
 import sys
 import zipfile
 from glob import glob
 from pathlib import Path
-from shutil import copy2, copytree, rmtree, move
 import PyInstaller.__main__
+from shutil import (
+    copy2,
+    copytree,
+    rmtree,
+    move
+)
 
-from src.env import ENV_VERSION
+# Local Imports
+from src.utils.env import ENV_VERSION
 
 # Folder definitions
 CWD = os.getcwd()
@@ -74,12 +81,12 @@ def clear_build_files(clear_dist=True):
     if os.path.exists(os.path.join(CWD, '.venv')):
         os.system("pyclean -v .venv")
     try:
-        rmtree(os.path.join(os.getcwd(), 'build'))
+        rmtree(os.path.join(CWD, 'build'))
     except Exception as e:
         print(e)
     if clear_dist:
         try:
-            rmtree(os.path.join(os.getcwd(), 'dist'))
+            rmtree(os.path.join(CWD, 'dist'))
         except Exception as e:
             print(e)
 
@@ -140,11 +147,11 @@ if __name__ == '__main__':
 
     # Console enabled build?
     if '--console' in sys.argv:
-        build_spec = 'Proxyshop-console.spec'
+        build_spec = 'src/spec/Proxyshop-console.spec'
         zip_tag = 'console'
         del sys.argv[1]
     else:
-        build_spec = 'Proxyshop.spec'
+        build_spec = 'src/spec/Proxyshop.spec'
         zip_tag = ''
 
     # Pre-build steps

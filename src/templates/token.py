@@ -63,7 +63,7 @@ class TokenTemplate(StarterTemplate):
             group = LAYERS.NONE
         elif not any(is_multiline([self.layout.oracle_text, self.layout.flavor_text])) and (
             not self.layout.oracle_text or not self.layout.flavor_text
-        ):
+        ) and len(self.layout.rules_text) <= 50:
             # One Line Rules Text
             group = LAYERS.ONE_LINE
         else:
@@ -190,5 +190,10 @@ class TokenTemplate(StarterTemplate):
             self.text_layer_pt.visible = False
 
     def post_text_layers(self) -> None:
-        # Need to vertically center the name after it's been scaled
-        psd.align_vertical(self.text_layer_name, self.name_reference)
+        # Vertically center the name after it's been scaled
+        psd.align_all(self.text_layer_name, self.name_reference)
+
+        # Align the typeline and rules
+        psd.align_horizontal(self.text_layer_type, self.type_line_reference)
+        if self.textbox_reference and self.text_layer_rules:
+            psd.align_horizontal(self.text_layer_rules, self.textbox_reference)

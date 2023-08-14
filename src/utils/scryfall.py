@@ -15,7 +15,7 @@ from backoff import on_exception, expo
 
 # Local Imports
 from src.enums.mtg import BASIC_LANDS, TransformIcons
-from src.env.__console__ import console
+from src.console import console
 from src.settings import cfg
 from src.constants import con
 from src.utils.exceptions import ScryfallError
@@ -112,8 +112,11 @@ def get_card_data(
             # Language couldn't be found
             console.update(msg_warn(f"Reverting to English: [b]{card_name}[/b]"))
 
-    # Query the card in English
+    # Query the card in English, retry with extras if failed
     card = action(*params)
+    if not isinstance(card, dict) and not cfg.scry_extras:
+        card = action(*params, extras=True)
+    # Return valid card or return Exception
     if isinstance(card, dict):
         card['name_normalized'] = name_normalized
         return process_scryfall_data(card)
@@ -200,7 +203,8 @@ def get_card_unique(
 def get_card_search(
     card_name: str,
     card_set: Optional[str] = None,
-    lang: str = 'en'
+    lang: str = 'en',
+    extras: bool = False
 ) -> Union[dict, ScryfallError]:
     """
     Get card using /cards/search Scryfall API endpoint.
@@ -208,6 +212,7 @@ def get_card_search(
     @param card_name: Name of the card, ex: Damnation
     @param card_set: Set code to look for, ex: MH2
     @param lang: Lang code to look for, ex: en
+    @param extras: Forces include_extras if True, otherwise use setting.
     @return: Card dict or ScryfallError
     """
     # Query Scryfall
@@ -218,7 +223,7 @@ def get_card_search(
             'unique': cfg.scry_unique,
             'order': cfg.scry_sorting,
             'dir': 'asc' if cfg.scry_ascending else 'desc',
-            'include_extras': cfg.scry_extras,
+            'include_extras': extras if extras else cfg.scry_extras,
             'q': f'!"{card_name}"'
                  f" lang:{lang}"
                  f"{f' set:{card_set.lower()}' if card_set else ''}"
@@ -362,7 +367,7 @@ def process_scryfall_data(data: dict) -> dict:
         # Figure out if card is a front or a back
         faces = [front[0], back] if (
             data['name_normalized'] == normalize_str(back['name'], True) or
-            normalize_str(front[0]['name']) == data['name_normalized']
+            data['name_normalized'] == normalize_str(front[0]['name'], True)
         ) else [front[1], back]
 
         # Pull JSON data for each face and set object to card_face

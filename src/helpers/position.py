@@ -29,8 +29,8 @@ ALIGNMENT
 
 def align(
     axis: Union[str, list[str], None] = None,
-    layer: Optional[Union[ArtLayer, LayerSet]] = None,
-    reference: Optional[Union[ArtLayer, LayerSet]] = None
+    layer: Union[ArtLayer, LayerSet, None] = None,
+    reference: Union[ArtLayer, LayerSet, dict, None] = None
 ) -> None:
     """
     Align the currently active layer to current selection, vertically or horizontal.
@@ -42,10 +42,8 @@ def align(
     axis = axis or [Dimensions.CenterX, Dimensions.CenterY]
 
     # Get the dimensions of the reference and layer if not provided
-    if not reference:
-        area = reference or get_dimensions_from_bounds(app.activeDocument.selection.bounds)
-    else:
-        area = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    area = get_dimensions_from_bounds(app.activeDocument.selection.bounds) if not reference else (
+        reference if isinstance(reference, dict) else get_layer_dimensions(reference))
     layer = layer or app.activeDocument.activeLayer
     item = get_layer_dimensions(layer)
 
@@ -134,13 +132,21 @@ def position_between_layers(
     @param bottom_layer: Reference layer below the layer to be aligned.
     """
     docref = app.activeDocument
-    docref.selection.select([
-        [0, top_layer.bounds[3]],
-        [docref.width, top_layer.bounds[3]],
-        [docref.width, bottom_layer.bounds[1]],
-        [0, bottom_layer.bounds[1]]
-    ])
-    align_vertical(layer, reference=get_dimensions_from_bounds(docref.selection.bounds))
+    bounds = [0, top_layer.bounds[3], docref.width, bottom_layer.bounds[1]]
+    align_vertical(layer, reference=get_dimensions_from_bounds(bounds))
+
+
+def position_dividers(
+    dividers: list[Union[ArtLayer, LayerSet]],
+    layers: list[Union[ArtLayer, LayerSet]]
+) -> None:
+    """
+    Positions a list of dividers between a list of layers.
+    @param dividers: Divider layers to position, should contain 1 fewer objects than layers param.
+    @param layers: Layers to position the dividers between.
+    """
+    for i in range(len(layers) - 1):
+        position_between_layers(dividers[i], layers[i], layers[i + 1])
 
 
 def spread_layers_over_reference(
@@ -200,8 +206,8 @@ def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, 
 
 
 def frame_layer(
-    layer: ArtLayer,
-    reference: ArtLayer,
+    layer: Union[ArtLayer, LayerSet],
+    reference: Union[ArtLayer, LayerSet, dict],
     smallest: bool = False,
     anchor: AnchorPosition = AnchorPosition.TopLeft,
     alignments: Union[Dimensions, list[Dimensions], None] = None
@@ -216,7 +222,7 @@ def frame_layer(
     """
     # Get layer and reference dimensions
     layer_dim = get_layer_dimensions(layer)
-    ref_dim = get_layer_dimensions(reference)
+    ref_dim = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
 
     # Scale the layer to fit either the largest, or the smallest dimension
     action = min if smallest else max

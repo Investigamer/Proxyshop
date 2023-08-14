@@ -18,19 +18,24 @@ If you need help with this app, join our discord: https://discord.gg/magicproxie
 # Requirements
   * Photoshop (2015-2023 Tested)
   * Windows (currently incompatible with Mac/Linux)
-  * [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
-  * The following fonts (included with the app, in the `fonts` folder):
-    * Beleren Bold, Beleren2016 Bold, Beleren Smallcaps, Plantin MT Pro (Regular, Italics, Bold)
-    * [Keyrune](https://keyrune.andrewgioia.com/) and [Mana](https://mana.andrewgioia.com/) (Only use the Keyrune font provided in this project)
-    * [Relay Medium](https://www.fontsmarket.com/font-download/relay-medium) and [Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium)
-    * Chilli's custom Magic symbols font: NDPMTG
+  * [The Photoshop templates](https://drive.google.com/drive/u/0/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3) (Can be downloaded in the app)
+  * The following fonts (included in `fonts` directory):
+    * **PlantinMTPro** — For rules text, install **all** variants included
+    * **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
+    * **BelerenProxy-Bold** — For Card Name, Typeline, Power/Toughness
+    * **Beleren Smallcaps** — For Artist credit line and miscellaneous
+    * [_Optional_] **MagicTheGathering** — Required by Classic template
+    * [_Optional_] **Matrix-Bold** — Required by Colorshifted template
+    * **[Keyrune](https://keyrune.andrewgioia.com/)** — For expansion symbols, a fork of the original
+    * **[Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium)** — For collector text
+    * **[Mana](https://mana.andrewgioia.com/)** — For additional card symbols
 
 # Setup and Usage Guide (GUI Release)
 * Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
-* Install the fonts included in the `fonts` folder, please note that some fonts change in future releases, mainly the Keyrune font. When upgrading to a new Proxyshop version, make sure to uninstall Keyrune and install the version included in the release.
-* Launch `Proxyshop.exe`. Click "Update". Proxyshop will load templates available to download, grab what you want. You can also download the templates manually from the above Google Drive link and place them in the `templates` folder.
+* Install the fonts included in the `fonts` folder, please note that `Keyrune` and `Proxyglyph` may need to be updated in future releases.
+* Launch `Proxyshop.exe`. Click "Update". Proxyshop will load templates available to download, grab what you want. You can also download templates manually from the above Google Drive link and place them in the `templates` folder.
 * Let's look at how Proxyshop is structured:
-  * The first two tabs splitup the main application which renders real MTG cards, and the custom card creator which allows you to render your own custom cards.
+  * The first two tabs split up the main application which renders real MTG cards, and the custom card creator which allows you to render your own custom cards.
   * The next set of tabs are card types which currently have more than one template available. You can select which template should be used if Proxyshop encounters a card of that type, for example "Womens Day" for normal cards, "Silvan Extended" for MDFC, "Extended" for Planeswalker cards.
   * The Global Settings button will bring up settings to change for the entire app, clicking the Settings button next to a specific template will change the settings for that template explicitly. Please note after clicking this, the settings of that template become decoupled from the Global Settings and will need to be changed here from now on.
 * Hit **Render All** to render every card art in the `art` folder. Hit **Render Target** to render one specific card.
@@ -158,6 +163,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
 </details>
 
 # Credits
+* Our [amazing Patreon supporters](https://www.patreon.com/mpcfill) who literally keep this project going.
 * Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop
 * Additional template and asset support from:
   * SilvanMTG
@@ -175,4 +181,4 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
 * Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api).
 * Wizards of the Coast and all the talented artists who make Magic the Gathering a reality.
 * Countless others who have provided help and other assets to the community that made various features possible.
-* All contributors listed on the Github page for making contributions to the code base.
+* All contributors listed on the GitHub page for making contributions to the code base.

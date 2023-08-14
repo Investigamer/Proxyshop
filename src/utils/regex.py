@@ -40,3 +40,6 @@ class Reg:
     GDOWN_FORM = re.compile(r'id="download-form" action="(.+?)"')
     GDOWN_EXPORT = re.compile(r'href="(/uc\?export=download[^"]+)')
     GDOWN_ERROR = re.compile(r'<p class="uc-error-subcaption">(.*)</p>')
+
+    # Versioning
+    VERSION: re.Pattern = re.compile(r"\b(\d+\.\d+)\b")

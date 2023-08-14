@@ -8,6 +8,8 @@ from typing import Union, Optional
 import unicodedata
 import string
 
+# Local Imports
+from src.utils.objects import classproperty
 
 """
 STRING CLASSES
@@ -31,11 +33,16 @@ class StrEnum(str, Enum, metaclass=StrEnumMeta):
     def value(self) -> str:
         return str(self._value_)
 
+    @classproperty
+    def Default(self) -> str:
+        return "default"
+
 
 class ConsoleMessages(StrEnum):
     error = "#a84747"
     warning = "#d4c53d"
     success = "#59d461"
+    info = "#6bbcfa"
 
 
 """
@@ -87,7 +94,7 @@ CONSOLE COLORS
 
 def msg_bold(msg: str) -> str:
     """
-    Wraps a console string with italics tags.
+    Wraps a console string with a bold tag.
     @param msg: Message to wrap.
     @return: Wrapped message.
     """
@@ -96,7 +103,7 @@ def msg_bold(msg: str) -> str:
 
 def msg_italics(msg: str) -> str:
     """
-    Wraps a console string with italics tags.
+    Wraps a console string with an italics tag.
     @param msg: Message to wrap.
     @return: Wrapped message.
     """
@@ -134,7 +141,16 @@ def msg_success(msg: str) -> str:
     return f'[color={ConsoleMessages.success}]{msg}[/color]'
 
 
-def get_bullet_points(text: list[str], char: str = '—') -> str:
+def msg_info(msg: str) -> str:
+    """
+    Adds unified info color tag to Proxyshop console message.
+    @param msg: String to add tag to.
+    @return: Formatted string.
+    """
+    return f'[color={ConsoleMessages.info}]{msg}[/color]'
+
+
+def get_bullet_points(text: list[str], char: str = '•') -> str:
     """
     Turns a list of strings into a joined string bullet point list.
     @param text: List of strings.

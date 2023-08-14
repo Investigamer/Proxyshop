@@ -2,7 +2,7 @@
 EXCEPTION UTILITIES
 """
 # Standard Library Imports
-from _ctypes import COMError
+from _ctypes import COMError, ArgumentError
 from ctypes import c_uint32
 from typing import Optional
 
@@ -11,7 +11,15 @@ from photoshop.api import PhotoshopPythonAPIError
 from win32api import FormatMessage
 
 PS_EXCEPTIONS = (
-    PhotoshopPythonAPIError, COMError, AttributeError, IndexError, KeyError, ValueError, TypeError, OSError
+    PhotoshopPythonAPIError,
+    ArgumentError,
+    COMError,
+    AttributeError,
+    IndexError,
+    KeyError,
+    ValueError,
+    TypeError,
+    OSError
 )
 
 PS_ERROR_CODES: dict[int: str] = {

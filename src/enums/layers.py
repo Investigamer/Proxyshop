@@ -63,6 +63,7 @@ class LAYERS (StrEnum):
     LAND = "Land"
     GOLD = "Gold"
     VEHICLE = "Vehicle"
+    HYBRID = "Hybrid"
 
     # Frame layer group names
     PT_BOX = "PT Box"
@@ -178,6 +179,13 @@ class LAYERS (StrEnum):
     BANNER = "Banner"
     STRIPE = "Stripe"
 
+    # Class
+    CLASS = "Class"
+    STAGE = "Stage"
+
+    # Token
+    TOKEN = "Token"
+
     # Planeswalker
     FIRST_ABILITY = "First Ability"
     SECOND_ABILITY = "Second Ability"
@@ -220,3 +228,15 @@ class LAYERS (StrEnum):
     RIGHT = "Right"
     BACK = "Back"
     FRONT = "Front"
+
+    # Sizes
+    TALL = "Tall"
+    MEDIUM = "Medium"
+    SHORT = "Short"
+    MINI = "Mini"
+
+    # Frame types
+    BORDERLESS = "Borderless"
+    EXTENDED = "Extended"
+    CLASSIC = "Classic"
+    FULLART = "Fullart"

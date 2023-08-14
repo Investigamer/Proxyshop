@@ -21,11 +21,101 @@
     "default": 0
   },
   {
+    "type": "title",
+    "title": "Text Options"
+  },
+  {
     "type": "bool",
     "title": "[b]Use Nickname[/b]",
     "desc": "When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually.\n[b](Default: False)[/b]",
-    "section": "FRAME",
+    "section": "TEXT",
     "key": "Nickname",
     "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Text Drop Shadow[/b]",
+    "desc": "When enabled, card text will have a drop shadow.\n[b](Default: True)[/b]",
+    "section": "TEXT",
+    "key": "Drop.Shadow",
+    "default": 1
+  },
+  {
+    "type": "title",
+    "title": "Color Options"
+  },
+  {
+    "type": "options",
+    "title": "[b]Max Frame Colors[/b]",
+    "desc": "How many colors can the frame split by before the card just becomes Gold?\n[b](Default: 2)[/b]",
+    "section": "COLORS",
+    "key": "Max.Colors",
+    "options": ["1", "2", "3", "4"],
+    "default": "2"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Colored Hybrid Cards[/b]",
+    "desc": "When enabled, hybrid cards will have blended name plate colors and a colored PT Box.\n[b](Default: True)[/b]",
+    "section": "COLORS",
+    "key": "Hybrid.Colored",
+    "default": 1
+  },
+  {
+    "type": "bool",
+    "title": "[b]Authentic Front Face Colors[/b]",
+    "desc": "When enabled, front face MDFC and Transform cards will have authentic lighter colors.\n[b](Default: True)[/b]",
+    "section": "COLORS",
+    "key": "Front.Face.Colors",
+    "default": 1
+  },
+  {
+    "type": "bool",
+    "title": "[b]Darker Land Colors[/b]",
+    "desc": "When enabled, non-colored Land elements will use a darker brownish color.\n[b](Default: False)[/b]",
+    "section": "COLORS",
+    "key": "Land.Colorshift",
+    "default": 0
+  },
+  {
+    "type": "options",
+    "title": "[b]Artifact Colored Elements[/b]",
+    "desc": "Governs whether Twins (name and type boxes), PT Box, and Textbox have color on colored artifacts.\n[b](Default: Only PT)[/b]",
+    "section": "COLORS",
+    "key": "Artifact.Color.Mode",
+    "options": ["All", "Twins and PT", "Twins", "PT Box", "Textbox", "None"],
+    "default": "Twins and PT"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Multicolor PT[/b]",
+    "desc": "When enabled, the PT Box on multicolor cards will use the last color instead of gold, e.g. URB -> Black.\n[b](Default: False)[/b]",
+    "section": "COLORS",
+    "key": "Multicolor.PT",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Multicolor Twins[/b]",
+    "desc": "When enabled, the Name and Type boxes on multicolor cards will use blended colors instead of Gold.\n[b](Default: False)[/b]",
+    "section": "COLORS",
+    "key": "Multicolor.Twins",
+    "default": 0
+  },
+  {
+    "type": "bool",
+    "title": "[b]Multicolor Textbox[/b]",
+    "desc": "When enabled, the Textbox on multicolor cards will use blended colors instead of Gold.\n[b](Default: True)[/b]",
+    "section": "COLORS",
+    "key": "Multicolor.Textbox",
+    "default": 1
+  },
+  {
+    "type": "bool",
+    "title": "[b]Multicolor Pinlines[/b]",
+    "desc": "When enabled, the Pinlines and Legendary Crown on multicolor cards will use blended colors instead of Gold.\n[b](Default: True)[/b]",
+    "section": "COLORS",
+    "key": "Multicolor.Pinlines",
+    "default": 1
   }
 ]

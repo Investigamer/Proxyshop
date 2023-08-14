@@ -3,42 +3,54 @@ TESTING UTILITY
 For contributors and plugin development.
 """
 # Standard Library Imports
-from time import perf_counter
-from typing import Optional, Union, Callable
+from typing import Optional, Union
 from _ctypes import COMError
-from operator import itemgetter
+from os import path as osp
+import warnings
+import logging
 import json
 
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
 # Third Party Imports
-import colorama
-from colorama import Fore
+from psd_tools import PSDImage
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    ActionList,
     DialogModes
 )
 
 # Local Imports
-from src.constants import con
-from src.helpers.document import points_to_pixels
-from src.helpers.layers import getLayer, getLayerSet, merge_layers
-from src.helpers.masks import copy_layer_mask
+from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
+from src.helpers.document import points_to_pixels
 from src.utils.objects import PhotoshopHandler
+from src.helpers.masks import copy_layer_mask
+from src.helpers import get_layer_dimensions, get_color
+from src.core import get_templates
+from src.constants import con
 
-con.headless = True
-
+# Photoshop infrastructure
 app: PhotoshopHandler = con.app
 cID = app.charIDtoTypeID
 sID = app.stringIDtoTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+# Ignore warnings from the psd_tools module
+logging.getLogger('psd_tools').setLevel(logging.FATAL)
+warnings.filterwarnings("ignore", module='psd_tools')
+
+# Reference Box colors
+ORANGE = [255, 172, 64]
+TANG = [255, 97, 11]
+RED = [192, 55, 38]
+TAN = [245, 235, 210]
+BLACK = [0, 0, 0]
+
 
 """
 TEMPLATE TESTING UTILITIES
@@ -67,7 +79,7 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
 
 
 def make_duals(
-    name="Pinlines & Textbox",
+    name: str = "Pinlines & Textbox",
     mask_top: Optional[str] = "MASK",
     mask_bottom: Optional[str] = None
 ):
@@ -134,87 +146,6 @@ def create_blended_layer(
 
         # Add to the layer list
         layers.append(layer)
-
-
-"""
-EXECUTION TIME TESTING
-"""
-
-
-def test_execution_time(
-    new_func: Callable,
-    old_func: Callable,
-    iterations=1000,
-    args=None,
-    args_old=None,
-    check_result=True,
-    reset_func: Optional[Callable] = None
-) -> None:
-    """
-    Test the execution time of a new function against an older function.
-    @param new_func: New callable function to test.
-    @param old_func: Older callable function to compare against.
-    @param iterations: How many times to run these functions, higher means better sample size.
-    @param args: Args to pass to the newer function, and older function unless specified in args_old.
-    @param args_old: Args to pass to the older function.
-    @param check_result: Whether to check if results match.
-    @param reset_func: Optional function to call to reset app state between actions.
-    """
-    # Test configuration
-    if not args:
-        args = []
-    if not args_old:
-        args_old = args
-    colorama.init(autoreset=True)
-    results: list[dict[str, Union[None, int, float, str, list]]] = [
-        {
-            'value': None,
-            'average': 0,
-            'times': [],
-            'type': 'Newer'
-        },
-        {
-            'value': None,
-            'average': 0,
-            'times': [],
-            'type': 'Older'
-        }
-    ]
-
-    # Test new functionality
-    for i in range(iterations):
-        s = perf_counter()
-        results[0]['value'] = new_func(*args)
-        results[0]['times'].append(perf_counter()-s)
-        if reset_func:
-            reset_func()
-    results[0]['average'] = sum(results[0]['times'])/len(results[0]['times'])
-
-    # Test old functionality
-    for i in range(iterations):
-        s = perf_counter()
-        results[1]['value'] = old_func(*args_old)
-        results[1]['times'].append(perf_counter()-s)
-        if reset_func:
-            reset_func()
-    results[1]['average'] = sum(results[1]['times'])/len(results[1]['times'])
-
-    # Report results
-    for i, res in enumerate(results):
-        print(f"{res['type']} method: {res['average']}")
-
-    # Compare results
-    final = sorted(results, key=itemgetter('average'))
-    slower = final[1]['average']
-    faster = final[0]['average']
-    delta = slower - faster
-    percent = round(delta/((slower + faster)/2) * 100, 2)
-    print(f"{Fore.GREEN}The {final[0]['type']} method is {percent}% faster!")
-    if check_result:
-        print(f"Results check: {Fore.GREEN+'SUCCESS' if final[0]['value'] == final[1]['value'] else Fore.RED+'FAILED'}")
-        if final[0]['value']:
-            print(final[0]['value'])
-            print(final[1]['value'])
 
 
 """
@@ -385,6 +316,23 @@ TEXT FUNCTIONS
 """
 
 
+def apply_single_line_composer(layer: ArtLayer) -> None:
+    """
+    Set the text composer of the layer to 'Single Line Composer'.
+    @param layer: TextLayer to apply the composer to.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    ref1.PutProperty(sID("property"), sID("paragraphStyle"))
+    ref1.putIdentifier(sID("textLayer"), layer.id)
+    desc1.PutReference(sID("target"), ref1)
+    desc2.PutInteger(sID("textOverrideFeatureName"), 808464691)
+    desc2.PutBoolean(sID("textEveryLineComposer"), False)
+    desc1.PutObject(sID("to"), sID("paragraphStyle"), desc2)
+    app.Executeaction(sID("set"), desc1, NO_DIALOG)
+
+
 def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[str] = " "):
     """
     Append the "from_layer" contents to the end of "to_layer" contents with optional separator.
@@ -420,95 +368,155 @@ def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[s
     apply_text_key(to_layer, to_tk)
 
 
-def remove_text_segment(layer: ArtLayer, start: int, end: int) -> None:
-    # Establish our text key and descriptor ID's
-    app.activeDocument.activeLayer = layer
-    key: ActionDescriptor = get_text_key(layer)
-    current_text = key.getString(sID("textKey"))
-    new_text = current_text[0:start:] + current_text[end + 1::]
-    idFrom = sID("from")
-    idTo = sID("to")
+def reset_transform_factor(layer: ArtLayer) -> None:
+    """
+    Reset the transform xx and yy factors of a given layer.
+    @param layer: TextLayer to reset transform factors for.
+    """
+    key = get_text_key(layer)
+    if key.hasKey(sID('transform')):
 
-    # Find the range where target text exists
-    for n in [sID("textStyleRange"), sID("paragraphStyleRange")]:
-        offset = 0
-        style_ranges: list[ActionDescriptor] = []
-        text_range = key.getList(n)
-        logged = {}
-        for i in range(text_range.count):
+        # Check the scale factor
+        desc = key.getObjectValue(sID("transform"))
+        xx = desc.getUnitDoubleValue(sID("xx")) if desc.hasKey(sID("xx")) else 1
+        yy = desc.getUnitDoubleValue(sID("yy")) if desc.hasKey(sID("xx")) else 1
 
-            # Each item in textStyleRange list
-            style = text_range.getObjectValue(i)
+        # Fix the scale factor
+        if xx == 1 and yy == 1:
+            return
+        if xx != 1:
+            desc.putDouble(sID("xx"), 1)
+        if yy != 1:
+            desc.putDouble(sID("yy"), 1)
 
-            # Indexes of this range
-            i_left = style.getInteger(idFrom)
-            i_right = style.getInteger(idTo)
-
-            # Log and adjust identical ranges
-            signature = (i_left, i_right)
-            if signature in logged:
-                if not (action := logged.get(signature)):
-                    # Remove range entirely
-                    continue
-                # Adjust range with logged value
-                style.putInteger(idTo, i_left - action)
-                style.putInteger(idFrom, i_right - action)
-                style_ranges.append(style)
-                continue
-
-            # Adjust range with current offset
-            left = start - offset
-            right = end - offset
-            i_start = i_left - offset
-            i_end = i_right - offset
-
-            # Segment out of left bound
-            if i_end < left:
-                print("Segment OUT OF BOUND - LEFT", i_start, i_end, left, right)
-                logged[signature] = 0
-                style_ranges.append(style)
-                continue
-
-            # Segment out of right bound
-            if i_start > right:
-                print("Segment OUT OF BOUND - RIGHT", i_start, i_end, left, right)
-                logged[signature] = offset
-                style.putInteger(idTo, i_left - offset)
-                style.putInteger(idFrom, i_right - offset)
-                style_ranges.append(style)
-                continue
-
-            # Exclude entire segment, i.e. [[1, 2, 3, 4]]
-            if i_start >= left and i_end <= right:
-                print("Segment EXCLUDED", i_start, i_end, left, right)
-                offset += i_end - i_start + 1
-                logged[signature] = None
-                continue
-
-            # Segment has a partial match
-            if i_start >= left and right <= i_end:
-                # Exclude initial segment, i.e. [[1, 2], 3, 4]
-                offset += right - i_start + 1
-                print("Segment INITIAL", i_start, i_end, left, right)
-            elif i_start < left < i_end <= right:
-                # Exclude trailing segment, i.e. [1, 2, [3, 4]]
-                offset += i_end - left + 1
-                print("Segment TRAILING", i_start, i_end, left, right)
-            elif i_start < left and right < i_end:
-                # Exclude nested segment, i.e. [1, [2, 3, 4], 5, 6, 7]
-                offset += right - left + 1
-                print("Segment NESTED", i_start, i_end, left, right)
-
-            # Make replacement
-            logged[signature] = offset
-            style.putInteger(idTo, i_left - offset)
-            style.putInteger(idFrom, i_right - offset)
-            style_ranges.append(style)
-
-        # Apply changes
-        style_range = ActionList()
-        for r in style_ranges:
-            style_range.putObject(n, r)
-        key.putList(n, style_range)
-        key.putString(sID("textKey"), new_text)
+        # Update the scale factor
+        key.putObject(sID("transform"), sID("transform"), desc)
         apply_text_key(layer, key)
+
+
+"""
+XMP UTILS
+"""
+
+
+def xmp_remove_ancestors() -> None:
+    """Remove DocumentAncestors property from XMP data."""
+    if not app.documents:
+        # No documents open
+        app.alert("There are no open documents. Please open a file to run this script.")
+        return
+
+    # XMP data
+    app.eval_javascript('''
+        if (ExternalObject.AdobeXMPScript == undefined) {
+          ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+        }
+        var xmp = new XMPMeta( activeDocument.xmpMetadata.rawData);  
+        xmp.deleteProperty(XMPConst.NS_PHOTOSHOP, "DocumentAncestors");
+        app.activeDocument.xmpMetadata.rawData = xmp.serialize();
+    ''')
+
+
+"""
+VECTOR SHAPE UTILS
+"""
+
+
+def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
+    layer_name = layer.name
+    color = get_color(color)
+    app.activeDocument.activeLayer = layer
+    select_layer_bounds()
+
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref1.putClass(sID("path"))
+    desc1.putReference(sID("target"), ref1)
+    ref2.putProperty(sID("selectionClass"), sID("selection"))
+    desc1.putReference(sID("from"), ref2)
+    desc1.putUnitDouble(sID("tolerance"), sID("pixelsUnit"), 2.000000)
+    app.executeaction(sID("make"), desc1, NO_DIALOG)
+
+    ref1 = ActionReference()
+    desc1 = ActionDescriptor()
+    desc2 = ActionDescriptor()
+    desc3 = ActionDescriptor()
+    desc4 = ActionDescriptor()
+    ref1.putClass(sID("contentLayer"))
+    desc1.putReference(sID("target"),  ref1)
+    desc4.putDouble(sID("red"), color.rgb.red)
+    desc4.putDouble(sID("green"), color.rgb.green)
+    desc4.putDouble(sID("blue"), color.rgb.blue)
+    desc3.putObject(sID("color"), sID("RGBColor"),  desc4)
+    desc2.putObject(sID("type"), sID("solidColorLayer"),  desc3)
+    desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
+    app.executeaction(sID("make"), desc1,  NO_DIALOG)
+    app.activeDocument.activeLayer.name = layer_name
+
+    # Check dims
+    dims = get_layer_dimensions(layer)
+    dims = (dims['width'], dims['height'])
+    new_dims = get_layer_dimensions(app.activeDocument.activeLayer)
+    new_dims = (new_dims['width'], new_dims['height'])
+    if not dims == new_dims:
+        print("DIMS CHANGED:", layer_name)
+        print("Before:", dims)
+        print("After:", new_dims)
+
+    layer.remove()
+    app.activeDocument.activeLayer.visible = False
+    return app.activeDocument.activeLayer
+
+
+"""
+FONT UTILS
+"""
+
+
+def log_all_template_fonts() -> dict:
+    """Create a log of every font found for each PSD template."""
+
+    def _get_fonts_from_psd(doc_path: str) -> set[str]:
+        """
+        Get a set of every font found in a given Photoshop document.
+        @param doc_path: Path to the Photoshop document.
+        @return: Set of font names found in the document.
+        """
+        psd, fonts = PSDImage.open(doc_path), set()
+        for layer in [n for n in psd.descendants() if n.kind == 'type']:
+            for style in layer.engine_dict['StyleRun']['RunArray']:
+                font_key = style['StyleSheet']['StyleSheetData']['Font']
+                fonts.add(layer.resource_dict['FontSet'][font_key]['Name'])
+        return fonts
+
+    docs = {
+        temp['template_path']: f"{temp['plugin_name'] or 'BASE'} - {temp['layout']} - {temp['name']}"
+        for card_type, templates in get_templates().items()
+        for temp in templates if osp.exists(temp['template_path'])
+    }
+
+    # Track progress
+    doc_fonts, master, current, total = {}, {}, 1, len(docs)
+
+    # Check each document
+    logging.basicConfig(level=logging.INFO)
+    for psd_file, temp_name in docs.items():
+
+        # Alert the user
+        logging.info(f"READING FONTS — {temp_name} [{osp.basename(psd_file)}] [{current}/{total}]")
+        current += 1
+
+        # Open document, get fonts, close document
+        doc_fonts[temp_name] = _get_fonts_from_psd(psd_file)
+
+    # Create master list
+    for doc, font_list in doc_fonts.items():
+        for f in font_list:
+            master.setdefault(str(f), []).append(doc)
+
+    # Log a sorted master list
+    master: dict[str, list] = {k: v for k, v in sorted(master.items(), key=lambda item: len(item[1]))}
+    with open(f'logs/FONTS.json', 'w', encoding='utf-8') as f:
+        json.dump(master, f, indent=2)
+    return master

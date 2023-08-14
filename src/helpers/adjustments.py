@@ -30,16 +30,12 @@ def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
     app.executeAction(sID("vibrance"), desc232, NO_DIALOG)
 
 
-def create_color_layer(
-    color: SolidColor,
-    layer: Union[ArtLayer, LayerSet, None] = None,
-    clipped: bool = True,
-) -> ArtLayer:
+def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
     """
     Create a solid color adjustment layer.
     @param color: Color to use for the layer.
-    @param layer: Layer to make active before creation.
-    @param clipped: Whether to apply as a clipping mask to the nearest layer.
+    @param layer: ArtLayer or LayerSet to make active.
+    @keyword clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
     @return: The new solid color adjustment layer.
     """
     if layer:
@@ -50,7 +46,7 @@ def create_color_layer(
     desc3 = ActionDescriptor()
     ref1.putClass(sID("contentLayer"))
     desc1.putReference(sID("target"), ref1)
-    desc2.putBoolean(sID("group"), clipped)
+    desc2.putBoolean(sID("group"), kwargs.get('clipped', True))
     desc2.putEnumerated(sID("color"), sID("color"), sID("blue"))
     apply_color(desc3, color)
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
@@ -59,16 +55,14 @@ def create_color_layer(
     return app.activeDocument.activeLayer
 
 
-def create_gradient_layer(
-    colors: list[dict],
-    layer: Union[None, ArtLayer, LayerSet] = None,
-    mask: bool = True
-) -> ArtLayer:
+def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
     """
     Create a gradient adjustment layer.
     @param colors: List of gradient color dicts.
     @param layer: ArtLayer or LayerSet to make active.
-    @param mask: Whether to apply as a clipping mask to the nearest layer.
+    @keyword clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
+    @keyword rotation (Union[int, float]): Rotation to apply to the gradient, defaults to 90.
+    @keyword scale (Union[int, float]): Scale to apply to the gradient, defaults to 100.
     @return: The new gradient adjustment layer.
     """
     if layer:
@@ -84,13 +78,15 @@ def create_gradient_layer(
     desc10 = ActionDescriptor()
     ref1.putClass(sID("contentLayer"))
     desc1.putReference(sID("target"),  ref1)
-    desc2.putBoolean(sID("group"), mask)
+    desc2.putBoolean(sID("group"), kwargs.get('clipped', True))
     desc3.putEnumerated(
         sID("gradientsInterpolationMethod"),
         sID("gradientInterpolationMethodType"),
         sID("perceptual")
     )
+    desc3.putUnitDouble(sID("angle"), sID("angleUnit"), kwargs.get('rotation', 0))
     desc3.putEnumerated(sID("type"), sID("gradientType"), sID("linear"))
+    desc3.putUnitDouble(sID("scale"), sID("percentUnit"), kwargs.get('scale', 100))
     desc4.putEnumerated(sID("gradientForm"), sID("gradientForm"), sID("customStops"))
     desc4.putDouble(sID("interfaceIconFrameDimmed"),  4096)
     for c in colors:

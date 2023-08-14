@@ -5,7 +5,7 @@ from threading import Event
 from typing import Union
 
 from src.constants import con
-from src.env.__console__ import console
+from src.console import console
 import photoshop.api as ps
 app = con.app
 cID = app.charIDToTypeID

@@ -19,6 +19,7 @@ import requests
 
 # Local Imports
 from src.constants import con
+from src.utils.env import ENV_API_AMAZON
 from src.utils.files import decompress_file
 from src.utils.regex import Reg
 
@@ -128,7 +129,7 @@ def download_s3(save_path: str, s3_path: str, callback: Optional[Callable] = Non
     @return: True if success, False if failed.
     """
     # Establish this object's cloudfront URL
-    url = f"{con.cloudfront_url}/{s3_path}"
+    url = f"{ENV_API_AMAZON}/{s3_path}"
 
     # Establish session
     sess = requests.session()

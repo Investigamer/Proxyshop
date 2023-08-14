@@ -2,7 +2,7 @@
 TEXT HELPERS
 """
 # Standard Library Imports
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 # Third Party Imports
 from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
@@ -25,7 +25,15 @@ TEXT UTILITIES
 """
 
 
-def get_text_key(layer: ArtLayer) -> ActionDescriptor:
+def get_font_size(layer: ArtLayer) -> float:
+    """
+    Get scale factor adjusted font size of a given text layer.
+    @param layer: Text layer to get size of.
+    """
+    return round(layer.textItem.size * get_text_scale_factor(layer), 2)
+
+
+def get_text_key(layer: ArtLayer) -> Any:
     """
     Get the textKey action reference from a TextLayer.
     @param layer: ArtLayer which must be a TextLayer kind.
@@ -262,12 +270,8 @@ def get_text_scale_factor(
     """
     # Get the textKey if not provided
     if not text_key:
-        # Get the activeLayer if not provided
-        if not layer:
-            layer = app.activeDocument.activeLayer
-        ref = ActionReference()
-        ref.putIdentifier(sID("layer"), layer.id)
-        text_key = app.executeActionGet(ref).getObjectValue(sID('textKey'))
+        # Get text key
+        text_key = get_text_key(layer)
 
     # Check for the "transform" descriptor
     if text_key.hasKey(sID('transform')):
@@ -282,51 +286,64 @@ def get_text_scale_factor(
 
 
 """
-APPLYING TEXT ITEM SIZE
+APPLYING TEXT CHANGES
 """
 
 
-def set_text_size(size: int, layer: Optional[ArtLayer] = None) -> None:
+def set_text_leading(layer: ArtLayer, size: Union[float, int]) -> None:
+    """
+    Manually assign font leading to a layer using action descriptors.
+    @param layer: Layer containing TextItem to change leading of.
+    @param size: New textItem font leading.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    ref1.putProperty(sID("property"), sID("textStyle"))
+    ref1.putIdentifier(sID("textLayer"), layer.id)
+    desc1.putReference(sID("target"), ref1)
+    desc2.putInteger(sID("textOverrideFeatureName"), 808465461)
+    desc2.putInteger(sID("typeStyleOperationType"), 3)
+    desc2.putUnitDouble(sID("leading"), sID("pointsUnit"), size)
+    desc1.putObject(sID("to"), sID("textStyle"), desc2)
+    app.executeaction(sID("set"), desc1, NO_DIALOG)
+
+
+def set_text_size(layer: ArtLayer, size: Union[float, int]) -> None:
     """
     Manually assign font size to a layer using action descriptors.
-    @param layer: Layer containing TextItem
-    @param size: New size of layer
+    @param layer: Layer containing TextItem to change size of.
+    @param size: New textItem font size.
     """
-    # Set the active layer if needed
-    if layer:
-        app.activeDocument.activeLayer = layer
-
     # Set the new size
-    desc2361 = ActionDescriptor()
-    ref68 = ActionReference()
-    desc2362 = ActionDescriptor()
-    ref68.putProperty(sID("property"), sID("textStyle"))
-    ref68.putEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
-    desc2361.putReference(sID("target"), ref68)
-    desc2362.putInteger(sID("textOverrideFeatureName"), 808465458)
-    desc2362.putInteger(sID("typeStyleOperationType"), 3)
-    desc2362.putUnitDouble(sID("size"), sID("pointsUnit"), size)
-    desc2361.putObject(sID("to"), sID("textStyle"), desc2362)
-    app.ExecuteAction(sID("set"), desc2361, NO_DIALOG)
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    ref1.putProperty(sID("property"), sID("textStyle"))
+    ref1.putIdentifier(sID("textLayer"), layer.id)
+    desc1.putReference(sID("target"), ref1)
+    desc2.putInteger(sID("textOverrideFeatureName"), 808465458)
+    desc2.putInteger(sID("typeStyleOperationType"), 3)
+    desc2.putUnitDouble(sID("size"), sID("pointsUnit"), size)
+    desc1.putObject(sID("to"), sID("textStyle"), desc2)
+    app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
 
 
-def update_text_layer_size(
-    layer: ArtLayer,
-    change: float,
-    factor: Optional[float] = None,
-) -> None:
+def set_composer_single_line(layer: ArtLayer) -> None:
     """
-    Sets the text item size while ensuring proper scaling.
-    @param layer: Layer containing TextItem object.
-    @param change: Difference in size (+/-).
-    @param factor: Scale factor of text item.
+    Set text layer to single line composer.
+    @param layer: Layer containing TextItem to set composer for.
     """
-    # Set the active layer if needed
-    if not factor:
-        factor = get_text_scale_factor()
-
-    # Increase the size
-    set_text_size(size=(factor*layer.textItem.size)+change)
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    desc2 = ActionDescriptor()
+    ref1.putProperty(sID("property"), sID("textStyle"))
+    ref1.putIdentifier(sID("textLayer"), layer.id)
+    desc1.putReference(sID("target"), ref1)
+    desc2.PutInteger(sID("textOverrideFeatureName"),  808464691)
+    desc2.PutBoolean(sID("textEveryLineComposer"), False)
+    desc1.PutObject(sID("to"), sID("paragraphStyle"),  desc2)
+    app.Executeaction(sID("set"), desc1,  NO_DIALOG)
 
 
 """

@@ -2,10 +2,12 @@
 TEMPLATES MODULE
 """
 from src.templates._core import *
+from src.templates._vector import *
 from src.templates.normal import *
 from src.templates.planeswalker import *
 from src.templates.basic_land import *
-from src.templates.double_faced import *
+from src.templates.transform import *
+from src.templates.mdfc import *
 from src.templates.adventure import *
 from src.templates.leveler import *
 from src.templates.saga import *

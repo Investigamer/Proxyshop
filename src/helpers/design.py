@@ -187,7 +187,7 @@ def generative_fill() -> None:
     desc3.putBoolean(sID("gi_ENABLE_PROMPT_FILTER"), True)
     desc2.putObject(sID("clio"), sID("clio"), desc3)
     desc1.putObject(sID("serviceOptionsList"), sID("target"), desc2)
-    app.Executeaction(sID("syntheticFill"), desc1, NO_DIALOG)
+    app.executeaction(sID("syntheticFill"), desc1, NO_DIALOG)
 
 
 def repair_edges(edge: int = 6) -> None:

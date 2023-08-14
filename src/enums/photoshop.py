@@ -73,8 +73,6 @@ class Stroke(DescriptorEnum):
         """
         if pos in ['in', 'insetFrame']:
             return Stroke.Inside.value
-        elif pos in ['out', 'outsetFrame']:
-            return Stroke.Outside.value
         elif pos in ['center', 'centeredFrame']:
             return Stroke.Center.value
         return Stroke.Outside.value

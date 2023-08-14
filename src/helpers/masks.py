@@ -11,6 +11,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.constants import con
+from src.helpers.layers import select_layer
 
 # QOL Definitions
 app = con.app
@@ -24,7 +25,7 @@ def copy_layer_mask(
     layer_to: Union[ArtLayer, LayerSet]
 ) -> None:
     """
-    Copies layer mask from one layer to another.
+    Copies mask from one layer to another.
     @param layer_from: Layer to copy from.
     @param layer_to: Layer to copy to.
     """
@@ -41,6 +42,30 @@ def copy_layer_mask(
     app.executeAction(sID("make"), desc1, NO_DIALOG)
 
 
+def copy_vector_mask(
+    layer_from: Union[ArtLayer, LayerSet],
+    layer_to: Union[ArtLayer, LayerSet]
+) -> None:
+    """
+    Copies vector mask from one layer to another.
+    @param layer_from: Layer to copy from.
+    @param layer_to: Layer to copy to.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref3 = ActionReference()
+    ref1.putClass(sID("path"))
+    desc1.putReference(sID("target"),  ref1)
+    ref2.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
+    ref2.putIdentifier(sID("layer"),  layer_to.id)
+    desc1.putReference(sID("at"),  ref2)
+    ref3.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
+    ref3.putIdentifier(sID("layer"), layer_from.id)
+    desc1.putReference(sID("using"),  ref3)
+    app.executeaction(sID("make"), desc1, NO_DIALOG)
+
+
 def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
     """
     Sets the layer mask to apply only to layer effects in blending options.
@@ -55,7 +80,7 @@ def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
     layer_fx.putBoolean(sID("layerMaskAsGlobalMask"), True)
     desc = ActionDescriptor()
     desc.putReference(sID("target"), ref)
-    desc.PutObject(sID("to"), sID("layer"), layer_fx)
+    desc.putObject(sID("to"), sID("layer"), layer_fx)
     app.executeAction(sID("set"), desc,  NO_DIALOG)
 
 
@@ -96,6 +121,21 @@ def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     set_layer_mask(layer, False)
 
 
+def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """
+    Applies a given layer's mask.
+    @param layer: ArtLayer or LayerSet object, use active layer if not provided.
+    """
+    if layer:
+        select_layer(layer)
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    desc1.putReference(sID("target"),  ref1)
+    desc1.putBoolean(sID("apply"), True)
+    app.executeaction(sID("delete"), desc1, NO_DIALOG)
+
+
 def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     """
     Removes a given layer's mask.
@@ -105,8 +145,8 @@ def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
         app.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.PutEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
-    desc1.PutReference(sID("target"), ref1)
+    ref1.putEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
+    desc1.putReference(sID("target"), ref1)
     app.executeAction(sID("delete"), desc1, NO_DIALOG)
 
 

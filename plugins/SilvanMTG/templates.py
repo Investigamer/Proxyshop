@@ -9,18 +9,16 @@ from typing import Optional
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates import ExtendedTemplate, MDFCTemplate
+from src.templates import ExtendedTemplate, MDFCMod
 from src.enums.layers import LAYERS
 import src.helpers as psd
 
 
 class SilvanExtendedTemplate (ExtendedTemplate):
-    """
-    Silvan's legendary extended template used for WillieTanner proxies
-    """
+    """Silvan's legendary extended template used for WillieTanner proxies."""
     template_suffix = "Extended"
 
-    @property
+    @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
 
         # Background
@@ -51,12 +49,12 @@ MDFC TEMPLATES
 """
 
 
-class SilvanMDFCTemplate (MDFCTemplate):
-    """
-    Silvan extended template modified for MDFC
-    """
-    template_suffix = "Extended"
+class SilvanMDFCTemplate (MDFCMod, ExtendedTemplate):
+    """Silvan extended template modified for MDFC cards."""
 
-    @cached_property
-    def is_content_aware_enabled(self):
-        return True
+    def enable_crown(self) -> None:
+        super().enable_crown()
+
+        # Enable pinlines and background mask
+        psd.enable_vector_mask(self.pinlines_layer.parent)
+        psd.enable_vector_mask(self.background_layer.parent)

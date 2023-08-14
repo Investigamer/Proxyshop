@@ -4,10 +4,8 @@ CONSOLE MODULES
 # Standard Library Imports
 import os
 import time
-import logging
 import traceback
 from threading import Thread, Event, Lock
-from traceback import print_tb
 from typing import Optional
 from datetime import datetime as dt
 
@@ -22,20 +20,15 @@ from kivy.logger import Logger
 from src.constants import con
 from src.gui.updater import UpdatePopup
 from src.gui.utils import HoverButton
-from src.settings import cfg, Singleton
+from src.settings import cfg
 
 
-class Console(BoxLayout):
-    """
-    Main console class
-    """
+class GUIConsole(BoxLayout):
+    """GUI console handler layout."""
     Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
-    __metaclass__ = Singleton
     max_lines = 250
     running = True
     waiting = False
-    success = True
-    choice = False
     lock = Lock()
 
     def __init__(self, **kwargs):

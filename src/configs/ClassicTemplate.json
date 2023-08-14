@@ -10,5 +10,13 @@
     "section": "FRAME",
     "key": "Promo.Star",
     "default": "0"
+  },
+  {
+    "type": "bool",
+    "title": "[b]Extended Art[/b]",
+    "desc": "When enabled, card will render as an extended art frame with a faded border.\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Extended.Art",
+    "default": 0
   }
 ]

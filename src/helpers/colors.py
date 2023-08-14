@@ -11,6 +11,7 @@ from photoshop.api._artlayer import ArtLayer
 # Local Imports
 from src.constants import con
 from src.enums.layers import LAYERS
+from src.enums.mtg import pinline_color_map
 
 # QOL Definitions
 app = con.app
@@ -26,7 +27,7 @@ CONVERTING COLOR
 
 def hex_to_rgb(color: str) -> list[int]:
     """
-    Convert a hexadecimal color code into RGB values.
+    Convert a hexadecimal color code into RGB value list.
     @param color: Hexadecimal color code, e.g. #F5D676
     @return: Color in RGB list notation.
     """
@@ -79,6 +80,23 @@ def get_rgb(r: int, g: int, b: int) -> SolidColor:
     return color
 
 
+def get_rgb_from_hex(hex_code: str) -> SolidColor:
+    """
+    Creates an RGB SolidColor object with the given hex value. Allows prepending # or without.
+    @param hex_code: Hexadecimal color code.
+    @return: SolidColor object.
+    """
+    # Remove hashtag
+    hex_code = hex_code[1:] if hex_code.startswith('#') else hex_code
+    # Hexadecimal abbreviated
+    if len(hex_code) == 3:
+        hex_code = "".join([n * 2 for n in hex_code])
+    # Convert to RGB
+    color = SolidColor()
+    color.rgb.hexValue = hex_code
+    return color
+
+
 def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
     """
     Creates a SolidColor object with the given CMYK values.
@@ -119,7 +137,7 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
             if color in con.colors:
                 return get_color(con.colors[color])
             # Hexadecimal
-            return get_rgb(*hex_to_rgb(color))
+            return get_rgb_from_hex(color)
         if isinstance(color, list):
             # List notation
             if len(color) == 3:
@@ -234,7 +252,7 @@ def get_pinline_gradient(
     """
     # Establish the color_map
     if not color_map:
-        color_map = con.pinline_colors
+        color_map = pinline_color_map
 
     # Establish the location map
     if not location_map:

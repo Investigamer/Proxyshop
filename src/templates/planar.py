@@ -22,9 +22,9 @@ class PlanarTemplate (StarterTemplate):
     * Planar template for Planar and Phenomenon cards introduced in the Planechase block.
     """
 
-    def __init__(self, layout: CardLayout):
+    def __init__(self, layout: CardLayout, **kwargs):
         cfg.exit_early = True
-        super().__init__(layout)
+        super().__init__(layout, **kwargs)
 
     @cached_property
     def text_layer_static_ability(self) -> ArtLayer:
@@ -80,8 +80,6 @@ class PlanarTemplate (StarterTemplate):
                 ),
             ])
 
-    def paste_scryfall_scan(
-        self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
-    ) -> Optional[ArtLayer]:
-        # Rotate the scan
-        return super().paste_scryfall_scan(reference_layer, True, visible)
+    def paste_scryfall_scan(self, rotate: bool = False, visible: bool = False) -> Optional[ArtLayer]:
+        """Ensure we rotate the scan for Planar cards."""
+        return super().paste_scryfall_scan(rotate=True, visible=visible)
