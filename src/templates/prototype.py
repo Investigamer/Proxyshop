@@ -3,27 +3,40 @@
 """
 # Standard Library
 from functools import cached_property
-from typing import Optional
+from typing import Optional, Callable
 
 # Third Party Imports
 from photoshop.api.application import ArtLayer
 
 # Local Imports
 from src.templates._core import NormalTemplate
+from src.layouts import PrototypeLayout
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
 from src.settings import cfg
 import src.helpers as psd
 
 
-class PrototypeTemplate (NormalTemplate):
+class PrototypeMod (NormalTemplate):
     """
-    * A template for Prototype cards introduced in The Brothers' War.
+    * A modifier for Prototype cards introduced in The Brothers' War.
 
     Adds:
         * Textbox, manabox, and PT for Prototype casting case.
         * Description, mana cost, and PT text layers for Prototype casting case.
     """
+
+    @cached_property
+    def text_layer_methods(self) -> list[Callable]:
+        """Add Prototype text layers."""
+        funcs = [self.text_layers_prototype] if isinstance(self.layout, PrototypeLayout) else []
+        return [*super().text_layer_methods, *funcs]
+
+    @cached_property
+    def frame_layer_methods(self) -> list[Callable]:
+        """Enable Prototype frame layers."""
+        funcs = [self.frame_layers_prototype] if isinstance(self.layout, PrototypeLayout) else []
+        return [*super().frame_layer_methods, *funcs]
 
     """
     LAYERS
@@ -63,8 +76,8 @@ class PrototypeTemplate (NormalTemplate):
     METHODS
     """
 
-    def basic_text_layers(self):
-        super().basic_text_layers()
+    def text_layers_prototype(self):
+        """Add and modify text layers required by Prototype cards."""
 
         # Add prototype PT and Mana Cost
         self.text.extend([
@@ -89,8 +102,8 @@ class PrototypeTemplate (NormalTemplate):
                 )
             )
 
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
+    def frame_layers_prototype(self):
+        """Enable layers required by Prototype cards."""
 
         # Add prototype layers
         if self.proto_textbox_layer:
@@ -100,3 +113,7 @@ class PrototypeTemplate (NormalTemplate):
             self.proto_manabox_layer.visible = True
         if self.proto_pt_layer:
             self.proto_pt_layer.visible = True
+
+
+class PrototypeTemplate(PrototypeMod, NormalTemplate):
+    """A raster template for Prototype cards introduced in The Brothers' War."""

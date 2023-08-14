@@ -12,7 +12,8 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._core import StarterTemplate
-from src.templates._mods import MDFCMod, TransformMod
+from src.templates.transform import TransformMod
+from src.templates.mdfc import MDFCMod
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
 from src.layouts import PlaneswalkerLayouts
