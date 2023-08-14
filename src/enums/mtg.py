@@ -161,3 +161,5 @@ saga_stripe_color_map = {
     'Land': [55, 47, 41],
     'Dual': [42, 42, 42]
 }
+
+classic_paintbrush = "ýþ"

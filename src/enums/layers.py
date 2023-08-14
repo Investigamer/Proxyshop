@@ -183,6 +183,9 @@ class LAYERS (StrEnum):
     CLASS = "Class"
     STAGE = "Stage"
 
+    # Token
+    TOKEN = "Token"
+
     # Planeswalker
     FIRST_ABILITY = "First Ability"
     SECOND_ABILITY = "Second Ability"
@@ -231,3 +234,9 @@ class LAYERS (StrEnum):
     MEDIUM = "Medium"
     SHORT = "Short"
     MINI = "Mini"
+
+    # Frame types
+    BORDERLESS = "Borderless"
+    EXTENDED = "Extended"
+    CLASSIC = "Classic"
+    FULLART = "Fullart"
