@@ -30,7 +30,8 @@ from src.templates._core import (
     NormalEssentialsTemplate
 )
 from src.templates._vector import VectorTemplate
-from src.templates._mods import VectorTransformMod, VectorMDFCMod
+from src.templates.transform import VectorTransformMod
+from src.templates.mdfc import VectorMDFCMod
 from src.text_layers import (
     TextField,
     ScaledTextField,
@@ -348,16 +349,21 @@ class ClassicTemplate (StarterTemplate):
     """A template for 7th Edition frame. Lacks some of the Normal Template features."""
 
     """
+    DETAILS
+    """
+
+    @cached_property
+    def template_suffix(self) -> str:
+        if self.is_promo_star:
+            return "Promo Classic"
+        return "Classic"
+
+    """
     TOGGLE
     """
 
-    @property
-    def is_type_shifted(self) -> bool:
-        # Color indicator not supported
-        return False
-
     @cached_property
-    def promo_star(self) -> str:
+    def is_promo_star(self) -> str:
         return cfg.get_setting(
             section="FRAME",
             key="Promo.Star",
@@ -365,10 +371,22 @@ class ClassicTemplate (StarterTemplate):
         )
 
     @cached_property
-    def template_suffix(self) -> str:
-        if self.promo_star:
-            return "Promo Classic"
-        return "Classic"
+    def is_extended(self) -> str:
+        return cfg.get_setting(
+            section="FRAME",
+            key="Extended.Art",
+            default=False
+        )
+
+    @cached_property
+    def is_content_aware_enabled(self) -> bool:
+        # Force enable if Extended Art is toggled
+        return True if self.is_extended else super().is_content_aware_enabled
+
+    @property
+    def is_type_shifted(self) -> bool:
+        # Color indicator not supported
+        return False
 
     @cached_property
     def is_fullart(self) -> bool:
@@ -378,12 +396,24 @@ class ClassicTemplate (StarterTemplate):
         return False
 
     """
-    LAYERS and REFERENCES
+    FRAME LAYERS
+    """
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        return psd.getLayer(self.pinlines, LAYERS.LAND if self.is_land else LAYERS.NONLAND)
+
+    """
+    TEXT LAYERS
     """
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.RULES_TEXT, self.text_group)
+
+    """
+    REFERENCES
+    """
 
     @cached_property
     def textbox_reference(self) -> Optional[ArtLayer]:
@@ -400,6 +430,14 @@ class ClassicTemplate (StarterTemplate):
             else LAYERS.EXPANSION_REFERENCE,
             self.text_group
         )
+
+    """
+    MASKS
+    """
+
+    @cached_property
+    def border_mask(self) -> ArtLayer:
+        return psd.getLayer(LAYERS.EXTENDED, LAYERS.MASKS)
 
     """
     METHODS
@@ -425,10 +463,9 @@ class ClassicTemplate (StarterTemplate):
             info.textItem.color = psd.rgb_black()
 
         # Establish the collector data
-        if '/' in self.layout.collector_data:
-            number = self.layout.collector_data[:-2]
-        else:
-            number = self.layout.collector_data[2:]
+        number = self.layout.collector_data[:-2] if (
+            '/' in self.layout.collector_data
+        ) else self.layout.collector_data[2:]
 
         # Apply the collector info
         psd.replace_text(info, "NUM", number)
@@ -464,15 +501,22 @@ class ClassicTemplate (StarterTemplate):
         if self.is_land:
             self.expansion_symbol_layer.translate(0, 8)
 
-        # Simple one image background, Land or Nonland
-        psd.getLayer(
-            self.pinlines,
-            LAYERS.LAND if self.is_land else LAYERS.NONLAND
-        ).visible = True
+        # Simple one image background
+        self.pinlines_layer.visible = True
 
         # Add the promo star
-        if self.promo_star:
+        if self.is_promo_star:
             psd.getLayerSet("Promo Star", LAYERS.TEXT_AND_ICONS).visible = True
+
+        # Make Extended Art modifications
+        if self.is_extended:
+
+            # Copy extended mask to Border
+            psd.copy_layer_mask(self.border_mask, self.border_group)
+
+            # Enable extended mask on Pinlines
+            psd.enable_mask(self.pinlines_layer.parent)
+            psd.enable_vector_mask(self.pinlines_layer.parent)
 
     def hook_large_mana(self) -> None:
         # Adjust mana cost position for large symbols
@@ -556,13 +600,17 @@ class EtchedTemplate (VectorTemplate):
         return []
 
     """
-    METHODS
+    MASKS
     """
 
-    def enable_crown(self) -> None:
-        # Enable pinlines mask
-        super().enable_crown()
-        psd.enable_mask(self.pinlines_group)
+    @cached_property
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        """Enable pinlines mask if card is Legendary."""
+        return [self.pinlines_group] if self.is_legendary else []
+
+    """
+    METHODS
+    """
 
     def enable_hollow_crown(self, **kwargs) -> None:
         # Doesn't support hollow crown
@@ -582,7 +630,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
 
     @cached_property
     def color_limit(self) -> int:
-        # Built in setting, dual and triple color frame limit allowable
+        """Supports 2 and 3 color limit setting."""
         return int(cfg.get_setting("FRAME", "Max.Colors", "3", is_bool=False)) + 1
 
     @cached_property
@@ -592,7 +640,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
 
     @cached_property
     def background(self) -> str:
-        # Disallow vehicle backgrounds
+        """Disallow Vehicle backgrounds."""
         if self.layout.background == LAYERS.VEHICLE:
             return LAYERS.ARTIFACT
         return self.layout.background
@@ -603,7 +651,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
 
     @property
     def is_name_shifted(self) -> bool:
-        # No transform icon support
+        """No Transform icon support."""
         return False
 
     """
@@ -709,6 +757,10 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         layer = psd.getLayer(name, LAYERS.PT_BOX)
         layer.parent.visible = True
         return layer
+
+    """
+    MASKS
+    """
 
     @cached_property
     def mask_layers(self) -> list[ArtLayer]:
@@ -851,11 +903,15 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
     """
 
     @cached_property
-    def pinlines_mask(self) -> Optional[ArtLayer]:
-        # This layer contains the mask for the correct pinlines
-        if self.is_transform and self.is_front:
-            return psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.mask_group, LAYERS.PINLINES])
-        return psd.getLayer(LAYERS.NORMAL, [self.mask_group, LAYERS.PINLINES])
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        """Masks enabled or copied."""
+        return [
+            # Pinlines mask, supports Transform Front
+            [psd.getLayer(
+                LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
+                [self.mask_group, LAYERS.PINLINES]
+            ), self.pinlines_group]
+        ]
 
     """
     SHAPES
@@ -881,9 +937,6 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
             psd.set_fill_opacity(60, self.twins_group)
             psd.set_fill_opacity(60, self.textbox_group)
 
-        # Add mask to pinlines
-        psd.copy_layer_mask(self.pinlines_mask, self.pinlines_group)
-
     def enable_crown(self) -> None:
 
         # Generate a solid color or gradient layer for the crown group
@@ -900,7 +953,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
     def enable_transform_layers_back(self) -> None:
         super().enable_transform_layers_back()
 
-        # Enable darker mask on back face layers
+        # Enable brightness shift on back face layers
         psd.getLayerSet(LAYERS.BACK, self.pt_group).visible = True
         psd.getLayerSet(LAYERS.BACK, self.twins_group).visible = True
         psd.getLayer(LAYERS.BACK, self.textbox_group).visible = True
@@ -977,10 +1030,24 @@ class LOTRTemplate (VectorTemplate):
         return groups
 
     """
+    MASKS
+    """
+
+    @cached_property
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        # Mask Pinlines if Legendary
+        if self.is_legendary:
+            return [self.pinlines_group]
+        return []
+
+    """
     METHODS
     """
 
     def enable_frame_layers(self) -> None:
+
+        # Enable layer masks
+        self.enable_layer_masks()
 
         # Generate a solid color or gradient layer for PT Box
         if self.is_creature and self.pt_group:
@@ -1018,7 +1085,6 @@ class LOTRTemplate (VectorTemplate):
         # Legendary crown
         if self.is_legendary:
             self.crown_group.visible = True
-            psd.enable_mask(self.pinlines_group)
 
 
 class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplate):
@@ -1084,7 +1150,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return bool(cfg.get_setting(
             section="TEXT",
             key="Drop.Shadow",
-            default=False))
+            default=True))
 
     @cached_property
     def multicolor_textbox(self) -> bool:
@@ -1140,7 +1206,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return bool(cfg.get_setting(
             section="COLORS",
             key="Land.Colorshift",
-            default=True))
+            default=False))
 
     @cached_property
     def artifact_color_mode(self) -> str:
@@ -1564,25 +1630,65 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     """
 
     @cached_property
-    def border_mask(self) -> Optional[ArtLayer]:
+    def border_mask(self) -> Optional[list]:
         """Support border mask for Textless and front face Transform modifications."""
         if self.is_textless:
-            return psd.getLayer(LAYERS.TEXTLESS, [self.mask_group, LAYERS.BORDER])
+            return [psd.getLayer(LAYERS.TEXTLESS, [self.mask_group, LAYERS.BORDER]), self.border_group]
         if self.is_transform and self.is_front:
-            return psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.mask_group, LAYERS.BORDER])
+            return [psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.mask_group, LAYERS.BORDER]), self.border_group]
         return
 
     @cached_property
-    def pinlines_mask(self) -> Optional[ArtLayer]:
+    def pinlines_mask(self) -> dict:
         """Use pre-calculated frame type to find pinlines mask. This mask hides overlapping layer effects."""
-        return psd.getLayer(self.frame_type, [self.mask_group, LAYERS.PINLINES])
+        return {
+            'mask': psd.getLayer(self.frame_type, [self.mask_group, LAYERS.PINLINES]),
+            'layer': self.pinlines_group,
+            'funcs': [psd.apply_mask_to_layer_fx]
+        }
 
     @cached_property
-    def textbox_reference_mask(self) -> Optional[ArtLayer]:
+    def pinlines_vector_mask(self) -> Optional[dict]:
+        """Enable the pinlines vector mask if card is Legendary. """
+        if not self.is_legendary:
+            return
+        return {
+            'mask': self.pinlines_group,
+            'vector': True
+        }
+
+    @cached_property
+    def crown_mask(self) -> Optional[dict]:
+        """Copy the pinlines mask to Legendary crown if card is Legendary."""
+        if not self.is_legendary:
+            return
+        return {
+            'mask': self.pinlines_mask['mask'],
+            'layer': self.crown_group.parent,
+            'funcs': [psd.apply_mask_to_layer_fx]
+        }
+
+    @cached_property
+    def textbox_reference_mask(self) -> Optional[dict]:
         """Mask used to resize the textbox reference."""
-        if self.is_mdfc:
-            return psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE])
-        return
+        if not self.is_mdfc:
+            return
+        return {
+            'mask': psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
+            'layer': self.textbox_reference,
+            'funcs': [psd.apply_mask]
+        }
+
+    @cached_property
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        """Masks that should be copied or enabled."""
+        return [
+            self.crown_mask,
+            self.border_mask,
+            self.pinlines_mask,
+            self.pinlines_vector_mask,
+            self.textbox_reference_mask
+        ]
 
     """
     EFFECTS
@@ -1600,6 +1706,9 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
 
         # Enable vector shapes
         self.enable_shape_layers()
+
+        # Enable layer masks
+        self.enable_layer_masks()
 
         # PT Box -> Solid color layer
         if self.is_pt_enabled:
@@ -1620,10 +1729,6 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             group.visible = True
             self.pinlines_action(self.pinlines_colors, layer=group)
 
-        # Apply mask to pinlines FX
-        psd.copy_layer_mask(self.pinlines_mask, self.pinlines_group)
-        psd.apply_mask_to_layer_fx(self.pinlines_group)
-
         # Twins -> Solid color or gradient layer
         if self.twins_group:
             self.twins_action(self.twins_colors, layer=self.twins_group)
@@ -1634,16 +1739,11 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
 
         # Nickname -> Solid color or gradient layer
         if self.is_nickname:
-            self.nickname_shape.visible = True
             self.twins_action(self.twins_colors, layer=self.nickname_group)
 
         # Enable Token shadow
         if self.is_token:
-            psd.getLayer('Token', self.text_group).visible = True
-
-        # Enable border mask
-        if self.border_mask:
-            psd.copy_layer_mask(self.border_mask, self.border_group)
+            psd.getLayer(LAYERS.TOKEN, self.text_group).visible = True
 
         # Legendary crown
         if self.is_legendary:
@@ -1710,9 +1810,6 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         # Enable Legendary Crown group and layers
         self.crown_group.visible = True
         self.pinlines_action(self.crown_colors, layer=self.crown_group)
-        psd.enable_vector_mask(self.pinlines_group)
-        psd.copy_layer_mask(self.pinlines_mask, self.crown_group.parent)
-        psd.apply_mask_to_layer_fx(self.crown_group.parent)
 
         # Change to nickname effects if needed
         if self.is_nickname:
@@ -1769,11 +1866,6 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     TRANSFORM METHODS
     """
 
-    def enable_transform_layers_front(self) -> None:
-
-        # No front side changes
-        pass
-
     def text_layers_transform_front(self) -> None:
         super().text_layers_transform_front()
 
@@ -1799,17 +1891,6 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         # Switch to black text
         if self.is_authentic_front:
             self.swap_font_color()
-
-    def enable_mdfc_layers(self):
-
-        # Resize the textbox reference
-        psd.copy_layer_mask(self.textbox_reference_mask, self.textbox_reference)
-        psd.select_layer(self.textbox_reference)
-        psd.apply_mask()
-
-        # Enable MDFC group
-        self.dfc_group.visible = True
-        super().enable_mdfc_layers()
 
     """
     UTILITY METHODS
