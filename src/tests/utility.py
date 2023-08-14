@@ -6,7 +6,6 @@ For contributors and plugin development.
 from typing import Optional, Union
 from _ctypes import COMError
 from os import path as osp
-from pprint import pprint
 import warnings
 import logging
 import json
@@ -15,13 +14,13 @@ import json
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
 
 # Third Party Imports
+from psd_tools import PSDImage
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    ActionList,
     DialogModes
 )
 
@@ -29,7 +28,6 @@ from photoshop.api import (
 from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
 from src.helpers.document import points_to_pixels
-from src.utils.fonts import get_fonts_from_psd
 from src.utils.objects import PhotoshopHandler
 from src.helpers.masks import copy_layer_mask
 from src.helpers import get_layer_dimensions, get_color
@@ -478,6 +476,20 @@ FONT UTILS
 
 def log_all_template_fonts() -> dict:
     """Create a log of every font found for each PSD template."""
+
+    def _get_fonts_from_psd(doc_path: str) -> set[str]:
+        """
+        Get a set of every font found in a given Photoshop document.
+        @param doc_path: Path to the Photoshop document.
+        @return: Set of font names found in the document.
+        """
+        psd, fonts = PSDImage.open(doc_path), set()
+        for layer in [n for n in psd.descendants() if n.kind == 'type']:
+            for style in layer.engine_dict['StyleRun']['RunArray']:
+                font_key = style['StyleSheet']['StyleSheetData']['Font']
+                fonts.add(layer.resource_dict['FontSet'][font_key]['Name'])
+        return fonts
+
     docs = {
         temp['template_path']: f"{temp['plugin_name'] or 'BASE'} - {temp['layout']} - {temp['name']}"
         for card_type, templates in get_templates().items()
@@ -496,11 +508,11 @@ def log_all_template_fonts() -> dict:
         current += 1
 
         # Open document, get fonts, close document
-        doc_fonts[temp_name] = get_fonts_from_psd(psd_file)
+        doc_fonts[temp_name] = _get_fonts_from_psd(psd_file)
 
     # Create master list
-    for doc, fonts in doc_fonts.items():
-        for f in fonts:
+    for doc, font_list in doc_fonts.items():
+        for f in font_list:
             master.setdefault(str(f), []).append(doc)
 
     # Log a sorted master list

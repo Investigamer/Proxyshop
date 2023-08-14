@@ -12,7 +12,6 @@ from typing import Optional, TypedDict
 # Third Party Imports
 from photoshop.api.enumerations import LayerKind
 from packaging.version import parse
-from psd_tools import PSDImage
 from fontTools import ttLib
 
 # Local Imports
@@ -132,20 +131,6 @@ def get_document_fonts(
     # Make additional calls for nested groups
     for group in container.layerSets:
         fonts = get_document_fonts(group, fonts, ps_fonts=ps_fonts)
-    return fonts
-
-
-def get_fonts_from_psd(doc_path: str) -> set[str]:
-    """
-    Get a set of every font found in a given Photoshop document.
-    @param doc_path: Path to the Photoshop document.
-    @return: Set of font names found in the document.
-    """
-    psd, fonts = PSDImage.open(doc_path), set()
-    for layer in [n for n in psd.descendants() if n.kind == 'type']:
-        for style in layer.engine_dict['StyleRun']['RunArray']:
-            font_key = style['StyleSheet']['StyleSheetData']['Font']
-            fonts.add(layer.resource_dict['FontSet'][font_key]['Name'])
     return fonts
 
 
