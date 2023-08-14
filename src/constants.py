@@ -108,10 +108,13 @@ class Constants:
             "{G/U/P}": "Qqyz",
             "{U/R/P}": "Qqyz",
             "{R/W/P}": "Qqyz",
-            "{A}": "oj",
+            "{A}": "oi",
             "{E}": "e",
             "{T}": "ot",
             "{X}": "ox",
+            "{Y}": "oY",
+            "{Z}": "oZ",
+            "{∞}": "o∞",
             "{0}": "o0",
             "{1}": "o1",
             "{2}": "o2",
@@ -129,6 +132,9 @@ class Constants:
             "{14}": "oE",
             "{15}": "oF",
             "{16}": "oG",
+            "{17}": "oÅ",
+            "{18}": "oÆ",
+            "{19}": "oÃ",
             "{20}": "oK",
             "{W}": "ow",
             "{U}": "ou",
@@ -267,12 +273,12 @@ class Constants:
         self.set_symbol_fallback = ""
 
         # Font names
-        self.font_mana = "NDPMTG"
+        self.font_mana = "Proxyglyph"
         self.font_rules_text = "PlantinMTPro-Regular"
         self.font_rules_text_bold = "PlantinMTPro-Bold"
         self.font_rules_text_italic = "PlantinMTPro-Italic"
-        self.font_subtext = "Beleren Small Caps Bold"
-        self.font_collector = "Relay-Medium"
+        self.font_subtext = "BelerenSmallCaps-Bold"
+        self.font_collector = "Gotham-Medium"
 
         # Text Layer formatting
         self.modal_indent = 5.7
