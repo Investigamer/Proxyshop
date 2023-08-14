@@ -3,13 +3,17 @@ FILE UTILITIES
 """
 # Standard Library Imports
 import json
+import logging
 import os
 import shutil
+import subprocess
 from glob import glob
 from configparser import ConfigParser
 from os import path as osp, makedirs
 from os import remove
 from pathlib import Path
+from time import perf_counter
+from typing import Optional
 
 # Third Party Imports
 from tqdm import tqdm
@@ -17,6 +21,49 @@ import py7zr
 
 # Local Imports
 from src.utils.testing import time_function
+from src.utils.strings import StrEnum
+
+
+class WordSize(StrEnum):
+    """Word Size for 7z compression."""
+    WS16 = "16"
+    WS24 = "24"
+    WS32 = "32"
+    WS48 = "48"
+    WS64 = "64"
+    WS96 = "96"
+    WS128 = "128"
+
+
+class DictionarySize:
+    """Dictionary Size for 7z compression."""
+    DS32 = "32"
+    DS48 = "48"
+    DS64 = "64"
+    DS96 = "96"
+    DS128 = "128"
+    DS192 = "192"
+    DS256 = "256"
+    DS384 = "384"
+    DS512 = "512"
+    DS768 = "768"
+    DS1024 = "1024"
+    DS1536 = "1536"
+
+
+"""
+FILE INFO UTILITIES
+"""
+
+
+def get_file_size_mb(file_path: str, decimal: int = 1) -> float:
+    """
+    Get a file's size in megabytes rounded.
+    @param file_path: Path to the file.
+    @param decimal: Number of decimal places to allow when rounding.
+    @return: Float representing the filesize in megabytes rounded..
+    """
+    return round(os.path.getsize(file_path) / (1024 * 1024), decimal)
 
 
 """
@@ -158,31 +205,73 @@ def get_unique_filename(path: str, name: str, ext: str, suffix: str):
 
 
 """
-COMPRESSION
+ARCHIVE COMPRESSION
 """
 
 
-def compress_file(file_path: str, output_dir: str):
+def compress_file(file_path: str, output_dir: str) -> bool:
+    """
+    Compress a target file and save it as a 7z archive to the output directory.
+    @param file_path: File to compress.
+    @param output_dir: Directory to save archive to.
+    @return: True if compression succeeded, otherwise False.
+    """
     # Define the output file path
     filename = osp.basename(file_path).replace('.psd', '.7z')
     out_file = osp.join(output_dir, filename)
-
-    # Set up the 7z compression settings
-    compression = py7zr.SevenZipFile(out_file, 'w', filters=[{"id": py7zr.FILTER_LZMA2, "preset": 9}])
+    null_device = open(os.devnull, 'w')
 
     # Compress the file
-    compression.write(file_path, osp.basename(file_path))
-    compression.close()
+    try:
+        subprocess.run([
+                "7z", "a", "-t7z", "-m0=LZMA", "-mx=9",
+                f"-md={DictionarySize.DS96}M",
+                f"-mfb={WordSize.WS24}",
+                out_file, file_path
+            ], stdout=null_device, stderr=null_device)
+    except Exception as e:
+        logging.error("An error occurred compressing file!", exc_info=e)
+        return False
+    return True
 
 
-@time_function
-def decompress_file(file_path: str):
-    with py7zr.SevenZipFile(file_path, 'r') as archive:
-        archive.extractall(path=osp.dirname(file_path))
-    os.remove(file_path)
+def compress_template(
+    file_name: str,
+    plugin: Optional[str] = None,
+    word_size: WordSize = WordSize.WS16,
+    dict_size: DictionarySize = DictionarySize.DS1536
+):
+    """
+    Compress a given template from an optional given plugin.
+    @param file_name: Template PSD/PSB file name.
+    @param plugin: Plugin containing the template, assume a base template if not provided.
+    @param word_size: Word size value to use for the compression.
+    @param dict_size: Dictionary size value to use for the compression.
+    @return:
+    """
+    # Build the template path
+    from_dir = osp.join(os.getcwd(), f'plugins\\{plugin}\\templates' if plugin else 'templates')
+    to_dir = osp.join(os.getcwd(), f'plugins\\{plugin}\\templates\\compressed' if plugin else 'templates\\compressed')
+    from_file = osp.join(from_dir, file_name)
+    to_file = osp.join(to_dir, file_name.replace('.psd', '.7z').replace('.psb', '.7z'))
+    null_device = open(os.devnull, 'w')
+
+    # Compress the file
+    s = perf_counter()
+    try:
+        subprocess.run(
+            ["7z", "a", "-t7z", "-m0=LZMA", "-mx=9", f"-md={dict_size}M", f"-mfb={word_size}", to_file, from_file],
+            stdout=null_device, stderr=null_device)
+    except Exception as e:
+        logging.error("An error occurred compressing file!", exc_info=e)
+    return get_file_size_mb(to_file), perf_counter()-s
 
 
-def compress_all(directory: str):
+def compress_all(directory: str) -> None:
+    """
+    Compress all PSD files in a directory.
+    @param directory: Directory containing PSD files to compress.
+    """
     # Create "compressed" subdirectory if it doesn't exist
     output_dir = osp.join(directory, 'compressed')
     makedirs(output_dir, exist_ok=True)
@@ -198,17 +287,16 @@ def compress_all(directory: str):
             pbar.update()
 
 
-def compress_target(directory: str, targets: list[str]):
-    # Create "compressed" subdirectory if it doesn't exist
-    output_dir = osp.join(directory, 'compressed')
-    makedirs(output_dir, exist_ok=True)
+"""
+ARCHIVE DECOMPRESSION
+"""
 
-    # Get a list of all target files
-    files = [osp.join(directory, t) for t in targets]
 
-    with tqdm(total=len(files), desc="Compressing files", unit="file") as pbar:
-        # Compress each file
-        for f in files:
-            pbar.set_description(os.path.basename(f))
-            compress_file(f, output_dir)
-            pbar.update()
+def decompress_file(file_path: str) -> None:
+    """
+    Decompress target 7z archive.
+    @param file_path: Path to the 7z archive.
+    """
+    with py7zr.SevenZipFile(file_path, 'r') as archive:
+        archive.extractall(path=osp.dirname(file_path))
+    os.remove(file_path)
