@@ -20,6 +20,7 @@ from src.enums.mtg import (
 import src.helpers as psd
 from src.enums.layers import LAYERS
 from src.templates import NormalTemplate
+from src.utils.types_photoshop import LayerObject
 
 
 class VectorTemplate (NormalTemplate):
@@ -231,7 +232,7 @@ class VectorTemplate (NormalTemplate):
         ]
 
     """
-    MASKS
+    BLENDING MASKS
     """
 
     @cached_property
@@ -274,6 +275,23 @@ class VectorTemplate (NormalTemplate):
     def twins_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend background layers. Defaults to mask_layers."""
         return self.mask_layers
+
+    """
+    MASKS
+    """
+
+    @cached_property
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        """
+        Masks that should be copied or enabled during the `enable_layer_masks` step. Not utilized by default.
+
+        @return:
+            - dict: Advanced mask notation, contains "from" and "to" layers and other optional parameters.
+            - list: Contains layer to copy from, layer to copy to.
+            - ArtLayer | LayerSet: Layer object to enable a mask on.
+            - None: Skip this mask.
+        """
+        return []
 
     """
     UTILITY METHODS
@@ -352,9 +370,13 @@ class VectorTemplate (NormalTemplate):
     """
 
     def enable_frame_layers(self) -> None:
+        """Build the card frame by enabling and/or creating various layer."""
 
         # Enable vector shapes
         self.enable_shape_layers()
+
+        # Enable layer masks
+        self.enable_layer_masks()
 
         # PT Box -> Single static layer
         if self.is_creature and self.pt_layer:
@@ -398,13 +420,42 @@ class VectorTemplate (NormalTemplate):
             self.enable_crown()
 
     def enable_shape_layers(self) -> None:
+        """Enable required vector shape layers."""
 
         # Enable each shape
         for shape in self.enabled_shapes:
             if shape:
                 shape.visible = True
 
+    def enable_layer_masks(self) -> None:
+        """Enable or copy required layer masks."""
+
+        # For each mask enabled, apply it based on given notation
+        for mask in [m for m in self.enabled_masks if m]:
+            # Dict notation, complex mask behavior
+            if isinstance(mask, dict):
+                # Copy to a layer?
+                if layer := mask.get('layer'):
+                    # Copy normal or vector mask to layer
+                    func = psd.copy_vector_mask if mask.get('vector') else psd.copy_layer_mask
+                    func(mask.get('mask'), layer)
+                else:
+                    # Enable normal or vector mask
+                    layer = mask.get('mask')
+                    func = psd.enable_vector_mask if mask.get('vector') else psd.enable_mask
+                    func(layer)
+
+                # Apply extra functions
+                [f(layer) for f in mask.get('funcs', [])]
+            # List notation, copy from one layer to another
+            elif isinstance(mask, list):
+                psd.copy_layer_mask(*mask)
+            # Single layer to enable mask on
+            elif isinstance(mask, LayerObject):
+                psd.enable_mask(mask)
+
     def enable_crown(self) -> None:
+        """Enable the Legendary crown, only called if card is Legendary."""
 
         # Enable Legendary Crown group and layers
         self.crown_group.visible = True
@@ -422,7 +473,7 @@ class VectorTemplate (NormalTemplate):
 
     def enable_hollow_crown(self, **kwargs) -> None:
         """
-        Enable the Hollow Crown within the Legendary Crown.
+        Enable the Hollow Crown within the Legendary Crown, only called if card is Legendary Nyx or Companion.
         @keyword masks (list[ArtLayer, LayerSet]): List of layers containing masks to enable.
         @keyword vector_masks (list[ArtLayer, LayerSet]): List of layers containing vector masks to enable.
         """
