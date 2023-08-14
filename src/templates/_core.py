@@ -587,38 +587,30 @@ class BaseTemplate:
             action = psd.generative_fill_edges if cfg.generative_fill else psd.content_aware_fill_edges
             action(self.art_layer)
 
-    def paste_scryfall_scan(
-        self, reference_layer: Optional[ArtLayer] = None, rotate: bool = False, visible: bool = False
-    ) -> Optional[ArtLayer]:
+    def paste_scryfall_scan(self, rotate: bool = False, visible: bool = True) -> Optional[ArtLayer]:
         """
         Downloads the card's scryfall scan, pastes it into the document next to the active layer,
         and frames it to fill the given reference layer.
-        @param reference_layer: Reference to frame the scan within.
         @param rotate: Will rotate the card horizontally if True, useful for Planar cards.
         @param visible: Whether to leave the layer visible or hide it.
         """
-        # Check for a valid reference layer
-        if not reference_layer:
-            reference_layer = psd.getLayer(LAYERS.SCRYFALL_SCAN_FRAME)
-
         # Try to grab the scan from Scryfall
-        scryfall_scan = card_scan(self.layout.scryfall_scan)
-        if not scryfall_scan:
+        if not (scryfall_scan := card_scan(self.layout.scryfall_scan)):
             return
 
-        # Try to paste the scan into a new layer
+        # Paste the scan into a new layer
         if layer := psd.import_art_into_new_layer(scryfall_scan, "Scryfall Reference"):
-            # Should we rotate the layer?
+            # Rotate the layer if necessary
             if rotate:
                 layer.rotate(90)
+
             # Frame the layer and position it above the art layer
-            psd.frame_layer(layer, reference_layer)
+            bleed = int(self.docref.resolution / 8)
+            bounds = [bleed, bleed, self.docref.width - bleed, self.docref.height - bleed]
+            psd.frame_layer(layer, psd.get_dimensions_from_bounds(bounds))
             layer.move(self.art_layer, ElementPlacement.PlaceBefore)
-            # Should we hide the layer?
-            if not visible:
-                layer.visible = False
+            layer.visible = visible
             return layer
-        return
 
     """
     COLLECTOR INFO
