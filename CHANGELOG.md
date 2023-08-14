@@ -1,3 +1,87 @@
+## v1.11.0 (2023-08-14)
+
+### Feat
+
+- **paste_scryfall_scan**: When scryfall scan is enabled in settings we will now use bleed edge to correctly position the art instead of a reference box
+- **ClassicTemplate**: Add support for Extended Art setting, fix broken Promo Star setting
+- **fonts**: Additional step during startup font check that detects outdated fonts
+- **Borderless**: New settings: Artifact color mode, enable/disable drop shadow text, dark/light toggle for land color, dark/light toggle for front face DFC cards, color treatment toggle for Hybrid cards, color limit mode ranging from 1 to 5, and piecemeal toggle for various multicolor elements
+- **leveler**: Leveler template now supports automatic ability text sizing and positioning
+- **BaseTemplate**: Add properties: frame_layer_methods, text_layer_methods, and general_methods. These act as lists where you can inject methods that should be run at various stages of the render sequence
+- **gui**: Add step to the launch diagnostic that checks if a new version is released
+- **settings**: Added support for colorpicker settings in plugin Templates
+- **Class**: Brand new and improved Class template, uses the same PSD as the updated Saga template, also supports Universes Beyond treatment
+- **Saga**: Brand new and improved Saga template using vector layers, supports both side Transform and a Universes Beyond treatment as well
+- **templates**: Introduced "Mod" templates, reusable template classes that act as modifiers to add piecemeal functionality such as Transform layers, or MDFC layers
+
+### Fix
+
+- **BorderlessVectorTemplate**: Fix a bug affecting token cards in custom creator and textless renders
+- **BasicLandDarkMode**: Artist info now filled properly
+- **adventure**: Update adventure layout data for alternate language, split AdventureTemplate and AdventureMod
+- **planeswalker**: Fix alternate language processing logic
+- **scryfall**: Prevent infinite retry loop
+- **basic_land**: Additional fixes for alternate languages
+- **scryfall**: Fix a bug affecting some Planar cards (they count as "extras"), fix a bug that returns the wrong face for meld cards
+- **text_layers**: Prevent a bug that can ruin flavor divider positioning, fix a bug that occurs when both flavor and oracle text are missing
+- **basic_land**: Fix alternate language bug with Basic Land templates
+- **plugins/MrTeferi**: Prevent sketch action from running in test mode, fix Crimson fang issues, shift Transform behavior to using modifier class
+- **SilvanExtendedTemplate**: Fix legendary crowns causing a crash for Colorless cards
+- **split**: Fix typo that caused split template to break
+- **svg**: Fixed SVG expansion symbols: M15, AFR
+- **ClassicRemasteredTemplate**: Rewrote duplicate setting description
+
+### Refactor
+
+- **normal**: Utilize modifiers across some normal template classes, implement new mask and shape enabling steps, update and fix various templates
+- **PrototypeMod**: Implement prototype modifier class
+- **planar**: Update scryfall scan step in accordance with new scan importing behavior
+- **MutateMod**: Implement a mutate modifier class
+- **LevelerMod**: Implement a leveler modifier class
+- **saga-cards**: Retool old saga card template class into a modifier which passes the saga card functionality onto the new vector template
+- **class-cards**: Retool old class card template class into a modifier which passes the class card functionality onto the new vector template
+- **VectorTemplate**: Implement additional shape and mask enabling steps, optional tooling to improve on the Vector template workflow
+- **templates**: Continue to improve the template modifier system, moving away from a _mods module and instead placing them in their relevant modules based on template type
+- **regex**: Implement new regex pattern for matching nested version number strings
+- **helpers/masks**: New helper utility: copy_vector_mask, works like copy_layer_mask but acts only on vector masks
+- **enums**: Add new LAYERS nomenclature and remove useless Photoshop enum line
+- **utils/objects**: Add classproperty decorator, update PhotoshopHandler to fix descriptor conversion bug, deprecate scale_by_height/width in favor of scale_by_dpi
+- **split**: Improved readability of Split template code
+- **token**: Improved Token template formatting by aligning typeline and rules text after text formatting
+- **double_faced**: Rework existing MDFC and Transform templates to use new template Mod infrastructure
+- **layouts**: Moves remaining Planeswalker data logic out of templates and into layouts, fixes several alternate language issues and missing data issues
+- **helpers/adjustments**: Updates create_color_layer and create_gradient_layer to accept keyword arguments to modify their behavior, such as rotation and scale
+- **helpers/layers**: New helper utility: merge_group, merges a target LayerSet into a single ArtLayer
+- **helpers/masks**: New helper utility: apply_mask, applies a given layer's mask
+- **helpers/text**: New helper utilities: get_font_size, set_text_size, set_text_leading, set_composer_single_line
+- **helpers/position**: New helper utility: position_dividers, Positions a list of dividers between a list of text layers
+- **get_rgb_from_hex**: New function to create SolidColor RGB object from a hex value using hexValue API
+- **constants**: Remove relocated color maps
+- **plugins/SilvanMTG**: Update SilvanMTG template classes using new infrastructure
+- **enums**: Added a host of default color maps for various MTG frame elements
+- **settings**: StrEnum used to track settings options now supports a "Default" enum natively, updated get_option and get_setting methods, added preliminary settings for BorderlessVector
+- **layers**: Introduced new layer name nomenclature, added new LayerObject type
+- **console**: Created first draft of headless Console object that responds to the user in terminal/commandline
+- **VectorTemplate**: Introduced new template module _vector.py for tracking core vector template architecture
+- **env**: Modify environment variable system to use one clean .env file to govern localized behaviors
+- **PhotoshopHandler**: Enable error dialogs when executing Action Descriptors in development environment
+- **exceptions**: Start building out a comprehensive library of known COMErrors
+- **masks**: Add new helper function: delete_mask
+- **transform_icon**: Default transform icon will now be considered the triangle formerly called "convertdfc"
+- **console**: Use Logger for printing exceptions during development, improve formatting of error.txt log file
+- **env**: Remove unused kivy logging ENV, remove KIVY_NO_CONSOLELOG toggle for development mode
+- **layers**: Add new terminology for Saga layers
+- **logging**: Kivy logging now only prints for error messages
+- **target_replace**: Deprecated Targeted Text Replace setting as it is no longer needed
+
+### Perf
+
+- **text_layers**: Disable seemingly unnecessary steps during text formatting, needs further bulk testing to verify
+- **helpers/position**: Continue to improve performance of layer aligning and positioning
+- **planeswalker**: Reworked Planeswalker code for better performance and readability, updated method hierarchy to delineat planeswalker-specific steps from ordinary steps
+- **format_text**: Improve execution time of text scaling and positioning functions, deprecate format_flavor_text
+- **expansion_symbol**: Improve coverage of SVG symbols by checking for a replacement set code in the symbol library
+
 ## v1.10.1 (2023-07-09)
 
 ### Fix
