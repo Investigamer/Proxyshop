@@ -29,7 +29,7 @@ from src.helpers.layers import select_layer_bounds
 from src.helpers.position import position_between_layers, align_horizontal
 from src.helpers.text import (
     get_text_scale_factor,
-    remove_trailing_text, set_composer_single_line
+    remove_trailing_text
 )
 from src.settings import cfg
 from src import format_text as ft
@@ -440,7 +440,8 @@ class FormattedTextField (TextField):
 
         # Disable hyphenation and set text composer
         self.docref.activeLayer.textItem.hyphenation = False
-        set_composer_single_line(self.layer)
+        # TODO: Test if this line is necessary
+        # set_composer_single_line(self.layer)
 
     def execute(self):
         super().execute()
@@ -514,7 +515,8 @@ class FormattedTextArea (FormattedTextField):
         rules = flavor.duplicate()
         flavor.rasterize(RasterizeType.EntireLayer)
         remove_trailing_text(rules, len(self.rules_text_updated) + 1)
-        rules.rasterize(RasterizeType.EntireLayer)
+        # TODO: Test if this line is necessary
+        # rules.rasterize(RasterizeType.EntireLayer)
         select_layer_bounds(rules)
         self.docref.activeLayer = flavor
         self.docref.selection.expand(2)

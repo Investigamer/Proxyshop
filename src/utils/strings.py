@@ -150,7 +150,7 @@ def msg_info(msg: str) -> str:
     return f'[color={ConsoleMessages.info}]{msg}[/color]'
 
 
-def get_bullet_points(text: list[str], char: str = '—') -> str:
+def get_bullet_points(text: list[str], char: str = '•') -> str:
     """
     Turns a list of strings into a joined string bullet point list.
     @param text: List of strings.
