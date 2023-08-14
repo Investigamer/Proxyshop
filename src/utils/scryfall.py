@@ -114,7 +114,7 @@ def get_card_data(
 
     # Query the card in English, retry with extras if failed
     card = action(*params)
-    if not isinstance(card, dict) and cfg.scry_extras:
+    if not isinstance(card, dict) and not cfg.scry_extras:
         card = action(*params, extras=True)
     # Return valid card or return Exception
     if isinstance(card, dict):
