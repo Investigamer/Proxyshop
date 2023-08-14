@@ -5,6 +5,10 @@ For contributors and plugin development.
 # Standard Library Imports
 from typing import Optional, Union
 from _ctypes import COMError
+from os import path as osp
+from pprint import pprint
+import warnings
+import logging
 import json
 
 # Use this to force a working directory if IDE doesn't support it
@@ -17,24 +21,38 @@ from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    SolidColor,
     ActionList,
     DialogModes
 )
 
 # Local Imports
-from src.constants import con
-from src.helpers import get_layer_dimensions
-from src.helpers.document import points_to_pixels
 from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds
-from src.helpers.masks import copy_layer_mask
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
+from src.helpers.document import points_to_pixels
+from src.utils.fonts import get_fonts_from_psd
 from src.utils.objects import PhotoshopHandler
+from src.helpers.masks import copy_layer_mask
+from src.helpers import get_layer_dimensions, get_color
+from src.core import get_templates
+from src.constants import con
 
+# Photoshop infrastructure
 app: PhotoshopHandler = con.app
 cID = app.charIDtoTypeID
 sID = app.stringIDtoTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+# Ignore warnings from the psd_tools module
+logging.getLogger('psd_tools').setLevel(logging.FATAL)
+warnings.filterwarnings("ignore", module='psd_tools')
+
+# Reference Box colors
+ORANGE = [255, 172, 64]
+TANG = [255, 97, 11]
+RED = [192, 55, 38]
+TAN = [245, 235, 210]
+BLACK = [0, 0, 0]
+
 
 """
 TEMPLATE TESTING UTILITIES
@@ -63,7 +81,7 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
 
 
 def make_duals(
-    name="Pinlines & Textbox",
+    name: str = "Pinlines & Textbox",
     mask_top: Optional[str] = "MASK",
     mask_bottom: Optional[str] = None
 ):
@@ -352,123 +370,6 @@ def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[s
     apply_text_key(to_layer, to_tk)
 
 
-def remove_text_segment(layer: ArtLayer, start: int, end: int) -> None:
-    # Establish our text key and descriptor ID's
-    app.activeDocument.activeLayer = layer
-    key: ActionDescriptor = get_text_key(layer)
-    current_text = key.getString(sID("textKey"))
-    new_text = current_text[0:start:] + current_text[end + 1::]
-    idFrom = sID("from")
-    idTo = sID("to")
-
-    # Find the range where target text exists
-    for n in [sID("textStyleRange"), sID("paragraphStyleRange")]:
-        offset = 0
-        style_ranges: list[ActionDescriptor] = []
-        text_range = key.getList(n)
-        logged = {}
-        for i in range(text_range.count):
-
-            # Each item in textStyleRange list
-            style = text_range.getObjectValue(i)
-
-            # Indexes of this range
-            i_left = style.getInteger(idFrom)
-            i_right = style.getInteger(idTo)
-
-            # Log and adjust identical ranges
-            signature = (i_left, i_right)
-            if signature in logged:
-                if not (action := logged.get(signature)):
-                    # Remove range entirely
-                    continue
-                # Adjust range with logged value
-                style.putInteger(idTo, i_left - action)
-                style.putInteger(idFrom, i_right - action)
-                style_ranges.append(style)
-                continue
-
-            # Adjust range with current offset
-            left = start - offset
-            right = end - offset
-            i_start = i_left - offset
-            i_end = i_right - offset
-
-            # Segment out of left bound
-            if i_end < left:
-                print("Segment OUT OF BOUND - LEFT", i_start, i_end, left, right)
-                logged[signature] = 0
-                style_ranges.append(style)
-                continue
-
-            # Segment out of right bound
-            if i_start > right:
-                print("Segment OUT OF BOUND - RIGHT", i_start, i_end, left, right)
-                logged[signature] = offset
-                style.putInteger(idTo, i_left - offset)
-                style.putInteger(idFrom, i_right - offset)
-                style_ranges.append(style)
-                continue
-
-            # Exclude entire segment, i.e. [[1, 2, 3, 4]]
-            if i_start >= left and i_end <= right:
-                print("Segment EXCLUDED", i_start, i_end, left, right)
-                offset += i_end - i_start + 1
-                logged[signature] = None
-                continue
-
-            # Segment has a partial match
-            if i_start >= left and right <= i_end:
-                # Exclude initial segment, i.e. [[1, 2], 3, 4]
-                offset += right - i_start + 1
-                print("Segment INITIAL", i_start, i_end, left, right)
-            elif i_start < left < i_end <= right:
-                # Exclude trailing segment, i.e. [1, 2, [3, 4]]
-                offset += i_end - left + 1
-                print("Segment TRAILING", i_start, i_end, left, right)
-            elif i_start < left and right < i_end:
-                # Exclude nested segment, i.e. [1, [2, 3, 4], 5, 6, 7]
-                offset += right - left + 1
-                print("Segment NESTED", i_start, i_end, left, right)
-
-            # Make replacement
-            logged[signature] = offset
-            style.putInteger(idTo, i_left - offset)
-            style.putInteger(idFrom, i_right - offset)
-            style_ranges.append(style)
-
-        # Apply changes
-        style_range = ActionList()
-        for r in style_ranges:
-            style_range.putObject(n, r)
-        key.putList(n, style_range)
-        key.putString(sID("textKey"), new_text)
-        apply_text_key(layer, key)
-
-
-"""
-XMP UTILS
-"""
-
-
-def xmp_remove_ancestors() -> None:
-    """Remove DocumentAncestors property from XMP data."""
-    if not app.documents:
-        # No documents open
-        app.alert("There are no open documents. Please open a file to run this script.")
-        return
-
-    # XMP data
-    app.eval_javascript('''
-        if (ExternalObject.AdobeXMPScript == undefined) {
-          ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
-        }
-        var xmp = new XMPMeta( activeDocument.xmpMetadata.rawData);  
-        xmp.deleteProperty(XMPConst.NS_PHOTOSHOP, "DocumentAncestors");
-        app.activeDocument.xmpMetadata.rawData = xmp.serialize();
-    ''')
-
-
 def reset_transform_factor(layer: ArtLayer) -> None:
     """
     Reset the transform xx and yy factors of a given layer.
@@ -495,19 +396,37 @@ def reset_transform_factor(layer: ArtLayer) -> None:
         apply_text_key(layer, key)
 
 
-def select_bleed():
-    doc = app.activeDocument
-    bleed = int(doc.resolution / 8)
-    doc.selection.select([
-            [bleed, bleed],
-            [doc.width - bleed, bleed],
-            [doc.width - bleed, doc.height - bleed],
-            [bleed, doc.height - bleed]
-    ])
+"""
+XMP UTILS
+"""
 
 
-def create_color_shape(layer: ArtLayer, color: SolidColor) -> ArtLayer:
-    name = layer.name
+def xmp_remove_ancestors() -> None:
+    """Remove DocumentAncestors property from XMP data."""
+    if not app.documents:
+        # No documents open
+        app.alert("There are no open documents. Please open a file to run this script.")
+        return
+
+    # XMP data
+    app.eval_javascript('''
+        if (ExternalObject.AdobeXMPScript == undefined) {
+          ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
+        }
+        var xmp = new XMPMeta( activeDocument.xmpMetadata.rawData);  
+        xmp.deleteProperty(XMPConst.NS_PHOTOSHOP, "DocumentAncestors");
+        app.activeDocument.xmpMetadata.rawData = xmp.serialize();
+    ''')
+
+
+"""
+VECTOR SHAPE UTILS
+"""
+
+
+def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
+    layer_name = layer.name
+    color = get_color(color)
     app.activeDocument.activeLayer = layer
     select_layer_bounds()
 
@@ -535,7 +454,7 @@ def create_color_shape(layer: ArtLayer, color: SolidColor) -> ArtLayer:
     desc2.putObject(sID("type"), sID("solidColorLayer"),  desc3)
     desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
     app.executeaction(sID("make"), desc1,  NO_DIALOG)
-    app.activeDocument.activeLayer.name = name
+    app.activeDocument.activeLayer.name = layer_name
 
     # Check dims
     dims = get_layer_dimensions(layer)
@@ -543,7 +462,7 @@ def create_color_shape(layer: ArtLayer, color: SolidColor) -> ArtLayer:
     new_dims = get_layer_dimensions(app.activeDocument.activeLayer)
     new_dims = (new_dims['width'], new_dims['height'])
     if not dims == new_dims:
-        print("DIMS CHANGED:", name)
+        print("DIMS CHANGED:", layer_name)
         print("Before:", dims)
         print("After:", new_dims)
 
@@ -553,20 +472,39 @@ def create_color_shape(layer: ArtLayer, color: SolidColor) -> ArtLayer:
 
 
 """
-text_group = getLayerSet(LAYERS.TEXTBOX_REFERENCE, LAYERS.TEXT_AND_ICONS)
-ORANGE = [255, 172, 64]
-RED = [192, 55, 38]
-TAN = [245, 235, 210]
-BLACK = [0, 0, 0]
-
-ref_layers = [
-    (getLayer("Short", text_group), TAN),
-    (getLayer("Medium", text_group), TAN),
-    (getLayer("Normal", text_group), TAN),
-    (getLayer("Tall", text_group), TAN),
-]
-ref_layers = [n for n in ref_layers if n[0]]
-for n, c in ref_layers:
-    create_color_shape(n, get_color(c))
-print("DONE")
+FONT UTILS
 """
+
+
+def log_all_template_fonts() -> dict:
+    """Create a log of every font found for each PSD template."""
+    docs = {
+        temp['template_path']: f"{temp['plugin_name'] or 'BASE'} - {temp['layout']} - {temp['name']}"
+        for card_type, templates in get_templates().items()
+        for temp in templates if osp.exists(temp['template_path'])
+    }
+
+    # Track progress
+    doc_fonts, master, current, total = {}, {}, 1, len(docs)
+
+    # Check each document
+    logging.basicConfig(level=logging.INFO)
+    for psd_file, temp_name in docs.items():
+
+        # Alert the user
+        logging.info(f"READING FONTS — {temp_name} [{osp.basename(psd_file)}] [{current}/{total}]")
+        current += 1
+
+        # Open document, get fonts, close document
+        doc_fonts[temp_name] = get_fonts_from_psd(psd_file)
+
+    # Create master list
+    for doc, fonts in doc_fonts.items():
+        for f in fonts:
+            master.setdefault(str(f), []).append(doc)
+
+    # Log a sorted master list
+    master: dict[str, list] = {k: v for k, v in sorted(master.items(), key=lambda item: len(item[1]))}
+    with open(f'logs/FONTS.json', 'w', encoding='utf-8') as f:
+        json.dump(master, f, indent=2)
+    return master
