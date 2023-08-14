@@ -61,7 +61,7 @@ from src.core import (
 from src.settings import cfg
 from src.console import console
 from src.utils.download import download_s3
-from src.utils.fonts import get_missing_fonts
+from src.utils.fonts import check_app_fonts
 from src.layouts import CardLayout, layout_map, assign_layout, join_dual_card_layouts
 from src.utils.strings import (
     get_bullet_points,
@@ -654,10 +654,6 @@ class ProxyshopApp(App):
 
     def on_start(self) -> None:
         """Fired after build is fired. Run a diagnostic check to see what works."""
-
-        # Skip this step if building to executable
-        if hasattr(sys, '_MEIPASS'):
-            return
         console.update(msg_success("--- STATUS ---"))
 
         # Check if using latest version
@@ -692,13 +688,23 @@ class ProxyshopApp(App):
         # Photoshop test passed
         console.update(f"Photoshop ... {msg_success('Connection established!')}")
 
-        # Check fonts installed
-        if missing_fonts := get_bullet_points(get_missing_fonts(con.path_fonts)):
-            # Font test failed
-            console.update(f"Fonts ... {msg_warn(f'Photoshop is missing these fonts:')}{missing_fonts}")
-            return
+        # Check for missing or outdated fonts
+        missing, outdated = check_app_fonts(con.path_fonts)
+
         # Font test passed
-        console.update(f"Fonts ... {msg_success('All essential fonts installed!')}")
+        if not missing and not outdated:
+            console.update(f"Fonts ... {msg_success('All essential fonts installed!')}")
+            return
+
+        # Missing fonts
+        console.update(f"Fonts ... {msg_warn(f'Missing or outdated fonts:')}", end='')
+        if missing:
+            console.update(
+                get_bullet_points([f"{f['name']} — {msg_warn('Not Installed')}" for f in missing.values()]), end="")
+        if outdated:
+            console.update(
+                get_bullet_points([f"{f['name']} — {msg_info('New Version')}" for f in outdated.values()]), end="")
+        console.update()
 
     def on_stop(self):
         """Called when the app is closed."""
