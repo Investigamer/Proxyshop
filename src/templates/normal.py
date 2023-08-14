@@ -23,7 +23,7 @@ from src.enums.settings import (
 )
 from src.frame_logic import contains_frame_colors
 from src.helpers import get_line_count
-from src.layouts import BasicLandLayout
+from src.layouts import BasicLandLayout, TokenLayout
 from src.templates._core import (
     StarterTemplate,
     NormalTemplate,
@@ -1266,7 +1266,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     @cached_property
     def is_token(self) -> bool:
         """Return True if this is a Token card."""
-        return bool('Token' in self.layout.type_line_raw)
+        return bool(isinstance(self.layout, TokenLayout))
 
     @cached_property
     def is_textless(self) -> bool:
@@ -1275,9 +1275,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             return True
         if not any([self.layout.oracle_text, self.layout.flavor_text]):
             return True
-        if cfg.get_setting(section="TEXT", key="Textless", default=False):
-            return True
-        return False
+        return bool(cfg.get_setting(section="FRAME", key="Textless", default=False))
 
     @cached_property
     def is_nickname(self) -> bool:
@@ -1734,7 +1732,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             self.twins_action(self.twins_colors, layer=self.twins_group)
 
         # Textbox -> Solid color or gradient layer
-        if self.textbox_group:
+        if self.textbox_group and not self.is_textless:
             self.textbox_action(self.textbox_colors, layer=self.textbox_group)
 
         # Nickname -> Solid color or gradient layer
