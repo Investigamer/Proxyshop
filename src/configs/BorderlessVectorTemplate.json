@@ -21,6 +21,14 @@
     "default": 0
   },
   {
+    "type": "bool",
+    "title": "[b]Legendary Crown Textured[/b]",
+    "desc": "When disabled, removes textures from Legendary Crown to give it a more minimalist look.\n[b](Default: True)[/b]",
+    "section": "FRAME",
+    "key": "Crown.Texture",
+    "default": 1
+  },
+  {
     "type": "title",
     "title": "Text Options"
   },

@@ -67,7 +67,8 @@ class VectorTemplate (NormalTemplate):
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
-            self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
+            self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
+            color_map=self.pinline_color_map
         )
 
     @cached_property

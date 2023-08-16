@@ -1007,13 +1007,20 @@ class LOTRTemplate (VectorTemplate):
     """
 
     @cached_property
+    def crown_colors(self) -> Union[SolidColor, list[dict]]:
+        """Must be returned as SolidColor or gradient notation."""
+        return psd.get_pinline_gradient(
+            self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
+            color_map=self.pinline_color_map)
+
+    @cached_property
     def twins_colors(self) -> Union[SolidColor, list[dict]]:
-        # Use Solid Color or Gradient adjustment layer for colors
+        """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(self.twins, color_map=self.dark_color_map)
 
     @cached_property
     def pt_colors(self) -> Union[SolidColor, list[dict]]:
-        # Use Solid Color or Gradient adjustment layer for colors
+        """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
             LAYERS.VEHICLE if self.is_vehicle else self.twins,
             color_map=self.dark_color_map)
@@ -1150,6 +1157,14 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return bool(cfg.get_setting(
             section="TEXT",
             key="Drop.Shadow",
+            default=True))
+
+    @cached_property
+    def crown_texture_enabled(self) -> bool:
+        """Returns True if Legendary crown clipping texture should be enabled."""
+        return bool(cfg.get_setting(
+            section="FRAME",
+            key="Crown.Texture",
             default=True))
 
     @cached_property
@@ -1809,6 +1824,11 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         self.crown_group.visible = True
         self.pinlines_action(self.crown_colors, layer=self.crown_group)
 
+        # Remove crown textures if disabled
+        if not self.crown_texture_enabled:
+            for n in ["Shading", "Highlight", "Overlay"]:
+                psd.getLayer(n, self.crown_group.parent).visible = False
+
         # Change to nickname effects if needed
         if self.is_nickname:
             psd.copy_layer_fx(self.nickname_fx, self.crown_group.parent)
@@ -1835,7 +1855,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         # Token adjustments
         if self.is_token:
             psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
-            psd.set_font(self.text_layer_name, con.font_subtext)
+            self.text_layer_name.textItem.font = con.font_subtext
 
         # Nickname adjustments
         if self.is_nickname:
