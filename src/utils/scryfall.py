@@ -393,6 +393,9 @@ def process_scryfall_data(data: dict) -> dict:
         # Transform Saga layout
         if 'Saga' in card['type_line']:
             data['layout'] = 'saga'
+        # Battle layout
+        if 'Battle' in card['type_line']:
+            data['layout'] = 'battle'
         return data
 
     # Add Mutate layout

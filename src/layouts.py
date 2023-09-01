@@ -421,6 +421,10 @@ class NormalLayout:
     def is_mdfc(self) -> bool:
         return False
 
+    @cached_property
+    def is_promo(self) -> bool:
+        return bool(self.scryfall.get('promo', False))
+
     """
     FRAME PROPERTIES
     """
@@ -961,6 +965,22 @@ class ClassLayout (NormalLayout):
         return self.class_text[0]
 
 
+class BattleLayout (TransformLayout):
+    """Battle card layout, introduced in March of the Machine."""
+
+    @property
+    def card_class(self) -> str:
+        return con.battle_class
+
+    """
+    TEXT PROPERTIES
+    """
+
+    @cached_property
+    def defense(self) -> str:
+        return self.card.get('defense', '')
+
+
 class PlanarLayout (NormalLayout):
     """Planar card layout, introduced in Planechase block."""
 
@@ -1242,6 +1262,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     "planeswalker_mdfc": PlaneswalkerMDFCLayout,
     "split": SplitLayout,
     "class": ClassLayout,
+    "battle": BattleLayout,
     "planar": PlanarLayout,
     "token": TokenLayout,
     "emblem": TokenLayout,
