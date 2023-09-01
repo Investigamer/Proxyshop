@@ -11,8 +11,8 @@ from typing import Optional, TypedDict
 
 # Third Party Imports
 from photoshop.api.enumerations import LayerKind
+from fontTools.ttLib import TTFont, TTLibError
 from packaging.version import parse
-from fontTools import ttLib
 
 # Local Imports
 from src.utils.exceptions import PS_EXCEPTIONS
@@ -145,8 +145,8 @@ def get_font_details(path: str) -> Optional[tuple[str, FontDetails]]:
     @param path: Path to ttf or otf file.
     @return: Tuple containing name and postscript name.
     """
-    with suppress(PS_EXCEPTIONS):
-        with ttLib.TTFont(path) as font:
+    with suppress(PS_EXCEPTIONS, TTLibError):
+        with TTFont(path) as font:
             font_name = font['name'].getName(4, 3, 1, 1033).toUnicode()
             font_postscript = font['name'].getDebugName(6)
             version_match = Reg.VERSION.search(font['name'].getDebugName(5))
