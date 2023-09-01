@@ -551,7 +551,7 @@ class EtchedTemplate (VectorTemplate):
     """
 
     @cached_property
-    def pinline_color_map(self) -> dict:
+    def pinlines_color_map(self) -> dict:
         # Update some colors
         colors = pinline_color_map.copy()
         colors.update({
@@ -566,8 +566,8 @@ class EtchedTemplate (VectorTemplate):
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         # Use Artifact color even for colored artifacts
         if self.is_artifact and not self.is_land:
-            return psd.get_pinline_gradient(LAYERS.ARTIFACT)
-        return psd.get_pinline_gradient(self.pinlines)
+            return psd.get_pinline_gradient(LAYERS.ARTIFACT, color_map=self.pinlines_color_map)
+        return psd.get_pinline_gradient(self.pinlines, color_map=self.pinlines_color_map)
 
     @cached_property
     def crown_colors(self) -> Optional[str]:
@@ -596,7 +596,9 @@ class EtchedTemplate (VectorTemplate):
 
     @cached_property
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
-        """No alternating vector shapes."""
+        """Enable Legendary pinlines shape if card is Legendary."""
+        if self.is_legendary:
+            return [psd.getLayer(LAYERS.LEGENDARY, [self.pinlines_group, LAYERS.SHAPE])]
         return []
 
     """
@@ -606,15 +608,17 @@ class EtchedTemplate (VectorTemplate):
     @cached_property
     def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
         """Enable pinlines mask if card is Legendary."""
-        return [self.pinlines_group] if self.is_legendary else []
+        return [psd.getLayer(LAYERS.NORMAL, [self.pinlines_group, LAYERS.SHAPE])] if self.is_legendary else []
 
     """
     METHODS
     """
 
-    def enable_hollow_crown(self, **kwargs) -> None:
-        # Doesn't support hollow crown
-        return
+    def enable_crown(self) -> None:
+        """Enable the Legendary crown, only called if card is Legendary."""
+
+        # Enable Legendary Crown group and layers
+        psd.getLayer(f"{LAYERS.LEGENDARY} {LAYERS.SHADOWS}").visible = True
 
 
 class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
@@ -1854,8 +1858,8 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
 
         # Token adjustments
         if self.is_token:
-            psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
             self.text_layer_name.textItem.font = con.font_subtext
+            psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
 
         # Nickname adjustments
         if self.is_nickname:
@@ -1877,7 +1881,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
                 psd.enable_layer_fx(self.text_layer_flipside_pt)
 
         # Allow exception for PT drop shadow on front face Vehicle cards
-        if (self.is_drop_shadow or (self.drop_shadow_enabled and self.is_vehicle)) and self.is_creature:
+        if (self.is_drop_shadow or (self.drop_shadow_enabled and self.is_vehicle)) and self.is_pt_enabled:
             psd.enable_layer_fx(self.text_layer_pt)
 
     """
@@ -1934,3 +1938,68 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         # PT if card is creature
         if self.is_pt_enabled and not self.is_vehicle:
             self.text_layer_pt.textItem.color = color
+
+
+class ClassicModernTemplate(VectorTemplate):
+    """A modern frame version of iDerp's 'Classic Remastered' template."""
+
+    """
+    BOOL
+    """
+
+    @property
+    def is_extended(self) -> bool:
+        return True
+
+    @property
+    def is_content_aware_enabled(self) -> bool:
+        return True
+
+    """
+    SHAPES
+    """
+
+    @cached_property
+    def crown_shape(self) -> Optional[ArtLayer]:
+        return psd.getLayer(
+            LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL,
+            [LAYERS.LEGENDARY_CROWN, LAYERS.SHAPE])
+
+    @cached_property
+    def border_shape(self) -> Optional[ArtLayer]:
+        return psd.getLayer(
+            LAYERS.LEGENDARY if self.is_legendary else LAYERS.NORMAL,
+            LAYERS.BORDER)
+
+    @cached_property
+    def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
+        crown = [self.crown_shape] if self.is_legendary else []
+        return [self.border_shape, *crown]
+
+    """
+    MASKS
+    """
+
+    @cached_property
+    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+        return [{
+            'mask': self.pinlines_group,
+            'vector': True
+        }] if self.is_legendary else []
+
+    """
+    METHODS
+    """
+
+    def enable_frame_layers(self) -> None:
+        if self.is_creature:
+            self.pt_group.visible = True
+        super().enable_frame_layers()
+
+    def enable_crown(self) -> None:
+        """Enable the Legendary crown, only called if card is Legendary."""
+
+        # Enable Legendary Crown group and layers
+        self.pinlines_action(
+            self.pinlines_colors,
+            self.crown_group)
