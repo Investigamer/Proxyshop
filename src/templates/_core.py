@@ -24,7 +24,7 @@ from PIL import Image
 
 # Local Imports
 from src.console import console, Console
-from src.enums.mtg import watermark_color_map
+from src.enums.mtg import watermark_color_map, MagicIcons
 import src.format_text as ft
 from src.constants import con
 from src.settings import cfg
@@ -38,7 +38,13 @@ from src.text_layers import (
 )
 from src.enums.photoshop import Dimensions
 from src.enums.layers import LAYERS
-from src.enums.settings import CollectorMode, ExpansionSymbolMode, BorderColor, OutputFiletype
+from src.enums.settings import (
+    CollectorMode,
+    ExpansionSymbolMode,
+    BorderColor,
+    OutputFiletype,
+    CollectorPromo
+)
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.files import get_unique_filename
 from src.utils.objects import PhotoshopHandler
@@ -296,6 +302,15 @@ class BaseTemplate:
         """Governs whether content aware fill should be performed during the art loading step."""
         if self.is_fullart and 'Full' not in self.art_reference.name:
             # By default, fill when we want a fullart image but didn't receive one
+            return True
+        return False
+
+    @cached_property
+    def is_collector_promo(self) -> bool:
+        """Governs whether to use promo star in collector info."""
+        if cfg.collector_promo == CollectorPromo.Always:
+            return True
+        if self.layout.is_promo and cfg.collector_promo == CollectorPromo.Automatic:
             return True
         return False
 
@@ -648,6 +663,10 @@ class BaseTemplate:
             set_layer.visible = False
             return
 
+        # Fill optional collector star
+        if self.is_collector_promo:
+            psd.replace_text(set_layer, "•", MagicIcons.COLLECTOR_STAR)
+
         # Fill alternate language and set info
         if self.layout.lang != "en":
             psd.replace_text(set_layer, "EN", self.layout.lang.upper())
@@ -673,6 +692,10 @@ class BaseTemplate:
         # Fill in language if needed
         if self.layout.lang != "en":
             psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
+
+        # Fill optional collector star
+        if self.is_collector_promo:
+            psd.replace_text(collector_bottom, "•", MagicIcons.COLLECTOR_STAR)
 
         # Apply the collector info
         collector_top.contents = self.layout.collector_data
@@ -890,10 +913,24 @@ class BaseTemplate:
     DOCUMENT ACTIONS
     """
 
+    def check_photoshop(self) -> None:
+        """Check if Photoshop is responsive to automation."""
+        # Ensure the Photoshop Application is responsive
+        check = self.app.refresh_app()
+        if not isinstance(check, OSError):
+            return
+
+        # Connection with Photoshop couldn't be established, try again?
+        if not console.await_choice(
+            self.event, get_photoshop_error_message(check),
+            end="Hit Continue to try again, or Cancel to end the operation.\n\n"
+        ):
+            # Cancel the operation
+            raise OSError(check)
+        self.check_photoshop()
+
     def reset(self) -> None:
-        """
-        Reset the document, purge the cache, end await.
-        """
+        """Reset the document, purge the cache, end await."""
         try:
             if self.docref:
                 psd.reset_document()
@@ -1022,19 +1059,13 @@ class BaseTemplate:
         exception check and a breakpoint to cancel the thread if a cancellation signal was
         sent by the user. NEVER override this method!
         """
-        # Refresh the Photoshop Application
-        while True:
-            # Ensure the Photoshop Application is responsive
-            check = con.refresh_photoshop()
-            if not isinstance(check, OSError):
-                break
-            # Connection with Photoshop couldn't be established, try again?
-            if not console.await_choice(
-                self.event, get_photoshop_error_message(check),
-                end="Hit Continue to try again, or Cancel to end the operation.\n"
-            ):
-                # Cancel the operation
-                return False
+        # Preliminary Photoshop check
+        check = self.run_tasks(
+            [self.check_photoshop],
+            "Error"
+        )
+        if not all(check):
+            return check[1]
 
         # Load in the PSD template
         check = self.run_tasks(
