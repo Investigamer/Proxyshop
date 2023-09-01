@@ -5,6 +5,44 @@ from src.utils.strings import StrEnum
 
 
 """
+ICONS
+"""
+
+
+class TransformIcons(StrEnum):
+    """Transform icon names."""
+
+    MOONELDRAZI = "mooneldrazidfc"
+    COMPASSLAND = "compasslanddfc"
+    UPSIDEDOWN = "upsidedowndfc"
+    ORIGINPW = "originpwdfc"
+    CONVERT = "convertdfc"
+    SUNMOON = "sunmoondfc"
+    FAN = "fandfc"
+    MELD = "meld"
+
+
+"""
+FONTS
+"""
+
+
+class CardFonts(StrEnum):
+    """Fonts used for card text."""
+    RULES = "PlantinMTPro-Regular"
+    RULES_BOLD = "PlantinMTPro-Bold"
+    RULES_ITALIC = "PlantinMTPro-Italic"
+    NICKNAME = "PlantinMTPro-SemiboldIt"
+    TITLES = "BelerenProxy-Bold"
+    TITLES_CLASSIC = "Magic:theGathering"
+    MANA = "Proxyglyph"
+    ARTIST = "BelerenSmallCaps-Bold"
+    ARTIST_CLASSIC = "Matrix-Bold"
+    COLLECTOR = "Gotham-Medium"
+    SYMBOL = "Keyrune"
+
+
+"""
 NAMING CONVENTIONS
 """
 
@@ -21,19 +59,6 @@ class Rarity(StrEnum):
     T = "timeshifted"
 
 
-class TransformIcons(StrEnum):
-    """Transform icon names."""
-
-    MOONELDRAZI = "mooneldrazidfc"
-    COMPASSLAND = "compasslanddfc"
-    UPSIDEDOWN = "upsidedowndfc"
-    ORIGINPW = "originpwdfc"
-    CONVERT = "convertdfc"
-    SUNMOON = "sunmoondfc"
-    FAN = "fandfc"
-    MELD = "meld"
-
-
 # Basic land dictionary
 BASIC_LANDS = {
     "plains": "Basic Land — Plains",
@@ -48,6 +73,11 @@ BASIC_LANDS = {
     "snowcoveredmountain": "Basic Snow Land — Mountain",
     "snowcoveredforest": "Basic Snow Land — Forest"
 }
+
+
+"""
+TEXT FORMATTING
+"""
 
 
 # Abilities that aren't italicize, despite fitting the pattern
@@ -125,7 +155,6 @@ indicator_color_map = {
 
 crown_color_map = {
     # Legendary crown colors
-    # TODO: Validate these
     'W': [248, 244, 240],
     'U': [0, 109, 174],
     'B': [57, 52, 49],
@@ -162,4 +191,15 @@ saga_stripe_color_map = {
     'Dual': [42, 42, 42]
 }
 
-classic_paintbrush = "ýþ"
+
+"""
+SPECIAL CHARACTERS
+"""
+
+
+class MagicIcons:
+    # Proxyglyph font
+    PAINTBRUSH_MODERN = "a"
+    PAINTBRUSH_CLASSIC = "ýþ"
+    # Gotham-Medium font
+    COLLECTOR_STAR = "¬"
