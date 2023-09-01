@@ -53,7 +53,7 @@ class TransformMod(BaseTemplate):
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
-        # Does it have flipside PT cutout?
+        """Supports noncreature and creature, with or without flipside PT."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
             if self.is_creature:
                 return psd.getLayer(LAYERS.RULES_TEXT_CREATURE_FLIP, self.text_group)

@@ -104,7 +104,7 @@ class VectorTemplate (NormalTemplate):
     """
 
     @cached_property
-    def pinlines_group(self) -> LayerSet:
+    def pinlines_group(self) -> Optional[LayerSet]:
         """Group containing pinlines colors, textures, or other groups."""
         return psd.getLayerSet(LAYERS.PINLINES)
 
@@ -114,22 +114,22 @@ class VectorTemplate (NormalTemplate):
         return [self.pinlines_group]
 
     @cached_property
-    def twins_group(self) -> LayerSet:
+    def twins_group(self) -> Optional[LayerSet]:
         """Group containing twins texture layers."""
         return psd.getLayerSet(LAYERS.TWINS)
 
     @cached_property
-    def textbox_group(self) -> LayerSet:
+    def textbox_group(self) -> Optional[LayerSet]:
         """Group containing textbox texture layers."""
         return psd.getLayerSet(LAYERS.TEXTBOX)
 
     @cached_property
-    def background_group(self) -> LayerSet:
+    def background_group(self) -> Optional[LayerSet]:
         """Group containing background texture layers."""
         return psd.getLayerSet(LAYERS.BACKGROUND)
 
     @cached_property
-    def crown_group(self) -> LayerSet:
+    def crown_group(self) -> Optional[LayerSet]:
         """Group containing Legendary Crown texture layers."""
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN)
 
@@ -162,34 +162,6 @@ class VectorTemplate (NormalTemplate):
             LAYERS.TF_FRONT if self.is_front else LAYERS.TF_BACK,
             self.text_group
         )
-
-    """
-    TEXT LAYERS
-    """
-
-    @cached_property
-    def text_layer_rules(self) -> Optional[ArtLayer]:
-        # Is this a creature?
-        if self.is_creature:
-            # Flipside P/T?
-            if self.is_transform and self.is_flipside_creature:
-                return psd.getLayer(LAYERS.RULES_TEXT_CREATURE_FLIP, self.text_group)
-            return psd.getLayer(LAYERS.RULES_TEXT_CREATURE, self.text_group)
-
-        # Not a creature, Flipside P/T?
-        if self.is_transform and self.is_flipside_creature:
-            return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE_FLIP, self.text_group)
-        return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE, self.text_group)
-
-    @cached_property
-    def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
-        """The back face card type."""
-        return psd.getLayer(LAYERS.LEFT, self.dfc_group)
-
-    @cached_property
-    def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
-        """The back face mana cost or land tap ability."""
-        return psd.getLayer(LAYERS.RIGHT, self.dfc_group)
 
     """
     VECTOR SHAPES
@@ -417,7 +389,7 @@ class VectorTemplate (NormalTemplate):
                 masks=self.background_masks)
 
         # Legendary crown
-        if self.is_legendary:
+        if self.is_legendary and self.crown_group:
             self.enable_crown()
 
     def enable_shape_layers(self) -> None:
