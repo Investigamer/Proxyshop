@@ -348,7 +348,7 @@ def rotate_counter_clockwise() -> None:
 
 def rotate_clockwise() -> None:
     """Utility definition for rotating 90 degrees clockwise."""
-    rotate_document(-90)
+    rotate_document(90)
 
 
 def rotate_full() -> None:
