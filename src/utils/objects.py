@@ -3,7 +3,8 @@ OBJECT UTILITIES
 """
 # Standard Library
 from functools import cache
-from typing import Union, Any, Callable
+from contextlib import suppress
+from typing import Union, Any, Callable, Optional
 
 # Third Party
 from photoshop.api import Application, Units, DialogModes, ActionDescriptor
@@ -12,8 +13,7 @@ from packaging.version import parse
 
 # Local Imports
 from src.utils.env import ENV_DEV_MODE
-from src.utils.exceptions import PS_EXCEPTIONS
-
+from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 
 """
 OBJECT UTILITY DECORATORS
@@ -88,13 +88,16 @@ class PhotoshopHandler(Application):
     DIMS_600 = (1632, 2220)
     _instance = None
 
-    def __new__(cls) -> 'PhotoshopHandler':
+    def __new__(cls, version: Optional[str] = None) -> 'PhotoshopHandler':
         """Always return the same Photoshop Application instance on successive calls."""
-        if cls._instance is None or not cls._instance.is_running():
+        # Use existing Photoshop instance or create new one
+        if cls._instance is None:
             try:
                 cls._instance = super().__new__(cls)
             except PS_EXCEPTIONS:
                 cls._instance = super(Photoshop, cls).__new__(cls)
+        # Establish the version initially passed and return instance
+        cls._instance._version = version
         return cls._instance
 
     """
@@ -104,21 +107,23 @@ class PhotoshopHandler(Application):
     def refresh_app(self):
         """Replace the existing Photoshop Application instance with a new one."""
         if not self.is_running():
-            super(PhotoshopHandler, self).__init__()
-        try:
-            self.preferences.rulerUnits = Units.Pixels
-            self.preferences.typeUnits = Units.Points
-        except Exception:
-            raise OSError("Photoshop appears to be busy or is not installed!")
+            try:
+                # Load Photoshop and default preferences
+                super(PhotoshopHandler, self).__init__(version=self._version)
+                self.preferences.rulerUnits = Units.Pixels
+                self.preferences.typeUnits = Units.Points
+            except Exception as e:
+                # Photoshop is either busy or unresponsive
+                return OSError(get_photoshop_error_message(e))
+        return
 
     @classmethod
     def is_running(cls) -> bool:
         """Check if the current Photoshop Application instance is still valid."""
-        try:
+        with suppress(Exception):
             _ = cls._instance.version
-        except PS_EXCEPTIONS:
-            return False
-        return True
+            return True
+        return False
 
     """
     CONVERTING CHARACTER ID

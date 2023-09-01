@@ -14,7 +14,6 @@ import yaml
 # Local Imports
 from src.enums.mtg import mana_color_map
 from src.enums.layers import LAYERS
-from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.objects import Singleton, PhotoshopHandler
 
 
@@ -90,6 +89,7 @@ class Constants:
         self.planar_class = "planar"
         self.prototype_class = "prototype"
         self.token_class = "token"
+        self.battle_class = "battle"
 
         # Symbol dictionary for NDPMTG font
         self.symbols = {
@@ -309,12 +309,7 @@ class Constants:
 
     def refresh_photoshop(self) -> Optional[Exception]:
         """Attempts to refresh the Photoshop object."""
-        try:
-            self.app.refresh_app()
-        except PS_EXCEPTIONS as e:
-            # Photoshop is either busy or unresponsive
-            return OSError(get_photoshop_error_message(e))
-        return
+        return self.app.refresh_app()
 
     """
     VERSION TRACKER
