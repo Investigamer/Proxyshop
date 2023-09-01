@@ -214,7 +214,15 @@ class ProxyshopApp(App):
         @return: The result of the wrapped function.
         """
         def wrapper(self, *args):
-            con.app.refresh_app()
+            while check := con.app.refresh_app():
+                if not console.await_choice(
+                    thr=Event(),
+                    msg=get_photoshop_error_message(check),
+                    end="Hit Continue to try again, or Cancel to end the operation.\n"
+                ):
+                    # Cancel this operation
+                    return
+
             self.reset(disable_buttons=True, clear_console=True)
             result = func(self, *args)
             self.reset(enable_buttons=True, close_document=True)
@@ -321,8 +329,8 @@ class ProxyshopApp(App):
             except PS_EXCEPTIONS as e:
                 # Photoshop is busy or unresponsive, try again?
                 if not console.await_choice(
-                        Event(), get_photoshop_error_message(e),
-                        end="Hit Continue to try again, or Cancel to end the operation.\n"
+                    Event(), get_photoshop_error_message(e),
+                    end="Hit Continue to try again, or Cancel to end the operation.\n"
                 ):
                     # Cancel the operation
                     return

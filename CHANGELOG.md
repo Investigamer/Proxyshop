@@ -78,7 +78,7 @@
 
 - **text_layers**: Disable seemingly unnecessary steps during text formatting, needs further bulk testing to verify
 - **helpers/position**: Continue to improve performance of layer aligning and positioning
-- **planeswalker**: Reworked Planeswalker code for better performance and readability, updated method hierarchy to delineat planeswalker-specific steps from ordinary steps
+- **planeswalker**: Reworked Planeswalker code for better performance and readability, updated method hierarchy to delineate planeswalker-specific steps from ordinary steps
 - **format_text**: Improve execution time of text scaling and positioning functions, deprecate format_flavor_text
 - **expansion_symbol**: Improve coverage of SVG symbols by checking for a replacement set code in the symbol library
 

@@ -15,6 +15,11 @@
             "file": "classic-remastered.psd",
             "id": "1DYbRMtKRZs5EeRYLl6i5lodzMyhTnIdI"
         },
+        "Classic Modern": {
+            "class": "ClassicModernTemplate",
+            "file": "classic-modern.psd",
+            "id": "TBA"
+        },
         "Fullart": {
             "class": "FullartTemplate",
             "file": "normal.psd"
@@ -187,6 +192,17 @@
         "Universes Beyond": {
             "class": "UniversesBeyondClassTemplate",
             "file": "vertical-mode.psd"
+        }
+    },
+    "battle": {
+        "Normal": {
+            "class": "BattleTemplate",
+            "file": "battle.psd",
+            "id": "TBA"
+        },
+        "Universes Beyond": {
+            "class": "UniversesBeyondBattleTemplate",
+            "file": "battle.psd"
         }
     },
     "miracle": {

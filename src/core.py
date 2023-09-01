@@ -42,6 +42,7 @@ card_types = {
     "Saga": ["saga"],
     "Split": ["split"],
     "Class": ["class"],
+    "Battle": ["battle"],
     "Token": ["token"],
     "Miracle": ["miracle"],
     "Snow": ["snow"],
