@@ -37,6 +37,15 @@
     "default": "default"
   },
   {
+    "type": "options",
+    "title": "[b]Collector Promo Star[/b]",
+    "desc": "Whether to use the promo star in collector info text. Automatic will apply the star to cards marked 'Promo' on Scryfall.\n[b](Default: 'disabled')[/b]",
+    "section": "BASE.TEXT",
+    "key": "Collector.Promo",
+    "options": ["disabled", "automatic", "always"],
+    "default": "disabled"
+  },
+  {
     "type": "title",
     "title": "Symbols and Watermarks"
   },

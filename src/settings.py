@@ -14,7 +14,8 @@ from src.enums.settings import (
 	BorderColor,
 	OutputFiletype,
 	ScryfallSorting,
-	ScryfallUnique
+	ScryfallUnique,
+	CollectorPromo
 )
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
@@ -68,6 +69,7 @@ class Config:
 		self.remove_flavor = self.file.getboolean('BASE.TEXT', 'No.Flavor.Text')
 		self.remove_reminder = self.file.getboolean('BASE.TEXT', 'No.Reminder.Text')
 		self.collector_mode = self.get_option('BASE.TEXT', 'Collector.Mode', CollectorMode)
+		self.collector_promo = self.get_option('BASE.TEXT', "Collector.Promo", CollectorPromo)
 
 		# BASE - SYMBOLS
 		self.symbol_default = self.file['BASE.SYMBOLS']['Default.Symbol']

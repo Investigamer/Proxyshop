@@ -82,6 +82,16 @@ class BorderColor (StrEnum):
         return self.Black
 
 
+class CollectorPromo (StrEnum):
+    Disabled = "disabled"
+    Automatic = "automatic"
+    Always = "always"
+
+    @classproperty
+    def Default(self) -> str:
+        return self.Disabled
+
+
 """
 TEMPLATE SETTINGS
 """
