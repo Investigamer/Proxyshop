@@ -31,7 +31,7 @@ from src.helpers.colors import get_color, apply_color
 from src.helpers.layers import select_layer_bounds
 from src.helpers.position import spread_layers_over_reference
 from src.helpers.text import get_text_scale_factor, set_text_size, set_text_leading, get_font_size
-from src.utils.types_cards import CardTextSymbols, CardTextSymbolIndex
+from src.types.cards import CardTextSymbols, CardTextSymbolIndex
 from src.utils.regex import Reg
 
 # QOL Definitions

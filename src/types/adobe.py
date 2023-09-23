@@ -2,6 +2,7 @@
 Types for Photoshop Actions
 """
 # Standard Library Imports
+from __future__ import absolute_import
 from typing import TypedDict, Literal, Union
 
 # Third Party Imports

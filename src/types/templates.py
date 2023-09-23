@@ -6,6 +6,10 @@ from typing import TypedDict, Optional, Callable
 from typing_extensions import NotRequired
 
 
+TemplateRaw = TypedDict('TemplateRaw', {'class': str, 'file': str, 'id': NotRequired[str]})
+TemplateManifest = dict[str, dict[str, TemplateRaw]]
+
+
 class TemplateDetails(TypedDict):
     id: Optional[str]
     class_name: str

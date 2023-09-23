@@ -18,7 +18,7 @@ from src.constants import con
 from src.core import check_for_updates, update_template
 from src.gui.utils import GUI
 from src.utils.strings import msg_success, msg_error
-from src.utils.types_templates import TemplateUpdate
+from src.types.templates import TemplateUpdate
 
 
 class UpdatePopup(Popup):

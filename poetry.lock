@@ -1324,13 +1324,13 @@ files = [
 
 [[package]]
 name = "photoshop-python-api"
-version = "0.21.10"
+version = "0.22.1"
 description = "Python API for Photoshop."
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "photoshop_python_api-0.21.10-py3-none-any.whl", hash = "sha256:4a288a435b29f7c7244f1788437db42010ba1341e57dd34e9d3708f32b236d78"},
-    {file = "photoshop_python_api-0.21.10.tar.gz", hash = "sha256:8387f9c73d6769f62dd9138db63b026c95f18831e01c37bfa8a1195f641e651c"},
+    {file = "photoshop_python_api-0.22.1-py3-none-any.whl", hash = "sha256:c95b54c8ac483740e3eaef4eeb7aad484b8cf01147e29580681342a8ebc32779"},
+    {file = "photoshop_python_api-0.22.1.tar.gz", hash = "sha256:0d779dcbc1100869dc4f766e244536a007ba747f861bd64bfb4b77db2f1e5196"},
 ]
 
 [package.dependencies]
@@ -2530,4 +2530,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.12"
-content-hash = "f02c463c2428c216a2650117556f519188274973b4e0c6f3c261edc4b2570326"
+content-hash = "34e89e7ea78d6c1a7ca97cbadab36eb4979b04e970010164fabf42256ecc253c"

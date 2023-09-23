@@ -19,7 +19,7 @@ from src.enums.settings import (
 )
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
-from src.utils.types_templates import TemplateDetails
+from src.types.templates import TemplateDetails
 from src.utils.files import verify_config_fields
 
 

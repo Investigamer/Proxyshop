@@ -60,6 +60,7 @@ class Constants:
         self.path_plugins = osp.join(self.cwd, 'plugins')
         self.path_tests = osp.join(self.path_src, 'tests')
         self.path_configs = osp.join(self.path_src, 'configs')
+        self.path_templates = osp.join(self.cwd, 'templates')
         self.path_data_sets = osp.join(self.path_data, 'sets')
         self.path_config_json_base = osp.join(self.path_data, 'base_settings.json')
         self.path_config_json_app = osp.join(self.path_data, 'app_settings.json')

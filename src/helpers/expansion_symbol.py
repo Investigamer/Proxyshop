@@ -12,7 +12,7 @@ from src.enums.mtg import Rarity
 from src.settings import cfg
 from src.constants import con
 from src.helpers.colors import get_color, rgb_black, rgb_white
-from src.utils.types_photoshop import (
+from src.types.adobe import (
     EffectStroke,
     EffectDropShadow,
     EffectGradientOverlay

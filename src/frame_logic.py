@@ -7,7 +7,7 @@ from typing import Union, Optional
 
 from src.enums.mtg import Rarity
 # Local Imports
-from src.utils.types_cards import FrameDetails
+from src.types.cards import FrameDetails
 from src.enums.layers import LAYERS
 
 

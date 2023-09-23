@@ -20,7 +20,7 @@ from src.enums.mtg import (
 import src.helpers as psd
 from src.enums.layers import LAYERS
 from src.templates import NormalTemplate
-from src.utils.types_photoshop import LayerObject
+from src.types.adobe import LayerObject
 
 
 class VectorTemplate (NormalTemplate):

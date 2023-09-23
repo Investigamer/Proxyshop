@@ -14,7 +14,7 @@ from photoshop.api._layerSet import LayerSet
 from src.constants import con
 from src.helpers.colors import rgb_black, apply_color, get_color, add_color_to_gradient
 from src.enums.photoshop import Stroke
-from src.utils.types_photoshop import (
+from src.types.adobe import (
     LayerEffects,
     EffectStroke,
     EffectDropShadow,

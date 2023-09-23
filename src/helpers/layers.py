@@ -12,7 +12,7 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src.constants import con
 from src.utils.exceptions import PS_EXCEPTIONS
-from src.utils.types_photoshop import LayerContainer
+from src.types.adobe import LayerContainer
 
 # QOL Definitions
 app = con.app

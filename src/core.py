@@ -20,10 +20,10 @@ from src.constants import con
 from src.settings import cfg
 from src.utils.modules import get_loaded_module
 from src.utils.regex import Reg
-from src.utils.types_cards import CardDetails
+from src.types.cards import CardDetails
 from src.utils.download import download_s3, download_google
 from src.utils.env import ENV_VERSION, ENV_API_GOOGLE
-from src.utils.types_templates import TemplateDetails, TemplateUpdate
+from src.types.templates import TemplateDetails, TemplateUpdate, TemplateManifest
 
 # All Template types
 card_types = {
@@ -99,7 +99,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
 
     # Load the built-in templates
     with open(os.path.join(con.path_data, "app_templates.json"), encoding="utf-8") as f:
-        app_json = json.load(f)
+        app_json: TemplateManifest = json.load(f)
 
     # Build a TemplateDetails for each template
     for card_type, templates in app_json.items():
@@ -112,9 +112,9 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 "type": named_type,
                 "layout": card_type,
                 "class_name": template['class'],
-                "config_path": osp.join(con.path_src, f"configs/{template['class']}.json"),
+                "config_path": osp.join(con.path_configs, f"{template['class']}.json"),
                 "preview_path": osp.join(con.path_img, f"{template['class']}.jpg"),
-                "template_path": osp.join(con.cwd, f"templates/{template['file']}"),
+                "template_path": osp.join(con.path_templates, template['file']),
                 "plugin_name": None,
                 "plugin_path": None,
             } for name, template in templates.items()
@@ -135,7 +135,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
 
         # Load json
         with open(json_file, "r", encoding="utf-8") as f:
-            plugin_json = json.load(f)
+            plugin_json: TemplateManifest = json.load(f)
 
         # Add plugin folder to Python environment
         sys.path.append(folder.path)
