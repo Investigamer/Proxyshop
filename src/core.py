@@ -437,7 +437,9 @@ def check_app_version() -> bool:
     """
     try:
         current = f"v{ENV_VERSION}"
-        response = requests.get("https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest")
+        response = requests.get(
+            "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
+            timeout=(3, 3))
         latest = response.json().get("tag_name", current)
         return bool(current == latest)
     except (requests.HTTPError, json.JSONDecodeError):
