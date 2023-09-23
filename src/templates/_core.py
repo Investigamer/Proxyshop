@@ -346,6 +346,8 @@ class BaseTemplate:
     @cached_property
     def background(self) -> str:
         """Name of the Background layer."""
+        if not self.is_vehicle and self.layout.background == LAYERS.VEHICLE:
+            return LAYERS.ARTIFACT
         return self.layout.background
 
     @cached_property
