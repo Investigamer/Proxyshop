@@ -53,14 +53,15 @@ folders = [
     # --- WORKING DIRECTORY
     {'src': os.path.join(CWD, "fonts"), 'dst': os.path.join(DIST, 'fonts')},
     # --- SOURCE DIRECTORY
-    {'src': os.path.join(SRC, "data/kv"), 'dst': os.path.join(DIST_SRC, 'data/kv')},
     {'src': os.path.join(SRC, "img"), 'dst': os.path.join(DIST_SRC, 'img')},
     {'src': os.path.join(SRC, "configs"), 'dst': os.path.join(DIST_SRC, 'configs')},
-    # --- TEMPLATE TOOLS
+    # --- DATA DIRECTORY
+    {'src': os.path.join(DATA, "kv"), 'dst': os.path.join(DIST_DATA, 'kv')},
+    # --- TEMPLATE DIRECTORY
     {'src': os.path.join(TEMPS, 'tools'), 'dst': os.path.join(DIST_TEMPS, 'tools')},
     # --- PLUGINS DIRECTORY
     {'src': os.path.join(PLUGINS, "MrTeferi"), 'dst': os.path.join(DIST_PLUGINS, 'MrTeferi')},
-    {'src': os.path.join(PLUGINS, "SilvanMTG"), 'dst': os.path.join(DIST_PLUGINS, 'SilvanMTG')},
+    {'src': os.path.join(PLUGINS, "SilvanMTG"), 'dst': os.path.join(DIST_PLUGINS, 'SilvanMTG')}
 ]
 
 # Directories containing ini files
