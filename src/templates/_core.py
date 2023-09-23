@@ -496,8 +496,17 @@ class BaseTemplate:
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
         """Background texture layer."""
+        # Try finding Nyx background
         if self.is_nyx:
-            return psd.getLayer(self.background, LAYERS.NYX)
+            if layer := psd.getLayer(self.background, LAYERS.NYX):
+                return layer
+        # Try finding Vehicle background
+        if self.is_vehicle and self.background == LAYERS.VEHICLE:
+            return psd.getLayer(
+                LAYERS.VEHICLE, LAYERS.BACKGROUND
+            ) or psd.getLayer(
+                LAYERS.ARTIFACT, LAYERS.BACKGROUND)
+        # All other backgrounds
         return psd.getLayer(self.background, LAYERS.BACKGROUND)
 
     @cached_property
@@ -520,7 +529,8 @@ class BaseTemplate:
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
         """Power and toughness box layer."""
-        if self.is_vehicle:
+        # Test for Vehicle PT support
+        if self.is_vehicle and self.background == LAYERS.VEHICLE:
             if layer := psd.getLayer(LAYERS.VEHICLE, LAYERS.PT_BOX):
                 # Change font to white for Vehicle PT box
                 self.text_layer_pt.textItem.color = self.RGB_WHITE
