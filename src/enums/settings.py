@@ -121,3 +121,13 @@ class BorderlessTextbox (StrEnum):
     @cached_property
     def Default(self) -> str:
         return self.Automatic
+
+
+class ModernClassicCrown (StrEnum):
+    Pinlines = "Pinline Colors"
+    TexturePinlines = "Texture Pinlines"
+    TextureBackground = "Texture Background"
+
+    @cached_property
+    def Default(self) -> str:
+        return self.Pinlines
