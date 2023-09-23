@@ -10,29 +10,149 @@ import traceback
 from threading import Lock, Event, Thread
 from datetime import datetime as dt
 from functools import cached_property
-from typing import Optional
+from typing import Optional, Type
 
 # Local Imports
 from src.settings import cfg
 from src.constants import con
 from src.utils.env import ENV_HEADLESS
 from src.utils.objects import Singleton
+from src.utils.strings import StrEnum
+
+
+class LogColors (StrEnum):
+    """Logging message colors."""
+    GRAY = '\x1b[38;21m'
+    BLUE = '\x1b[38;5;39m'
+    YELLOW = '\x1b[38;5;226m'
+    ORANGE = '\x1b[38;5;202m'
+    RED = '\x1b[38;5;196m'
+    RED_BOLD = '\x1b[31;1m'
+    WHITE = '\x1b[97m'
+    RESET = '\x1b[0m'
+
+
+class LogFormats (StrEnum):
+    """Logging message formats."""
+    MSG = '%(message)s'
+    DATE = '%(asctime)s'
+    FILE = '%(filename)s: %(lineno)d'
+    DATE_MSG = f'[{DATE}] {MSG}'
+    FILE_MSG = f'[{FILE}] {MSG}'
+    DATE_FILE_MSG = f'[{DATE}] [{FILE}] {MSG}'
+
+
+class DateFormats (StrEnum):
+    """Logging date formats."""
+    MONTH = '%m'
+    DAY = '%d'
+    YEAR = '%Y'
+    HOUR = '%H'
+    MINUTE = '%M'
+    DATE = f'{MONTH}/{DAY}/{YEAR}'
+    TIME = f'{HOUR}:{MINUTE}'
+    DATE_TIME = f'{DATE} {TIME}'
+
+
+class LogFormatter(logging.Formatter):
+    """Loger interface formatter class."""
+
+    # Define log formats
+    def __init__(self, fmt: str, datefmt: str):
+        super().__init__(fmt, datefmt)
+        self.FORMATS = {
+            logging.DEBUG: LogColors.GRAY + fmt + LogColors.RESET,
+            logging.INFO: LogColors.BLUE + fmt + LogColors.RESET,
+            logging.WARNING: LogColors.YELLOW + fmt + LogColors.RESET,
+            logging.ERROR: LogColors.ORANGE + fmt + LogColors.RESET,
+            logging.CRITICAL: LogColors.RED_BOLD + fmt + LogColors.RESET
+        }
+
+    def format(self, record: logging.LogRecord):
+        """Format a logging record using the appropriate color."""
+        log_format = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_format, self.datefmt)
+        return formatter.format(record)
 
 
 class TerminalConsole:
     """Wrapper to return the correct global console object."""
     __metaclass__ = Singleton
+
+    # Logger formatting
+    _default_log_format = LogFormats.DATE_MSG
+    _default_date_format = DateFormats.DATE_TIME
+
+    # Managing threaded operations
     await_lock = Lock()
     running = True
     waiting = False
 
+    def __init__(self, log_format: Optional[str] = None, date_format: Optional[str] = None):
+        # Establish logging format
+        self._log_format = log_format or self._default_log_format
+        self._date_format = date_format or self._default_date_format
+
     """
-    Logger Object
+    Logger Object Properties
     """
 
     @cached_property
     def logger(self) -> logging.Logger:
-        return logging.getLogger(__name__)
+        """Logger interface handling console output."""
+        console_logger = logging.getLogger('console')
+        console_logger.setLevel(logging.INFO)
+        console_logger.addHandler(self.log_handler)
+        return console_logger
+
+    @cached_property
+    def log_formatter(self) -> LogFormatter:
+        """Logging Formatter interface handling color formatting in console output."""
+        return LogFormatter(self._log_format, self._date_format)
+
+    @cached_property
+    def log_handler(self) -> logging.Handler:
+        """Logging stream handler."""
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(self.log_formatter)
+        return handler
+
+    @property
+    def level(self):
+        """Current log level. Supports NOTSET, DEBUG, INFO, WARN, ERROR, CRITICAL."""
+        return self.logger.level
+
+    @level.setter
+    def level(self, level: int):
+        self.logger.setLevel(level)
+
+    """
+    Logger Colors
+    """
+
+    @cached_property
+    def COLORS(self) -> Type[LogColors]:
+        return LogColors
+
+    """
+    Logger Object Methods
+    """
+
+    def info(self, *args, **kwargs):
+        return self.logger.info(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        return self.logger.warning(*args, **kwargs)
+
+    def failed(self, *args, **kwargs):
+        return self.logger.error(*args, **kwargs)
+
+    def critical(self, *args, **kwargs):
+        return self.logger.critical(*args, **kwargs)
+
+    def set_level(self, *args):
+        return self.logger.setLevel(*args)
 
     """
     Reusable Strings
@@ -64,7 +184,7 @@ class TerminalConsole:
         """
         Current date and time in human-readable format.
         """
-        return dt.now().strftime("%m/%d/%Y %H:%M")
+        return dt.now().strftime(DateFormats.DATE_TIME)
 
     """
     Utility Methods
