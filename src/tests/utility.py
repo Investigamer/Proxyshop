@@ -40,10 +40,6 @@ cID = app.charIDtoTypeID
 sID = app.stringIDtoTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-# Ignore warnings from the psd_tools module
-logging.getLogger('psd_tools').setLevel(logging.FATAL)
-warnings.filterwarnings("ignore", module='psd_tools')
-
 # Reference Box colors
 ORANGE = [255, 172, 64]
 TANG = [255, 97, 11]
@@ -477,6 +473,10 @@ FONT UTILS
 def log_all_template_fonts() -> dict:
     """Create a log of every font found for each PSD template."""
 
+    # Ignore warnings from the psd_tools module
+    logging.getLogger('psd_tools').setLevel(logging.FATAL)
+    warnings.filterwarnings("ignore", module='psd_tools')
+
     def _get_fonts_from_psd(doc_path: str) -> set[str]:
         """
         Get a set of every font found in a given Photoshop document.
@@ -490,6 +490,7 @@ def log_all_template_fonts() -> dict:
                 fonts.add(layer.resource_dict['FontSet'][font_key]['Name'])
         return fonts
 
+    # PSD documents to test
     docs = {
         temp['template_path']: f"{temp['plugin_name'] or 'BASE'} - {temp['layout']} - {temp['name']}"
         for card_type, templates in get_templates().items()
