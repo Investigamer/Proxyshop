@@ -1,6 +1,7 @@
 """
 FRAME LOGIC MODULE
 """
+from functools import cached_property
 # Standard Library Imports
 from typing import Union, Optional
 
@@ -8,6 +9,31 @@ from src.enums.mtg import Rarity
 # Local Imports
 from src.utils.types_cards import FrameDetails
 from src.enums.layers import LAYERS
+
+
+class RulesTextLine:
+    """Data structure representing one line of the rules text in a Magic the Gathering card."""
+    def __init__(self, line: str):
+        self._line = line
+
+    def __contains__(self, item: str):
+        return bool(item in self.lower)
+
+    @cached_property
+    def lower(self) -> str:
+        return self._line.lower()
+
+
+class RulesText:
+    """Data structure representing the rules text in a Magic the Gathering card."""
+
+    def __init__(self, text: str):
+        self._text = text
+        self._lines = [RulesTextLine(n) for n in text.split('\n')]
+
+    def __iter__(self):
+        for line in self._lines:
+            yield line
 
 
 """
@@ -277,7 +303,11 @@ def get_frame_details_land(card: dict) -> FrameDetails:
                 return result
             elif LAYERS.LAND.lower() in line:
                 # Land probably fetches any basic, exclude "Ash Barrens" case
-                if ('tapped' not in line or 'untap' in line) and ('into your hand' not in line):
+                if (('tapped' not in line or 'untap' in line) and
+                        # "Ash Barrens" case
+                        'into your hand' not in line and
+                        # "Demolition Field" case
+                        'Destroy' not in line):
                     # Gold fetch land
                     result.update({
                         'pinlines': LAYERS.GOLD,
