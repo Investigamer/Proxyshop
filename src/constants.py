@@ -3,17 +3,33 @@ GLOBAL CONSTANTS MODULE
 """
 # Standard Library Imports
 import os
+import sys
 import json
 from os import path as osp
+from pathlib import Path
 from threading import Lock
 from typing import Optional
 
 # Third Party Imports
 import yaml
 
+# Establish global root, based on Python or frozen EXE environment
+__PATH_CWD__ = os.getcwd()
+__PATH_ROOT__ = None
+if getattr(sys, 'frozen', False):
+    __PATH_ROOT__ = os.path.dirname(sys.executable)
+elif __file__:
+    __PATH_ROOT__ = os.path.dirname(Path(__file__).parent)
+__PATH_ROOT__ = __PATH_ROOT__ or __PATH_CWD__
+
+# Switch to root directory if current directory differs
+if __PATH_CWD__ != __PATH_ROOT__:
+    os.chdir(__PATH_ROOT__)
+
 # Local Imports
 from src.enums.mtg import mana_color_map
 from src.enums.layers import LAYERS
+from src.utils.env import PS_VERSION
 from src.utils.objects import Singleton, PhotoshopHandler
 
 
@@ -24,7 +40,7 @@ class Constants:
     Can be modified within a template class to adjust rendering behavior.
     """
     __metaclass__ = Singleton
-    app = PhotoshopHandler()
+    app = PhotoshopHandler(version=PS_VERSION)
 
     def __init__(self):
         # Initialize the values
@@ -35,7 +51,7 @@ class Constants:
         """Loads default values. Called at launch and between renders to remove any changes made by templates."""
 
         # Consistent paths used by the app
-        self.cwd = os.getcwd()
+        self.cwd = __PATH_ROOT__
         self.path_src = osp.join(self.cwd, 'src')
         self.path_logs = osp.join(self.cwd, 'logs')
         self.path_fonts = osp.join(self.cwd, 'fonts')
