@@ -25,7 +25,7 @@ from src.settings import cfg
 
 class GUIConsole(BoxLayout):
     """GUI console handler layout."""
-    Builder.load_file(os.path.join(con.cwd, "src/kv/console.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "console.kv"))
     max_lines = 250
     running = True
     waiting = False

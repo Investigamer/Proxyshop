@@ -864,5 +864,5 @@ if __name__ == '__main__':
 
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)
-    Builder.load_file(osp.join(con.cwd, "src/kv/proxyshop.kv"))
+    Builder.load_file(osp.join(con.path_kv, "proxyshop.kv"))
     ProxyshopApp().run()

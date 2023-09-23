@@ -19,7 +19,7 @@ from src.utils.objects import PhotoshopHandler
 
 
 class ToolsLayout(BoxLayout):
-    Builder.load_file(os.path.join(con.cwd, "src/kv/tools.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "tools.kv"))
 
     @property
     def app(self) -> Any:

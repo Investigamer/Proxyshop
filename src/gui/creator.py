@@ -24,7 +24,7 @@ DISPLAY ELEMENTS
 
 
 class CreatorPanels(TabbedPanel):
-    Builder.load_file(os.path.join(con.cwd, "src/kv/creator.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "creator.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

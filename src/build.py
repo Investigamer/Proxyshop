@@ -53,7 +53,7 @@ folders = [
     # --- WORKING DIRECTORY
     {'src': os.path.join(CWD, "fonts"), 'dst': os.path.join(DIST, 'fonts')},
     # --- SOURCE DIRECTORY
-    {'src': os.path.join(SRC, "kv"), 'dst': os.path.join(DIST_SRC, 'kv')},
+    {'src': os.path.join(SRC, "data/kv"), 'dst': os.path.join(DIST_SRC, 'data/kv')},
     {'src': os.path.join(SRC, "img"), 'dst': os.path.join(DIST_SRC, 'img')},
     {'src': os.path.join(SRC, "configs"), 'dst': os.path.join(DIST_SRC, 'configs')},
     # --- TEMPLATE TOOLS
@@ -147,11 +147,11 @@ if __name__ == '__main__':
 
     # Console enabled build?
     if '--console' in sys.argv:
-        build_spec = 'src/spec/Proxyshop-console.spec'
+        build_spec = 'src/data/spec/Proxyshop-console.spec'
         zip_tag = 'console'
         del sys.argv[1]
     else:
-        build_spec = 'src/spec/Proxyshop.spec'
+        build_spec = 'src/data/spec/Proxyshop.spec'
         zip_tag = ''
 
     # Pre-build steps

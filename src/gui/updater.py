@@ -25,7 +25,7 @@ class UpdatePopup(Popup):
     """
     Popup modal for updating templates.
     """
-    Builder.load_file(os.path.join(con.cwd, "src/kv/updater.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "updater.kv"))
     updates: dict[str, list[TemplateUpdate]] = {}
     loading = True
     categories = {}

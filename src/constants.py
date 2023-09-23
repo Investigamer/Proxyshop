@@ -57,6 +57,7 @@ class Constants:
         self.path_fonts = osp.join(self.cwd, 'fonts')
         self.path_img = osp.join(self.path_src, 'img')
         self.path_data = osp.join(self.path_src, 'data')
+        self.path_kv = osp.join(self.path_data, 'kv')
         self.path_plugins = osp.join(self.cwd, 'plugins')
         self.path_tests = osp.join(self.path_src, 'tests')
         self.path_configs = osp.join(self.path_src, 'configs')

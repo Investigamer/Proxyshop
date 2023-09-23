@@ -22,7 +22,7 @@ class TestApp(BoxLayout):
     """
     Template Tester
     """
-    Builder.load_file(os.path.join(con.cwd, "src/kv/dev.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "dev.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
