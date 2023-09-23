@@ -19,7 +19,7 @@ from src.enums.photoshop import Dimensions
 from src.enums.settings import (
     ExpansionSymbolMode,
     BorderlessColorMode,
-    BorderlessTextbox
+    BorderlessTextbox, ModernClassicCrown
 )
 from src.frame_logic import contains_frame_colors
 from src.helpers import get_line_count
@@ -401,7 +401,10 @@ class ClassicTemplate (StarterTemplate):
 
     @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
-        return psd.getLayer(self.pinlines, LAYERS.LAND if self.is_land else LAYERS.NONLAND)
+        # Only use split colors for lands and hybrid color, otherwise revert to background (gold)
+        return psd.getLayer(
+            self.background if len(self.pinlines) == 2 and not self.is_hybrid and not self.is_land else self.pinlines,
+            LAYERS.LAND if self.is_land else LAYERS.NONLAND)
 
     """
     TEXT LAYERS
@@ -553,14 +556,13 @@ class EtchedTemplate (VectorTemplate):
     @cached_property
     def pinlines_color_map(self) -> dict:
         # Update some colors
-        colors = pinline_color_map.copy()
-        colors.update({
+        return {
+            **pinline_color_map.copy(),
             'W': [252, 254, 255],
             'Land': [136, 120, 98],
             'Artifact': [194, 210, 221],
             'Colorless': [194, 210, 221]
-        })
-        return colors
+        }
 
     @cached_property
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
@@ -862,8 +864,8 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
 
     @cached_property
     def pinline_color_map(self) -> dict:
-        colors = pinline_color_map.copy()
-        colors.update({
+        return {
+            **pinline_color_map.copy(),
             'W': [246, 247, 241],
             'U': [0, 131, 193],
             'B': [44, 40, 33],
@@ -873,8 +875,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
             'Land': [165, 150, 132],
             'Artifact': [227, 228, 230],
             'Colorless': [227, 228, 230]
-        })
-        return colors
+        }
 
     @cached_property
     def crown_colors(self) -> Union[SolidColor, list[dict]]:
@@ -977,8 +978,8 @@ class LOTRTemplate (VectorTemplate):
 
     @cached_property
     def pinline_color_map(self) -> dict:
-        colors = pinline_color_map.copy()
-        colors.update({
+        return {
+            **pinline_color_map.copy(),
             'W': [230, 220, 185],
             'U': [72, 142, 191],
             'B': [126, 128, 127],
@@ -988,8 +989,7 @@ class LOTRTemplate (VectorTemplate):
             'Land': [181, 162, 149],
             'Artifact': [210, 219, 227],
             'Colorless': [210, 219, 227]
-        })
-        return colors
+        }
 
     @cached_property
     def dark_color_map(self) -> dict:
@@ -1948,12 +1948,67 @@ class ClassicModernTemplate(VectorTemplate):
     """
 
     @property
+    def is_vehicle(self) -> bool:
+        return False
+
+    @property
     def is_extended(self) -> bool:
         return True
 
     @property
     def is_content_aware_enabled(self) -> bool:
         return True
+
+    """
+    SETTINGS
+    """
+
+    @cached_property
+    def crown_mode(self) -> str:
+        """Whether to use pinlines when generating the Legendary Crown."""
+        return cfg.get_option("FRAME", "Crown.Mode", ModernClassicCrown)
+
+    """
+    COLOR MAPS
+    """
+
+    @cached_property
+    def pinline_color_map(self) -> dict:
+        """Maps color values for the Pinlines."""
+        return {
+            **pinline_color_map.copy(),
+            "Land": "#604a33"
+        }
+
+    """
+    COLORS
+    """
+
+    @cached_property
+    def textbox_colors(self) -> list[str]:
+        # Only blend textbox colors for hybrid and land cards
+        if self.is_land:
+            # 2-3 color lands
+            if 1 < len(self.identity) < self.color_limit and self.is_land:
+                # Dual or tri colors
+                return [f"{n} {LAYERS.LAND}" for n in self.identity]
+            # Plain land background
+            if self.pinlines == LAYERS.LAND:
+                return [LAYERS.LAND]
+            # All other land backgrounds
+            return [f"{self.pinlines} {LAYERS.LAND}"]
+        # Hybrid cards
+        if self.is_hybrid:
+            return list(self.pinlines)
+        # Just one layer
+        return [self.background]
+
+    @cached_property
+    def crown_colors(self) -> Union[str, SolidColor, list[dict]]:
+        """Support multicolor based on color limit."""
+        if self.crown_mode == ModernClassicCrown.TextureBackground:
+            return self.background
+        return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
     """
     SHAPES
@@ -1999,7 +2054,15 @@ class ClassicModernTemplate(VectorTemplate):
     def enable_crown(self) -> None:
         """Enable the Legendary crown, only called if card is Legendary."""
 
-        # Enable Legendary Crown group and layers
-        self.pinlines_action(
-            self.pinlines_colors,
-            self.crown_group)
+        # Generate Legendary Crown using pinline colors
+        if self.crown_mode == ModernClassicCrown.Pinlines:
+            self.pinlines_action(
+                self.pinlines_colors,
+                self.crown_group)
+            return
+
+        # Generate Legendary Crown using textures
+        self.create_blended_layer(
+            group=self.crown_group,
+            colors=self.crown_colors,
+            masks=self.crown_masks)
