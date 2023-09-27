@@ -35,7 +35,6 @@ from kivy.factory import Factory
 from kivy.uix.image import Image
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.resources import resource_add_path
 from kivy.uix.togglebutton import ToggleButton
@@ -47,7 +46,7 @@ from src.utils.files import remove_config_file
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
 from src.gui.tools import ToolsLayout
-from src.gui.utils import HoverBehavior, HoverButton, GUI
+from src.gui.utils import HoverBehavior, HoverButton, GUI, DynamicTabPanel, DynamicTabItem
 from src.gui.settings import SettingsPopup
 from src.constants import con
 from src.core import (
@@ -240,9 +239,7 @@ class ProxyshopApp(App):
         @param btn: Button that was pressed and represents a given template.
         """
         # Set the preview image
-        btn.parent.image.source = btn.parent.preview if (
-            osp.exists(btn.parent.preview)
-        ) else osp.join(con.path_img, "NotFound.jpg")
+        btn.parent.image.parent.parent.set_preview_image(btn.parent.preview)
 
         # Select the template
         card_type = btn.parent.type
@@ -725,12 +722,13 @@ TEMPLATE MODULES
 """
 
 
-class TemplateModule(TabbedPanel):
+class TemplateModule(DynamicTabPanel):
     """Module that loads template tabs."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._tab_layout.padding = '0dp', '10dp', '0dp', '0dp'
+        temp_tabs = []
 
         # Add a list of buttons inside a scroll box to each tab
         for named_type, layout in card_types.items():
@@ -741,27 +739,89 @@ class TemplateModule(TabbedPanel):
                 continue
 
             # Add tab
-            scroll_box = TemplateView()
-            container = TemplateTabContainer()
-            tab = TabbedPanelItem(text=named_type)
-            scroll_box.add_widget(TemplateList(temps, preview=container.ids.preview_image))
-            container.ids.preview_image.source = temps[0]['preview_path'] if (
-                osp.exists(temps[0]['preview_path'])
-            ) else osp.join(con.cwd, 'src/img/NotFound.jpg')
-            container.ids.template_view_container.add_widget(scroll_box)
-            tab.content = container
-            self.add_widget(tab)
+            tab = DynamicTabItem(text=named_type)
+            tab.content = self.get_template_container(
+                layout=layout[0],
+                template_list=temps)
+            temp_tabs.append(tab)
+
+        # Only add tabs when all are generated
+        [self.add_widget(t) for t in temp_tabs]
+
+    @staticmethod
+    def get_template_container(
+        layout: str, template_list: list[TemplateDetails]
+    ) -> 'TemplateTabContainer':
+        """
+        Return a template container for containing the list view and preview image.
+        @param layout: Card layout type to remember.
+        @param template_list: List of templates to house.
+        @return: TemplateTabContainer object to add to the panel.
+        """
+
+        # Create a scroll box and container
+        scroll_box = TemplateView()
+        container = TemplateTabContainer(layout=layout)
+
+        # Add template list to the scroll box
+        scroll_box.add_widget(TemplateList(template_list, preview=container.ids.preview_image))
+
+        # Set the current preview image
+        container.set_preview_image(template_list[0]['preview_path'])
+
+        # Add scroll box to the container and return it
+        container.ids.template_view_container.add_widget(scroll_box)
+        return container
 
 
 class TemplateTabContainer(BoxLayout):
     """Container that holds template list within each tab."""
+
+    def __init__(self, layout: str, **kwargs):
+        super().__init__(**kwargs)
+        self._layout = layout
+
+    def toggle_preview_image(self):
+        """Toggles the preview image on multi-side templates like Transform."""
+
+        # Define source path, destination path, and toggle options
+        dst = ""
+        src = str(self.ids.preview_image.source)
+        toggle_options = (
+            ['[transform_front]', '[transform_back]'],
+            ['[mdfc_front]', '[mdfc_back]'],
+            ['[pw_tf_front]', '[pw_tf_back]'],
+            ['[pw_mdfc_front]', '[pw_mdfc_back]']
+        )
+
+        # Check if any toggle options are present
+        for option in toggle_options:
+            if option[0] in src:
+                dst = src.replace(option[0], option[1])
+            elif option[1] in src:
+                dst = src.replace(option[1], option[0])
+
+        # Toggle image if opposing type exists
+        if osp.exists(dst) and dst != src:
+            self.ids.preview_image.source = dst
+
+    def set_preview_image(self, path: str) -> None:
+        """
+        Sets the preview image in this container to a given image, allowing for layout
+        specification and NotFound fallback image.
+        @param path: Main preview image path for a template.
+        """
+        layout_specific = path.replace('.jpg', f'[{self._layout}].jpg')
+        self.ids.preview_image.source = layout_specific if osp.exists(layout_specific) else (
+            path if (osp.exists(path)) else osp.join(con.path_img, 'NotFound.jpg')
+        )
 
 
 class TemplateView(ScrollView):
     """Scrollable viewport for template list."""
 
 
-class TemplateList(GridLayout):
+class TemplateList(BoxLayout):
     """Builds a list of templates from a certain template type."""
 
     def __init__(self, temps: list[TemplateDetails], preview: Image, **kwargs):
