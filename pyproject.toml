@@ -3,8 +3,12 @@ name = "proxyshop"
 version = "1.11.0"
 description = "Photoshop automation tool for generating high quality Magic the Gathering card renders."
 authors = ["MrTeferi <freethoughtleft@gmail.com>"]
-license = "Mozilla Public License Version 2.0"
+license = "MPL-2.0"
 readme = "README.md"
+homepage = "https://github.com/MrTeferi/Proxyshop"
+repository = "https://github.com/MrTeferi/Proxyshop"
+documentation = "https://github.com/MrTeferi/Proxyshop/wiki"
+keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photoshop", "magic the gathering", "playtest"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
