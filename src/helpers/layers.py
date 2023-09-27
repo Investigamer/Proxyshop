@@ -142,6 +142,10 @@ def merge_layers(layers: list[ArtLayer] = None, name: Optional[str] = None) -> A
     if layers:
         select_layers(layers)
 
+    # Return layer if only one is present in the list
+    if len(layers) == 1:
+        return layers[0]
+
     # Merge layers and return result
     app.ExecuteAction(sID("mergeLayersNew"), ActionDescriptor(), NO_DIALOG)
     if name:
