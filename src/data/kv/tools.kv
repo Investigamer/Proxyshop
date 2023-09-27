@@ -1,20 +1,84 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import Range100NumInput src.gui.utils.Range100NumInput
 
 <ToolsLayout>:
     orientation: "vertical"
+    spacing: dp(8)
     padding: 5
-    spacing: 0
     canvas:
         Color:
             rgb: get_color_from_hex("#141414")
         Rectangle:
             size: self.size
             pos: self.pos
-    HoverButton:
-        id: generate_showcases
-        text: "Generate Showcase Images"
-        options: []
-        font_size: sp(24)
-        background_color: get_color_from_hex("#376aa3")
-        font_name: get_font("Beleren Small Caps.ttf")
-        on_press: Thread(target=root.generate_showcases, daemon=True).start()
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint: (1, None)
+        height: dp(40)
+        HoverButton:
+            id: generate_showcases
+            text: "Render All Showcases"
+            options: []
+            font_size: sp(18)
+            background_color: get_color_from_hex("#376aa3")
+            font_name: get_font("Beleren Small Caps.ttf")
+            on_press: Thread(target=root.generate_showcases, daemon=True).start()
+        HoverButton:
+            id: generate_showcases
+            text: "Render Target Showcase"
+            options: []
+            font_size: sp(18)
+            background_color: get_color_from_hex("#376aa3")
+            font_name: get_font("Beleren Small Caps.ttf")
+            on_press: Thread(target=root.generate_showcases, daemon=True).start()
+    BoxLayout:
+        size_hint: (1, None)
+        height: dp(40)
+        orientation: "horizontal"
+        spacing: dp(5)
+        Label:
+            text: "Quality:"
+            halign: 'center'
+            font_size: sp(18)
+            bold: True
+        Range100NumInput:
+            id: compress_quality
+            size_hint_x: None
+            width: dp(50)
+            halign: 'center'
+            padding_y: [self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), 0]
+            text: "95"
+            input_filter: 'int'
+        Label:
+            text: "Optimize:"
+            halign: 'center'
+            font_size: sp(18)
+            bold: True
+        Switch:
+            id: compress_optimize
+            active: True
+            size_hint_x: None
+            width: dp(100)
+        Label:
+            text: "800 DPI:"
+            halign: 'center'
+            font_size: sp(18)
+            bold: True
+        Switch:
+            id: compress_dpi
+            text: "800 DPI"
+            active: False
+            size_hint_x: None
+            width: dp(100)
+        HoverButton:
+            id: compress_renders
+            text: "Compress Renders"
+            size_hint_x: None
+            width: dp(200)
+            options: []
+            font_size: sp(18)
+            background_color: get_color_from_hex("#376aa3")
+            font_name: get_font("Beleren Small Caps.ttf")
+            on_press: Thread(target=root.compress_renders, daemon=True).start()
+    BoxLayout:
+        size_hint: (1, .8)
