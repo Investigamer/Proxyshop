@@ -5,9 +5,7 @@
 #:import cfg src.settings.cfg
 #:import ak asynckivy
 #:import ScrollEffect kivy.effects.scroll.ScrollEffect
-
-<TabbedPanelHeader>:
-    cols: 5
+#:import ButtonImage src.gui.utils.ButtonImage
 
 <ProxyshopPanels>:
     orientation: "vertical"
@@ -39,7 +37,6 @@
                         pos: container.pos
                 BoxLayout:
                     orientation: "horizontal"
-                    padding: [2,3,2,1]
                     size_hint: (1, None)
                     height: dp(40)
                     HoverButton:
@@ -64,26 +61,21 @@
                         on_press: ak.start(app.open_app_settings())
                         background_color: get_color_from_hex("#376aa3")
                 TemplateModule:
+                    pos: (0, 0)
                     tab_pos: "top_mid"
-                    do_default_tab: False
-                    tab_spacing: 0
+                    tab_width: None
                     tab_height: dp(26)
+                    tab_spacing: 0
+                    do_default_tab: False
                     size_hint: (1, 2)
-                    pos: dp(50), 0
         CreatorTab:
             text: "Custom Creator"
         ToolsTab:
             text: "Tools"
 
-
-
-<TabbedPanelItem>:
-    pos: 0,0
-    spacing: 0
-    orientation: "vertical"
-
 <TemplateTabContainer>:
     orientation: "horizontal"
+    size_hint: (1, 1)
     pos: 0,0
     spacing: 0
     background_color: get_color_from_hex("#303030")
@@ -97,12 +89,13 @@
         size_hint: (None, 1)
         width: 0.735294117*preview_image.height if preview_image.height <=612 else 450
         background_color: get_color_from_hex("#303030")
-        Image:
+        ButtonImage:
             source: 'src/img/NotFound.jpg'
             id: preview_image
             mipmap: True
             fit_mode: "scale-down"
             nocache: True
+            on_press: self.parent.parent.toggle_preview_image()
             canvas:
                 Rectangle:
                     source: "src/img/Overlay.png"
@@ -118,7 +111,7 @@
     spacing: 0
     size_hint: (1,None)
     height: self.minimum_height
-    cols: 1
+    orientation: 'vertical'
 
 <TemplateView>:
     bar_width: dp(4)
