@@ -180,21 +180,12 @@ class SagaMod (NormalTemplate):
 
         # Align icons to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
-            # Skip if this is a passive ability
-            icons = self.icon_layers[i]
+            # Skip if no icons present, space apart and merge if more than 1
+            if not (icons := self.icon_layers[i]):
+                continue
             if len(icons) > 1:
-                psd.space_layers_apart(icons, spacing/3)
-                icon_layer = psd.merge_layers(icons)
-            else:
-                icon_layer = icons[0]
-            self.docref.selection.select([
-                [0, ref_layer.bounds[1]],
-                [ref_layer.bounds[0], ref_layer.bounds[1]],
-                [ref_layer.bounds[0], ref_layer.bounds[3]],
-                [0, ref_layer.bounds[3]]
-            ])
-            psd.align_vertical(icon_layer)
-            self.docref.selection.deselect()
+                psd.space_layers_apart(icons, spacing / 3)
+            psd.align_vertical(psd.merge_layers(icons), ref_layer)
 
         # Position divider lines
         dividers = [self.ability_divider_layer.duplicate() for _ in range(len(self.ability_layers) - 1)]
