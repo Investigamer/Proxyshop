@@ -7,8 +7,9 @@ from typing import Optional, Union
 
 # Third Party Imports
 from photoshop.api import (
-    DialogModes, ActionDescriptor, ActionReference, SaveOptions,
-    PNGSaveOptions, JPEGSaveOptions, PhotoshopSaveOptions, ElementPlacement
+    DialogModes, ActionDescriptor, ActionReference,
+    SaveOptions, PNGSaveOptions, JPEGSaveOptions,
+    PhotoshopSaveOptions, ElementPlacement, FormatOptionsType
 )
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
@@ -283,6 +284,7 @@ def save_document_png(file_name: str, directory='out') -> None:
     """
     png_options = PNGSaveOptions()
     png_options.compression = 3
+    png_options.interlaced = False
     app.activeDocument.saveAs(
         file_path=osp.join(con.cwd, f"{directory}/{file_name}.png"),
         options=png_options, asCopy=True
@@ -296,7 +298,7 @@ def save_document_jpeg(file_name: str, directory='out') -> None:
     @param directory: Directory to save the file.
     """
     jpeg_options = JPEGSaveOptions(quality=12)
-    jpeg_options.scans = 3
+    jpeg_options.formatOptions = FormatOptionsType.OptimizedBaseline
     app.activeDocument.saveAs(
         file_path=osp.join(con.cwd, f"{directory}/{file_name}.jpg"),
         options=jpeg_options, asCopy=True
