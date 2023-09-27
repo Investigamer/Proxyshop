@@ -1,31 +1,26 @@
 """
-COMPRESSION TESTS
+* TESTING UTIL
+* Compression
 """
 # Standard Library Imports
-from os import path as osp
 from typing import Optional
+from time import perf_counter
 
 # Third Party Imports
 import matplotlib.pyplot as plt
+from PIL.Image import Resampling
 
 # Local Imports
-from src.constants import con
-from src.utils.files import compress_all, compress_template, WordSize, DictionarySize
-
-# Template locations
-ALL_TEMPLATES = osp.join(con.cwd, 'templates')
-PLUGIN_TEMPLATES = [
-    osp.join(con.path_plugins, 'MrTeferi/templates'),
-    osp.join(con.path_plugins, 'SilvanMTG/templates')
-]
-
+from src.utils.files import compress_template, WordSize, DictionarySize
+from src.utils.image import downscale_image
+from src.console import console
 
 """
-TESTING
+TEST FUNCTIONS
 """
 
 
-def test_all_compression_levels(template: str, plugin: Optional[str] = None):
+def test_7z_compression(template: str, plugin: Optional[str] = None):
     """
     Test all compression settings for a given template.
     @param template: Template to test.
@@ -94,17 +89,53 @@ def test_all_compression_levels(template: str, plugin: Optional[str] = None):
     return {name: {'time': x[i], 'size': y[i]} for i, name in enumerate(z)}
 
 
-"""
-BATCH COMPRESSING
-"""
+def test_jpeg_compression(
+        file: str,
+        test_dpi=True,
+        test_resample=True,
+        test_optimize=True,
+        test_quality: Optional[list[int]] = None
+) -> None:
+    """
+    Test a battery of JPEG compression settings.
+    @param file: Image file to test (located in 'out' directory).
+    @param test_dpi: If True will test both 1200 DPI and downscaled to 800 DPI.
+    @param test_resample: If True will test both Lanczos and Bicubic resample.
+    @param test_optimize: If True will test both optimized on and off.
+    @param test_quality: List a range of qualities to test, default is 95, 90, 85, 80.
+    """
 
+    # Settings to test
+    RESAMPLE = [Resampling.LANCZOS, Resampling.BICUBIC] if test_resample else [Resampling.LANCZOS]
+    OPTIMIZE = [True, False] if test_optimize else [True]
+    WIDTH = [3264, 2176] if test_dpi else [3264]
+    QUALITY, i = test_quality or [95, 90, 85, 80], 0
 
-def compress_all_templates():
-    """Compress all app templates."""
-    compress_all(ALL_TEMPLATES)
-    for p in PLUGIN_TEMPLATES:
-        compress_all(p)
+    # Loop through each required test
+    console.info("=" * 50)
+    for _W in WIDTH:
+        for _R in RESAMPLE:
+            for _Q in QUALITY:
+                for _O in OPTIMIZE:
 
+                    # Downscale the image
+                    s = perf_counter()
+                    CURRENT = (f"{i}. {'800' if _W < 3264 else '1200'} "
+                               f"{'lanczos' if _R == Resampling.LANCZOS else 'bicubic'} "
+                               f"{_Q} {'optimize_YES' if _O else 'optimize_NO'}")
+                    console.info(f"TESTING: {CURRENT}")
+                    downscale_image(
+                        file=file,
+                        name=CURRENT,
+                        optimize=_O,
+                        quality=_Q,
+                        resample=_R,
+                        width=_W)
 
-# Compress all Proxyshop templates
-compress_all_templates()
+                    # Print the time of execution
+                    console.info(f"TIME COMPLETED: {perf_counter() - s} SECONDS")
+                    console.info("=" * 50)
+                    i += 1
+
+    # Test completed
+    console.info("ALL TESTS COMPLETED!")

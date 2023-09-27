@@ -20,7 +20,7 @@ from tqdm import tqdm
 import py7zr
 
 # Local Imports
-from src.utils.testing import time_function
+from src.constants import con
 from src.utils.strings import StrEnum
 
 
@@ -250,8 +250,8 @@ def compress_template(
     @return:
     """
     # Build the template path
-    from_dir = osp.join(os.getcwd(), f'plugins\\{plugin}\\templates' if plugin else 'templates')
-    to_dir = osp.join(os.getcwd(), f'plugins\\{plugin}\\templates\\compressed' if plugin else 'templates\\compressed')
+    from_dir = osp.join(con.cwd, f'plugins\\{plugin}\\templates' if plugin else 'templates')
+    to_dir = osp.join(con.cwd, f'plugins\\{plugin}\\templates\\compressed' if plugin else 'templates\\compressed')
     from_file = osp.join(from_dir, file_name)
     to_file = osp.join(to_dir, file_name.replace('.psd', '.7z').replace('.psb', '.7z'))
     null_device = open(os.devnull, 'w')
@@ -267,24 +267,42 @@ def compress_template(
     return get_file_size_mb(to_file), perf_counter()-s
 
 
-def compress_all(directory: str) -> None:
+def compress_plugin(plugin: str) -> None:
+    """
+    Compress all PSD files in a plugin.
+    @param plugin: Name of the plugin folder.
+    """
+    compress_all(directory=osp.join(con.path_plugins, f"{plugin}\\templates"))
+
+
+def compress_all(directory: Optional[str] = None) -> None:
     """
     Compress all PSD files in a directory.
     @param directory: Directory containing PSD files to compress.
     """
     # Create "compressed" subdirectory if it doesn't exist
+    directory = directory or con.path_templates
     output_dir = osp.join(directory, 'compressed')
     makedirs(output_dir, exist_ok=True)
 
     # Get a list of all .psd files in the directory
     files = glob(osp.join(directory, '*.psd'))
 
+    # Compress each file
     with tqdm(total=len(files), desc="Compressing files", unit="file") as pbar:
-        # Compress each file
         for f in files:
             pbar.set_description(os.path.basename(f))
             compress_file(f, output_dir)
             pbar.update()
+
+
+def compress_all_templates():
+    """Compress all app templates."""
+    # Compress base templates
+    compress_all(con.path_templates)
+
+    # Compress plugin templates
+    _ = [compress_plugin(p) for p in ['MrTeferi', 'SilvanMTG']]
 
 
 """
