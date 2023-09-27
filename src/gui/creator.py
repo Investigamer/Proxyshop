@@ -3,7 +3,6 @@ CUSTOM CARD CREATOR
 """
 # Standard Library Imports
 import os
-import threading
 from typing import Callable
 
 # Third Party Imports
@@ -11,7 +10,6 @@ from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
-from kivy.uix.textinput import TextInput
 
 # Local Imports
 from src.constants import con
@@ -91,9 +89,7 @@ class CreatorLayout(GridLayout):
         @param scryfall: Scryfall data to build layout object.
         """
         self.disable_buttons()
-        th = threading.Thread(target=func, args=(temp, scryfall), daemon=True)
-        th.start()
-        th.join()
+        func(temp, scryfall)
         self.enable_buttons()
 
     @staticmethod
@@ -143,14 +139,14 @@ class CreatorNormalLayout(CreatorLayout):
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
     def render(self, root):
-        rules_text = "\n".join([
+        rules_text = "\n".join(n for n in [
             self.ids.line_1.text.replace("~", self.ids.name.text),
             self.ids.line_2.text.replace("~", self.ids.name.text),
             self.ids.line_3.text.replace("~", self.ids.name.text),
             self.ids.line_4.text.replace("~", self.ids.name.text)
-        ])
+        ] if n)
         scryfall = {
-            "layout": "normal",
+            "layout": "planeswalker",
             "set": self.ids.set.text,
             "name": self.ids.name.text,
             "oracle_text": rules_text,
@@ -204,90 +200,3 @@ class CreatorSagaLayout(CreatorLayout):
         scryfall = self.format_scryfall_data(scryfall)
         temp = get_my_templates({"Saga": self.selected_template})
         self.render_custom(root.render_custom, temp['saga'], scryfall)
-
-
-"""
-CUSTOM FORM INPUTS
-"""
-
-
-class InputItem(TextInput):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.clicked = False
-        self.original = self.text
-
-    def _on_focus(self, instance, value, *args):
-        if not self.clicked:
-            self.clicked = True
-            self.original = self.text
-        super()._on_focus(instance, value, *args)
-
-    def keyboard_on_key_down(self, window, keycode, text, modifiers):
-        """
-        Enable tab to next or previous input
-        """
-        if keycode[1] == 'tab':  # deal with cycle
-            if 'shift' in modifiers:
-                nxt = self.get_focus_previous()
-            else:
-                nxt = self.get_focus_next()
-            if nxt:
-                self.focus = False
-                nxt.focus = True
-            return True
-        if keycode[0] == 286:  # F5 to reset text
-            self.clicked = False
-            self.text = self.original
-        super().keyboard_on_key_down(window, keycode, text, modifiers)
-
-
-class NoEnterInputItem(InputItem):
-    def keyboard_on_key_down(self, window, keycode, text, modifiers):
-        """
-        Disable enter
-        """
-        if keycode[0] == 13:  # deal with cycle
-            return False
-        super().keyboard_on_key_down(window, keycode, text, modifiers)
-
-
-class FourNumInput(InputItem):
-    # Properties
-    max_len = 4
-    input_type = "number"
-
-    def insert_text(self, substring, from_undo=False):
-        """
-        4 character max, numeric
-        """
-        if len(self.text) < self.max_len:
-            if substring.isnumeric():
-                return super().insert_text(substring, from_undo=from_undo)
-
-
-class ThreeNumInput(InputItem):
-    # Properties
-    max_len = 3
-    input_type = "number"
-    whitelist = ("*", "X", "Y", "+", "-")
-
-    def insert_text(self, substring, from_undo=False):
-        """
-        3 character max, numeric with a small whitelist
-        """
-        if len(self.text) < self.max_len:
-            if substring.isnumeric() or substring in self.whitelist:
-                return super().insert_text(substring, from_undo=from_undo)
-
-
-class FourCharInput(InputItem):
-    # Properties
-    max_len = 4
-
-    def insert_text(self, substring, from_undo=False):
-        """
-        4 character max
-        """
-        if len(self.text) < self.max_len:
-            return super().insert_text(substring.upper(), from_undo=from_undo)
