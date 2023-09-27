@@ -1,9 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
+from os import path as osp
 from kivy_deps import sdl2, glew
+from src.constants import con
 block_cipher = None
 
 
-a = Analysis(['../../main.py'],
+a = Analysis([osp.join(con.cwd, 'main.py')],
              binaries=[],
              datas=[],
              hiddenimports=[
@@ -42,4 +44,4 @@ exe = EXE(pyz,
           disable_windowed_traceback=False,
           target_arch=None,
           codesign_identity=None,
-          icon='../img/favicon.ico')
+          icon=osp.join(con.path_img, 'favicon.ico'))
