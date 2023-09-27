@@ -71,6 +71,7 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
         return True
 
     def expansion_symbol(self):
+        """Does not support expansion symbol."""
         pass
 
 

@@ -21,7 +21,6 @@ from photoshop.api import (
 )
 from PIL import Image
 
-
 # Local Imports
 from src.console import console, Console
 from src.enums.mtg import watermark_color_map, MagicIcons
@@ -745,10 +744,16 @@ class BaseTemplate:
         group.move(self.expansion_symbol_layer, ElementPlacement.PlaceAfter)
 
         # Call the necessary creator
-        if cfg.symbol_mode in [ExpansionSymbolMode.Font, 'default']:
-            self.create_expansion_symbol(group)
-        elif cfg.symbol_mode == ExpansionSymbolMode.SVG:
-            self.create_expansion_symbol_svg(group)
+        try:
+            if cfg.symbol_mode in [ExpansionSymbolMode.Font, 'default']:
+                self.create_expansion_symbol(group)
+            elif cfg.symbol_mode == ExpansionSymbolMode.SVG:
+                self.create_expansion_symbol_svg(group)
+        except Exception as e:
+            self.console.log_exception(e)
+            self.console.update("Expansion symbol generation failed!\n"
+                                "Disabling expansion symbol.")
+            group.visible = False
 
         # Merge and refresh cache
         group.merge().name = "Expansion Symbol"
