@@ -892,7 +892,7 @@ class SagaLayout (NormalLayout):
         # Unpack oracle text into saga lines
         abilities: list[dict] = []
         for i, line in enumerate(self.oracle_text.split("\n")):
-            # Check if this is a full ability line
+            # Full ability line
             if "—" in line:
                 icons, text = line.split("—", 1)
                 abilities.append({
@@ -900,7 +900,14 @@ class SagaLayout (NormalLayout):
                     "icons": icons.strip().split(", ")
                 })
                 continue
-            # Add to the previous line
+            # Static text line, "Greatest Show in the Multiverse"
+            if i == 0:
+                abilities.append({
+                    'text': line,
+                    'icons': []
+                })
+                continue
+            # Part of a previous ability line
             abilities[-1]['text'] += f"\n{line}"
         return abilities
 
