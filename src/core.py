@@ -442,5 +442,5 @@ def check_app_version() -> bool:
             timeout=(3, 3))
         latest = response.json().get("tag_name", current)
         return bool(current == latest)
-    except (requests.HTTPError, json.JSONDecodeError):
+    except (requests.RequestException, json.JSONDecodeError):
         return True
