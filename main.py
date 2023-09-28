@@ -18,8 +18,8 @@ from multiprocessing import cpu_count
 
 # Third-party Imports
 from PIL import Image as PImage
-from photoshop import api as ps
 from photoshop.api._document import Document
+from photoshop.api import SaveOptions, DialogModes
 
 # Environment variables
 environ["KIVY_LOG_MODE"] = "PYTHON"
@@ -160,6 +160,10 @@ class ProxyshopApp(App):
         """Padding for the main app container."""
         return dp(10)
 
+    @property
+    def console(self) -> type[console]:
+        return console
+
     """
     RENDERING PROPERTIES
     """
@@ -226,7 +230,6 @@ class ProxyshopApp(App):
             result = func(self, *args)
             self.reset(enable_buttons=True, close_document=True)
             return result
-
         return wrapper
 
     """
@@ -310,16 +313,15 @@ class ProxyshopApp(App):
             console.clear()
 
     @staticmethod
-    def select_art(app: ps.Application) -> Optional[Union[str, list]]:
+    def select_art() -> Optional[Union[str, list]]:
         """
         Open file select dialog in Photoshop, return the file.
-        @param app: Photoshop Application object.
         @return: File object.
         """
         while True:
             try:
                 # Open a file select dialog in Photoshop
-                if files := app.openDialog():
+                if files := con.app.openDialog():
                     return files
                 # No files selected
                 return
@@ -331,15 +333,17 @@ class ProxyshopApp(App):
                 ):
                     # Cancel the operation
                     return
+                # Refresh Photoshop, try again
+                con.app.refresh_app()
 
     def close_document(self) -> None:
         """Close Photoshop document if open."""
         try:
             # Close and set null
             if self.docref and isinstance(self.docref, Document):
-                con.app.displayDialogs = ps.DialogModes.DisplayNoDialogs
-                self.docref.close(ps.SaveOptions.DoNotSaveChanges)
-                con.app.displayDialogs = ps.DialogModes.DisplayErrorDialogs
+                con.app.displayDialogs = DialogModes.DisplayNoDialogs
+                self.docref.close(SaveOptions.DoNotSaveChanges)
+                con.app.displayDialogs = DialogModes.DisplayErrorDialogs
                 self.current_render = None
         except Exception as e:
             # Document wasn't available
@@ -354,9 +358,7 @@ class ProxyshopApp(App):
     @render_process_wrapper
     def render_target(self) -> None:
         """Open the file select dialog in Photoshop and pass the selected arts to render_all."""
-        self.disable_buttons()
-        app = ps.Application()
-        if not (files := self.select_art(app)):
+        if not (files := self.select_art()):
             return
         return self.render_all(files)
 
@@ -426,8 +428,7 @@ class ProxyshopApp(App):
         @param scryfall: Dict of scryfall data.
         """
         # Open file in PS
-        app = ps.Application()
-        if not (file_name := self.select_art(app)):
+        if not (file_name := self.select_art()):
             return
 
         # Instantiate layout object and get template class

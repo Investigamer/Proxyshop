@@ -18,6 +18,8 @@ import requests
 
 # Local Imports
 from src.constants import con
+from src.utils.objects import PhotoshopHandler
+
 con.headless = True
 from src import helpers as psd
 from src.settings import cfg
@@ -75,8 +77,8 @@ class TestTemplate:
         self.expansion_symbol()
 
     @cached_property
-    def app(self):
-        return ps.Application()
+    def app(self) -> PhotoshopHandler:
+        return con.app
 
     @cached_property
     def text_group(self):
@@ -277,8 +279,7 @@ RUN TEST HERE
 """
 
 """# Open the document
-app = ps.Application()
-app.open(os.path.join(con.path_tests, 'expansion_symbol_test.psd'))
+con.app.open(os.path.join(con.path_tests, 'expansion_symbol_test.psd'))
 
 # TEST ONE SYMBOL
 test_target_symbol('MOC', rarities=['common', 'uncommon', 'rare', 'mythic'])
