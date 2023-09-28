@@ -31,8 +31,17 @@ except ModuleNotFoundError:
 ENV_API_GOOGLE: str = GOOGLE_KEY or environ.get('GOOGLE_KEY', ENV.get('GOOGLE_KEY', ''))
 ENV_API_AMAZON: str = AMAZON_KEY or environ.get('AMAZON_KEY', ENV.get('AMAZON_KEY', ''))
 ENV_HEADLESS: bool = bool(strtobool(environ.get('HEADLESS', ENV.get('HEADLESS', 'False'))))
+PS_ERROR_DIALOG: bool = bool(strtobool(environ.get('PS_ERROR_DIALOG', ENV.get('PS_ERROR_DIALOG', 'False'))))
 PS_VERSION: Optional[str] = environ.get('PS_VERSION', ENV.get('PS_VERSION', None))
 PS_VERSION = str(PS_VERSION) if PS_VERSION else None
 
 # Export all
-__all__ = ["ENV_VERSION", "ENV_API_GOOGLE", "ENV_API_AMAZON", "ENV_DEV_MODE", "ENV_HEADLESS", "PS_VERSION"]
+__all__ = [
+    "ENV_VERSION",
+    "ENV_API_GOOGLE",
+    "ENV_API_AMAZON",
+    "ENV_DEV_MODE",
+    "ENV_HEADLESS",
+    "PS_ERROR_DIALOG",
+    "PS_VERSION"
+]

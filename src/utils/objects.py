@@ -12,7 +12,7 @@ from photoshop.api._core import Photoshop
 from packaging.version import parse
 
 # Local Imports
-from src.utils.env import ENV_DEV_MODE
+from src.utils.env import PS_ERROR_DIALOG
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 
 """
@@ -211,7 +211,7 @@ class PhotoshopHandler(Application):
         @param descriptor: Main action descriptor tree to execute.
         @param dialogs: DialogMode which governs whether to display dialogs.
         """
-        if not ENV_DEV_MODE:
+        if not PS_ERROR_DIALOG:
             return super().executeAction(event_id, descriptor, dialogs)
         # Allow error dialogs within development environment
         return super().executeAction(event_id, descriptor, DialogModes.DisplayErrorDialogs)
