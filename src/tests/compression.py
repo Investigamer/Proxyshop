@@ -90,7 +90,7 @@ def test_7z_compression(template: str, plugin: Optional[str] = None):
 
 
 def test_jpeg_compression(
-        file: str,
+        path: str,
         test_dpi=True,
         test_resample=True,
         test_optimize=True,
@@ -98,7 +98,7 @@ def test_jpeg_compression(
 ) -> None:
     """
     Test a battery of JPEG compression settings.
-    @param file: Image file to test (located in 'out' directory).
+    @param path: Path to image file to test.
     @param test_dpi: If True will test both 1200 DPI and downscaled to 800 DPI.
     @param test_resample: If True will test both Lanczos and Bicubic resample.
     @param test_optimize: If True will test both optimized on and off.
@@ -125,12 +125,12 @@ def test_jpeg_compression(
                                f"{_Q} {'optimize_YES' if _O else 'optimize_NO'}")
                     console.info(f"TESTING: {CURRENT}")
                     downscale_image(
-                        file=file,
+                        path=path,
                         name=CURRENT,
                         optimize=_O,
                         quality=_Q,
                         resample=_R,
-                        width=_W)
+                        max_width=_W)
 
                     # Print the time of execution
                     console.info(f"TIME COMPLETED: {perf_counter() - s} SECONDS")

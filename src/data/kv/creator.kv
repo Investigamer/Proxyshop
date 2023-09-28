@@ -12,7 +12,14 @@
     do_default_tab: False
     tab_width: dp(120)
     tab_height: dp(30)
+    padding: dp(5)
     tab_spacing: 0
+    canvas:
+        Color:
+            rgba: get_color_from_hex("#141414")
+        Rectangle:
+            size: self.size
+            pos: self.pos
 
 <CreatorNormalLayout>:
     id: creator_norm
