@@ -5,6 +5,7 @@ PROXYSHOP GUI LAUNCHER
 import sys
 import json
 import datetime
+import os.path as osp
 import win32clipboard
 import os.path as osp
 from io import BytesIO
@@ -411,7 +412,9 @@ class ProxyshopApp(App):
             # The template we'll use for this type
             template = temps[card_type].copy()
             template['loaded_class'] = get_template_class(template)
-            for card in cards:
+            self.reset_render(len(cards))
+            for index, card in enumerate(cards, start=1):
+                self.card_index = index
                 # Start render thread
                 if not self.start_render(template, card):
                     return
@@ -450,6 +453,7 @@ class ProxyshopApp(App):
 
         # Start render
         console.update()
+        self.reset_render(1)
         self.start_render(template, layout)
 
     @render_process_wrapper
@@ -572,7 +576,9 @@ class ProxyshopApp(App):
 
             # Report this results
             if result and not cfg.test_mode:
-                console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
+                time_completed = int(self.timer - start_time)
+                cards_remaining = self.card_total - self.card_index
+                console.update(f"[i]Time completed: {time_completed} seconds | Cards Remaining: {cards_remaining}[/i]")
             return result
         except Exception as e:
             # General error outside Template render process
@@ -586,6 +592,14 @@ class ProxyshopApp(App):
                 ),
                 exception=e
             )
+
+    """
+    RENDER METHODS
+    """
+
+    def reset_render(self, card_total: int) -> None:
+        self.card_index = 1
+        self.card_total = card_total
 
     """
     UI METHODS
