@@ -5,6 +5,7 @@ FUNCTIONS THAT INTERACT WITH SCRYFALL
 import os
 import json
 from functools import cache
+from pathlib import Path
 from shutil import copyfileobj
 from typing import Optional, Union, Callable, Any
 
@@ -18,7 +19,9 @@ from src.enums.mtg import BASIC_LANDS, TransformIcons
 from src.console import console
 from src.settings import cfg
 from src.constants import con
+from src.types.cards import CardDetails
 from src.utils.exceptions import ScryfallError
+from src.utils.regex import Reg
 from src.utils.strings import msg_warn, normalize_str
 
 
@@ -305,8 +308,34 @@ def card_scan(img_url: str) -> Optional[str]:
 
 
 """
-UTILITIES
+CARD DATA UTILITIES
 """
+
+
+def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
+    """
+    Retrieve card name from the input file, and optional tags (artist, set, number).
+    @param file_path: Path to the image file.
+    @return: Dict of card details.
+    """
+    # Extract just the card name
+    file_name = os.path.basename(os.path.splitext(str(file_path))[0])
+
+    # Match pattern and format data
+    name_split = Reg.PATH_SPLIT.split(file_name)
+    artist = Reg.PATH_ARTIST.search(file_name)
+    number = Reg.PATH_NUM.search(file_name)
+    code = Reg.PATH_SET.search(file_name)
+
+    # Return dictionary
+    return {
+        'filename': file_path,
+        'name': name_split[0].strip(),
+        'set': code.group(1) if code else '',
+        'artist': artist.group(1) if artist else '',
+        'number': number.group(1) if number and code else '',
+        'creator': name_split[-1] if '$' in file_name else '',
+    }
 
 
 @cache
