@@ -15,8 +15,8 @@ from kivy.uix.label import Label
 
 # Local Imports
 from src.constants import con
-from src.core import check_for_updates, update_template
 from src.gui.utils import GUI
+from src.utils.download import check_for_updates, update_template
 from src.utils.strings import msg_success, msg_error
 from src.types.templates import TemplateUpdate
 

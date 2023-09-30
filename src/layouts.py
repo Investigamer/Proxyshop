@@ -9,13 +9,12 @@ from pathlib import Path
 
 # Local Imports
 from src.console import console
-from src.core import retrieve_card_info
 from src.constants import con
 from src.settings import cfg
 from src.utils.regex import Reg
 from src.enums.mtg import Rarity, TransformIcons
 from src.enums.settings import CollectorMode
-from src.utils.scryfall import get_set_data, get_card_data
+from src.utils.scryfall import get_set_data, get_card_data, parse_card_info
 from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors, get_special_rarity
 from src.utils.strings import normalize_str, msg_error, msg_success
 
@@ -35,7 +34,7 @@ def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
     @return: Layout object for this card.
     """
     # Get basic card information
-    card = retrieve_card_info(filename)
+    card = parse_card_info(filename)
     name_failed = osp.basename(str(card.get('filename', 'None')))
 
     # Get scryfall data for the card
@@ -519,7 +518,7 @@ class NormalLayout:
         """Establish the card's template class type."""
         if "Miracle" in self.frame_effects and cfg.render_miracle:
             return con.miracle_class
-        elif "Snow" in self.card['type_line'] and cfg.render_snow:
+        elif "Snow" in self.type_line_raw and cfg.render_snow:
             # frame_effects doesn't contain "snow" for pre-KHM snow cards
             return con.snow_class
         return con.normal_class

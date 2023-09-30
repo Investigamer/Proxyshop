@@ -32,7 +32,7 @@ from kivy.uix.tabbedpanel import (
 from kivy.utils import get_color_from_hex
 
 # Local Imports
-from src.core import card_types
+from src.constants import con
 
 """
 UTILITY FUNCTIONS
@@ -438,9 +438,9 @@ RESOURCES
 
 class GUIResources:
     def __init__(self):
-        self.template_row: dict[str, dict[str, BoxLayout]] = {k: {} for k in card_types}
-        self.template_btn: dict[str, dict[str, ToggleButton]] = {k: {} for k in card_types}
-        self.template_btn_cfg: dict[str, dict[str, Button]] = {k: {} for k in card_types}
+        self.template_row: dict[str, dict[str, BoxLayout]] = {k: {} for k in con.card_type_map}
+        self.template_btn: dict[str, dict[str, ToggleButton]] = {k: {} for k in con.card_type_map}
+        self.template_btn_cfg: dict[str, dict[str, Button]] = {k: {} for k in con.card_type_map}
 
 
 GUI = GUIResources()

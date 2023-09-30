@@ -5,6 +5,8 @@ PROXYSHOP GUI LAUNCHER
 import sys
 import json
 import datetime
+from contextlib import suppress
+
 import win32clipboard
 import os.path as osp
 from io import BytesIO
@@ -17,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 # Third-party Imports
+import requests
 from PIL import Image as PImage
 from photoshop.api._document import Document
 from photoshop.api import SaveOptions, DialogModes
@@ -50,12 +53,10 @@ from src.gui.utils import HoverBehavior, HoverButton, GUI, DynamicTabPanel, Dyna
 from src.gui.settings import SettingsPopup
 from src.constants import con
 from src.core import (
-    card_types,
     get_templates,
     TemplateDetails,
     get_my_templates,
-    get_template_class,
-    check_app_version
+    get_template_class
 )
 from src.settings import cfg
 from src.console import console
@@ -628,7 +629,7 @@ class ProxyshopApp(App):
         """Take a screenshot of the Kivy window."""
         window: Window = self.root_window
         screenshot_path = osp.join(con.cwd, "out/screenshots")
-        Path(screenshot_path).mkdir(mode=511, parents=True, exist_ok=True)
+        Path(screenshot_path).mkdir(mode=711, parents=True, exist_ok=True)
         img_path = osp.join(screenshot_path, datetime.datetime.now().strftime("%m-%d-%Y, %H%M%S.jpg"))
         img_path = window.screenshot(name=img_path)
 
@@ -665,7 +666,7 @@ class ProxyshopApp(App):
         # Check if using latest version
         console.update(
             f"Proxyshop Version ... {msg_success('Proxyshop is up to date!')}" if (
-                check_app_version()
+                self.check_app_version()
             ) else f"Proxyshop Version ... {msg_info('New release available!')}"
         )
 
@@ -695,7 +696,7 @@ class ProxyshopApp(App):
         console.update(f"Photoshop ... {msg_success('Connection established!')}")
 
         # Check for missing or outdated fonts
-        missing, outdated = check_app_fonts(con.path_fonts)
+        missing, outdated = check_app_fonts([con.path_fonts])
 
         # Font test passed
         if not missing and not outdated:
@@ -717,6 +718,25 @@ class ProxyshopApp(App):
         if self.cancel_render and isinstance(self.cancel_render, Event):
             self.cancel_render.set()
 
+    """
+    APP UPDATES
+    """
+
+    @staticmethod
+    def check_app_version() -> bool:
+        """
+        Check if app is the latest version.
+        @return: Return True if up to date, otherwise False.
+        """
+        with suppress(requests.RequestException, json.JSONDecodeError):
+            current = f"v{ENV_VERSION}"
+            response = requests.get(
+                "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
+                timeout=(3, 3))
+            latest = response.json().get("tag_name", current)
+            return bool(current == latest)
+        return True
+
 
 """
 TEMPLATE MODULES
@@ -732,7 +752,7 @@ class TemplateModule(DynamicTabPanel):
         temp_tabs = []
 
         # Add a list of buttons inside a scroll box to each tab
-        for named_type, layout in card_types.items():
+        for named_type, layout in con.card_type_map.items():
 
             # Get the list of templates for this type
             temps = templates[layout[0]]
@@ -918,10 +938,10 @@ if __name__ == '__main__':
         resource_add_path(osp.join(sys._MEIPASS))
 
     # Ensure mandatory folders are created
-    Path(osp.join(con.cwd, "out")).mkdir(mode=511, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "logs")).mkdir(mode=511, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "templates")).mkdir(mode=511, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "src/data/sets")).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(osp.join(con.cwd, "out")).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(osp.join(con.cwd, "logs")).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(osp.join(con.cwd, "templates")).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(osp.join(con.cwd, "src/data/sets")).mkdir(mode=711, parents=True, exist_ok=True)
 
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)

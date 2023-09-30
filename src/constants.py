@@ -42,6 +42,36 @@ class Constants:
     __metaclass__ = Singleton
     app = PhotoshopHandler(version=PS_VERSION)
 
+    '''Named card layouts mapped to raw layouts.'''
+    card_type_map = {
+        "Normal": ["normal"],
+        "MDFC": ["mdfc_front", "mdfc_back"],
+        "Transform": ["transform_front", "transform_back"],
+        "Planeswalker": ["planeswalker"],
+        "PW MDFC": ["pw_mdfc_front", "pw_mdfc_back"],
+        "PW TF": ["pw_tf_front", "pw_tf_back"],
+        "Basic": ["basic"],
+        "Ixalan": ["ixalan"],
+        "Mutate": ["mutate"],
+        "Prototype": ["prototype"],
+        "Adventure": ["adventure"],
+        "Leveler": ["leveler"],
+        "Saga": ["saga"],
+        "Split": ["split"],
+        "Class": ["class"],
+        "Battle": ["battle"],
+        "Token": ["token"],
+        "Miracle": ["miracle"],
+        "Snow": ["snow"],
+        "Planar": ["planar"]
+    }
+
+    '''Raw card layouts mapped to named layouts.'''
+    card_type_map_raw = {
+        raw: named for named, raw in sum([
+            [(k, n) for n in names] for k, names in card_type_map.items()
+        ], [])}
+
     def __init__(self):
         # Initialize the values
         self.refresh_photoshop()
