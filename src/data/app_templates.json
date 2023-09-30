@@ -95,6 +95,11 @@
         "Borderless": {
             "class": "BorderlessVectorTemplate",
             "file": "borderless-vector.psd"
+        },
+        "Classic Modern": {
+            "class": "ClassicModernTemplate",
+            "file": "classic-modern.psd",
+            "id": "TBA"
         }
     },
     "transform_back": {
@@ -114,6 +119,11 @@
         "Borderless": {
             "class": "BorderlessVectorTemplate",
             "file": "borderless-vector.psd"
+        },
+        "Classic Modern": {
+            "class": "ClassicModernTemplate",
+            "file": "classic-modern.psd",
+            "id": "TBA"
         }
     },
     "mdfc_front": {

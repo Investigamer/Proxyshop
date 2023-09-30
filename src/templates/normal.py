@@ -1940,7 +1940,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             self.text_layer_pt.textItem.color = color
 
 
-class ClassicModernTemplate(VectorTemplate):
+class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
     """A modern frame version of iDerp's 'Classic Remastered' template."""
 
     """
@@ -2016,31 +2016,105 @@ class ClassicModernTemplate(VectorTemplate):
 
     @cached_property
     def crown_shape(self) -> Optional[ArtLayer]:
+        # Support Normal and Extended
         return psd.getLayer(
             LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL,
             [LAYERS.LEGENDARY_CROWN, LAYERS.SHAPE])
 
     @cached_property
     def border_shape(self) -> Optional[ArtLayer]:
+        # Support Normal and Legendary
         return psd.getLayer(
             LAYERS.LEGENDARY if self.is_legendary else LAYERS.NORMAL,
             LAYERS.BORDER)
 
     @cached_property
+    def pinlines_shape(self) -> list[Union[ArtLayer, LayerSet]]:
+        # Add transform cutout textbox
+        masks = [
+            psd.getLayer(
+                LAYERS.TRANSFORM_FRONT,
+                [self.pinlines_group, LAYERS.SHAPE, LAYERS.TEXTBOX]
+            )
+        ] if self.is_transform and self.is_front else []
+        # Add Twins shape, supports Normal and Transform
+        return [
+            *masks,
+            psd.getLayerSet(
+                LAYERS.TRANSFORM if self.is_transform else LAYERS.NORMAL,
+                [self.pinlines_group, LAYERS.SHAPE, LAYERS.NAME]),
+        ]
+
+    @cached_property
+    def textbox_shape(self) -> list[Union[ArtLayer, LayerSet]]:
+        return [
+            psd.getLayer(LAYERS.TRANSFORM_FRONT,
+            [self.textbox_group, LAYERS.SHAPE])
+        ] if self.is_transform and self.is_front else []
+
+    @cached_property
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         crown = [self.crown_shape] if self.is_legendary else []
-        return [self.border_shape, *crown]
+        return [
+            self.border_shape,
+            self.twins_shape,
+            *self.pinlines_shape,
+            *self.textbox_shape,
+            *crown]
 
     """
     MASKS
     """
 
     @cached_property
-    def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
+    def twins_mask(self) -> list[dict]:
         return [{
+            'mask': self.twins_group,
+            'vector': True
+        }] if self.is_extended else []
+
+    @cached_property
+    def border_mask(self) -> list[Union[ArtLayer, LayerSet]]:
+        return [
+            psd.getLayer(
+                LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL,
+                [self.mask_group, LAYERS.BORDER]
+            ), self.border_group
+        ]
+
+    @cached_property
+    def background_mask(self) -> list[Union[ArtLayer, LayerSet]]:
+        return [
+            psd.getLayer(
+                LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL,
+                [self.mask_group, LAYERS.BACKGROUND]
+            ), self.background_group
+        ]
+
+    @cached_property
+    def pinlines_mask(self) -> list[Union[list, dict]]:
+        # Mask covering top on Legendary cards
+        masks: list[Union[list, dict]] = [{
             'mask': self.pinlines_group,
             'vector': True
         }] if self.is_legendary else []
+        # Fade mask and covering layer effects
+        return [*masks, {
+            'mask': psd.getLayer(
+                LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
+                [self.mask_group, LAYERS.PINLINES, LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL]),
+            'layer': self.pinlines_group,
+            'funcs': [psd.apply_mask_to_layer_fx]
+        }]
+
+    @cached_property
+    def enabled_masks(self) -> list[Union[list, dict]]:
+        return [
+            self.border_mask,
+            self.background_mask,
+            *self.pinlines_mask,
+            *self.twins_mask
+        ]
 
     """
     METHODS
@@ -2066,3 +2140,13 @@ class ClassicModernTemplate(VectorTemplate):
             group=self.crown_group,
             colors=self.crown_colors,
             masks=self.crown_masks)
+
+    """
+    TRANSFORM METHODS
+    """
+
+    def enable_transform_layers_back(self) -> None:
+        if self.is_creature:
+            psd.getLayer(LAYERS.LIGHTEN, self.pt_group).opacity = 10
+        psd.getLayer(LAYERS.LIGHTEN, self.twins_group).opacity = 10
+        super().enable_transform_layers_back()
