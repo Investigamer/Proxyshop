@@ -183,7 +183,7 @@ def ensure_path_exists(path: str):
     @param path:
     @return:
     """
-    Path(osp.dirname(path)).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(osp.dirname(path)).mkdir(mode=711, parents=True, exist_ok=True)
 
 
 def get_unique_filename(path: str, name: str, ext: str, suffix: str):

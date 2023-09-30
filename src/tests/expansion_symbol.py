@@ -27,10 +27,10 @@ from src.enums.photoshop import Dimensions
 from src.enums.layers import LAYERS
 
 # Generate rarity folders if they don't exist
-Path(os.path.join(con.path_tests, "symbols/common")).mkdir(mode=511, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/uncommon")).mkdir(mode=511, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/rare")).mkdir(mode=511, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/mythic")).mkdir(mode=511, parents=True, exist_ok=True)
+Path(os.path.join(con.path_tests, "symbols/common")).mkdir(mode=711, parents=True, exist_ok=True)
+Path(os.path.join(con.path_tests, "symbols/uncommon")).mkdir(mode=711, parents=True, exist_ok=True)
+Path(os.path.join(con.path_tests, "symbols/rare")).mkdir(mode=711, parents=True, exist_ok=True)
+Path(os.path.join(con.path_tests, "symbols/mythic")).mkdir(mode=711, parents=True, exist_ok=True)
 
 """
 TEST CLASSES

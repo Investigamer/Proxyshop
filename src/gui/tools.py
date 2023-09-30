@@ -59,7 +59,7 @@ class ToolsLayout(BoxLayout):
     def render_showcases(self, images: Optional[list[str]] = None):
 
         # Ensure showcase folder exists
-        Path(osp.join(con.cwd, "out/showcase")).mkdir(mode=511, parents=True, exist_ok=True)
+        Path(osp.join(con.cwd, "out/showcase")).mkdir(mode=711, parents=True, exist_ok=True)
 
         # Get our card images
         if not images and len(images := self.get_images()) == 0:

@@ -39,9 +39,9 @@ def make_directories(config: dict[str, Any]) -> None:
     Make sure necessary directories exist.
     @param config: TOML config data.
     """
-    Path(osp.join(SRC, 'dist')).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(osp.join(SRC, 'dist')).mkdir(mode=711, parents=True, exist_ok=True)
     for path in config['make']['paths']:
-        Path(osp.join(DST, path)).mkdir(mode=511, parents=True, exist_ok=True)
+        Path(osp.join(DST, path)).mkdir(mode=711, parents=True, exist_ok=True)
 
 
 def copy_directory(

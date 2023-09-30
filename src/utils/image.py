@@ -21,7 +21,7 @@ def downscale_image(path: str, **kwargs) -> None:
     """
     # Establish our source and destination directories
     path_out = osp.join(osp.dirname(path), 'compressed')
-    Path(path_out).mkdir(mode=511, parents=True, exist_ok=True)
+    Path(path_out).mkdir(mode=711, parents=True, exist_ok=True)
     file_name = kwargs.get('name', osp.basename(osp.splitext(path)[0]))
     save_path = osp.join(path_out, f"{file_name}.jpg")
 
