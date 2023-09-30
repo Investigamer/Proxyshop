@@ -162,9 +162,11 @@ def get_fonts_from_folder(folder: str) -> dict[str, FontDetails]:
     @return: Dictionary of FontDetails.
     """
     # Get a list of the font names in your `fonts` folder
-    ext = (".otf", ".ttf", ".OTF", ".TTF")
-    local_fonts = [osp.join(folder, f) for f in os.listdir(folder) if f.endswith(ext)]
-    return {n[0]: n[1] for n in [get_font_details(f) for f in local_fonts] if n}
+    with suppress(Exception):
+        ext = (".otf", ".ttf", ".OTF", ".TTF")
+        local_fonts = [osp.join(folder, f) for f in os.listdir(folder) if f.endswith(ext)]
+        return {n[0]: n[1] for n in [get_font_details(f) for f in local_fonts] if n}
+    return {}
 
 
 def get_installed_fonts_dict() -> dict[str, FontDetails]:
@@ -172,9 +174,13 @@ def get_installed_fonts_dict() -> dict[str, FontDetails]:
     Gets a dictionary of every font installed by the user.
     @return: Dictionary with postScriptName as key, and tuple of display name and version as value.
     """
-    with suppress(PS_EXCEPTIONS):
+    with suppress(Exception):
         installed_fonts_dir = os.path.expandvars(r'%userprofile%\AppData\Local\Microsoft\Windows\Fonts')
-        return get_fonts_from_folder(installed_fonts_dir)
+        system_fonts_dir = os.path.join(os.path.join(os.environ['WINDIR']), 'Fonts')
+        return {
+            **get_fonts_from_folder(installed_fonts_dir),
+            **get_fonts_from_folder(system_fonts_dir)
+        }
     return {}
 
 
@@ -183,19 +189,35 @@ FONT CHECKING UTILITIES
 """
 
 
-def get_outdated_fonts(fonts: dict[str, FontDetails]) -> dict[str, FontDetails]:
+def get_outdated_fonts(
+    fonts: dict[str, FontDetails],
+    missing: Optional[dict[str, FontDetails]] = None
+) -> dict[str, FontDetails]:
     """
     Compares the version of each font given against installed fonts.
     @param fonts: A dictionary of fonts to check against installed fonts.
+    @param missing: An optional dictionary of fonts Photoshop couldn't locate, check in install dir.
     @return: A dict of fonts with outdated version number. Dict contains the newer version.
     """
     # Check each confirmed font for version changes
     outdated: dict[str, FontDetails] = {}
     installed: dict[str, FontDetails] = get_installed_fonts_dict()
+    if not missing:
+        missing = {}
+
+    # Check fonts for any outdated
     for name, data in fonts.items():
-        if name in installed and installed[name]['version']:
+        if name in installed and installed[name].get('version'):
             if parse(installed[name]['version']) < parse(data['version']):
                 outdated[name] = data
+
+    # Check missing fonts to see if found in installed dict, if so check for version change
+    for k in list(missing.keys()):
+        if k in installed and installed[k].get('version'):
+            if parse(installed[k]['version']) < parse(missing[k]['version']):
+                outdated[k] = missing[k]
+            del missing[k]
+
     return outdated
 
 
@@ -219,13 +241,15 @@ def get_missing_fonts(fonts: dict[str, FontDetails]) -> tuple[dict[str, FontDeta
     return missing, found
 
 
-def check_app_fonts(folder: str) -> tuple[dict[str, FontDetails], dict[str, FontDetails]]:
+def check_app_fonts(folders: list[str]) -> tuple[dict[str, FontDetails], dict[str, FontDetails]]:
     """
     Checks each font in a folder to see if it is installed or outdated.
-    @param folder: Path to the folder containing fonts to check.
+    @param folders: Folder paths containing fonts to check.
     @return: A tuple containing a dict of missing fonts and a dict of outdated fonts.
     """
     # Get a dictionary of fonts found in target folder and fonts installed
-    fonts: dict[str, FontDetails] = get_fonts_from_folder(folder)
+    fonts: dict[str, FontDetails] = {}
+    for f in folders:
+        fonts.update(get_fonts_from_folder(f))
     missing, found = get_missing_fonts(fonts)
-    return missing, get_outdated_fonts(found)
+    return missing, get_outdated_fonts(found, missing)
