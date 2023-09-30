@@ -124,7 +124,7 @@ class BorderlessTextbox (StrEnum):
 
 
 class ModernClassicCrown (StrEnum):
-    Pinlines = "Pinline Colors"
+    Pinlines = "Pinlines"
     TexturePinlines = "Texture Pinlines"
     TextureBackground = "Texture Background"
 

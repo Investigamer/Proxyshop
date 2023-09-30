@@ -102,6 +102,9 @@ class LAYERS (StrEnum):
 
     # Effects
     EFFECTS = "Effects"
+    LIGHTEN = "Lighten"
+    DARKEN = "Darken"
+    CONTRAST = "Contrast"
 
     # Masks
     MASKS = "Masks"
