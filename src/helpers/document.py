@@ -276,7 +276,7 @@ SAVING AND CLOSING
 """
 
 
-def save_document_png(file_name: str, directory='out') -> None:
+def save_document_png(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as a PNG.
     @param file_name: Name of the output file.
@@ -291,7 +291,7 @@ def save_document_png(file_name: str, directory='out') -> None:
     )
 
 
-def save_document_jpeg(file_name: str, directory='out') -> None:
+def save_document_jpeg(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as a JPEG.
     @param file_name: Name of the output file.
@@ -305,7 +305,7 @@ def save_document_jpeg(file_name: str, directory='out') -> None:
     )
 
 
-def save_document_psd(file_name: str, directory='out') -> None:
+def save_document_psd(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as PSD.
     @param file_name: Name of the output file.

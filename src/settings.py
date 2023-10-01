@@ -88,7 +88,7 @@ class Config:
 	METHODS
 	"""
 
-	def get_option(self, section: str, key: str, enum_class: type[StrEnum], default: str = None):
+	def get_option(self, section: str, key: str, enum_class: type[StrEnum], default: str = None) -> str:
 		"""
 		Returns the current value of an "options" setting if that option exists in its StrEnum class.
 		Otherwise, returns the default value of that StrEnum class.
