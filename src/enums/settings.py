@@ -1,8 +1,6 @@
 """
 SETTINGS ENUMS
 """
-from functools import cached_property
-
 from src.utils.objects import classproperty
 from src.utils.strings import StrEnum
 
@@ -105,7 +103,7 @@ class BorderlessColorMode (StrEnum):
     PT = "PT Box"
     Disabled = "None"
 
-    @cached_property
+    @classproperty
     def Default(self) -> str:
         return self.Twins_And_PT
 
@@ -118,7 +116,7 @@ class BorderlessTextbox (StrEnum):
     Short = "Short"
     Tall = "Tall"
 
-    @cached_property
+    @classproperty
     def Default(self) -> str:
         return self.Automatic
 
@@ -128,6 +126,6 @@ class ModernClassicCrown (StrEnum):
     TexturePinlines = "Texture Pinlines"
     TextureBackground = "Texture Background"
 
-    @cached_property
+    @classproperty
     def Default(self) -> str:
         return self.Pinlines
