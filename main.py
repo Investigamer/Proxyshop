@@ -388,7 +388,7 @@ class ProxyshopApp(App):
         layouts: dict = {}
         for c in cards:
             layouts.setdefault(
-                'failed' if isinstance(c, str) else c.card_class, []
+                'failed' if isinstance(c, str) else temps[c.card_class]['template_path'], []
             ).append(c)
 
         # Did any cards fail to find?
@@ -408,13 +408,11 @@ class ProxyshopApp(App):
         console.update()
 
         # Render each card type as a different batch
-        for card_type, cards in layouts.items():
-            # The template we'll use for this type
-            template = temps[card_type].copy()
-            template['loaded_class'] = get_template_class(template)
-            for card in cards:
-                # Start render thread
-                if not self.start_render(template, card):
+        for _, cards in layouts.items():
+            for c in cards:
+                # Initialize the template module if needed, start a render thread
+                temps[c.card_class].setdefault('loaded_class', get_template_class(temps[c.card_class]))
+                if not self.start_render(temps[c.card_class], c):
                     return
                 # Card complete
                 self.reset()
@@ -484,7 +482,7 @@ class ProxyshopApp(App):
                         console.update(layout)
                         return
                     # Grab the template class and start the render thread
-                    layout.filename = osp.join(con.cwd, "src/img/test.png")
+                    layout.filename = osp.join(con.path_img, "test.jpg")
                     template['loaded_class'] = get_template_class(template)
                     if not self.start_render(template, layout):
                         failures.append(card[0])

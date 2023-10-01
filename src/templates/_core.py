@@ -606,7 +606,7 @@ class BaseTemplate:
         """
         # Check for fullart test image
         if cfg.test_mode and self.is_fullart:
-            self.layout.filename = osp.join(con.path_img, "test-fa.png")
+            self.layout.filename = osp.join(con.path_img, "test-fa.jpg")
 
         # Paste the file into the art
         self.active_layer = self.art_layer

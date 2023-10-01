@@ -65,7 +65,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 "class_name": template['class'],
                 "type": con.card_type_map_raw.get(card_type, 'Normal'),
                 "config_path": osp.join(con.path_configs, f"{template['class']}.json"),
-                "preview_path": osp.join(con.path_img, f"{template['class']}.jpg"),
+                "preview_path": osp.join(con.path_img, f"previews/{template['class']}.jpg"),
                 "template_path": osp.join(con.path_templates, template['file']),
                 "plugin_name": None,
                 "plugin_path": None,
