@@ -191,7 +191,7 @@ class VectorTemplate (NormalTemplate):
     @cached_property
     def twins_shape(self) -> Optional[ArtLayer]:
         """Vector shape representing the card name and title boxes."""
-        name = LAYERS.TRANSFORM if self.is_transform else LAYERS.NORMAL
+        name = LAYERS.TRANSFORM if self.is_transform or self.is_mdfc else LAYERS.NORMAL
         return psd.getLayer(name, [self.twins_group, LAYERS.SHAPE])
 
     @cached_property
