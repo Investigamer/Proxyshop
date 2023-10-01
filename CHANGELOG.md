@@ -1,3 +1,72 @@
+## v1.12.0 (2023-10-01)
+
+### Feat
+
+- **fonts**: Add checking user font folder as a fallback for startup font checking step
+- **tools**: New tools: Render Target Showcase, Compress Rendered Images
+- **gui**: Add support for multi-modal preview images and front/back face toggle preview images on click
+- **symbols**: Added support for CC2, LTC, LTR, PWOE, WHO, WOC, and WOE svg symbols
+- **templates**: New template: Modern Classic, a modern-framed vector-based template with a mix of classic textures
+- **CLI**: Initial architecture introduced for a headless (CLI) Proxyshop interface for quick testing, batch generation, and commands
+- **templates**: New template type: Battles supporting a Normal and Universes Beyond treatment, as well as a new BattleMod modifier class
+- **settings**: New setting: Collector Promo Star, decide whether to enable the promo star in collector info when appropriate
+- **BorderlessVectorTemplate**: Add setting: Legendary Crown Texture, allows user to toggle the texture on crowns
+
+### Fix
+
+- **SplitTemplate**: Disable artifact and vehicle flag for Split cards
+- **enums/settings**: Swap cached_property to classproperty
+- **check_app_version**: Control against all request exceptions
+- **saga**: Support edge case "Greatest Show in the Multiverse", i.e. saga with static ability
+- **expansion_symbol**: When expansion symbol fails to render, revert to disabling expansion symbol and warn the user
+- **check_app_version**: Skip this check if Github isn't reached in 3 seconds
+- **frame_logic**: Support "Demolition Field" non-colored land case
+- **templates/normal**: Repair pinlines color map and add crown shading for EtchedTemplate, fix name alignment step for Borderless tokens, fix edge case PT drop shadow logic, add preliminary code for ClassicModernTemplate
+- **helpers/document**: Fix rotate_clockwise orientation to positive 90 degrees
+- **fonts**: Prevent a crash caused by encountering unrecognized font type in font checking step
+- **fonts**: Relocate psd-tools font test outside main app scope
+- **planar**: Fix bug affecting planar cards when Scryfall Extras is disabled
+
+### Refactor
+
+- **ClassicModernTemplate**: Add MDFC support
+- **VectorTemplate**: Add default support for MDFC twins shape
+- **test_mode**: Change output directory of test renders to match their class name
+- **app_templates**: Add drive ID for Classic Modern template
+- **src/core**: Move card type map to constants, updater funcs to downloads, plan to deprecate the `core` module in near future
+- **parse_card_info**: Move art file parsing logic to scryfall utils
+- **updater**: Move template update funcs to downloader utils
+- **ClassicModernTemplate**: Finish Transform implementation on Classic Modern template
+- **mkdir**: Ensure mkdir across project uses 711 perms
+- **main**: Add console object as property to main App class
+- **tools**: Flesh out image compression tool, add process wrapper for tools calls
+- **env**: Add PS_ERROR_DIALOG env for toggling display error dialog on action descriptor execute calls
+- **creator**: Import updated creator inputs
+- **gui/TemplateModule**: Minimize and center template tabs
+- **gui**: Add dynamic tabbed element subclasses, rewrite validated input classes, fix Planeswalker custom rendering
+- **merge_layers**: Support returning layer if merge_layers recieves list with one item
+- **build**: Update build script to use new kv directory
+- **data**: Move kv and spec files to data directory
+- **types**: Move all types submodules to new 'types' module, add new types TemplateRaw and TemplateManifest
+- **BaseTemplate**: Improve Vehicle check handling
+- **constants**: Ensure con.cwd is always the root Proxyshop directory, re-implement the PS_VERSION env variable
+- **console.py**: Added extensive new infrastructure for handling "logger" formatting and output in the headless console class
+- **tests/text_logic.py**: Readability rewrites and improve logging results
+- **enums/settings.py**: Add enum for "Legendary Crown Mode" setting on Modern Classic template
+- **BaseTemplate**: Allow 'is_vehicle' to act as a flag for toggling vehicle background behavior
+- **BaseTemplate**: Add promo star logic to collector info methods, add is_collector_promo bool property, refactor initial photoshop refresh check using new method 'check_photoshop'`
+- **VectorTemplate**: Remove unneeded alternate card type text layers now handled in modifiers, add crown_group check for legendary crown step, add more typechecking
+- **enums**: Add new enums tracking recognized card fonts and special icons
+- **layers**: Add new layer nomenclature for Battle templates
+- **main,core**: Update photoshop refresh step in render_process_wrapper, add preliminary template data for Classic Modern and Battle templates
+- **layouts**: Add preliminary BattleLayout class, add is_promo bool property
+- **PhotoshopHandler**: Refactor Photoshop application refresh mechanism
+
+### Perf
+
+- **helpers/document**: Reduce PNG save size by disabling interlaced, reduce JPEG save size by formatting as optimized baseline
+- **templates/saga**: Reduce execution time for Saga layer positioning
+
 ## v1.11.0 (2023-08-14)
 
 ### Feat
