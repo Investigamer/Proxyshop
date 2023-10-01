@@ -18,7 +18,7 @@
         "Classic Modern": {
             "class": "ClassicModernTemplate",
             "file": "classic-modern.psd",
-            "id": "TBA"
+            "id": "1BgakdZ4pKk48LIReoOBN00DhyKX2PeOd"
         },
         "Fullart": {
             "class": "FullartTemplate",
@@ -98,8 +98,7 @@
         },
         "Classic Modern": {
             "class": "ClassicModernTemplate",
-            "file": "classic-modern.psd",
-            "id": "TBA"
+            "file": "classic-modern.psd"
         }
     },
     "transform_back": {
@@ -122,8 +121,7 @@
         },
         "Classic Modern": {
             "class": "ClassicModernTemplate",
-            "file": "classic-modern.psd",
-            "id": "TBA"
+            "file": "classic-modern.psd"
         }
     },
     "mdfc_front": {
@@ -135,6 +133,10 @@
         "Borderless": {
             "class": "BorderlessVectorTemplate",
             "file": "borderless-vector.psd"
+        },
+        "Classic Modern": {
+            "class": "ClassicModernTemplate",
+            "file": "classic-modern.psd"
         }
     },
     "mdfc_back": {
@@ -146,6 +148,10 @@
         "Borderless": {
             "class": "BorderlessVectorTemplate",
             "file": "borderless-vector.psd"
+        },
+        "Classic Modern": {
+            "class": "ClassicModernTemplate",
+            "file": "classic-modern.psd"
         }
     },
     "ixalan": {
