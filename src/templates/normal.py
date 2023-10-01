@@ -1940,7 +1940,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             self.text_layer_pt.textItem.color = color
 
 
-class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
+class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
     """A modern frame version of iDerp's 'Classic Remastered' template."""
 
     """
@@ -2041,15 +2041,15 @@ class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
         return [
             *masks,
             psd.getLayerSet(
-                LAYERS.TRANSFORM if self.is_transform else LAYERS.NORMAL,
+                LAYERS.TRANSFORM if self.is_transform else (
+                    LAYERS.MDFC if self.is_mdfc else LAYERS.NORMAL),
                 [self.pinlines_group, LAYERS.SHAPE, LAYERS.NAME]),
         ]
 
     @cached_property
     def textbox_shape(self) -> list[Union[ArtLayer, LayerSet]]:
         return [
-            psd.getLayer(LAYERS.TRANSFORM_FRONT,
-            [self.textbox_group, LAYERS.SHAPE])
+            psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.textbox_group, LAYERS.SHAPE])
         ] if self.is_transform and self.is_front else []
 
     @cached_property
@@ -2077,8 +2077,8 @@ class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
     def border_mask(self) -> list[Union[ArtLayer, LayerSet]]:
         return [
             psd.getLayer(
-                LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL,
-                [self.mask_group, LAYERS.BORDER]
+                LAYERS.MDFC if self.is_mdfc and not self.is_legendary else LAYERS.NORMAL,
+                [self.mask_group, LAYERS.BORDER, LAYERS.EXTENDED if self.is_extended else LAYERS.NORMAL]
             ), self.border_group
         ]
 
@@ -2108,12 +2108,24 @@ class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
         }]
 
     @cached_property
+    def textbox_reference_mask(self) -> Optional[dict]:
+        """Mask used to resize the textbox reference."""
+        if not self.is_mdfc:
+            return
+        return {
+            'mask': psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
+            'layer': self.textbox_reference,
+            'funcs': [psd.apply_mask]
+        }
+
+    @cached_property
     def enabled_masks(self) -> list[Union[list, dict]]:
         return [
             self.border_mask,
             self.background_mask,
             *self.pinlines_mask,
-            *self.twins_mask
+            *self.twins_mask,
+            self.textbox_reference_mask
         ]
 
     """
@@ -2146,7 +2158,25 @@ class ClassicModernTemplate(VectorTransformMod, VectorTemplate):
     """
 
     def enable_transform_layers_back(self) -> None:
+
+        # Use darker Twins and PT texture
+        if self.is_creature:
+            psd.getLayer(LAYERS.LIGHTEN, self.pt_group).visible = False
+        psd.getLayer(LAYERS.LIGHTEN, self.twins_group).visible = False
+        super().enable_transform_layers_back()
+
+    """
+    MDFC METHODS
+    """
+
+    def enable_mdfc_layers_back(self) -> None:
+
+        # Use darker Twins and PT texture and white font color
         if self.is_creature:
             psd.getLayer(LAYERS.LIGHTEN, self.pt_group).opacity = 10
+            self.text_layer_pt.textItem.color = self.RGB_WHITE
+            psd.enable_layer_fx(self.text_layer_pt)
         psd.getLayer(LAYERS.LIGHTEN, self.twins_group).opacity = 10
+        self.text_layer_name.textItem.color = self.RGB_WHITE
+        psd.enable_layer_fx(self.text_layer_name)
         super().enable_transform_layers_back()
