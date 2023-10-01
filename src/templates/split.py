@@ -50,6 +50,14 @@ class SplitTemplate (BaseTemplate):
     def is_fuse(self) -> bool:
         return bool('Fuse' in self.layout.keywords)
 
+    @cached_property
+    def is_vehicle(self) -> bool:
+        return False
+
+    @cached_property
+    def is_artifact(self) -> bool:
+        return False
+
     """
     COLORS
     """
