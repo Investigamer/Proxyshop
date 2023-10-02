@@ -56,24 +56,31 @@ curl -sSL https://install.python-poetry.org | python3 -
 # Works if you have Scoop (https://scoop.sh)
 scoop install poetry
 ```
-* Clone Proxyshop to a folder of your choice, referred to as the ***working directory***.
-* Open terminal/powershell in the working directory, enter `poetry install`. This will set up Proxyshop's dependencies 
+* Clone Proxyshop somewhere on your system, we'll call the main Proxyshop folder the ***root directory***:
+```bash
+git clone https://github.com/MrTeferi/Proxyshop.git
+```
+* Open terminal/powershell in the root directory, install the project with: `poetry install`. This will set up Proxyshop's dependencies 
 and virtual environment with Poetry.
-* Install the included fonts, only the ones listed above are required, the others may be useful to have.
-* Create a folder called `templates` in the working directory. Download [the Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W), 
-it's recommended to download the entire folder. Google Drive will compress the folder into multiple zips. Once they finish
-downloading move all the zips into the `templates` folder you created, select them, right click and extract all. Doing it
-this way will guarantee the correct folder structure.
-* Create a folder called `art` in the working directory. This is where you place art images for cards you want to render.
-* File names should be structured like `<CARDNAME>.jpg`. You can optionally specify the card's set code in square brackets: 
-`<CARDNAME> [<SET>].jpg`. You can specify artist name in parentheses: `<CARDNAME> (<ARTIST NAME>).jpg`. Currently supported 
-filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
+* Install the fonts included in the `fonts` folder. Do not delete these, even after you install them (they are needed by the GUI).
+* Create a folder called `templates` in the root directory. Unfortunately, with the Python version of the app you will have to download templates manually if you need them. 
+* **[Optional]** Download [the Photoshop templates](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3). 
+Right click "Zipped" at the top of the page, then hit "Download". This will download all the templates preserving their 
+directory structure. Google Drive may download several zips split up. Move all the zips to your `templates` folder, select all of them, right 
+click and "Extract All". Now there will be many 7z archives and a couple of folders. Again, "Extract All" on the 7z archives, then enter 
+the two folders and extract the 7z archives in those as well.
+* Create a folder called `art` in the root directory. This is where you place art images for cards you want to render.
+* File names should be structured like `CARD NAME.jpg`. Optionally, you can also:
+  * Specify the card's set code in square brackets: `CARD NAME [SET].jpg`
+  * Specify artist name in parentheses (purely cosmetic): `CARD NAME (ARTIST NAME).jpg`. 
+  * Specify collector number in curly brackets (requires set code to be specified): `CARD NAME [SET] {NUM}`
+* Currently, art image filetypes supported are: `JPEG/JPG/JPF`, `PNG`, `TIF`, `WEBP` (WebP requires Photoshop 23.2+)
 * Run the app: 
 ```bash
-# poetry run - Executes within Virtual environment
+# Option #1: Execute via poetry
 poetry run main.py
 
-# poetry shell - Enters the virtual environment, from there things can be executed normally
+# Option #2: Enter the poetry environment, then execute normally
 poetry shell
 py main.py
 ```

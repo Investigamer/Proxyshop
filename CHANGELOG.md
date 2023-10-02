@@ -44,7 +44,7 @@
 - **creator**: Import updated creator inputs
 - **gui/TemplateModule**: Minimize and center template tabs
 - **gui**: Add dynamic tabbed element subclasses, rewrite validated input classes, fix Planeswalker custom rendering
-- **merge_layers**: Support returning layer if merge_layers recieves list with one item
+- **merge_layers**: Support returning layer if merge_layers receives list with one item
 - **build**: Update build script to use new kv directory
 - **data**: Move kv and spec files to data directory
 - **types**: Move all types submodules to new 'types' module, add new types TemplateRaw and TemplateManifest
