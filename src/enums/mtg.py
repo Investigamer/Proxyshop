@@ -166,6 +166,16 @@ crown_color_map = {
     'Colorless': [214, 214, 220]
 }
 
+basic_land_color_map = {
+    # Basic land watermark colors
+    'W': [248, 249, 243],
+    'U': [0, 115, 178],
+    'B': [6, 0, 0],
+    'R': [212, 39, 44],
+    'G': [1, 131, 69],
+    'Land': [165, 150, 132]
+}
+
 saga_banner_color_map = {
     # Saga banner colors
     'W': [241, 225, 193],
