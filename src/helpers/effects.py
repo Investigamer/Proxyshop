@@ -19,7 +19,8 @@ from src.types.adobe import (
     EffectStroke,
     EffectDropShadow,
     EffectColorOverlay,
-    EffectGradientOverlay
+    EffectGradientOverlay,
+    EffectBevel
 )
 
 # QOL Definitions
@@ -180,6 +181,8 @@ def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> N
             apply_fx_gradient_overlay(fx_action, fx)
         elif fx['type'] == 'color-overlay':
             apply_fx_color_overlay(fx_action, fx)
+        elif fx['type'] == 'bevel':
+            apply_fx_bevel(fx_action, fx)
 
     # Apply all fx actions
     main_action.putObject(sID("to"), sID("layerEffects"), fx_action)
@@ -211,19 +214,15 @@ def apply_fx_drop_shadow(action: ActionDescriptor, fx: EffectDropShadow) -> None
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
-    d_color = ActionDescriptor()
     d1.putEnumerated(sID("mode"), sID("blendMode"), sID("multiply"))
-    d_color.putDouble(sID("red"), 0.000000)
-    d_color.putDouble(sID("grain"), 0.000000)
-    d_color.putDouble(sID("blue"), 0.000000)
-    d1.putObject(sID("color"), sID("RGBColor"), d_color)
+    apply_color(d1, [0, 0, 0])
     d1.putUnitDouble(sID("opacity"), sID("percentUnit"), float(fx.get('opacity', 100.000000)))
     d1.putBoolean(sID("useGlobalAngle"), False)
     d1.putUnitDouble(sID("localLightingAngle"), sID("angleUnit"), float(fx.get('rotation', 45.000000)))
     d1.putUnitDouble(sID("distance"), sID("pixelsUnit"), float(fx.get('distance', 10.000000)))
     d1.putUnitDouble(sID("chokeMatte"), sID("pixelsUnit"), float(fx.get('spread', 0.000000)))
     d1.putUnitDouble(sID("blur"), sID("pixelsUnit"), float(fx.get('size', 0.000000)))
-    d1.putUnitDouble(sID("noise"), sID("percentUnit"), 0.000000)
+    d1.putUnitDouble(sID("noise"), sID("percentUnit"), float(fx.get('noise', 0.000000)))
     d1.putBoolean(sID("antiAlias"), False)
     d2.putString(sID("name"), "Linear")
     d1.putObject(sID("transferSpec"), sID("shapeCurveType"), d2)
@@ -290,3 +289,33 @@ def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> 
     apply_color(d, fx.get('color', rgb_black()))
     d.PutUnitDouble(sID("opacity"), sID("percentUnit"), 100.000000)
     action.PutObject(sID("solidFill"), sID("solidFill"), d)
+
+
+def apply_fx_bevel(action: ActionDescriptor, fx: EffectBevel) -> None:
+    """
+    Adds a bevel to layer effects action.
+    @param action: Pending layer effects action descriptor.
+    @param fx: Bevel effect properties.
+    """
+    d1 = ActionDescriptor()
+    d2 = ActionDescriptor()
+    d1.PutEnumerated(sID("highlightMode"), sID("blendMode"), sID("screen"))
+    apply_color(d1, fx.get('highlight_color', [255, 255, 255]), 'highlightColor')
+    d1.PutUnitDouble(sID("highlightOpacity"), sID("percentUnit"),  fx.get('highlight_opacity', 70))
+    d1.PutEnumerated(sID("shadowMode"), sID("blendMode"), sID("multiply"))
+    apply_color(d1, fx.get('shadow_color', [0, 0, 0]), 'shadowColor')
+    d1.PutUnitDouble(sID("shadowOpacity"), sID("percentUnit"),  fx.get('shadow_opacity', 72))
+    d1.PutEnumerated(sID("bevelTechnique"), sID("bevelTechnique"), sID("softMatte"))
+    d1.PutEnumerated(sID("bevelStyle"), sID("bevelEmbossStyle"), sID("outerBevel"))
+    d1.PutBoolean(sID("useGlobalAngle"), False)
+    d1.PutUnitDouble(sID("localLightingAngle"), sID("angleUnit"),  fx.get('rotation', 45))
+    d1.PutUnitDouble(sID("localLightingAltitude"), sID("angleUnit"),  fx.get('altitude', 22))
+    d1.PutUnitDouble(sID("strengthRatio"), sID("percentUnit"),  fx.get('depth', 100))
+    d1.PutUnitDouble(sID("blur"), sID("pixelsUnit"),  fx.get('size', 30))
+    d1.PutEnumerated(sID("bevelDirection"), sID("bevelEmbossStampStyle"), sID("in"))
+    d1.PutObject(sID("transferSpec"), sID("shapeCurveType"),  d2)
+    d1.PutBoolean(sID("antialiasGloss"), False)
+    d1.PutUnitDouble(sID("softness"), sID("pixelsUnit"),  fx.get('softness', 14))
+    d1.PutBoolean(sID("useShape"), False)
+    d1.PutBoolean(sID("useTexture"), False)
+    action.PutObject(sID("bevelEmboss"), sID("bevelEmboss"),  d1)
