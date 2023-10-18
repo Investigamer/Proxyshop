@@ -193,7 +193,7 @@ def get_color_identity_nonland(
     return get_ordered_colors(get_mana_cost_colors(mana_cost))
 
 
-def check_hybrid_color_card(color_identity: str, mana_cost: str, is_dfc: bool) -> bool:
+def check_hybrid_color_card(color_identity: Union[str, list[str]], mana_cost: str, is_dfc: bool) -> bool:
     """
     Check a number of inputs to see if this card is:
         - A card with only hybrid Mana symbols
@@ -213,6 +213,20 @@ def check_hybrid_color_card(color_identity: str, mana_cost: str, is_dfc: bool) -
             if hybrid_symbol in mana_cost:
                 # Two color card with only hybrid symbols
                 return True
+    return False
+
+
+def check_hybrid_mana_cost(color_identity: Union[str, list[str]], mana_cost: str) -> bool:
+    """
+    More simplified hybrid mana test for isolated mana cases e.g. Adventure spells.
+    @param color_identity: Color identity list or string.
+    @param mana_cost: Mana cost string.
+    @return: True if hybrid mana cost, otherwise False.
+    """
+    # Identify if the card is a two-color hybrid card with only hybrid mana
+    if len(color_identity) == 2 and not any([symbol in mana_cost for symbol in mono_symbols]):
+        if any([bool(sym in mana_cost) for sym in hybrid_symbols]):
+            return True
     return False
 
 
