@@ -170,43 +170,73 @@ APPLYING COLOR
 """
 
 
-def apply_rgb(action: ActionDescriptor, color: SolidColor) -> None:
+def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+    """
+    Applies RGB color to action descriptor from a list of values.
+    @param action: ActionDescriptor object.
+    @param color: List of integers for R, G, B.
+    @param color_type: Color action descriptor type, defaults to 'color'.
+    """
+    ad = ActionDescriptor()
+    ad.putDouble(sID("red"), color[0])
+    ad.putDouble(sID("green"), color[1])
+    ad.putDouble(sID("blue"), color[2])
+    action.putObject(sID(color_type), sID("RGBColor"), ad)
+
+
+def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+    """
+    Applies CMYK color to action descriptor from a list of values.
+    @param action: ActionDescriptor object.
+    @param color: List of integers for R, G, B.
+    @param color_type: Color action descriptor type, defaults to 'color'.
+    """
+    ad = ActionDescriptor()
+    ad.putDouble(sID("cyan"), color[0])
+    ad.putDouble(sID("magenta"), color[1])
+    ad.putDouble(sID("yellowColor"), color[2])
+    ad.putDouble(sID("black"), color[3])
+    action.putObject(sID(color_type), sID("CMYKColorClass"), ad)
+
+
+def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
     """
     Apply RGB SolidColor object to action descriptor.
     @param action: ActionDescriptor object.
-    @param color: SolidColor object matching RGB model.
+    @param c: SolidColor object matching RGB model.
+    @param color_type: Color action descriptor type, defaults to 'color'.
     """
-    ad = ActionDescriptor()
-    ad.putDouble(sID("red"), color.rgb.red)
-    ad.putDouble(sID("green"), color.rgb.green)
-    ad.putDouble(sID("blue"), color.rgb.blue)
-    action.putObject(sID("color"), sID("RGBColor"), ad)
+    apply_rgb_from_list(action, [c.rgb.red, c.rgb.green, c.rgb.blue], color_type)
 
 
-def apply_cmyk(action: ActionDescriptor, color: SolidColor) -> None:
+def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
     """
     Apply CMYK SolidColor object to action descriptor.
     @param action: ActionDescriptor object.
-    @param color: SolidColor object matching CMYK model.
+    @param c: SolidColor object matching CMYK model.
+    @param color_type: Color action descriptor type, defaults to 'color'.
     """
-    ad = ActionDescriptor()
-    ad.putDouble(sID("cyan"), color.cmyk.cyan)
-    ad.putDouble(sID("magenta"), color.cmyk.magenta)
-    ad.putDouble(sID("yellowColor"), color.cmyk.yellow)
-    ad.putDouble(sID("black"), color.cmyk.black)
-    action.putObject(sID("color"), sID("CMYKColorClass"), ad)
+    apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
 
 
-def apply_color(action: ActionDescriptor, color: SolidColor) -> None:
+def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], color_type: str = 'color') -> None:
     """
     Applies color to the specified action descriptor.
     @param action: ActionDescriptor object.
-    @param color: CMYK or RGB SolidColor object.
+    @param color: RGB/CMYK SolidColor object, or list of RGB/CMYK values.
+    @param color_type: Color action descriptor type, defaults to 'color'.
     """
+    if isinstance(color, list):
+        # List notation
+        return apply_rgb_from_list(action, color, color_type) if (
+            len(color) < 4
+        ) else apply_cmyk_from_list(action, color, color_type)
     if color.model == ColorModel.RGBModel:
-        return apply_rgb(action, color)
+        # RGB SolidColor object
+        return apply_rgb(action, color, color_type)
     if color.model == ColorModel.CMYKModel:
-        return apply_cmyk(action, color)
+        # CMYK SolidColor object
+        return apply_cmyk(action, color, color_type)
     raise ValueError(f"Received unsupported color object: {color}")
 
 
