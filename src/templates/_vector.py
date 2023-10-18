@@ -389,7 +389,7 @@ class VectorTemplate (NormalTemplate):
                 masks=self.background_masks)
 
         # Legendary crown
-        if self.is_legendary and self.crown_group:
+        if self.is_legendary:
             self.enable_crown()
 
     def enable_shape_layers(self) -> None:
