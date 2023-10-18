@@ -38,11 +38,12 @@ class EffectDropShadow(TypedDict):
     Layer Effect - Drop Shadow
     """
     type: Literal['drop-shadow']
-    opacity: NotRequired[int]
-    rotation: NotRequired[int]
-    distance: NotRequired[int]
-    spread: NotRequired[int]
-    size: NotRequired[int]
+    opacity: NotRequired[Union[float, int]]
+    rotation: NotRequired[Union[float, int]]
+    distance: NotRequired[Union[float, int]]
+    spread: NotRequired[Union[float, int]]
+    size: NotRequired[Union[float, int]]
+    noise: NotRequired[Union[float, int]]
 
 
 class EffectGradientColor(TypedDict):
@@ -71,11 +72,27 @@ class EffectColorOverlay(TypedDict):
     Layer Effect - Color Overlay
     """
     type: Literal['color-overlay']
-    opacity: NotRequired[int]
-    color: SolidColor
+    opacity: NotRequired[Union[float, int]]
+    color: Union[SolidColor, list[int]]
 
 
-LayerEffects = Union[EffectStroke, EffectDropShadow, EffectGradientOverlay, EffectColorOverlay]
+class EffectBevel(TypedDict):
+    """
+    Layer Effect - Bevel
+    """
+    type: Literal['bevel']
+    highlight_opacity: NotRequired[Union[float, int]]
+    highlight_color: NotRequired[Union[SolidColor, list[int]]]
+    shadow_opacity: NotRequired[Union[float, int]]
+    shadow_color: NotRequired[Union[SolidColor, list[int]]]
+    rotation: NotRequired[Union[float, int]]
+    altitude: NotRequired[Union[float, int]]
+    depth: NotRequired[Union[float, int]]
+    size: NotRequired[Union[float, int]]
+    softness: NotRequired[Union[float, int]]
+
+
+LayerEffects = Union[EffectStroke, EffectDropShadow, EffectGradientOverlay, EffectColorOverlay, EffectBevel]
 
 
 """
