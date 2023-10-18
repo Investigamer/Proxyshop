@@ -17,7 +17,7 @@ Steps to reproduce the behavior:
 3. And also '...'
 
 **Your system:**
- - Python version:
+ - Proxyshop or Python version:
  - Windows version:
  - Photoshop version:
 

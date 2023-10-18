@@ -287,11 +287,25 @@ ACTIVE LAYER AND SELECTION
 """
 
 
+def select_bounds(bounds: list[Union[int, float]]) -> None:
+    """
+    Create a selection using a list of bound values.
+    @param bounds: List of bound values (left, top, right, bottom).
+    """
+    left, top, right, bottom = bounds
+    app.activeDocument.selection.select([
+        [left, top],
+        [right, top],
+        [right, bottom],
+        [left, bottom]
+    ])
+
+
 def select_layer(
     layer: Union[ArtLayer, LayerSet],
     add: bool = False,
     make_visible: bool = False
-):
+) -> None:
     """
     Select a layer (make active) and optionally force it to be visible.
     @param layer: Layer to select.
@@ -344,16 +358,7 @@ def select_layer_bounds(layer: ArtLayer = None):
     """
     if not layer:
         layer = app.activeDocument.activeLayer
-    left = layer.bounds[0]
-    top = layer.bounds[1]
-    right = layer.bounds[2]
-    bottom = layer.bounds[3]
-    app.activeDocument.selection.select([
-        [left, top],
-        [right, top],
-        [right, bottom],
-        [left, bottom]
-    ])
+    select_bounds(layer.bounds)
 
 
 def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:

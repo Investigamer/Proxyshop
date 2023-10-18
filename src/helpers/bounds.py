@@ -46,7 +46,7 @@ def get_dimensions_from_bounds(bounds: list) -> dict[str: Union[float, int]]:
     """
     Compute width and height based on a set of bounds given.
     @param bounds: List of bounds given.
-    @return: Dict containing eight and width.
+    @return: Dict containing height, width, and positioning locations.
     """
     width = int(bounds[2]-bounds[0])
     height = int(bounds[3]-bounds[1])
@@ -64,7 +64,7 @@ def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> dict[str: Uni
     """
     Compute the dimensions of a layer without its effects applied.
     @param layer: A layer object
-    @return: Dict containing eight and width.
+    @return: Dict containing height, width, and positioning locations.
     """
     bounds = get_bounds_no_effects(layer)
     return get_dimensions_from_bounds(bounds)
@@ -74,7 +74,7 @@ def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> dict[str: Union[fl
     """
     Compute the width and height dimensions of a layer.
     @param layer: A layer object
-    @return: Dict containing eight and width.
+    @return: Dict containing height, width, and positioning locations.
     """
     return get_dimensions_from_bounds(layer.bounds)
 
