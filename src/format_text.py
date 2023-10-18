@@ -268,7 +268,10 @@ def generate_italics(card_text: str) -> list[str]:
 
     # Find and add ability words
     for match in Reg.TEXT_ABILITY.findall(card_text):
-        # Cover Mirrodin Besieged case
+        # Cover "Davros, Dalek Creator" case
+        if match.count(' ') > 6:
+            continue
+        # Cover "Mirrodin Besieged" case
         if f"• {match}" in card_text and "choose one" not in card_text.lower():
             continue
         # Non-Italicized Abilities
