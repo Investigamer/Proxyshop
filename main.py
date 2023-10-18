@@ -527,7 +527,7 @@ class ProxyshopApp(App):
                 return
 
             # Start the render
-            layout.filename = osp.join(con.cwd, "src/img/test.png")
+            layout.filename = osp.join(con.cwd, "src/img/test.jpg")
             console.update(f"{card[0]} ... ", end="")
             template['loaded_class'] = get_template_class(template)
             console.update(
