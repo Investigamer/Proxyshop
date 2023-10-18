@@ -10,12 +10,20 @@ from pathlib import Path
 # Local Imports
 from src.console import console
 from src.constants import con
+from src.enums.layers import LAYERS
 from src.settings import cfg
 from src.utils.regex import Reg
 from src.enums.mtg import Rarity, TransformIcons
 from src.enums.settings import CollectorMode
 from src.utils.scryfall import get_set_data, get_card_data, parse_card_info
-from src.frame_logic import get_frame_details, FrameDetails, get_ordered_colors, get_special_rarity
+from src.frame_logic import (
+    get_frame_details,
+    FrameDetails,
+    get_ordered_colors,
+    get_special_rarity,
+    check_hybrid_mana_cost,
+    get_mana_cost_colors
+)
 from src.utils.strings import normalize_str, msg_error, msg_success
 
 
@@ -774,8 +782,13 @@ class AdventureLayout (NormalLayout):
         return self.scryfall['card_faces'][1]
 
     """
-    ADVENTURE PROPERTIES
+    ADVENTURE TEXT
     """
+
+    @cached_property
+    def color_identity_adventure(self) -> list[str]:
+        """Color identity of the Adventure side of this card."""
+        return [n for n in get_mana_cost_colors(self.mana_adventure)]
 
     @cached_property
     def mana_adventure(self) -> str:
@@ -802,6 +815,21 @@ class AdventureLayout (NormalLayout):
         if self.lang != 'EN' and 'printed_text' in self.other_face:
             return self.other_face.get('printed_text', '')
         return self.other_face.get('oracle_text', '')
+
+    """
+    ADVENTURE COLORS
+    """
+
+    @cached_property
+    def adventure_colors(self) -> str:
+        """Colors of adventure side of the card."""
+        if check_hybrid_mana_cost(self.color_identity_adventure, self.mana_adventure):
+            return LAYERS.LAND
+        if len(self.color_identity_adventure) > 1:
+            return LAYERS.GOLD
+        if not self.color_identity_adventure:
+            return LAYERS.COLORLESS
+        return self.color_identity_adventure[0]
 
 
 class LevelerLayout (NormalLayout):
