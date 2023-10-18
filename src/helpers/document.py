@@ -76,7 +76,7 @@ def import_art(layer: ArtLayer, file: str, name: str = "Layer 1") -> ArtLayer:
     desc = ActionDescriptor()
     app.activeDocument.activeLayer = layer
     desc.putPath(sID("target"), file)
-    app.executeAction(cID("Plc "), desc)
+    app.executeAction(sID("placeEvent"), desc)
     app.activeDocument.activeLayer.name = name
     return app.activeDocument.activeLayer
 
@@ -96,7 +96,7 @@ def import_svg(
     # Import the art
     desc = ActionDescriptor()
     desc.putPath(sID("target"), file)
-    app.executeAction(cID("Plc "), desc)
+    app.executeAction(sID("placeEvent"), desc)
 
     # Position the layer if needed
     if ref and placement:
@@ -280,7 +280,7 @@ def save_document_png(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as a PNG.
     @param file_name: Name of the output file.
-    @param directory: Directory to save the file.
+    @param directory: Directory to save the file, /out/ by default.
     """
     png_options = PNGSaveOptions()
     png_options.compression = 3
@@ -295,7 +295,7 @@ def save_document_jpeg(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as a JPEG.
     @param file_name: Name of the output file.
-    @param directory: Directory to save the file.
+    @param directory: Directory to save the file, /out/ by default.
     """
     jpeg_options = JPEGSaveOptions(quality=12)
     jpeg_options.formatOptions = FormatOptionsType.OptimizedBaseline
@@ -309,7 +309,7 @@ def save_document_psd(file_name: str, directory: str = 'out') -> None:
     """
     Save the current document to /out/ as PSD.
     @param file_name: Name of the output file.
-    @param directory: Directory to save the file.
+    @param directory: Directory to save the file, /out/ by default.
     """
     app.activeDocument.saveAs(
         file_path=osp.join(con.cwd, f"{directory}/{file_name}.psd"),
@@ -318,10 +318,24 @@ def save_document_psd(file_name: str, directory: str = 'out') -> None:
     )
 
 
+def save_document_psb(file_name: str, directory: str = 'out') -> None:
+    """
+    Save the current document to /out/ as PSB.
+    @param file_name: Name of the output file.
+    @param directory: Directory to save the file, /out/ by default.
+    @return:
+    """
+    d1 = ActionDescriptor()
+    d2 = ActionDescriptor()
+    d2.putBoolean(sID('maximizeCompatibility'), True)
+    d1.putObject(sID('as'), sID('largeDocumentFormat'), d2)
+    d1.putPath(sID('in'), osp.join(con.cwd, f"{directory}/{file_name}.psd"))
+    d1.putBoolean(sID('lowerCase'), True)
+    app.executeAction(sID('save'), d1, DialogModes.DisplayNoDialogs)
+
+
 def close_document() -> None:
-    """
-    Close the document
-    """
+    """Close the active document."""
     app.activeDocument.close(SaveOptions.DoNotSaveChanges)
 
 
