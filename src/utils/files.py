@@ -13,9 +13,11 @@ from os import path as osp, makedirs
 from os import remove
 from pathlib import Path
 from time import perf_counter
-from typing import Optional
+from typing import Optional, TypedDict, Callable, Union, Literal
 
 # Third Party Imports
+from yaml import load as yaml_load, dump as yaml_dump, Loader as yamlLoader, Dumper as yamlDumper
+from tomlkit import dump as toml_dump, load as toml_load
 from tqdm import tqdm
 import py7zr
 
@@ -51,6 +53,31 @@ class DictionarySize:
     DS1536 = "1536"
 
 
+class DataFileType (TypedDict):
+    """Data file type (json, toml, yaml, etc)."""
+    load: Callable
+    dump: Callable
+    load_kw: dict[str, Union[Callable, bool, str]]
+    dump_kw: dict[str, Union[Callable, bool, str]]
+
+
+# Data types for loading test case files
+data_types: dict[str, DataFileType] = {
+    'toml': {
+        'load': toml_load, 'load_kw': {},
+        'dump': toml_dump, 'dump_kw': {'sort_keys': True}
+    },
+    'yaml': {
+        'load': yaml_load, 'load_kw': {'Loader': yamlLoader},
+        'dump': yaml_dump, 'dump_kw': {'Dumper': yamlDumper, 'sort_keys': True, 'indent': 2, 'allow_unicode': True}
+    },
+    'json': {
+        'load': json.load, 'load_kw': {},
+        'dump': json.dump, 'dump_kw': {'sort_keys': True, 'indent': 2, 'ensure_ascii': False}
+    }
+}
+
+
 """
 FILE INFO UTILITIES
 """
@@ -61,9 +88,55 @@ def get_file_size_mb(file_path: str, decimal: int = 1) -> float:
     Get a file's size in megabytes rounded.
     @param file_path: Path to the file.
     @param decimal: Number of decimal places to allow when rounding.
-    @return: Float representing the filesize in megabytes rounded..
+    @return: Float representing the filesize in megabytes rounded.
     """
     return round(os.path.getsize(file_path) / (1024 * 1024), decimal)
+
+
+"""
+DATA FILE UTILS
+"""
+
+
+def load_data_file(
+    data_type: Literal['json', 'toml', 'yaml'] = 'toml',
+    file_name: str = 'frame_data',
+    file_path: Union[str, Path] = 'tests',
+    config: Optional[dict] = None
+) -> Union[list, dict, tuple, set]:
+    """
+    Load object from a data file.
+    @param data_type: Data file type, supports json, toml, and yaml.
+    @param file_name: Name of the file (not including extension).
+    @param file_path: Path to the file, starting at data directory.
+    @param config: Dict data to modify DataFileType configuration for this data load procedure.
+    @return: Iterable/table object loaded from data file.
+    """
+    parser: DataFileType = data_types.get(data_type, {})
+    parser.update(config if config else {})
+    with open(osp.join(con.path_data, file_path, f'{file_name}.{data_type}'), 'r', encoding='utf-8') as f:
+        return parser['load'](f, **parser['load_kw'])
+
+
+def dump_data_file(
+    obj: Union[list, dict, tuple, set],
+    data_type: Literal['json', 'toml', 'yaml'] = 'toml',
+    file_name: str = 'frame_data',
+    file_path: Union[str, Path] = 'tests',
+    config: Optional[dict] = None
+) -> None:
+    """
+    Dump object to a data file.
+    @param obj: Iterable/table object to save to data file.
+    @param data_type: Data file type, supports json, toml, and yaml.
+    @param file_name: Name of the file (not including extension).
+    @param file_path: Path to the file, starting at data directory.
+    @param config: Dict data to modify DataFileType configuration for this data dump procedure.
+    """
+    parser: DataFileType = data_types.get(data_type, {})
+    parser.update(config if config else {})
+    with open(osp.join(con.path_data, file_path, f'{file_name}.{data_type}'), 'w', encoding='utf-8') as f:
+        parser['dump'](obj, f, **parser['dump_kw'])
 
 
 """
