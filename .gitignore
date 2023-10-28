@@ -159,9 +159,6 @@ cython_debug/
 /out
 # Temporary logging directory
 /logs
-# PSD templates directory
-/templates/*
-!/templates/tools
 # For personal testing
 /testing.py
 # User generated data files
@@ -176,7 +173,9 @@ cython_debug/
 /plugins/*
 !/plugins/MrTeferi
 !/plugins/SilvanMTG
-# All plugin templates
+# PSD templates directories
+/templates/*
+!/templates/tools
 /plugins/*/templates/*
 # User generated config files
 /config.ini
@@ -185,4 +184,3 @@ cython_debug/
 /plugins/*/configs/*.ini
 # Test generated symbol images
 /src/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]
-*.psd

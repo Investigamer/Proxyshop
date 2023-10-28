@@ -12,6 +12,11 @@ import colorama
 from colorama import Fore
 
 
+"""
+DECORATORS
+"""
+
+
 def time_function(func):
     """Print the execution time in seconds of any decorated function."""
     def wrapper(*args, **kwargs):
@@ -22,6 +27,11 @@ def time_function(func):
         print(f"Executed {func.__name__} in {execution_time:.4f} seconds")
         return result
     return wrapper
+
+
+"""
+UTIL FUNCS
+"""
 
 
 def test_execution_time(
@@ -43,11 +53,10 @@ def test_execution_time(
     @param check_result: Whether to check if results match.
     @param reset_func: Optional function to call to reset app state between actions.
     """
+    # TODO: Needs some major refactoring
     # Test configuration
-    if not args:
-        args = []
-    if not args_old:
-        args_old = args
+    args = args or []
+    args_old = args_old or args
     colorama.init(autoreset=True)
     results: list[dict[str, Union[None, int, float, str, list]]] = [
         {

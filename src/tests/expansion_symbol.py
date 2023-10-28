@@ -17,20 +17,22 @@ import photoshop.api as ps
 import requests
 
 # Local Imports
+from src.settings import cfg
 from src.constants import con
+from src import helpers as psd
+from src.enums.layers import LAYERS
+from src.enums.photoshop import Dimensions
 from src.utils.objects import PhotoshopHandler
 
-con.headless = True
-from src import helpers as psd
-from src.settings import cfg
-from src.enums.photoshop import Dimensions
-from src.enums.layers import LAYERS
-
 # Generate rarity folders if they don't exist
-Path(os.path.join(con.path_tests, "symbols/common")).mkdir(mode=711, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/uncommon")).mkdir(mode=711, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/rare")).mkdir(mode=711, parents=True, exist_ok=True)
-Path(os.path.join(con.path_tests, "symbols/mythic")).mkdir(mode=711, parents=True, exist_ok=True)
+SYM_COMMON = Path(os.path.join(con.cwd, "out/symbols/common"))
+SYM_UNCOMMON = Path(os.path.join(con.cwd, "out/symbols/uncommon"))
+SYM_RARE = Path(os.path.join(con.cwd, "out/symbols/rare"))
+SYM_MYTHIC = Path(os.path.join(con.cwd, "out/symbols/mythic"))
+[
+    n.mkdir(mode=711, parents=True, exist_ok=True)
+    for n in [SYM_COMMON, SYM_UNCOMMON, SYM_RARE, SYM_MYTHIC]
+]
 
 """
 TEST CLASSES
@@ -191,7 +193,7 @@ class TestTemplate:
                 current_layer.resize(lay['scale'] * 100, lay['scale'] * 100, self.expansion_symbol_anchor)
 
 
-def test_symbol(code: str, rarity: str, directory='src/tests/symbols'):
+def test_symbol(code: str, rarity: str, directory=os.path.join(con.cwd, 'out/symbols')):
     print(code, rarity.title())
     TestTemplate(TestLayout(code, rarity.lower()))
     psd.save_document_jpeg(f"{code}-{rarity[0].lower()}", directory=directory)
@@ -222,13 +224,18 @@ def big_symbol_test(number: int = 260, rarities: Optional[list] = None):
     """
     # Rarities param can't be mutable
     if not rarities:
-        rarities = ['common', 'uncommon', 'rare', 'mythic']
+        rarities = {
+            'common': SYM_COMMON,
+            'uncommon': SYM_UNCOMMON,
+            'rare': SYM_RARE,
+            'mythic': SYM_MYTHIC
+        }
 
     # Get our list of codes, then generate
     codes = list(con.set_symbols.keys())[-number:]
     for i, code in enumerate(codes):
-        for rarity in rarities:
-            test_symbol(code, rarity, directory=f'src/tests/symbols/{rarity}')
+        for rarity, path in rarities.items():
+            test_symbol(code, rarity, directory=str(path))
 
 
 """
@@ -279,7 +286,7 @@ RUN TEST HERE
 """
 
 """# Open the document
-con.app.open(os.path.join(con.path_tests, 'expansion_symbol_test.psd'))
+con.app.open(os.path.join(con.path_templates, 'tools/expansion_symbol_test.psd'))
 
 # TEST ONE SYMBOL
 test_target_symbol('MOC', rarities=['common', 'uncommon', 'rare', 'mythic'])
