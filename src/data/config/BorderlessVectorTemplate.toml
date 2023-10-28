@@ -25,7 +25,7 @@ title = "Text Options"
 
 [TEXT.Nickname]
 title = "Use Nickname"
-desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually."""
+desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify via [nick=...]."""
 type = "bool"
 default = 0
 

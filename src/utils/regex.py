@@ -21,7 +21,7 @@ class Reg:
 
     # Filename - Card Art
     PATH_ARTIST: re.Pattern = re.compile(r"\(+(.*?)\)")
-    PATH_SPLIT: re.Pattern = re.compile(r"[\[({$]")
+    PATH_SPLIT: re.Pattern = re.compile(r"[\[({`$]")
     PATH_SET: re.Pattern = re.compile(r"\[(.*)]")
     PATH_NUM: re.Pattern = re.compile(r"\{(.*)}")
     PATH_CONDITION: re.Pattern = re.compile(r'<([^>]*)>')

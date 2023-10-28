@@ -1081,7 +1081,7 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
 
     def __init__(self, layout, **kwargs):
         if not CFG.exit_early:
-            CFG.exit_early = self.is_nickname
+            CFG.exit_early = self.is_nickname and not self.nickname
         super().__init__(layout, **kwargs)
 
     # Color Maps
@@ -1315,7 +1315,12 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     @auto_prop_cached
     def is_nickname(self) -> bool:
         """Return True if this a nickname render."""
-        return CFG.get_setting(section="TEXT", key="Nickname", default=False)
+        return CFG.get_setting(section="TEXT", key="Nickname", default=False) or self.nickname is not None
+
+    @auto_prop_cached
+    def nickname(self) -> str | None:
+        """Return the nick name, if available."""
+        return self.layout.file.get('additional_cfg', {}).get('nick', None)
 
     @auto_prop_cached
     def is_multicolor(self) -> bool:
@@ -1538,7 +1543,7 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         """Card name text layer, allow support for Nickname."""
         if self.is_nickname:
             layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
-            super().text_layer_name.textItem.contents = "ENTER NAME HERE"
+            super().text_layer_name.textItem.contents = self.nickname or "ENTER NAME HERE"
             layer.visible = True
             return layer
         return super().text_layer_name
