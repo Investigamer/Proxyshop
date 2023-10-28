@@ -1,8 +1,7 @@
 """
-MTG ENUMS
+* MTG Enums
 """
 from src.utils.strings import StrEnum
-
 
 """
 ICONS
@@ -11,7 +10,6 @@ ICONS
 
 class TransformIcons(StrEnum):
     """Transform icon names."""
-
     MOONELDRAZI = "mooneldrazidfc"
     COMPASSLAND = "compasslanddfc"
     UPSIDEDOWN = "upsidedowndfc"
@@ -49,7 +47,6 @@ NAMING CONVENTIONS
 
 class Rarity(StrEnum):
     """Card rarities."""
-
     C = "common"
     U = "uncommon"
     R = "rare"
@@ -74,11 +71,9 @@ BASIC_LANDS = {
     "snowcoveredforest": "Basic Snow Land — Forest"
 }
 
-
 """
 TEXT FORMATTING
 """
-
 
 # Abilities that aren't italicize, despite fitting the pattern
 non_italics_abilities = [
@@ -89,6 +84,11 @@ non_italics_abilities = [
     "Whack", "Doodle", "Buzz"  # Unstable
 ]
 
+# Edge case Planeswalkers with tall ability box
+planeswalkers_tall = [
+    "Gideon Blackblade",
+    "Comet, Stellar Pup"
+]
 
 """
 DEFAULT COLOR MAPS
@@ -200,7 +200,6 @@ saga_stripe_color_map = {
     'Land': [55, 47, 41],
     'Dual': [42, 42, 42]
 }
-
 
 """
 SPECIAL CHARACTERS

@@ -1,7 +1,7 @@
 """
 SETTINGS ENUMS
 """
-from src.utils.objects import classproperty
+from src.utils.decorators import enum_class_prop
 from src.utils.strings import StrEnum
 
 
@@ -15,7 +15,7 @@ class OutputFiletype (StrEnum):
     PNG = "png"
     PSD = "psd"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.JPG
 
@@ -29,7 +29,7 @@ class ScryfallSorting (StrEnum):
     EDHRec = "edhrec"
     Artist = "artist"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Released
 
@@ -38,7 +38,7 @@ class ScryfallUnique (StrEnum):
     Prints = "prints"
     Arts = "arts"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Arts
 
@@ -54,7 +54,7 @@ class CollectorMode (StrEnum):
     Minimal = "minimal"
     ArtistOnly = "artist"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Normal
 
@@ -64,7 +64,7 @@ class ExpansionSymbolMode (StrEnum):
     Font = "font"
     Disabled = "none"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.SVG
 
@@ -75,19 +75,19 @@ class BorderColor (StrEnum):
     Silver = "silver"
     Gold = "gold"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Black
 
 
 class CollectorPromo (StrEnum):
-    Disabled = "disabled"
     Automatic = "automatic"
     Always = "always"
+    Never = "never"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
-        return self.Disabled
+        return self.Automatic
 
 
 """
@@ -103,7 +103,7 @@ class BorderlessColorMode (StrEnum):
     PT = "PT Box"
     Disabled = "None"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Twins_And_PT
 
@@ -116,7 +116,7 @@ class BorderlessTextbox (StrEnum):
     Short = "Short"
     Tall = "Tall"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Automatic
 
@@ -126,6 +126,6 @@ class ModernClassicCrown (StrEnum):
     TexturePinlines = "Texture Pinlines"
     TextureBackground = "Texture Background"
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return self.Pinlines
