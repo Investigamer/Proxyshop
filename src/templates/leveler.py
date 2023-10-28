@@ -142,7 +142,7 @@ class LevelerMod (NormalTemplate):
             ),
             text_classes.FormattedTextArea(
                 layer = self.text_layer_rules_x_y,
-                contents = self.layout.levels_x_y_text,
+                contents = self.layout.middle_text,
                 reference = self.textbox_reference_x_y
             ),
             # Level 3
@@ -156,7 +156,7 @@ class LevelerMod (NormalTemplate):
             ),
             text_classes.FormattedTextArea(
                 layer = self.text_layer_rules_z,
-                contents = self.layout.levels_z_plus_text,
+                contents = self.layout.bottom_text,
                 reference = self.textbox_reference_z
             )
         ])
