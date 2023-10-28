@@ -1434,13 +1434,13 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     @cached_property
     def pt_colors(self) -> Union[SolidColor, list[dict]]:
 
-        # Default to twins
+        # Default to twins, or Vehicle for non-colored vehicle artifacts
         colors = self.twins
 
         # Color enabled hybrid OR color enabled multicolor
         if (self.is_hybrid and self.hybrid_colored) or (self.is_multicolor and self.multicolor_pt):
             colors = self.identity[-1]
-        # Use Hybrid color for non-colored hybrid cards
+        # Use Hybrid color for color-disabled hybrid cards
         elif self.is_hybrid:
             colors = LAYERS.HYBRID
 
@@ -1450,7 +1450,11 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             BorderlessColorMode.All,
             BorderlessColorMode.PT
         ]:
-            colors = LAYERS.VEHICLE if self.is_vehicle else LAYERS.ARTIFACT
+            colors = LAYERS.ARTIFACT
+
+        # Use Vehicle for non-colored artifacts
+        if colors == LAYERS.ARTIFACT and self.is_vehicle:
+            colors = LAYERS.VEHICLE
 
         # Return Solid Color or Gradient notation
         return psd.get_pinline_gradient(
