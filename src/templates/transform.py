@@ -38,14 +38,14 @@ class TransformMod(BaseTemplate):
     @cached_property
     def frame_layer_methods(self) -> list[Callable]:
         # Add Transform frame layers step
-        parent_funcs = super().frame_layer_methods
-        return [*parent_funcs, self.enable_transform_layers] if self.is_transform else parent_funcs
+        funcs = [self.enable_transform_layers] if self.is_transform else []
+        return [*super().frame_layer_methods, *funcs]
 
     @cached_property
     def text_layer_methods(self) -> list[Callable]:
         # Add Transform text layers step
-        parent_funcs = super().text_layer_methods
-        return [*parent_funcs, self.text_layers_transform] if self.is_transform else parent_funcs
+        funcs = [self.text_layers_transform] if self.is_transform else []
+        return [*super().frame_layer_methods, *funcs]
 
     """
     TEXT LAYERS
