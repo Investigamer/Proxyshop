@@ -15,14 +15,14 @@ from typing import Optional, Type
 # Local Imports
 from src.settings import cfg
 from src.constants import con
-from src.utils.env import ENV_HEADLESS
+from src.utils.env import ENV
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
 
 
 class LogColors (StrEnum):
     """Logging message colors."""
-    GRAY = '\x1b[38;21m'
+    GRAY = '\x1b[97m'
     BLUE = '\x1b[38;5;39m'
     YELLOW = '\x1b[38;5;226m'
     ORANGE = '\x1b[38;5;202m'
@@ -101,7 +101,7 @@ class TerminalConsole:
     def logger(self) -> logging.Logger:
         """Logger interface handling console output."""
         console_logger = logging.getLogger('console')
-        console_logger.setLevel(logging.INFO)
+        console_logger.setLevel(logging.DEBUG)
         console_logger.addHandler(self.log_handler)
         return console_logger
 
@@ -114,7 +114,7 @@ class TerminalConsole:
     def log_handler(self) -> logging.Handler:
         """Logging stream handler."""
         handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
+        handler.setLevel(logging.DEBUG)
         handler.setFormatter(self.log_formatter)
         return handler
 
@@ -138,6 +138,9 @@ class TerminalConsole:
     """
     Logger Object Methods
     """
+
+    def debug(self, *args, **kwargs):
+        return self.logger.debug(*args, **kwargs)
 
     def info(self, *args, **kwargs):
         return self.logger.info(*args, **kwargs)
@@ -402,7 +405,7 @@ class TerminalConsole:
 
 
 # Conditionally import the GUI console
-if not ENV_HEADLESS:
+if not ENV.HEADLESS:
     from src.gui.console import GUIConsole as Console
 else:
     Console = TerminalConsole

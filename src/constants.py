@@ -27,10 +27,10 @@ if __PATH_CWD__ != __PATH_ROOT__:
     os.chdir(__PATH_ROOT__)
 
 # Local Imports
+from src.utils.objects import Singleton, PhotoshopHandler
 from src.enums.mtg import mana_color_map
 from src.enums.layers import LAYERS
-from src.utils.env import PS_VERSION
-from src.utils.objects import Singleton, PhotoshopHandler
+from src.utils.env import ENV
 
 
 # Global app-wide constants class
@@ -40,7 +40,7 @@ class Constants:
     Can be modified within a template class to adjust rendering behavior.
     """
     __metaclass__ = Singleton
-    app = PhotoshopHandler(version=PS_VERSION)
+    app = PhotoshopHandler(version=ENV.PS_VERSION)
 
     '''Named card layouts mapped to raw layouts.'''
     card_type_map = {
@@ -89,7 +89,7 @@ class Constants:
         self.path_data = osp.join(self.path_src, 'data')
         self.path_kv = osp.join(self.path_data, 'kv')
         self.path_plugins = osp.join(self.cwd, 'plugins')
-        self.path_tests = osp.join(self.path_src, 'tests')
+        self.path_tests = osp.join(self.path_data, 'tests')
         self.path_configs = osp.join(self.path_src, 'configs')
         self.path_templates = osp.join(self.cwd, 'templates')
         self.path_data_sets = osp.join(self.path_data, 'sets')
@@ -340,12 +340,6 @@ class Constants:
                           "AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/39.0.2171.95 Safari/537.36"
         }
-
-        # Run headless
-        self.headless = False
-
-        # Track timed checks
-        self.times = []
 
     """
     UTILITY

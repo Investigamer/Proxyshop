@@ -4,7 +4,7 @@ OBJECT UTILITIES
 # Standard Library
 from functools import cache
 from contextlib import suppress
-from typing import Union, Any, Callable, Optional
+from typing import Union, Any, Optional
 
 # Third Party
 from photoshop.api import Application, Units, DialogModes, ActionDescriptor
@@ -12,54 +12,12 @@ from photoshop.api._core import Photoshop
 from packaging.version import parse
 
 # Local Imports
-from src.utils.env import PS_ERROR_DIALOG
+from src.utils.env import ENV
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 
-"""
-OBJECT UTILITY DECORATORS
-"""
-
-
-def choose_class_route(condition: bool) -> Callable:
-    """
-    A decorator that routes a method call to the current class or its parent based on a bool condition.
-    @param condition: Route to self if True, otherwise route to self's superclass.
-    @return: The wrapped function.
-    """
-
-    def decorator(func):
-        def wrapper(self, *args, **kwargs):
-            if condition:
-                return func(self, *args, **kwargs)
-            return getattr(super(self.__class__, self), func.__name__)(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
-class classproperty:
-    """
-    A decorator for creating a class property whose value is cached.
-    @param method: Class method being decorated.
-    """
-
-    def __init__(self, method: Callable):
-        self._method = method
-        self._name = method.__name__
-
-    def __get__(self, instance, owner):
-        """
-        Computes and caches the value of a property when accessed.
-        @param instance: Instance of the class where descriptor is accessed.
-        @param owner: The class that the descriptor exists on.
-        @return: The cached value.
-        """
-        value = self._method(owner)
-        setattr(owner, self._name, value)
-        return value
-
 
 """
-UTILITY OBJECTS
+* Utility classes
 """
 
 
@@ -71,11 +29,6 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
-
-
-"""
-PHOTOSHOP OBJECT WRAPPER
-"""
 
 
 class PhotoshopHandler(Application):
@@ -200,10 +153,9 @@ class PhotoshopHandler(Application):
     """
 
     def executeAction(
-            self,
-            event_id: int,
+            self, event_id: int,
             descriptor: ActionDescriptor,
-            dialogs: int = DialogModes.DisplayNoDialogs
+            dialogs: DialogModes = DialogModes.DisplayNoDialogs
     ) -> Any:
         """
         Middleware to allow all dialogs when an error occurs upon calling executeAction in development mode.
@@ -211,16 +163,15 @@ class PhotoshopHandler(Application):
         @param descriptor: Main action descriptor tree to execute.
         @param dialogs: DialogMode which governs whether to display dialogs.
         """
-        if not PS_ERROR_DIALOG:
+        if not ENV.PS_ERROR_DIALOG:
             return super().executeAction(event_id, descriptor, dialogs)
         # Allow error dialogs within development environment
         return super().executeAction(event_id, descriptor, DialogModes.DisplayErrorDialogs)
 
     def ExecuteAction(
-            self,
-            event_id: int,
+            self, event_id: int,
             descriptor: ActionDescriptor,
-            dialogs: int = DialogModes.DisplayNoDialogs
+            dialogs: DialogModes = DialogModes.DisplayNoDialogs
     ) -> Any:
         """Utility definition rerouting to original executeAction function."""
         self.executeAction(event_id, descriptor, dialogs)

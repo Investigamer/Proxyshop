@@ -19,12 +19,12 @@ from typing import Callable, Optional, Iterator
 import requests
 
 # Local Imports
-from src.constants import con
-from src.core import get_templates
 from src.types.templates import TemplateDetails, TemplateUpdate
-from src.utils.env import ENV_API_AMAZON, ENV_API_GOOGLE
-from src.utils.files import decompress_file
+from src.utils.compression import decompress_file
+from src.core import get_templates
 from src.utils.regex import Reg
+from src.constants import con
+from src.utils.env import ENV
 
 
 """
@@ -152,7 +152,7 @@ def gdrive_metadata(file_id: str) -> dict:
         params={
             'alt': 'json',
             'fields': 'description,name,size',
-            'key': ENV_API_GOOGLE
+            'key': ENV.API_GOOGLE
         }
     ).json()
     return result if 'name' in result and 'size' in result else None
@@ -268,7 +268,7 @@ def download_s3(save_path: str, s3_path: str, callback: Optional[Callable] = Non
     @return: True if success, False if failed.
     """
     # Establish this object's cloudfront URL
-    url = f"{ENV_API_AMAZON}/{s3_path}"
+    url = f"{ENV.API_AMAZON}/{s3_path}"
 
     # Establish session
     sess = requests.session()

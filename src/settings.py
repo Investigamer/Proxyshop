@@ -17,6 +17,7 @@ from src.enums.settings import (
 	ScryfallUnique,
 	CollectorPromo
 )
+from src.utils.env import ENV
 from src.utils.objects import Singleton
 from src.utils.strings import StrEnum
 from src.types.templates import TemplateDetails
@@ -63,6 +64,8 @@ class Config:
 		# APP - SYSTEM
 		self.refresh_plugins = self.file.getboolean('APP.SYSTEM', 'Refresh.Plugins')
 		self.test_mode = self.file.getboolean('APP.SYSTEM', 'Test.Mode')
+		if self.test_mode:
+			ENV.PS_ERROR_DIALOG = False
 
 		# BASE - TEXT
 		self.flavor_divider = self.file.getboolean('BASE.TEXT', 'Flavor.Divider')

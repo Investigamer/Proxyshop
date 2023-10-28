@@ -27,7 +27,7 @@ from photoshop.api import SaveOptions, DialogModes
 # Environment variables
 environ["KIVY_LOG_MODE"] = "PYTHON"
 environ["HEADLESS"] = "False"
-from src.utils.env import ENV_VERSION, ENV_DEV_MODE
+from src.utils.env import ENV
 
 # Kivy Imports
 from kivy.app import App
@@ -45,7 +45,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 # Local Imports
 from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
-from src.utils.files import remove_config_file
+from src.utils.files import remove_config_file, load_data_file
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
 from src.gui.tools import ToolsLayout
@@ -149,7 +149,7 @@ class ProxyshopApp(App):
     @property
     def title(self) -> str:
         """App name displayed at the top of the application window."""
-        return f"Proxyshop v{ENV_VERSION}"
+        return f"Proxyshop v{ENV.VERSION}"
 
     @property
     def icon(self) -> str:
@@ -227,8 +227,11 @@ class ProxyshopApp(App):
                     # Cancel this operation
                     return
 
+            # Disable buttons / clear console on enter
             self.reset(disable_buttons=True, clear_console=True)
             result = func(self, *args)
+
+            # Enable buttons / close document on exit
             self.reset(enable_buttons=True, close_document=True)
             return result
         return wrapper
@@ -457,48 +460,49 @@ class ProxyshopApp(App):
         Test all templates in series.
         @param deep: Tests every card case for each template if enabled.
         """
-        # Load temps and test case cards
-        with open(osp.join(con.cwd, "src/data/tests.json"), encoding="utf-8") as fp:
-            cases = json.load(fp)
+        # Load data file and loop through test case sections
+        for card_type, cards in load_data_file('toml', "template_renders").items():
 
-        # Loop through each template type
-        for card_type, cards in cases.items():
-            # Is this a deep test?
-            cards = [cards[0]] if not deep else cards
+            # If not a deep test, only use first entry
+            cards = {k: v for k, v in [next(iter(cards.items()))]} if not deep else cards
             console.update(msg_success(f"\n---- {card_type.upper()} ----"))
+
+            # Loop through templates to test
             for template in templates[card_type]:
-                # Loop through cards to test
-                failures = []
-                console.update(f"{template['class_name']} ... ", end="")
+
                 # Is this template installed?
+                console.update(f"{template['class_name']} ... ", end="")
                 if not osp.isfile(template['template_path']):
                     console.update(msg_warn(f"SKIPPED (Template not installed)"))
                     continue
-                for card in cards:
-                    # Assign a layout to this card
-                    layout = assign_layout(card[0])
+                failures: list[tuple[str, str, str]] = []
+
+                # Loop through cards to test
+                for card_name, card_case in cards:
+
+                    # Attempt to assign a layout
+                    layout = assign_layout(card_name)
                     if isinstance(layout, str):
-                        # Layout or Scryfall Fail
-                        console.update(layout)
-                        return
+                        failures.append((card_name, card_case, 'Failed to assign layout'))
+                        continue
+
                     # Grab the template class and start the render thread
-                    layout.filename = osp.join(con.path_img, "test.jpg")
+                    layout.art_file = osp.join(con.path_img, "test.jpg")
                     template['loaded_class'] = get_template_class(template)
                     if not self.start_render(template, layout):
-                        failures.append(card[0])
-                    # Was the thread cancelled?
+                        failures.append((card_name, card_case, 'Failed to render'))
+
+                    # Thread cancelled or reset and continue?
                     if self.cancel_render.is_set():
                         return
-                    # Card finished
                     self.reset()
 
-                # Template finished
+                # Log failure state and continue
+                result = get_bullet_points([
+                    f"{name} ({case}) — {reason}" for name, case, reason in failures
+                ]) if failures else ''
+                console.update(msg_error(f"FAILED\n{result}") if result else msg_success("SUCCESS"))
                 self.reset(close_document=True)
-                console.update(
-                    # Did any tests fail?
-                    msg_error(f"FAILED ({', '.join(failures)})") if failures
-                    else msg_success("SUCCESS")
-                )
 
     @render_process_wrapper
     def test_target(self, card_type: str, template: TemplateDetails) -> None:
@@ -508,8 +512,7 @@ class ProxyshopApp(App):
         @param template: Specific template to test.
         """
         # Load test case cards
-        with open(osp.join(con.cwd, "src/data/tests.json"), encoding="utf-8") as fp:
-            cards = json.load(fp)
+        cases = load_data_file('toml', "template_renders")
 
         # Is this template installed?
         console.update(msg_success(f"\n---- {template['class_name']} ----"))
@@ -518,27 +521,29 @@ class ProxyshopApp(App):
             return
 
         # Render each test case
-        for card in cards[card_type]:
-            # Get the layout object
-            layout = assign_layout(card[0])
+        for card_name, card_case in cases[card_type].items():
+            console.update(f"{card_name} ({card_case}) ... ", end="")
+
+            # Attempt to assign a layout
+            layout = assign_layout(card_name)
             if isinstance(layout, str):
-                # Layout or Scryfall Fail
-                console.update(layout)
-                return
+                console.update(msg_error(f"Failed to assign layout"))
+                continue
 
             # Start the render
-            layout.filename = osp.join(con.cwd, "src/img/test.jpg")
-            console.update(f"{card[0]} ... ", end="")
+            layout.art_file = osp.join(con.path_img, "test.jpg")
             template['loaded_class'] = get_template_class(template)
-            console.update(
-                msg_success("SUCCESS") if self.start_render(template, layout)
-                else msg_error(f"FAILED - {card[1]}")
-            )
-            # Card finished
-            self.reset()
-            # Was the thread cancelled?
+            result = self.start_render(template, layout)
+
+            # Was render cancelled?
             if self.cancel_render.is_set():
                 return
+
+            # Was render successful?
+            console.update(msg_success("SUCCESS") if result else msg_error("Failed to render"))
+
+            # Reset document
+            self.reset()
 
     def start_render(self, template: TemplateDetails, card: CardLayout) -> bool:
         """
@@ -670,7 +675,7 @@ class ProxyshopApp(App):
 
         # Update symbol library
         try:
-            if not ENV_DEV_MODE:
+            if not ENV.DEV_MODE:
                 # Download updated library via Amazon S3 and update global constants
                 if not download_s3(osp.join(con.path_data, 'symbols.yaml'), 'symbols.yaml'):
                     raise OSError("Amazon S3 download failed to write data to disk!")
@@ -727,7 +732,7 @@ class ProxyshopApp(App):
         @return: Return True if up to date, otherwise False.
         """
         with suppress(requests.RequestException, json.JSONDecodeError):
-            current = f"v{ENV_VERSION}"
+            current = f"v{ENV.VERSION}"
             response = requests.get(
                 "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
                 timeout=(3, 3))
@@ -936,10 +941,10 @@ if __name__ == '__main__':
         resource_add_path(osp.join(sys._MEIPASS))
 
     # Ensure mandatory folders are created
+    Path(con.path_logs).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(con.path_templates).mkdir(mode=711, parents=True, exist_ok=True)
     Path(osp.join(con.cwd, "out")).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "logs")).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "templates")).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "src/data/sets")).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(osp.join(con.path_data, "sets")).mkdir(mode=711, parents=True, exist_ok=True)
 
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)

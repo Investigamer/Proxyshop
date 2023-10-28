@@ -12,12 +12,10 @@ from dotenv import dotenv_values
 
 # Current app version
 from src.__version__ import version as ENV_VERSION
+from src.utils.decorators import auto_prop_cached
 
 # Load environment variables
-ENV = dotenv_values('.env')
-
-# Disable development flag if building executable release
-ENV_DEV_MODE: bool = True if not hasattr(sys, '_MEIPASS') else False
+OS_ENV = dotenv_values('.env')
 
 # Try to import private API keys
 try:
@@ -27,21 +25,41 @@ except ModuleNotFoundError:
     GOOGLE_KEY = None
     AMAZON_KEY = None
 
-# Load OS environment or .env variables
-ENV_API_GOOGLE: str = GOOGLE_KEY or environ.get('GOOGLE_KEY', ENV.get('GOOGLE_KEY', ''))
-ENV_API_AMAZON: str = AMAZON_KEY or environ.get('AMAZON_KEY', ENV.get('AMAZON_KEY', ''))
-ENV_HEADLESS: bool = bool(strtobool(environ.get('HEADLESS', ENV.get('HEADLESS', 'False'))))
-PS_ERROR_DIALOG: bool = bool(strtobool(environ.get('PS_ERROR_DIALOG', ENV.get('PS_ERROR_DIALOG', 'False'))))
-PS_VERSION: Optional[str] = environ.get('PS_VERSION', ENV.get('PS_VERSION', None))
-PS_VERSION = str(PS_VERSION) if PS_VERSION else None
+
+class Env:
+    @auto_prop_cached
+    def VERSION(self) -> str:
+        return ENV_VERSION
+
+    @auto_prop_cached
+    def API_GOOGLE(self) -> str:
+        return GOOGLE_KEY or environ.get('GOOGLE_KEY', OS_ENV.get('GOOGLE_KEY', ''))
+
+    @auto_prop_cached
+    def API_AMAZON(self) -> str:
+        return AMAZON_KEY or environ.get('AMAZON_KEY', OS_ENV.get('AMAZON_KEY', ''))
+
+    @auto_prop_cached
+    def DEV_MODE(self) -> bool:
+        if environ.get('ENV_DEV_MODE', None):
+            return bool(strtobool(environ['ENV_DEV_MODE']))
+        return not hasattr(sys, '_MEIPASS')
+
+    @auto_prop_cached
+    def HEADLESS(self) -> bool:
+        return bool(strtobool(environ.get('HEADLESS', OS_ENV.get('HEADLESS', 'False'))))
+
+    @auto_prop_cached
+    def PS_ERROR_DIALOG(self) -> bool:
+        return bool(strtobool(environ.get('PS_ERROR_DIALOG', OS_ENV.get('PS_ERROR_DIALOG', 'False'))))
+
+    @auto_prop_cached
+    def PS_VERSION(self) -> Optional[str]:
+        return environ.get('PS_VERSION', OS_ENV.get('PS_VERSION', None))
+
+
+# App-wide environment object
+ENV = Env()
 
 # Export all
-__all__ = [
-    "ENV_VERSION",
-    "ENV_API_GOOGLE",
-    "ENV_API_AMAZON",
-    "ENV_DEV_MODE",
-    "ENV_HEADLESS",
-    "PS_ERROR_DIALOG",
-    "PS_VERSION"
-]
+__all__ = ["ENV"]
