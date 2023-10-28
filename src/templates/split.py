@@ -272,12 +272,12 @@ class SplitTemplate (BaseTemplate):
 
         # Check for fullart test image
         if cfg.test_mode and self.is_fullart:
-            self.layout.filename = [osp.join(con.path_img, "test-fa.png")] * 2
+            self.layout.art_file = [osp.join(con.path_img, "test-fa.png")] * 2
         elif cfg.test_mode:
-            self.layout.filename = [self.layout.filename] * 2
+            self.layout.art_file = [self.layout.art_file] * 2
 
         # Manually select a second artwork if not provided
-        if len(self.layout.filename) == 1:
+        if len(self.layout.art_file) == 1:
             self.console.update("Please select the second split art!")
             file = self.app.openDialog()
             if not file:
@@ -287,9 +287,9 @@ class SplitTemplate (BaseTemplate):
 
             # Place new art in the correct order
             if normalize_str(self.layout.name[0]) == normalize_str(self.layout.file['name']):
-                self.layout.filename.append(file[0])
+                self.layout.art_file.append(file[0])
             else:
-                self.layout.filename.insert(0, file[0])
+                self.layout.art_file.insert(0, file[0])
 
         # Load art for each side
         for i, ref in enumerate(self.art_reference):
@@ -297,9 +297,9 @@ class SplitTemplate (BaseTemplate):
             # Import the file into the art layer
             self.active_layer = self.art_layer[i]
             if self.art_action:
-                psd.paste_file(self.art_layer[i], self.layout.filename[i], self.art_action, self.art_action_args)
+                psd.paste_file(self.art_layer[i], self.layout.art_file[i], self.art_action, self.art_action_args)
             else:
-                psd.import_art(self.art_layer[i], self.layout.filename[i])
+                psd.import_art(self.art_layer[i], self.layout.art_file[i])
 
             # Frame the artwork
             psd.frame_layer(self.active_layer, ref)
