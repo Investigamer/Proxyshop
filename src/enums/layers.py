@@ -2,20 +2,6 @@
 LAYER NAME ENUMS
 """
 from src.utils.strings import StrEnum
-from dataclasses import dataclass
-
-
-@dataclass
-class COLORS:
-    W = [246, 246, 239]
-    U = ""
-    B = ""
-    R = ""
-    G = ""
-    Artifact = ""
-    Colorless = ""
-    Gold = ""
-    Land = ""
 
 
 class LAYERS (StrEnum):
