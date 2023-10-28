@@ -9,10 +9,10 @@ import unicodedata
 import string
 
 # Local Imports
-from src.utils.objects import classproperty
+from src.utils.decorators import enum_class_prop
 
 """
-STRING CLASSES
+* Util classes
 """
 
 
@@ -33,7 +33,7 @@ class StrEnum(str, Enum, metaclass=StrEnumMeta):
     def value(self) -> str:
         return str(self._value_)
 
-    @classproperty
+    @enum_class_prop
     def Default(self) -> str:
         return "default"
 
@@ -46,26 +46,8 @@ class ConsoleMessages(StrEnum):
 
 
 """
-STRING UTILITIES
+* Multiline Util Funcs
 """
-
-
-def normalize_str(st: str, no_space: bool = False) -> str:
-    """
-    Normalizes a string for safe comparison.
-    @param st: String to normalize.
-    @param no_space: Remove spaces.
-    @return: Normalized string.
-    """
-    # Ignore accents and unusual characters, all lowercase
-    st = unicodedata.normalize("NFD", st).encode("ascii", "ignore").decode("utf8").lower()
-
-    # Remove spaces?
-    if no_space:
-        st = st.replace(' ', '')
-
-    # Remove punctuation
-    return st.translate(str.maketrans("", "", string.punctuation))
 
 
 def is_multiline(text: Union[str, list[str]]) -> Union[bool, list[bool]]:
@@ -87,8 +69,74 @@ def is_multiline(text: Union[str, list[str]]) -> Union[bool, list[bool]]:
                     f"Received the value: {text}")
 
 
+def strip_lines(text: str, num: int, sep: str = '\n') -> str:
+    """
+    Removes a number of leading or trailing lines from a multiline string.
+    @param text: Multiline string.
+    @param num: Positive integer for number leading lines, negative integer for number of trailing lines.
+    @param sep: Newline separator to use for split, defaults to '\n'.
+    @return: String with lines stripped.
+    """
+    if num == 0:
+        return text
+    if num < 0:
+        return '\n'.join(text.split(sep)[:num])
+    return '\n'.join(text.split(sep)[num:])
+
+
+def get_line(text: str, i: int, sep: str = '\n') -> str:
+    """
+    Get line by index from a multiline string.
+    @param text: Multiline string.
+    @param i: Index of the line.
+    @param sep: Newline separator to use for split, defaults to '\n'.
+    @return: Isolated line.
+    """
+    if abs(i) > text.count('\n'):
+        raise IndexError(f"Not enough lines in multiline string. Index of {i} is invalid.")
+    return text.split(sep)[i]
+
+
+def get_lines(text: str, num: int, sep: str = '\n') -> str:
+    """
+    Separate a number of lines from a multiline string.
+    @param text: Multiline string.
+    @param num: Number of lines to separate and return, negative integer for trailing lines.
+    @param sep: Newline separator to use for split, defaults to '\n'.
+    @return: Isolated lines.
+    """
+    if num == 0 or abs(num) > text.count('\n') + 1:
+        return text
+    if num < 0:
+        return '\n'.join(text.split(sep)[num:])
+    return '\n'.join(text.split(sep)[:num])
+
+
 """
-CONSOLE COLORS
+* String Util Funcs
+"""
+
+
+def normalize_str(st: str, no_space: bool = False) -> str:
+    """
+    Normalizes a string for safe comparison.
+    @param st: String to normalize.
+    @param no_space: Remove spaces.
+    @return: Normalized string.
+    """
+    # Ignore accents and unusual characters, all lowercase
+    st = unicodedata.normalize("NFD", st).encode("ascii", "ignore").decode("utf8").lower()
+
+    # Remove spaces?
+    if no_space:
+        st = st.replace(' ', '')
+
+    # Remove punctuation
+    return st.translate(str.maketrans("", "", string.punctuation))
+
+
+"""
+* Console Formatting Util Funcs
 """
 
 
@@ -161,24 +209,3 @@ def get_bullet_points(text: list[str], char: str = '•') -> str:
         return ""
     bullet = f"\n{char} "
     return str(bullet + bullet.join(text))
-
-
-"""
-HEADLESS CONSOLE
-"""
-
-
-class Console:
-    """
-    Replaces the GUI console when running headless.
-    """
-    # TODO: Build out a Headless console class
-
-    @staticmethod
-    def update(msg):
-        print(msg)
-
-    @staticmethod
-    def wait(msg):
-        print(msg)
-        input("Would you like to continue?")
