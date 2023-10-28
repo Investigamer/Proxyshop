@@ -314,7 +314,7 @@ CARD DATA UTILITIES
 
 def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
     """
-    Retrieve card name from the input file, and optional tags (artist, set, number).
+    Retrieve card name from the input file, and optional tags (artist, set, number, nickname).
     @param file_path: Path to the image file.
     @return: Dict of card details.
     """
@@ -326,6 +326,7 @@ def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
     artist = Reg.PATH_ARTIST.search(file_name)
     number = Reg.PATH_NUM.search(file_name)
     code = Reg.PATH_SET.search(file_name)
+    nickname = Reg.PATH_NICKNAME.search(file_name)
 
     # Return dictionary
     return {
@@ -335,6 +336,7 @@ def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
         'artist': artist.group(1) if artist else '',
         'number': number.group(1) if number and code else '',
         'creator': name_split[-1] if '$' in file_name else '',
+        'nickname': nickname.group(1) if nickname else '',
     }
 
 

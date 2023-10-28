@@ -16,6 +16,7 @@ class CardDetails(TypedDict):
     artist: Optional[str]
     creator: Optional[str]
     filename: Union[str, Path]
+    nickname: Optional[str]
 
 
 class FrameDetails(TypedDict):
