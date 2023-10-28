@@ -18,11 +18,12 @@ from shutil import (
 
 # Third party imports
 import PyInstaller.__main__
+import click
 import tomli
 
 # Local Imports
 from src.constants import con
-from src.utils.env import ENV_VERSION
+from src.utils.env import ENV
 
 # Directory definitions
 SRC = con.cwd
@@ -182,10 +183,35 @@ def build_app(
     if zipped:
         build_zip(
             filename=toml_config['names']['zip'].format(
-                version=version or ENV_VERSION,
+                version=version or ENV.VERSION,
                 console='-console' if console else '',
                 beta='-beta' if beta else ''
             ))
 
     # Clear build files, except dist
     clear_build_files(clear_dist=False)
+
+
+"""
+COMMANDS
+"""
+
+
+@click.group()
+def build_cli():
+    """App build tools CLI."""
+    pass
+
+
+@build_cli.command()
+@click.argument('version', required=False)
+@click.option('-B', '--beta', is_flag=True, default=False, help="Build app as a Beta release.")
+@click.option('-C', '--console', is_flag=True, default=False, help="Build app with console enabled.")
+@click.option('-R', '--raw', is_flag=True, default=False, help="Build app without creating ZIP.")
+def build_app(version: Optional[str] = None, beta: bool = False, console: bool = False, raw: bool = False):
+    """Build Proxyshop as an executable release."""
+    build_app(version=version, beta=beta, console=console, zipped=not raw)
+
+
+# Export CLI
+__all__ = ['build_cli']
