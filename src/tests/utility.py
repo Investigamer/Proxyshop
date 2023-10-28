@@ -3,36 +3,59 @@ TESTING UTILITY
 For contributors and plugin development.
 """
 # Standard Library Imports
+from contextlib import suppress
+from collections.abc import Iterable
+from pprint import pprint
 from typing import Optional, Union
 from _ctypes import COMError
-from os import path as osp
+from os import path as osp, environ
+import tomlkit
 import warnings
 import logging
 import json
+import csv
+
+import xml.dom.minidom
+
+from src.enums.layers import LAYERS
 
 # Use this to force a working directory if IDE doesn't support it
 # os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
+environ['HEADLESS'] = "True"
 
 # Third Party Imports
 from psd_tools import PSDImage
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
+from photoshop.api._document import Document
+from photoshop.api._selection import Selection
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    DialogModes
+    ActionList,
+    DialogModes,
+    LayerKind,
+    SaveOptions
 )
+from psd_tools.constants import Resource
+from psd_tools import PSDImage
+from psd_tools.psd.image_resources import ImageResource
+import xml.etree.ElementTree as ET
+from pprint import pprint
 
 # Local Imports
-from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds
+from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds, select_bounds
 from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
 from src.helpers.document import points_to_pixels
+from src.types.adobe import LayerObject, LayerContainer
+from src.utils.exceptions import PS_EXCEPTIONS
 from src.utils.objects import PhotoshopHandler
 from src.helpers.masks import copy_layer_mask
 from src.helpers import get_layer_dimensions, get_color
 from src.core import get_templates
 from src.constants import con
+from src.utils.testing import time_function
 
 # Photoshop infrastructure
 app: PhotoshopHandler = con.app
@@ -521,3 +544,364 @@ def log_all_template_fonts() -> dict:
     with open(f'logs/FONTS.json', 'w', encoding='utf-8') as f:
         json.dump(master, f, indent=2)
     return master
+
+
+"""
+MASK EXPERIMENTS
+"""
+
+
+def enter_mask_channel(make_visible: bool = True):
+    """Enters mask channel to allow working with current layer's mask."""
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    d1.PutReference(sID("target"), r1)
+    d1.PutBoolean(sID("makeVisible"), make_visible)
+    app.Executeaction(sID("select"), d1, NO_DIALOG)
+
+
+def enter_rgb_channel(make_visible: bool = True):
+    """Enters the RGB channel (default channel)."""
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("RGB"))
+    d1.PutReference(sID("target"), r1)
+    d1.PutBoolean(sID("makeVisible"), make_visible)
+    app.Executeaction(sID("select"), d1, NO_DIALOG)
+
+
+def create_mask(layer: Optional[ArtLayer] = None):
+    """Add a mask to provided or active layer."""
+    if layer:
+        app.activeDocument.activeLayer = layer
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    d1.PutClass(sID("new"), sID("channel"))
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    d1.PutReference(sID("at"), r1)
+    d1.PutEnumerated(sID("using"), sID("userMaskEnabled"), sID("revealAll"))
+    app.Executeaction(sID("make"), d1, NO_DIALOG)
+
+
+def paste_to_document():
+    desc1 = ActionDescriptor()
+    desc1.PutEnumerated(sID("antiAlias"), sID("antiAliasType"), sID("antiAliasNone"))
+    desc1.PutClass(sID("as"), sID("pixel"))
+    app.Executeaction(sID("paste"), desc1,  NO_DIALOG)
+
+
+def select_canvas(doc: Document = None):
+    """Select the entire canvas of a provided or active document."""
+    doc = doc or app.activeDocument
+    doc.selection.select([
+        [0, 0],
+        [doc.width, 0],
+        [doc.width, doc.height],
+        [0, doc.height]
+    ])
+
+
+def copy_to_mask():
+    # Select canvas and copy
+    docref = app.activeDocument
+    select_canvas(docref)
+    docref.selection.copy()
+    docref.selection.deselect()
+
+    # Create a mask and enter the mask channel
+    create_mask()
+    enter_mask_channel()
+
+    # Paste the gradient and switch back to RGB channel
+    app.activeDocument.paste()
+    enter_rgb_channel()
+
+
+"""
+* Project: Data Sets
+* Exploring the use of data set variables for potential performance gains.
+* Status: Likely not helpful
+"""
+
+
+def insert_data_set_variables(xml_data: str, from_path: str, to_path: Optional[str] = None) -> None:
+    """
+    Inserts data set variable XML into a PSD document.
+    @param xml_data: Data to insert into the document.
+    @param from_path: Path of the PSD file.
+    @param to_path: Path of new PSD file created, overwrites from_path if not provided.
+    """
+    # Decide the to_path
+    to_path = to_path or from_path
+
+    # Ignore warnings from the psd_tools module
+    logging.getLogger('psd_tools').setLevel(logging.FATAL)
+    warnings.filterwarnings("ignore", module='psd_tools')
+
+    # Open the PSD file
+    psd = PSDImage.open(from_path)
+
+    # Replace the image variables data
+    new_resource = ImageResource(b'MeSa', key=Resource.IMAGE_READY_VARIABLES, name='', data=xml_data.encode(
+        encoding='UTF-8', errors='strict'))
+    psd.image_resources[Resource.IMAGE_READY_VARIABLES] = new_resource
+
+    # Save the PSD file
+    psd.save(to_path)
+
+
+def print_data_set_variables(path: str) -> None:
+    """
+    Print data set variable XML data for a given document.
+    @param path: Path to a PSD document.
+    """
+    data = PSDImage.open(path).image_resources.get_data(
+        Resource.IMAGE_READY_DATA_SETS)
+    pretty_xml = xml.dom.minidom.parseString(data).toprettyxml()
+
+    # Print without excess newlines
+    print('\n'.join([line for line in pretty_xml.split('\n') if line.strip()]))
+
+
+def format_data_set_variable_name(text: str) -> str:
+    """
+    Formats string as a data set variable name.
+    @param text: Text to format as a data set variable name.
+    @return: Properly formatted data set variable name.
+    """
+    return text.title().replace(' ', '').replace('-', '').replace('&', '')
+
+
+def get_data_set_variables(
+        group: Optional[Union[LayerContainer]] = None,
+        tree: Optional[str] = None
+) -> list[dict[str, str]]:
+    """
+    Get data set variables for all ArtLayer and LayerSet objects in document or LayerSet.
+    @param group: LayerSet or Document, use activeDocument if not provided.
+    @param tree: Tree to add to variable names, empty str if not provided.
+    @return: List of data set variable dicts.
+    """
+
+    # Establish current tree
+    tree = f'{tree}{format_data_set_variable_name(group.name)}.' if tree and group else (
+        f'{format_data_set_variable_name(group.name)}.' if group else '')
+
+    # Establish group or top level document container
+    group = group or app.activeDocument
+    layer_vars: list[dict[str, str]] = []
+
+    # Add layer variables
+    for n in group.artLayers:
+        with suppress(Exception):
+            if n.kind == LayerKind.TextLayer:
+                layer_vars.append({
+                    'varName': f'{tree}{format_data_set_variable_name(n.name)}.Text',
+                    'trait': 'textcontent',
+                    'docRef': f"id('{n.id}')"
+                })
+            elif 'Frame' in n.name:
+                layer_vars.append({
+                    'varName': f'{tree}{format_data_set_variable_name(n.name)}.Image',
+                    'trait': 'fileref',
+                    'placementMethod': 'fill',
+                    'align': 'center',
+                    'valign': 'middle',
+                    'clip': 'false',
+                    'docRef': f"id('{n.id}')"
+                })
+            layer_vars.append({
+                'varName': f'{tree}{format_data_set_variable_name(n.name)}.Visible',
+                'trait': 'visibility',
+                'docRef': f"id('{n.id}')"
+            })
+
+    # Add layer group variables
+    for n in group.layerSets:
+        with suppress(Exception):
+            layer_vars.append({
+                'varName': f'{tree}{format_data_set_variable_name(n.name)}.Visible',
+                'trait': 'visibility',
+                'docRef': f"id('{n.id}')"
+            })
+            layer_vars.extend(get_data_set_variables(n, tree))
+    return layer_vars
+
+
+def get_data_set_variable_xml():
+    """Generate data set variable XML for all layers in document."""
+
+    # Create the root element
+    root = ET.Element('variableSets', xmlns="http://ns.adobe.com/Variables/1.0/")
+
+    # Create variableSet -> variables
+    variableSet = ET.SubElement(root, 'variableSet')
+    variableSet.set('locked', 'none')
+    variableSet.set('varSetName', 'binding1')
+    variables = ET.SubElement(variableSet, 'variables')
+
+    # Add your variables, could do this programmatically for each layer
+    for var in get_data_set_variables():
+        variable = ET.SubElement(variables, 'variable')
+        for k, v in var.items():
+            variable.set(k, v)
+
+    # Convert the XML to a string
+    return (ET.tostring(root, encoding='utf8', method='xml', short_empty_elements=False)
+            .decode().replace('<?xml version=\'1.0\' encoding=\'utf8\'?>\n', '', 1).replace('><', '>\n<')) + '\n'
+
+
+def create_data_set_csv(data_set: dict[str, str], path: str) -> None:
+    """
+    Create a data set CSV that can be imported for Photoshop's data set variable system.
+    @param data_set: A dictionary where variable names are the keys and variable values are the values.
+    @param path: Path to save the CSV to.
+    """
+    with open(path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(data_set.keys())
+        writer.writerow(data_set.values())
+
+
+def import_data_set(path: str) -> None:
+    """
+    Imports a data set into Photoshop's data set variable system.
+    @param path: Path to the data set CSV file where the first line are the variable names.
+    """
+    desc = ActionDescriptor()
+    ref = ActionReference()
+    ref.putClass(sID("dataSetClass"))
+    desc.putReference(sID("null"), ref)
+    desc.putPath(sID("using"), path)
+    desc.putEnumerated(sID("encoding"), sID("dataSetEncoding"), sID("dataSetEncodingAuto"))
+    desc.putBoolean(sID("eraseAll"), True)
+    desc.putBoolean(sID("useFirstColumn"), True)
+    app.executeAction(sID("importDataSets"), desc, DialogModes.DisplayNoDialogs)
+
+
+def apply_data_set(data_set_name: str) -> None:
+    """
+    Applies a data set from Photoshop's data set variable system.
+    @param data_set_name: Name of the data set.
+    """
+    desc = ActionDescriptor()
+    setRef = ActionReference()
+    setRef.putName(sID("dataSetClass"), data_set_name)
+    desc.putReference(sID("null"), setRef)
+    app.executeAction(sID("apply"), desc, DialogModes.DisplayNoDialogs)
+
+
+"""
+* PROJECT
+* New methodology: Nudging text to clear a reference
+* Status: Super helpful, implementation pending
+"""
+
+
+def select_overlapping(layer: ArtLayer) -> None:
+    with suppress(PS_EXCEPTIONS):
+        desc1, ref1, ref2 = ActionDescriptor(), ActionReference(), ActionReference()
+        ref1.putEnumerated(sID("channel"), sID("channel"), sID("transparencyEnum"))
+        ref1.putIdentifier(sID("layer"), layer.id)
+        desc1.putReference(sID("target"), ref1)
+        ref2.putProperty(sID("channel"), sID("selection"))
+        desc1.putReference(sID("with"), ref2)
+        app.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
+
+
+def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[int, float]]:
+    """
+    Verifies if a selection has valid bounds.
+    @param selection: Selection object to test, otherwise use current selection of active document.
+    @return: An empty list if selection is invalid, otherwise return bounds of selection.
+    """
+    selection = selection or app.activeDocument.selection
+    with suppress(PS_EXCEPTIONS):
+        print(selection.bounds)
+        if any(selection.bounds):
+            return selection.bounds
+    return []
+
+
+@time_function
+def clear_reference_vertical(
+    layer: Optional[ArtLayer] = None,
+    reference: Union[ArtLayer, list[Union[int, float]], None] = None
+) -> Union[int, float]:
+    """
+    Nudges a layer clear vertically of a given reference layer or area.
+    @param layer: Layer to nudge so it avoids the reference area.
+    @param reference: Layer or bounds area to nudge clear of.
+    @return: The number of pixels layer was translated by (negative or positive indicating direction).
+    """
+    # Use active layer if not provided
+    docref = app.activeDocument
+    layer = layer or docref.activeLayer
+
+    # Use reference bounds if layer provided, or bounds provided, or active selection fallback
+    ref_bounds = reference.bounds if isinstance(reference, LayerObject) else (
+        reference if isinstance(reference, Iterable) else docref.selection.bounds)
+
+    # Select reference bounds, then select overlapping pixels on our layer
+    select_bounds(ref_bounds)
+    select_overlapping(layer)
+
+    # Check if selection is empty, if not translate our layer to clear the reference
+    if selected_bounds := check_selection_bounds(docref.selection):
+        delta = ref_bounds[1] - selected_bounds[3]
+        docref.selection.deselect()
+        layer.translate(0, delta)
+        return delta
+    return 0
+
+
+def new_clear_ref_methodology():
+    lyr, ref = getLayer('text'), getLayer('box')
+    ref = [ref.bounds[0] - 0, ref.bounds[1] - 10, ref.bounds[2] + 0, ref.bounds[3] + 10]
+    print("Position change:", clear_reference_vertical(layer=lyr, reference=ref))
+
+
+"""
+* Project: TOML preference for data files
+* Implement TOML as a data file standard for tests, settings, and elsewhere
+* Status: Helpful, ongoing implementation
+"""
+
+
+def convert_json_config_to_toml():
+    # Import JSON render tests
+    with open(osp.join(con.path_data, 'base_settings.json'), 'r', encoding='utf-8') as f:
+        obj = json.load(f)
+
+    # Create a new TOML document
+    doc = tomlkit.TOMLDocument()
+    header, title = '', ''
+    for sec in obj:
+
+        # Check if this is a title
+        if sec['type'] == 'title':
+            title = sec['title']
+            continue
+
+        # Add section and title if needed
+        section = sec['section'].split('.')[1]
+        if section != header:
+            header = section
+            doc[header] = tomlkit.table()
+            doc[header].append('title', title)
+
+        # Add key to section
+        doc[header][sec['key']] = tomlkit.table()
+        doc[header][sec['key']].update({
+            'title': sec['title'].replace('[b]', '').replace('[/b]', ''),
+            'desc': tomlkit.string('\n'.join(sec['desc'].split('\n')[:-1]), multiline=True),
+            'type': sec['type'],
+            'default': sec['default']
+        })
+        if options := sec.get('options'):
+            doc[header][sec['key']].append('options', options)
+
+    # Export render tests as TOML
+    with open(osp.join(con.path_data, 'configs/config_base.toml'), 'w', encoding='utf-8') as f:
+        tomlkit.dump(doc, f)

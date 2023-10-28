@@ -1,0 +1,74 @@
+[""]
+result = []
+scenario = "Empty Text"
+text = ""
+
+["Agent of the Fates"]
+result = ["Heroic"]
+scenario = "Italic Ability, 2nd Line"
+text = "Deathtouch\rHeroic — Whenever you cast a spell that targets Agent of the Fates, each opponent sacrifices a creature."
+
+["Baleful Beholder"]
+result = ["Antimagic Cone", "Fear Ray", "(A creature with menace can't be blocked except by two or more creatures.)"]
+scenario = "Bullet List Italic, Choose One + Reminder"
+text = "When Baleful Beholder enters the battlefield, choose one —\r• Antimagic Cone — Each opponent sacrifices an enchantment.\r• Fear Ray — Creatures you control gain menace until end of turn. (A creature with menace can't be blocked except by two or more creatures.)"
+
+["Balloon Stand"]
+result = []
+scenario = "Non-Italic Ability, 1st Line, Case 1"
+text = "Visit — Choose one.\r• Create a 1/1 red Balloon creature token with flying.\r• Sacrifice a Balloon. If you do, target creature gains flying until end of turn."
+
+["Buzzing Whack-a-Doodle"]
+result = []
+scenario = "Bullet List Non-Italic, Multiline"
+text = "As Buzzing Whack-a-Doodle enters the battlefield, you and an opponent each secretly choose Whack or Doodle. Then those choices are revealed. If the choices match, Buzzing Whack-a-Doodle has that ability. Otherwise, it has Buzz.\r• Whack — {T}: Target player loses 2 life.\r• Doodle — {T}: You gain 3 life.\r• Buzz — {2}, {T}: Draw a card."
+
+["Capital Punishment"]
+result = ["Council's dilemma"]
+scenario = "Italic Ability, 1st Line"
+text = "Council's dilemma — Starting with you, each player votes for death or taxes. Each opponent sacrifices a creature for each death vote and discards a card for each taxes vote."
+
+[Celebr-8000]
+result = []
+scenario = "Bullet List Non-Italic, Dice Roll"
+text = "At the beginning of combat on your turn, roll two six-sided dice. For each result of 1, Celebr-8000 gets +1/+1 until end of turn. For each other result, it gains the indicated ability until end of turn. If you rolled doubles, it also gains double strike until end of turn.\r• 2 — menace\r• 3 — vigilance\r• 4 — lifelink\r• 5 — flying\r• 6 — indestructible"
+
+[Duskwielder]
+result = ["(Activate only if this creature attacked this turn and only once each turn.)"]
+scenario = "Boast + Reminder"
+text = "Boast — {1}: Target opponent loses 1 life and you gain 1 life. (Activate only if this creature attacked this turn and only once each turn.)"
+
+["Gift Shop"]
+result = []
+scenario = "Non-Italic Ability, 1st Line, Case 2"
+text = "Visit — Choose one that hasn't been chosen.\r• Create a 1/1 red Balloon creature token with flying.\r• Create a 2/2 pink Teddy Bear creature token.\r• Create two Food tokens.\r• You get {TK}{TK}{TK}.\r• You may put a sticker on a nonland permanent you own."
+
+["Mirrodin Besieged"]
+result = []
+scenario = "Bullet List Non-Italic, Choose One"
+text = "As Mirrodin Besieged enters the battlefield, choose Mirran or Phyrexian.\r• Mirran — Whenever you cast an artifact spell, create a 1/1 colorless Myr artifact creature token.\r• Phyrexian — At the beginning of your end step, draw a card, then discard a card. Then if there are fifteen or more artifact cards in your graveyard, target opponent loses the game."
+
+["Paladin of Prahv"]
+result = ["(Activate only during your upkeep and only once each turn.)"]
+scenario = "Non-Italic Ability, 2nd Line"
+text = "Whenever Paladin of Prahv deals damage, you gain that much life.\rForecast — {1}{W}, Reveal Paladin of Prahv from your hand: Whenever target creature deals damage this turn, you gain that much life. (Activate only during your upkeep and only once each turn.)"
+
+["Save Life"]
+result = []
+scenario = "Non-Italic Ability, 1st and 2nd Line"
+text = "Choose one —\r• Target player gains 2½ life.\r• Prevent the next 2½ damage that would be dealt to target creature this turn.\rGotcha — If an opponent says \"save\" or \"life,\" you may say \"Gotcha!\" When you do, return Save Life from your graveyard to your hand."
+
+["Tivit, Seller of Secrets"]
+result = ["Council's dilemma", "(The votes can be for different choices or for the same choice.)"]
+scenario = "Italic Ability, 2nd Line + Reminder"
+text = "Flying, ward {3}\rCouncil's dilemma — Whenever Tivit enters the battlefield or deals combat damage to a player, starting with you, each player votes for evidence or bribery. For each evidence vote, investigate. For each bribery vote, create a Treasure token.\rWhile voting, you may vote an additional time. (The votes can be for different choices or for the same choice.)"
+
+["You Find Some Prisoners"]
+result = ["Break Their Chains", "Interrogate Them"]
+scenario = "Bullet List Italic, Choose One"
+text = "Choose one —\r• Break Their Chains — Destroy target artifact.\r• Interrogate Them — Exile the top three cards of target opponent's library. Choose one of them. Until the end of your next turn, you may play that card, and you may spend mana as though it were mana of any color to cast it."
+
+["Davros, Dalek Creator"]
+result = []
+scenario = "Emdash Mid-Paragraph"
+text = "Menace\rAt the beginning of your end step, create a 3/3 black Dalek artifact creature token with menace if an opponent lost 3 or more life this turn. Then each opponent who lost 3 or more life this turn faces a villainous choice — You draw a card, or that player discards a card."

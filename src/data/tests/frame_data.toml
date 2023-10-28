@@ -1,0 +1,295 @@
+# TEST CASES: Frame Logic
+
+# * TEST CASE
+["Mono Color, Normal Frame"]
+"Healing Salve" = ["NormalLayout", "W", "W", "W", "False", "False"]
+"Ancestral Recall" = ["NormalLayout", "U", "U", "U", "False", "False"]
+"Dark Ritual" = ["NormalLayout", "B", "B", "B", "False", "False"]
+"Lightning Bolt" = ["NormalLayout", "R", "R", "R", "False", "False"]
+"Giant Growth" = ["NormalLayout", "G", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, 2/C in Mana Cost"]
+"Spectral Procession" = ["NormalLayout", "W", "W", "W", "False", "False"]
+"Advice from the Fae" = ["NormalLayout", "U", "U", "U", "False", "False"]
+"Beseech the Queen" = ["NormalLayout", "B", "B", "B", "False", "False"]
+"Flame Javelin" = ["NormalLayout", "R", "R", "R", "False", "False"]
+"Tower Above" = ["NormalLayout", "G", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, 0 Cost Pacts"]
+"Intervention Pact" = ["NormalLayout", "W", "W", "W", "False", "False"]
+"Pact of Negation" = ["NormalLayout", "U", "U", "U", "False", "False"]
+"Slaughter Pact" = ["NormalLayout", "B", "B", "B", "False", "False"]
+"Pact of the Titan" = ["NormalLayout", "R", "R", "R", "False", "False"]
+"Summoner's Pact" = ["NormalLayout", "G", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Nyxtouched Enchantment Creatures"]
+"Heliod, God of the Sun [THS]" = ["NormalLayout", "W", "W", "W", "True", "False"]
+"Thassa, God of the Sea" = ["NormalLayout", "U", "U", "U", "True", "False"]
+"Erebos, God of the Dead" = ["NormalLayout", "B", "B", "B", "True", "False"]
+"Purphoros, God of the Forge [THS]" = ["NormalLayout", "R", "R", "R", "True", "False"]
+"Nylea, God of the Hunt" = ["NormalLayout", "G", "G", "G", "True", "False"]
+
+# * TEST CASE
+["No Mana Cost, Suspend"]
+"Restore Balance" = ["NormalLayout", "W", "W", "W", "False", "False"]
+"Ancestral Vision" = ["NormalLayout", "U", "U", "U", "False", "False"]
+"Living End" = ["NormalLayout", "B", "B", "B", "False", "False"]
+"Wheel of Fate" = ["NormalLayout", "R", "R", "R", "False", "False"]
+"Hypergenesis" = ["NormalLayout", "G", "G", "G", "False", "False"]
+"Lotus Bloom" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Normal Frame"]
+"Azorius Charm" = ["NormalLayout", "Gold", "WU", "Gold", "False", "False"]
+"Dimir Charm" = ["NormalLayout", "Gold", "UB", "Gold", "False", "False"]
+"Rakdos Charm" = ["NormalLayout", "Gold", "BR", "Gold", "False", "False"]
+"Gruul Charm" = ["NormalLayout", "Gold", "RG", "Gold", "False", "False"]
+"Selesnya Charm" = ["NormalLayout", "Gold", "GW", "Gold", "False", "False"]
+"Orzhov Charm" = ["NormalLayout", "Gold", "WB", "Gold", "False", "False"]
+"Golgari Charm" = ["NormalLayout", "Gold", "BG", "Gold", "False", "False"]
+"Simic Charm" = ["NormalLayout", "Gold", "GU", "Gold", "False", "False"]
+"Izzet Charm" = ["NormalLayout", "Gold", "UR", "Gold", "False", "False"]
+"Boros Charm" = ["NormalLayout", "Gold", "RW", "Gold", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Hybrid Frame"]
+"Godhead of Awe" = ["NormalLayout", "WU", "WU", "Land", "False", "False"]
+"Ghastlord of Fugue" = ["NormalLayout", "UB", "UB", "Land", "False", "False"]
+"Demigod of Revenge" = ["NormalLayout", "BR", "BR", "Land", "False", "False"]
+"Deus of Calamity" = ["NormalLayout", "RG", "RG", "Land", "False", "False"]
+"Oversoul of Dusk" = ["NormalLayout", "GW", "GW", "Land", "False", "False"]
+"Divinity of Pride" = ["NormalLayout", "WB", "WB", "Land", "False", "False"]
+"Deity of Scars" = ["NormalLayout", "BG", "BG", "Land", "False", "False"]
+"Overbeing of Myth" = ["NormalLayout", "GU", "GU", "Land", "False", "False"]
+"Dominus of Fealty" = ["NormalLayout", "UR", "UR", "Land", "False", "False"]
+"Nobilis of War" = ["NormalLayout", "RW", "RW", "Land", "False", "False"]
+
+# * TEST CASE
+["No Mana Cost, Hybrid Frame"]
+"Asmoranomardicadaistinaculdacar" = ["NormalLayout", "BR", "BR", "Land", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Gold Frame, Hybrid Mana"]
+"Maelstrom Muse" = ["NormalLayout", "Gold", "UR", "Gold", "False", "False"]
+"Ajani, Sleeper Agent" = ["PlaneswalkerLayout", "Gold", "GW", "Gold", "False", "False"]
+"Tamiyo, Compleated Sage" = ["PlaneswalkerLayout", "Gold", "GU", "Gold", "False", "False"]
+
+# * TEST CASE
+["Tri Color, Gold Frame, Hybrid Mana"]
+"Messenger Falcons" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["Double Faced Cards"]
+"Insectile Aberration" = ["TransformLayout", "U", "U", "U", "False", "False"]
+"Ravager of the Fells" = ["TransformLayout", "Gold", "RG", "Gold", "False", "False"]
+"Brisela, Voice of Nightmares" = ["TransformLayout", "Colorless", "Colorless", "Colorless", "False", "True"]
+"Urza, Planeswalker" = ["PlaneswalkerTransformLayout", "Gold", "WU", "Gold", "False", "False"]
+"Archangel Avacyn" = ["TransformLayout", "W", "W", "W", "False", "False"]
+"Avacyn, the Purifier" = ["TransformLayout", "R", "R", "R", "False", "False"]
+"Curious Homunculus" = ["TransformLayout", "U", "U", "U", "False", "False"]
+"Voracious Reader" = ["TransformLayout", "Colorless", "Colorless", "Colorless", "False", "True"]
+"Barkchannel Pathway" = ["ModalDoubleFacedLayout", "Land", "G", "G", "False", "False"]
+"Tidechannel Pathway" = ["ModalDoubleFacedLayout", "Land", "U", "U", "False", "False"]
+"Blex, Vexing Pest" = ["ModalDoubleFacedLayout", "G", "G", "G", "False", "False"]
+"Search for Blex" = ["ModalDoubleFacedLayout", "B", "B", "B", "False", "False"]
+"Extus, Oriq Overlord" = ["ModalDoubleFacedLayout", "Gold", "WB", "Gold", "False", "False"]
+"Awaken the Blood Avatar" = ["ModalDoubleFacedLayout", "Gold", "BR", "Gold", "False", "False"]
+
+# * TEST CASE
+["Tri Color, Normal Frame"]
+"Esper Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Grixis Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Jund Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Naya Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Bant Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Abzan Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Jeskai Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Sultai Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Mardu Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+"Temur Charm" = ["NormalLayout", "Gold", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["Colorless, Non-Artifact"]
+"Emrakul, the Aeons Torn" = ["NormalLayout", "Colorless", "Colorless", "Colorless", "False", "True"]
+"Scion of Ugin" = ["NormalLayout", "Colorless", "Colorless", "Colorless", "False", "True"]
+
+# * TEST CASE
+["Colorless, Artifact"]
+"Herald's Horn" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Black Lotus" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Mox Pearl" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Mox Sapphire" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Mox Jet" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Mox Ruby" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+"Mox Emerald" = ["NormalLayout", "Artifact", "Artifact", "Artifact", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Artifact"]
+"The Circle of Loyalty" = ["NormalLayout", "Artifact", "W", "W", "False", "False"]
+"The Magic Mirror" = ["NormalLayout", "Artifact", "U", "U", "False", "False"]
+"The Cauldron of Eternity" = ["NormalLayout", "Artifact", "B", "B", "False", "False"]
+"Embercleave" = ["NormalLayout", "Artifact", "R", "R", "False", "False"]
+"The Great Henge" = ["NormalLayout", "Artifact", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Artifact"]
+"Filigree Angel" = ["NormalLayout", "Artifact", "WU", "Gold", "False", "False"]
+"Time Sieve" = ["NormalLayout", "Artifact", "UB", "Gold", "False", "False"]
+"Demonspine Whip" = ["NormalLayout", "Artifact", "BR", "Gold", "False", "False"]
+"Mage Slayer" = ["NormalLayout", "Artifact", "RG", "Gold", "False", "False"]
+"Behemoth Sledge" = ["NormalLayout", "Artifact", "GW", "Gold", "False", "False"]
+"Tainted Sigil" = ["NormalLayout", "Artifact", "WB", "Gold", "False", "False"]
+"Shardless Agent" = ["NormalLayout", "Artifact", "GU", "Gold", "False", "False"]
+"Etherium-Horn Sorcerer" = ["NormalLayout", "Artifact", "UR", "Gold", "False", "False"]
+
+# * TEST CASE
+["Tri Color, Artifact"]
+"Sphinx of the Steel Wind" = ["NormalLayout", "Artifact", "Gold", "Gold", "False", "False"]
+"Thopter Foundry" = ["NormalLayout", "Artifact", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["WUBRG, Artifact"]
+"Sphinx of the Guildpact" = ["NormalLayout", "Artifact", "Gold", "Gold", "False", "False"]
+"Reaper King" = ["NormalLayout", "Artifact", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["Non-Colored, Utility Land"]
+"Vesuva" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Evolving Wilds" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Karn's Bastion" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Hall of Heliod's Generosity" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Academy Ruins" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Volrath's Stronghold" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Gemstone Caverns" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Glacial Chasm" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Ash Barrens" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Crumbling Vestige" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Blighted Steppe" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Blighted Cataract" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Blighted Fen" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Blighted Gorge" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Blighted Woodland" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Maze's End" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Inventors' Fair" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Myriad Landscape" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Crystal Quarry" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Demolition Field" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+
+# * TEST CASE
+["Non-Colored, Panorama"]
+"Esper Panorama" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Grixis Panorama" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Jund Panorama" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Naya Panorama" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+"Bant Panorama" = ["NormalLayout", "Land", "Land", "Land", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Land, Add {C}"]
+"Castle Ardenvale" = ["NormalLayout", "Land", "W", "W", "False", "False"]
+"Castle Vantress" = ["NormalLayout", "Land", "U", "U", "False", "False"]
+"Castle Locthwain" = ["NormalLayout", "Land", "B", "B", "False", "False"]
+"Castle Embereth" = ["NormalLayout", "Land", "R", "R", "False", "False"]
+"Castle Garenbrig" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+"Serra's Sanctum" = ["NormalLayout", "Land", "W", "W", "False", "False"]
+"Tolarian Academy" = ["NormalLayout", "Land", "U", "U", "False", "False"]
+"Cabal Coffers" = ["NormalLayout", "Land", "B", "B", "False", "False"]
+"Gaea's Cradle" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Land, Basic Land Type"]
+"Idyllic Grange" = ["NormalLayout", "Land", "W", "W", "False", "False"]
+"Mystic Sanctuary" = ["NormalLayout", "Land", "U", "U", "False", "False"]
+"Witch's Cottage" = ["NormalLayout", "Land", "B", "B", "False", "False"]
+"Dwarven Mine" = ["NormalLayout", "Land", "R", "R", "False", "False"]
+"Gingerbread Cabin" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Land, Multicolor Activated Ability"]
+"Axgard Armory" = ["NormalLayout", "Land", "W", "W", "False", "False"]
+"Surtland Frostpyre" = ["NormalLayout", "Land", "R", "R", "False", "False"]
+"Skemfar Elderhall" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Land, All Lands are X"]
+"Urborg, Tomb of Yawgmoth" = ["NormalLayout", "Land", "B", "B", "False", "False"]
+"Yavimaya, Cradle of Growth" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Mono Color, Vivid Land"]
+"Vivid Meadow" = ["NormalLayout", "Land", "W", "W", "False", "False"]
+"Vivid Creek" = ["NormalLayout", "Land", "U", "U", "False", "False"]
+"Vivid Marsh" = ["NormalLayout", "Land", "B", "B", "False", "False"]
+"Vivid Crag" = ["NormalLayout", "Land", "R", "R", "False", "False"]
+"Vivid Grove" = ["NormalLayout", "Land", "G", "G", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Land, Add {C} or {C}"]
+"Celestial Colonnade" = ["NormalLayout", "Land", "WU", "Land", "False", "False"]
+"Creeping Tar Pit" = ["NormalLayout", "Land", "UB", "Land", "False", "False"]
+"Lavaclaw Reaches" = ["NormalLayout", "Land", "BR", "Land", "False", "False"]
+"Raging Ravine" = ["NormalLayout", "Land", "RG", "Land", "False", "False"]
+"Stirring Wildwood" = ["NormalLayout", "Land", "GW", "Land", "False", "False"]
+"Shambling Vent" = ["NormalLayout", "Land", "WB", "Land", "False", "False"]
+"Hissing Quagmire" = ["NormalLayout", "Land", "BG", "Land", "False", "False"]
+"Lumbering Falls" = ["NormalLayout", "Land", "GU", "Land", "False", "False"]
+"Wandering Fumarole" = ["NormalLayout", "Land", "UR", "Land", "False", "False"]
+"Needle Spires" = ["NormalLayout", "Land", "RW", "Land", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Land, Basic Land Types"]
+"Hallowed Fountain" = ["NormalLayout", "Land", "WU", "Land", "False", "False"]
+"Watery Grave" = ["NormalLayout", "Land", "UB", "Land", "False", "False"]
+"Blood Crypt" = ["NormalLayout", "Land", "BR", "Land", "False", "False"]
+"Stomping Ground" = ["NormalLayout", "Land", "RG", "Land", "False", "False"]
+"Temple Garden" = ["NormalLayout", "Land", "GW", "Land", "False", "False"]
+"Godless Shrine" = ["NormalLayout", "Land", "WB", "Land", "False", "False"]
+"Overgrown Tomb" = ["NormalLayout", "Land", "BG", "Land", "False", "False"]
+"Breeding Pool" = ["NormalLayout", "Land", "GU", "Land", "False", "False"]
+"Steam Vents" = ["NormalLayout", "Land", "UR", "Land", "False", "False"]
+"Sacred Foundry" = ["NormalLayout", "Land", "RW", "Land", "False", "False"]
+
+# * TEST CASE
+["Dual Color, Fetch Land"]
+"Flooded Strand" = ["NormalLayout", "Land", "WU", "Land", "False", "False"]
+"Polluted Delta" = ["NormalLayout", "Land", "UB", "Land", "False", "False"]
+"Bloodstained Mire" = ["NormalLayout", "Land", "BR", "Land", "False", "False"]
+"Wooded Foothills" = ["NormalLayout", "Land", "RG", "Land", "False", "False"]
+"Windswept Heath" = ["NormalLayout", "Land", "GW", "Land", "False", "False"]
+"Marsh Flats" = ["NormalLayout", "Land", "WB", "Land", "False", "False"]
+"Verdant Catacombs" = ["NormalLayout", "Land", "BG", "Land", "False", "False"]
+"Misty Rainforest" = ["NormalLayout", "Land", "GU", "Land", "False", "False"]
+"Scalding Tarn" = ["NormalLayout", "Land", "UR", "Land", "False", "False"]
+"Arid Mesa" = ["NormalLayout", "Land", "RW", "Land", "False", "False"]
+
+# * TEST CASE
+["Tri Color, Land"]
+"Arcane Sanctum" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Crumbling Necropolis" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Savage Lands" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Jungle Shrine" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Seaside Citadel" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Sandsteppe Citadel" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Mystic Monastery" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Opulent Palace" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Nomad Outpost" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Frontier Bivouac" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["Gold Color, Land"]
+"Prismatic Vista" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Fabled Passage" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Aether Hub" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"City of Brass" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Mana Confluence" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Ally Encampment" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Command Tower" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+"Thran Portal" = ["NormalLayout", "Land", "Gold", "Gold", "False", "False"]
+
+# * TEST CASE
+["Land, Edge Cases"]
+"Krosan Verge" = ["NormalLayout", "Land", "GW", "Land", "False", "False"]
+"Murmuring Bosk" = ["NormalLayout", "Land", "Gold", "G", "False", "False"]
+"Dryad Arbor" = ["NormalLayout", "Land", "G", "G", "False", "False"]

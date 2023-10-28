@@ -10,159 +10,145 @@ from concurrent.futures import (
     ThreadPoolExecutor as Pool,
     as_completed,
     Future)
-from typing import (
-    Optional,
-    TypedDict
-)
+from typing import Optional
 
 # Third Part Imports
 from tqdm import tqdm
-from typing_extensions import NotRequired
-
-# Ensure headless mode is active
+from colorama import Fore, Style
 os.environ['HEADLESS'] = "True"
 
 # Local Imports
-from src.constants import con
-from src.enums.layers import LAYERS
+from src.utils.files import load_data_file
 from src.console import console as logr
 from src.layouts import layout_map, CardLayout
 from src.utils.scryfall import get_card_data
-from src.tests.cases.frame_data import FRAME_DATA_CASES
+from src.utils.regex import Reg
 
 
-class FrameData (TypedDict):
-    layout: CardLayout
-    frame: list[LAYERS, LAYERS, LAYERS, bool, bool]
-    set: NotRequired[str]
+"""
+* TYPES
+"""
+
+FrameData = list[str, str, str, str, bool, bool]
+
+"""
+* UTIL FUNCS
+"""
 
 
-class FrameDataSerialized (TypedDict):
-    layout: str
-    frame: list[str, str, str, bool, bool]
+def get_frame_logic_cases() -> dict[str, dict[str, FrameData]]:
+    """Return frame logic test cases from TOML data file."""
+    return load_data_file(
+        data_type='toml',
+        file_name='frame_data',
+        file_path='tests')
 
 
-def format_result(data: FrameData) -> FrameDataSerialized:
-    # Return with str name of layout class
-    return {
-        'layout': data['layout'].__class__.__name__,
-        'frame': [str(n) for n in data['frame'].copy()]
-    }
+def format_result(layout: CardLayout) -> FrameData:
+    """
+    Format test result as stringified data.
+    @param layout: Test result card layout data.
+    @return: Stringified frame logic test result data.
+    """
+    return [
+        # String name for frame layout
+        layout.__class__.__name__,
+        # String representation of frame colors
+        str(layout.background),
+        str(layout.pinlines),
+        str(layout.twins),
+        # String representation of bool checks
+        str(layout.is_nyx),
+        str(layout.is_colorless)
+    ]
 
 
-def test_case(
-    case: tuple[str, FrameData]
-) -> Optional[tuple[str, FrameDataSerialized, FrameDataSerialized]]:
+"""
+* TEST FUNCS
+"""
+
+
+def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, FrameData, FrameData]]:
     """
     Test frame logic for a target test case.
-    @param case: Card test case, a name and dict containing expected result data.
+    @param card_name: Card name for test case.
+    @param card_data: Card data for test case.
     @return: Tuple containing (card name, actual data, correct data) if the test failed, otherwise None.
     """
-    # Establish card name and the result we're looking for
-    card_name: str = case[0]
-    card_data: FrameData = case[1]
-
-    # Pull the card's Scryfall data
     try:
-        scryfall = get_card_data(card_name, card_data.get('set', None))
+        # Check if a set code was provided
+        set_code = None
+        if all([n in card_name for n in ['[', ']']]):
+            set_code = Reg.PATH_SET.search(card_name).group(1)
+            card_name = card_name.replace(f'[{set_code}]', '').strip()
+
+        # Pull Scryfall data
+        scryfall = get_card_data(card_name, set_code)
     except Exception as e:
         # Exception occurred during Scryfall lookup
-        logr.failed(f"Scryfall error occurred at card: '{card_name}'", exc_info=e)
-        return
+        return logr.failed(f"Scryfall error occurred at card: '{card_name}'", exc_info=e)
 
-    # Initialize a layout object for the card
+    # Pull layout data for the card
     try:
-        layout = layout_map[scryfall['layout']](
-            scryfall=scryfall,
-            file={
-                'name': card_name,
-                'artist': scryfall['artist'],
-                'set_code': scryfall['set'],
-                'creator': '', 'filename': ''})
+        result_data: FrameData = format_result(
+            layout_map[scryfall['layout']](
+                scryfall=scryfall,
+                file={
+                    'name': card_name,
+                    'artist': scryfall['artist'],
+                    'set_code': scryfall['set'],
+                    'creator': '', 'filename': ''}))
     except Exception as e:
         # Exception occurred during layout generation
-        logr.failed(f"Layout error occurred at card: '{card_name}'", exc_info=e)
-        return
-
-    # Stringify the results for comparison
-    try:
-        correct_result: FrameDataSerialized = format_result(card_data)
-        actual_result: FrameDataSerialized = {
-            'layout': layout_map[scryfall['layout']].__class__.__name__,
-            'frame': [
-                str(layout.background),
-                str(layout.pinlines),
-                str(layout.twins),
-                str(layout.is_nyx),
-                str(layout.is_colorless)
-            ]
-        }
-    except Exception as e:
-        # Exception occurred while attempting to stringify the results
-        logr.failed(f"String formatting error occurred at card: '{card_name}'", exc_info=e)
-        return
+        return logr.failed(f"Layout error occurred at card: '{card_name}'", exc_info=e)
 
     # Compare the results
-    if not actual_result == correct_result:
-        return card_name, actual_result, correct_result
+    if not result_data == card_data:
+        return card_name, result_data, card_data
     return
 
 
-def test_target_case(card_name: str) -> bool:
+def test_target_case(cards: dict[str, FrameData]) -> None:
     """
     Test a known Frame Logic test case.
-    @param card_name: Card name found in test cases dictionary.
-    @return: True if test succeeded, otherwise False.
+    @param cards: Individual card frame cases to test.
+    @return: True if tests succeeded, otherwise False.
     """
-    # Check if this card is a valid test case
-    if card_name not in FRAME_DATA_CASES:
-        logr.warning(f"Card name '{card_name}' is not a recognized test case!")
-        return False
-
-    # Test this card
-    result = test_case((card_name, FRAME_DATA_CASES[card_name]))
-    if result:
-        # Test failed
-        name, actual, correct = result
-        logr.warning(f'FAILED: {name}')
-        logr.warning(f'RESULT [Actual / Expected]:\n'
-                     f'{logr.COLORS.RESET}{logr.COLORS.WHITE}{actual}\n{correct}')
-        return False
-    # Test successful
-    logr.info(f'SUCCESS: {card_name}')
-    return True
-
-
-def test_all_cases() -> bool:
-    """Test all Frame Logic cases."""
-    logr.info(f"Test Utility: Frame Logic ({con.cwd})")
-
     # Submit tests to a pool
     with Pool(max_workers=cpu_count()) as executor:
         tests_submitted: list[Future] = []
-        tests_failed: list[tuple[str, FrameDataSerialized, FrameDataSerialized]] = []
+        tests_failed: list[tuple[str, FrameData, FrameData]] = []
 
         # Submit tasks to executor
-        for card, data in FRAME_DATA_CASES.items():
+        for card_name, data in cards.items():
             tests_submitted.append(
-                executor.submit(test_case, (card, data)))
+                executor.submit(test_case, card_name, data))
 
         # Create a progress bar
-        progress_bar = tqdm(
+        pbar = tqdm(
             total=len(tests_submitted),
             bar_format=f'{logr.COLORS.BLUE}'
                        '{l_bar}{bar}{r_bar}'
-                       f'{logr.COLORS.RESET}'
-        )
+                       f'{logr.COLORS.RESET}')
 
         # Iterate over completed tasks, update progress bar, add failed tasks
         for task in as_completed(tests_submitted):
-            progress_bar.update(1)
+            pbar.update(1)
             if result := task.result():
                 tests_failed.append(result)
 
+    # Set the progress bar result
+    if tests_failed:
+        pbar.set_postfix({
+            "Status": (
+                Fore.RED + "FAILED" + Style.RESET_ALL
+            ) if tests_failed else (
+                Fore.GREEN + "SUCCESS" + Style.RESET_ALL
+            )
+        })
+
     # Close progress bar and return failures
-    progress_bar.close()
+    pbar.close()
 
     # Log failed results
     if tests_failed:
@@ -173,8 +159,17 @@ def test_all_cases() -> bool:
                          f'{logr.COLORS.RESET}{logr.COLORS.WHITE}{actual}\n{correct}')
             logr.critical("=" * 40)
         logr.critical("SOME TESTS FAILED!")
-        return False
+        return
 
     # All tests successful
     logr.info("ALL TESTS SUCCESSFUL!")
-    return True
+
+
+def test_all_cases() -> None:
+    """Test all Frame Logic cases."""
+    cases = get_frame_logic_cases()
+
+    # Submit tests to a pool
+    for case, cards in cases.items():
+        logr.debug(f"CASE: {case}")
+        test_target_case(cards)

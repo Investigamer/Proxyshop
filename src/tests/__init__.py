@@ -1,9 +1,60 @@
+# Third Party
+import click
+
+# Local Imports
+from src.constants import con
+from src.console import console as logr
 from src.tests import (
     frame_logic,
     text_logic
 )
-from src.tests.cases.frame_data import FRAME_DATA_CASES
-from src.tests.cases.card_text import ITALIC_ABILITIES_CASES
 
-# Export test functions
-__all__ = ["frame_logic", "text_logic", "FRAME_DATA_CASES", "ITALIC_ABILITIES_CASES"]
+"""
+* TEST COMMANDS
+"""
+
+
+@click.group()
+def test_cli():
+    """Cli interface for test funcs."""
+    pass
+
+
+@test_cli.command()
+@click.option('-T', '--target', is_flag=True, default=False, help="Evaluate a specific test case.")
+def test_frame_logic(target: bool = False):
+    """Run Frame Logic test on all cases."""
+    logr.info(f"Test Utility: Frame Logic ({con.cwd})")
+    cases = frame_logic.get_frame_logic_cases()
+
+    # Was this a targeted case?
+    if not target:
+        return frame_logic.test_all_cases()
+
+    # Choose test case
+    options = {str(i): title for i, title in enumerate(cases.keys())}
+    while True:
+        choice = input("Enter the number for a test case to evaluate:\n" +
+                       "\n".join([f"[{i}] {n}" for i, n in options.items()]))
+        if choice not in options:
+            print("Choice provided was invalid.")
+        break
+
+    # Run the test
+    case = options[choice]
+    logr.info(f"CASE: {case}")
+    frame_logic.test_target_case(cases[case])
+
+
+@test_cli.command()
+def test_text_logic():
+    """Run Text Logic test on all cases."""
+    text_logic.test_all_cases()
+
+
+"""
+* EXPORTS
+"""
+
+# Export CLI
+__all__ = ['test_cli']
