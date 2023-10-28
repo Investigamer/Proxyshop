@@ -24,7 +24,7 @@ from PIL import Image
 
 # Local Imports
 from src.console import console, Console
-from src.enums.mtg import watermark_color_map, MagicIcons
+from src.enums.mtg import watermark_color_map, MagicIcons, basic_land_color_map
 import src.format_text as ft
 from src.constants import con
 from src.settings import cfg
@@ -254,7 +254,7 @@ class BaseTemplate:
     @property
     def is_front(self) -> bool:
         """Governs render behavior on MDFC and Transform cards."""
-        return self.layout.card['front']
+        return self.layout.is_front
 
     @property
     def is_transform(self) -> bool:
@@ -293,7 +293,7 @@ class BaseTemplate:
     @cached_property
     def is_art_vertical(self) -> bool:
         """Returns True if art provided is vertically oriented, False if it is horizontal."""
-        with Image.open(self.layout.filename) as image:
+        with Image.open(self.layout.art_file) as image:
             width, height = image.size
         if height > (width * 1.1):
             # Vertical orientation
@@ -606,14 +606,14 @@ class BaseTemplate:
         """
         # Check for fullart test image
         if cfg.test_mode and self.is_fullart:
-            self.layout.filename = osp.join(con.path_img, "test-fa.jpg")
+            self.layout.art_file = osp.join(con.path_img, "test-fa.jpg")
 
         # Paste the file into the art
         self.active_layer = self.art_layer
         if self.art_action:
-            psd.paste_file(self.art_layer, self.layout.filename, self.art_action, self.art_action_args)
+            psd.paste_file(self.art_layer, self.layout.art_file, self.art_action, self.art_action_args)
         else:
-            psd.import_art(self.art_layer, self.layout.filename)
+            psd.import_art(self.art_layer, self.layout.art_file)
 
         # Frame the artwork
         psd.frame_layer(self.active_layer, self.art_reference)
@@ -631,7 +631,7 @@ class BaseTemplate:
         @param visible: Whether to leave the layer visible or hide it.
         """
         # Try to grab the scan from Scryfall
-        if not (scryfall_scan := card_scan(self.layout.scryfall_scan)):
+        if not self.layout.scryfall_scan or not (scryfall_scan := card_scan(self.layout.scryfall_scan)):
             return
 
         # Paste the scan into a new layer
@@ -761,8 +761,9 @@ class BaseTemplate:
                 self.create_expansion_symbol_svg(group)
         except Exception as e:
             self.console.log_exception(e)
-            self.console.update("Expansion symbol generation failed!\n"
-                                "Disabling expansion symbol.")
+            if not cfg.test_mode:
+                self.console.update("Expansion symbol generation failed!\n"
+                                    "Disabling expansion symbol.")
             group.visible = False
 
         # Merge and refresh cache
@@ -786,7 +787,7 @@ class BaseTemplate:
         """
         # Set the starting character and format our layer array
         symbols = psd.process_expansion_symbol_info(
-            self.layout.symbol, self.layout.rarity.lower()
+            self.layout.symbol_font, self.layout.rarity.lower()
         )
 
         # Create each symbol layer
@@ -840,25 +841,12 @@ class BaseTemplate:
         Creates an expansion symbol using SVG library. Falls back on default mode if SVG not available.
         @param group: The LayerSet to add generated layers to.
         """
-        # Check if the SVG exists
-        expansion = cfg.symbol_default if cfg.symbol_force_default else self.layout.set
-        expansion = f"{expansion}F" if expansion.lower() == 'con' else expansion  # Conflux case
-        svg_path = osp.join(con.path_img, f'symbols/{expansion}/{self.layout.rarity.upper()[0]}.svg')
-
         # SVG file exists?
-        if not osp.isfile(svg_path):
-            # Check for a recognized alternate set code
-            sym = con.set_symbols.get(expansion)
-            if isinstance(sym, str) and len(sym) >= 2:
-                svg_path = osp.join(con.path_img, f'symbols/{sym}/{self.layout.rarity.upper()[0]}.svg')
-
-        # SVG file exists?
-        if not osp.isfile(svg_path):
-            self.create_expansion_symbol(group)
-            return
+        if not self.layout.symbol_svg:
+            return self.create_expansion_symbol(group)
 
         # Import the SVG and place it correctly
-        svg = psd.import_svg(svg_path)
+        svg = psd.import_svg(str(self.layout.symbol_svg))
         svg.move(group, ElementPlacement.PlaceInside)
 
     """
@@ -915,6 +903,31 @@ class BaseTemplate:
                 ]
             })
         psd.apply_fx(wm, fx)
+
+    def create_basic_watermark(self) -> None:
+        """Builds a basic land watermark."""
+
+        # Remove text
+        self.layout.oracle_text = ''
+
+        # Generate the watermark
+        wm = psd.import_svg(osp.join(con.path_img, f"watermarks/basics/{self.layout.pinlines.lower()}.svg"))
+        psd.frame_layer(wm, self.textbox_reference, smallest=True)
+        wm.resize(80, 80, AnchorPosition.MiddleCenter)
+        wm.move(self.text_group, ElementPlacement.PlaceAfter)
+
+        # Add effects
+        psd.apply_fx(wm, [
+            {
+                'type': 'color-overlay',
+                'opacity': 100,
+                'color': psd.get_color(
+                    basic_land_color_map[self.layout.pinlines])
+            },
+            {
+                'type': 'bevel'
+            }
+        ])
 
     """
     BORDER
@@ -1137,8 +1150,17 @@ class BaseTemplate:
             return check[1]
 
         # Add watermark
-        if cfg.enable_watermark:
-            check = self.run_tasks([self.create_watermark], "Unable to generate watermark!")
+        is_basic_land = bool('Basic Land' in self.layout.type_line_raw)
+        if cfg.enable_watermark and not is_basic_land:
+            check = self.run_tasks(
+                [self.create_watermark],
+                "Unable to generate watermark!")
+            if not all(check):
+                return check[1]
+        elif is_basic_land and self.layout.card_class != con.basic_class:
+            check = self.run_tasks(
+                [self.create_basic_watermark],
+                "Unable to generate basic land watermark!")
             if not all(check):
                 return check[1]
 
