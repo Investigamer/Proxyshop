@@ -29,6 +29,14 @@
     "default": 1
   },
   {
+    "type": "bool",
+    "title": "[b]Panorama Mode[/b]",
+    "desc": "Renders N cards, where N is the amount of times the artwork can be split horizontally to fit into the frame. The resulting cards, when cropped, make a seamless panorama.\n[b](Default: False)[/b]",
+    "section": "FRAME",
+    "key": "Panorama.Mode",
+    "default": 0
+  },
+  {
     "type": "title",
     "title": "Text Options"
   },
