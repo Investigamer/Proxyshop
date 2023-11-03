@@ -46,6 +46,7 @@ from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 # Local Imports
 from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
 from src.utils.files import remove_config_file, load_data_file
+from src.utils.regex import Reg
 from src.gui.creator import CreatorPanels
 from src.gui.dev import TestApp
 from src.gui.tools import ToolsLayout
@@ -380,12 +381,55 @@ class ProxyshopApp(App):
             console.update("No art images found!")
             return
 
+        # .txt files declare a panorama, open and unwrap these seperately
+        txt_files = [f for f in files if Path(f).suffix == ".txt"]
+        files = [f for f in files if f not in txt_files]
+        panorama_cards = []
+        for definition in txt_files:
+            # Unwrap panorama files
+            cards = open(definition, "r").readlines()
+
+            # Run through each file, assigning layout
+            with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
+                cards = pool.map(assign_layout, cards)
+
+            # Get artist info and path to panorama art
+            get_name = lambda f: osp.basename(osp.splitext(definition)[0])
+            file_name = get_name(definition)
+            artist = Reg.PATH_ARTIST.search(file_name)
+            code = Reg.PATH_SET.search(file_name)
+            parent_dir = Path(definition).parent.absolute()
+            all_files = listdir(Path(definition).parent.absolute())
+            art_files = [ osp.join(parent_dir, f) for f in all_files if get_name(f) == file_name and not Path(f).suffix == ".txt" ]
+            if len(art_files) == 0:
+                proceed = console.error(
+                    msg=f"\n[b]Panorama {definition} has no possible art files[/b] ...\n",
+                    end="\n[b]Should I continue anyway?[/b] ...\n"
+                )
+            else:
+                proceed = len(art_files) == 1 or console.error(
+                    msg=f"\n[b]Panorama {definition} has multiple possible art files[/b] ...\n",
+                    end="\n[b]Should I pick the first option or cancel?[/b] ...\n"
+                )
+
+            if proceed and len(art_files) > 0:
+                art_file = art_files[0]
+                cards = list(cards)
+                for (i, card) in enumerate(cards):
+                    if artist:
+                        card.file['artist'] = artist.group(1)
+                    if code:
+                        card.file['set'] = code.group(1)
+                    card.file['filename'] = art_file
+                    card.file['panorama_element'] = i
+                panorama_cards += cards
+
         # Run through each file, assigning layout
         with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
             cards = pool.map(assign_layout, files)
-
+        
         # Join dual card layouts
-        cards = join_dual_card_layouts(list(cards))
+        cards = join_dual_card_layouts(list(cards) + panorama_cards)
 
         # Remove failed strings
         layouts: dict = {}

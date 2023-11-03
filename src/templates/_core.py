@@ -616,17 +616,15 @@ class BaseTemplate:
             psd.import_art(self.art_layer, self.layout.art_file)
 
         # Frame the artwork
-        if self.panorama_mode_enabled:
-            self.art_layers = psd.frame_panoramas(self.active_layer, self.art_reference)
+        if 'panorama_element' in self.layout.file:
+            psd.frame_panorama(self.active_layer, self.art_reference, self.layout.file['panorama_element'])
         else:
             psd.frame_layer(self.active_layer, self.art_reference)
-            self.art_layers = [self.art_layer]
 
         # Perform content aware fill if needed
         if self.is_content_aware_enabled:
             action = psd.generative_fill_edges if cfg.generative_fill else psd.content_aware_fill_edges
-            for art_layer in self.art_layers:
-                action(art_layer)
+            action(self.art_layer)
 
     def paste_scryfall_scan(self, rotate: bool = False, visible: bool = True) -> Optional[ArtLayer]:
         """
@@ -1204,22 +1202,14 @@ class BaseTemplate:
             console.await_choice(self.event)
 
         # Save the document
-        for (i, art_layer) in enumerate(self.art_layers):
-            for other_layer in self.art_layers:
-                other_layer.visible = False
-            art_layer.visible = True
-
-            output_file_name = self.output_file_name
-            if i > 0:
-                output_file_name += f" ({i})"
-
-            check = self.run_tasks(
-                [self.save_modes.get(cfg.output_filetype, psd.save_document_jpeg)],
-                "Error during file save process!",
-                args=(output_file_name, self.output_directory)
-            )
-            if not all(check):
-                return check[1]
+        output_file_name = self.output_file_name
+        check = self.run_tasks(
+            [self.save_modes.get(cfg.output_filetype, psd.save_document_jpeg)],
+            "Error during file save process!",
+            args=(output_file_name, self.output_directory)
+        )
+        if not all(check):
+            return check[1]
 
         # Post execution code
         check = self.run_tasks(

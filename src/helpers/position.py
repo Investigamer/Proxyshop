@@ -205,13 +205,14 @@ def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, 
         layers[i + 1].translate(0, delta)
 
 
-def frame_panoramas(
+def frame_panorama(
     layer: Union[ArtLayer, LayerSet],
     reference: Union[ArtLayer, LayerSet, dict],
+    panorama_element: int,
     anchor: AnchorPosition = AnchorPosition.TopLeft
 ):
     """
-    Scale, duplicate and position a layer onto a set of layers within the bounds of a reference layer to make a borderless panorama.
+    Scale and position a layer onto within the bounds of a reference layer to make a borderless panorama.
     @param layer: Layer to scale and position.
     @param reference: Reference frame to position within.
     @param anchor: Anchor position for scaling the layer.
@@ -232,18 +233,10 @@ def frame_panoramas(
         layer.resize(scale, scale, anchor)
         num_segments = num_segments + 1
 
-    # Align the original layer on the left
+    # Align the original layer on the left, then move it according to the given number
     alignments = [Dimensions.Left, Dimensions.CenterY]
     align(alignments, layer, ref_dim)
-
-    # Duplicate layer n times, moving over every time
-    new_layers = [ layer ]
-    for i in range(1, num_segments):
-        new_layer = new_layers[i - 1].duplicate()
-        new_layer.translate(-ref_dim['width'], 0)
-        new_layers.append(new_layer)
-    
-    return new_layers
+    layer.translate(-ref_dim['width'] * panorama_element, 0)
     
 def frame_layer(
     layer: Union[ArtLayer, LayerSet],

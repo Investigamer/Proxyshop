@@ -57,6 +57,10 @@
             "file": "borderless-vector.psd",
             "id": "1mJ7JLD-aayTvhcrY9_Q21S3i3qAWeb7v"
         },
+        "BorderlessPanorama": {
+            "class": "BorderlessVectorTemplate",
+            "file": "borderless-vector.psd"
+        },
         "Miracle": {
             "class": "MiracleTemplate",
             "file": "miracle.psd",
