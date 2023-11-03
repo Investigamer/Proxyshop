@@ -144,14 +144,12 @@ The best way to fix this is to open the template in Photoshop and expand the bot
   
 </details>
 <details>
-<summary>ERROR: Photoshop is busy / the RPC server is not responding!</summary>
+<summary>Required value is missing / RPC server not responding.</summary>
 
 This can sometimes be one of the more rare but obnoxious errors that occur on some systems. Sometimes the root cause is unknown, but it can
 usually be fixed. Try these options in order until something works:
 - Ensure there is only **ONE** installation of Photoshop on your computer. Having two versions of Photoshop installed at the same time can prevent making a connection to the app. If you have more than one installed, uninstall **all** versions of Photoshop and reinstall one version. You must uninstall all of them **first**, just removing one likely won't fix the issue.
 - Ensure that your Photoshop application was installed using an actual installer. **Portable installations** of Photoshop do not work with Proxyshop, since Windows needs to know where it is located.
-- Ensure no action is being performed in Photoshop when you run Proxyshop. There should be no dialog boxes open, there should be no tools performing tasks 
-such as entering text with the type tool. Photoshop should be in a neutral state with nothing happening, ideally with no documents open.
 - Close Photoshop and Proxyshop, then run both Photoshop and Proxyshop as Administrator, try rendering something.
 - Close both of them, then hold ALT + CTRL + SHIFT while launching Photoshop, then launch Proxyshop, try again.
 - Restart your computer, then start both and try again.
@@ -162,6 +160,14 @@ Generally, Proxyshop works best with newer versions of Photoshop. If using an in
 - If all of these fail to fix the issue, please join our Discord (linked at the top) and provide the error log from `logs/error.txt` in
 your Proxyshop directory, so we can help find the cause :)
 
+</details>
+<details>
+<summary>Photoshop is busy!</summary>
+This error occurs when Photoshop is not responding to commands because it is busy.
+To prevent this error, you must ensure Photoshop is in a neutral state when you run Proxyshop or render a card:
+- There should be no dialog boxes or settings menus open in Photoshop. The normal tool panels are fine.
+- There should be no tools performing tasks, for example having text highlighted for editing with the text tool.
+- Ideally Photoshop should be launched fresh, with no documents open.
 </details>
 <details>
 <summary>I'm getting some other error!</summary>
