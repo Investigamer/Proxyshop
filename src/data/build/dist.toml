@@ -25,19 +25,14 @@ files = ['LICENSE', 'README.md']
 [copy.data]
 paths = ['src/data']
 exclude_ext = ['.ini']
-exclude_dirs = ['sets', 'build']
+exclude_dirs = ['sets', 'build', 'config_ini']
 exclude_files = ['version_tracker.json']
 
 # Copy plugins directory
 [copy.plugins]
 paths = ['plugins/MrTeferi', 'plugins/SilvanMTG']
 exclude_ext = ['.psd', '.psb', '.ini']
-
-# Copy configs directory
-[copy.config]
-paths = ['src/configs']
-exclude_ext = ['.ini']
-recursive = false
+exclude_dirs = ["config_ini"]
 
 # Copy fonts directory
 [copy.fonts]
