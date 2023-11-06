@@ -173,13 +173,14 @@ cython_debug/
 /plugins/*
 !/plugins/MrTeferi
 !/plugins/SilvanMTG
+/plugins/*/config_ini
 # PSD templates directories
 /templates/*
 !/templates/tools
 /plugins/*/templates/*
 # User generated config files
 /config.ini
-/src/configs/*.ini
+/src/data/config_ini
 # User generated plugin config files
 /plugins/*/configs/*.ini
 # Test generated symbol images
