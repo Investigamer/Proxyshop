@@ -1,34 +1,35 @@
 # Proxyshop
-Proxyshop is a Photoshop automation app to generate high-quality Magic the Gathering card renders, original concept [developed by Chilli-Axe](https://github.com/chilli-axe/mtg-photoshop-automation), rewritten in Python for extended functionality. 
-If you need help with this app, join our discord: https://discord.gg/magicproxies. 
+Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
+Inspired by Chilli-Axe's [original Photoshop automation app](https://github.com/chilli-axe/mtg-photoshop-automation).
+If you need help with this app, join our discord: https://discord.gg/magicproxies.
 
 <div align="center">
-  <a href="https://discord.gg/magicproxies">
-    <img alt="Discord" src="https://img.shields.io/discord/889831317066358815?label=Discord&style=plastic">
-  </a>
-  <img alt="Maintenance" src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen?style=plastic">
-  <img alt="GitHub" src="https://img.shields.io/github/license/MrTeferi/MTG-Proxyshop?color=1082C2&style=plastic">
-  <img alt="Photoshop" src="https://img.shields.io/badge/photoshop-CC 2015--2023-informational?style=plastic">
-  <img alt="Python" src="https://img.shields.io/badge/python-3.9%2B-yellow?style=plastic">
-  <a href="https://patreon.com/mpcfill"><img alt="PATREON" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dendel%26type%3Dpatrons&style=plastic" /></a>
+
+![Photoshop](https://img.shields.io/badge/photoshop-CC_2017+-informational?style=plastic)
+![Python](https://img.shields.io/badge/python-3.9_|_3.10_|_3.11-blue?style=plastic)
+[![Discord](https://img.shields.io/discord/889831317066358815?style=plastic&label=discord&color=brightgreen)](https://discord.gg/magicproxies)
+![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/MrTeferi/Proxyshop?style=plastic&label=commits&color=brightgreen)
+[![Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dmpcfill%26type%3Dpatrons&style=plastic&color=red&logo=none)](https://patreon.com/mpcfill)
+[![GitHub](https://img.shields.io/github/license/MrTeferi/Proxyshop?color=red&style=plastic)](https://github.com/MrTeferi/Proxyshop/blob/main/LICENSE)
+
 </div>
 
-![img1](https://i.imgur.com/OJrXeqj.jpg)
+![Showcase Image](https://i.imgur.com/OJrXeqj.jpg)
 
 # Requirements
-  * Photoshop (2015-2023 Tested)
-  * Windows (currently incompatible with Mac/Linux)
-  * [The Photoshop templates](https://drive.google.com/drive/u/0/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3) (Can be downloaded in the app)
-  * The following fonts (included in `fonts` directory):
-    * **PlantinMTPro** — For rules text, install **all** variants included
-    * **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
-    * **BelerenProxy-Bold** — For Card Name, Typeline, Power/Toughness
-    * **Beleren Smallcaps** — For Artist credit line and miscellaneous
-    * [_Optional_] **MagicTheGathering** — Required by Classic template
-    * [_Optional_] **Matrix-Bold** — Required by Colorshifted template
-    * **[Keyrune](https://keyrune.andrewgioia.com/)** — For expansion symbols, a fork of the original
-    * **[Gotham Medium](https://fontsgeek.com/fonts/Gotham-Medium)** — For collector text
-    * **[Mana](https://mana.andrewgioia.com/)** — For additional card symbols
+- Photoshop (2017-2024 Supported)
+- Windows (currently incompatible with Mac/Linux)
+- [The Photoshop templates](https://drive.google.com/drive/u/0/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3) (Can be downloaded in the app)
+- The following fonts (included in `fonts` directory):
+  - **Beleren Proxy Bold** — For Card Name, Typeline, Power/Toughness
+  - **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
+  - **Plantin MT Pro** — For rules text, install **all** variants included
+  - **Beleren Smallcaps** — For Artist credit line and miscellaneous
+  - **Magic The Gathering** [_Optional_] — Required by Classic template
+  - **Matrix Bold** [_Optional_] — Required by Colorshifted template
+  - **Keyrune** — For expansion symbols, a fork of the [original]((https://keyrune.andrewgioia.com/))
+  - **Gotham Medium** — For collector text
+  - **[Mana](https://mana.andrewgioia.com/)** — For additional card symbols
 
 # Setup and Usage Guide (GUI Release)
 * Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
@@ -45,19 +46,23 @@ filetypes are JPG, JPEG, JPF, PNG, TIF, and on newer Photoshop versions WEBP.
 * During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
 
 # Setup and Usage Guide (Python Version)
-* Install Poetry to your system using one of these commands:
-```bash
-# Use this in Powershell
+* Install Poetry using one of these methods:
+```shell
+# Install pipx, then install poetry with pipx (Recommended)
+python -m pip install --user pipx
+pipx install poetry
+
+# Install using Powershell
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 
-# Works if you have WSL enabled
+# Install using WSL (Windows Subsystem for Linux)
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Works if you have Scoop (https://scoop.sh)
+# Install using scoop
 scoop install poetry
 ```
-* Clone Proxyshop somewhere on your system, we'll call the main Proxyshop folder the ***root directory***:
-```bash
+* Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***:
+```shell
 git clone https://github.com/MrTeferi/Proxyshop.git
 ```
 * Open terminal/powershell in the root directory, install the project with: `poetry install`. This will set up Proxyshop's dependencies 
@@ -89,7 +94,6 @@ py main.py
 Feel free to [join our discord](http://discord.gg/magicproxies) and participate in the `#Proxyshop` channel where we are constantly brainstorming and testing new features, dropping beta releases, and sharing new plugins and templates. Also, please consider supporting [our Patreon](http://patreon.com/mpcfill) which pays for S3 + Cloudfront hosting of Proxyshop templates and allows us the freedom to work on the app, as well as other applications like MPC Autofill, MTG Art Downloader, and more!
 
 # FAQ
-
 <details>
 <summary>
     How do I change the set symbol to something else?
@@ -175,9 +179,9 @@ To prevent this error, you must ensure Photoshop is in a neutral state when you 
 In your proxyshop directory, look for a folder named `logs`, inside that folder you should see `error.txt`, check the last error log in that file. If the error isn't obvious, join our Discord and feel free to ask for help in the #Proxyshop channel.
 </details>
 
-# Credits
+## Credits
 * Our [amazing Patreon supporters](https://www.patreon.com/mpcfill) who literally keep this project going.
-* Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop
+* Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop.
 * Additional template and asset support from:
   * SilvanMTG
   * Nelynes
