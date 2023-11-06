@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1000 1000" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(1,0,0,1,-3207,0)">
+        <g id="M" transform="matrix(1,0,0,1,3207,0)">
+            <rect x="0" y="0" width="1000" height="1000" style="fill:none;"/>
+            <g>
+                <path d="M255.316,786.822L302.31,515.916L105.581,324.256L377.408,284.173L499.038,36.764L621.13,283.712L893.417,323.795L696.689,515.456L743.222,785.9L499.96,658.741L255.316,786.822Z" style="fill:white;"/>
+            </g>
+            <g id="Ebene1" transform="matrix(1,0,0,1,710.038,29.5263)">
+                <g transform="matrix(1,0,0,1,-710.038,-29.5263)">
+                    <path d="M288.825,823.261L499.03,976.452L709.235,823.261L499.03,712.112L288.825,823.261Z" style="fill:white;"/>
+                </g>
+                <g id="Ebene11" serif:id="Ebene1" transform="matrix(1,0,0,1,-710.038,-29.5263)">
+                    <path d="M2.319,614.964L82.522,367.574L252.658,532.992L212.261,767.703L2.319,614.964Z" style="fill:white;"/>
+                    <path d="M2.319,614.964L82.522,367.574L252.658,532.992L212.261,767.703L2.319,614.964Z" style="fill:white;"/>
+                </g>
+                <g transform="matrix(-1,0,0,1,288.426,-28.7783)">
+                    <path d="M2.319,614.964L82.522,367.574L252.658,532.992L212.261,767.703L2.319,614.964Z" style="fill:white;"/>
+                </g>
+                <g transform="matrix(1,0,0,1,-710.038,-29.5263)">
+                    <path d="M652.539,243.235L547.149,30.726L807.457,30.15L887.508,276.061L652.539,243.235Z" style="fill:white;"/>
+                </g>
+                <g transform="matrix(-1,0,0,1,289.236,-28.9504)">
+                    <path d="M652.539,243.235L547.149,30.726L807.457,30.15L887.508,276.061L652.539,243.235Z" style="fill:white;"/>
+                </g>
+            </g>
+            <g id="Ebene2">
+                <path d="M165.988,343.419L395.773,310.017L498.86,100.964L602.523,309.441L832.884,343.419L667.024,505.824L706.185,735.609L500.012,627.34L293.263,734.458L331.848,505.824L165.988,343.419Z"/>
+                <path d="M192.674,717.595L223.197,543.672L95.923,418.701L35.453,604.142L192.674,717.595Z" style="stroke:black;stroke-width:1px;"/>
+                <g transform="matrix(-1,0,0,1,998.776,2.24962)">
+                    <path d="M192.674,717.595L223.197,543.672L95.923,418.701L35.453,604.142L192.674,717.595Z" style="stroke:black;stroke-width:1px;"/>
+                </g>
+                <path d="M846.92,243.702L786.566,59.413L592.601,59.413L670.924,217.902L846.92,243.702Z" style="stroke:black;stroke-width:1px;"/>
+                <g transform="matrix(-1,0,0,1,998.811,-0.201566)">
+                    <path d="M846.92,243.702L786.566,59.413L592.601,59.413L670.924,217.902L846.92,243.702Z" style="stroke:black;stroke-width:1px;"/>
+                </g>
+                <path d="M341.795,826.545L498.902,744.537L655.548,826.545L499.363,940.805L341.795,826.545Z" style="stroke:black;stroke-width:1px;"/>
+            </g>
+        </g>
+    </g>
+</svg>
