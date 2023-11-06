@@ -397,7 +397,6 @@ class ProxyshopApp(App):
             get_name = lambda f: osp.basename(osp.splitext(definition)[0])
             file_name = get_name(definition)
             artist = Reg.PATH_ARTIST.search(file_name)
-            code = Reg.PATH_SET.search(file_name)
             parent_dir = Path(definition).parent.absolute()
             all_files = listdir(Path(definition).parent.absolute())
             art_files = [ osp.join(parent_dir, f) for f in all_files if get_name(f) == file_name and not Path(f).suffix == ".txt" ]
@@ -418,8 +417,6 @@ class ProxyshopApp(App):
                 for (i, card) in enumerate(cards):
                     if artist:
                         card.file['artist'] = artist.group(1)
-                    if code:
-                        card.file['set'] = code.group(1)
                     card.file['filename'] = art_file
                     card.file['panorama_element'] = i
                 panorama_cards += cards
