@@ -15,10 +15,9 @@ class Reg:
 
     # Filename - Card Art
     PATH_ARTIST: re.Pattern = re.compile(r"\(+(.*?)\)")
-    PATH_SPLIT: re.Pattern = re.compile(r"[\[({`$]")
-    PATH_SET: re.Pattern = re.compile(r"\[(.*)]")
+    PATH_SPLIT: re.Pattern = re.compile(r"[\[({$]")
     PATH_NUM: re.Pattern = re.compile(r"\{(.*)}")
-    PATH_NICKNAME: re.Pattern = re.compile(r"`(.*)`")
+    PATH_SET_OR_CFG: re.Pattern = re.compile(r"\[(.*)]")
 
     # Mana - Symbols
     SYMBOL: re.Pattern = re.compile(r"(\{.*?})")

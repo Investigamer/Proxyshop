@@ -1305,7 +1305,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     @cached_property
     def nickname(self) -> str | None:
         """Return the nick name, if available."""
-        return self.layout.file.get('nickname', None)
+        return self.layout.file.get('additional_cfg', {}).get('nick', None)
 
     @cached_property
     def is_multicolor(self) -> bool:
