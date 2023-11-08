@@ -12,7 +12,7 @@ keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photosh
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
-photoshop-python-api = "^0.22.0"
+photoshop-python-api = { git = "https://github.com/MrTeferi/photoshop-python-api.git" }
 requests = "^2.28.1"
 asynckivy = "^0.5.4"
 Pillow = "^9.4.0"
@@ -30,7 +30,7 @@ click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
-mypy = "^0.991"
+mypy = "^1.6.0"
 commitizen = "^2.39.1"
 setuptools = "^67.6.0"
 matplotlib = "^3.7.2"

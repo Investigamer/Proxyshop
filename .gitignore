@@ -162,7 +162,7 @@ cython_debug/
 # For personal testing
 /testing.py
 # User generated data files
-/src/data/sets/
+/src/data/mtg
 # User specific version tracker
 /src/data/version_tracker.json
 # Generated new release
