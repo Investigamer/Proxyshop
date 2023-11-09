@@ -26,8 +26,8 @@ from src.constants import con
 from src.utils.env import ENV
 
 # Directory definitions
-SRC = con.cwd
-DST = osp.join(SRC, 'dist')
+SRC: Path = con.cwd
+DST: Path = Path(SRC, 'dist')
 
 
 """
@@ -40,17 +40,17 @@ def make_directories(config: dict[str, Any]) -> None:
     Make sure necessary directories exist.
     @param config: TOML config data.
     """
-    Path(osp.join(SRC, 'dist')).mkdir(mode=711, parents=True, exist_ok=True)
+    DST.mkdir(mode=711, parents=True, exist_ok=True)
     for path in config['make']['paths']:
-        Path(osp.join(DST, path)).mkdir(mode=711, parents=True, exist_ok=True)
+        Path(DST, path).mkdir(mode=711, parents=True, exist_ok=True)
 
 
 def copy_directory(
-        src: str, dst: str,
-        x_files: list[str],
-        x_dirs: list[str],
-        x_ext: Optional[list[str]] = None,
-        recursive: bool = True
+    src: str, dst: str,
+    x_files: list[str],
+    x_dirs: list[str],
+    x_ext: Optional[list[str]] = None,
+    recursive: bool = True
 ) -> None:
     """
     Copy a directory from src to dst.
@@ -75,7 +75,8 @@ def copy_directory(
         ignored: list[str] = []
         for name in names:
             # Ignore certain names and extensions
-            if name in x_files or osp.splitext(name)[1] in x_ext:
+            p = Path(path, name)
+            if name in x_files or p.suffix in x_ext:
                 ignored.append(name)
             # Ignore certain directories
             elif (name in x_dirs or not recursive) and osp.isdir(osp.join(path, name)):
@@ -165,7 +166,7 @@ def build_app(
     @param zipped: Whether to create a zip of this release.
     """
     # Load toml config
-    with open(osp.join(con.path_data, 'build/dist.toml'), 'rb') as f:
+    with open(Path(con.path_data, 'build/dist.toml'), 'rb') as f:
         toml_config = tomli.load(f)
 
     # Pre-build steps

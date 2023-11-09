@@ -1,11 +1,11 @@
 # Standard Library
 import os
-import logging
 import subprocess
 from glob import glob
 from os import path as osp, makedirs
+from pathlib import Path
 from time import perf_counter
-from typing import Optional
+from typing import Optional, Union
 
 # Third Party Imports
 from tqdm import tqdm
@@ -50,7 +50,7 @@ UTILITY FUNCS
 """
 
 
-def compress_file(file_path: str, output_dir: str) -> bool:
+def compress_file(file_path: Union[str, os.PathLike], output_dir: Union[str, os.PathLike]) -> bool:
     """
     Compress a target file and save it as a 7z archive to the output directory.
     @param file_path: File to compress.
@@ -59,7 +59,7 @@ def compress_file(file_path: str, output_dir: str) -> bool:
     """
     # Define the output file path
     filename = osp.basename(file_path).replace('.psd', '.7z')
-    out_file = osp.join(output_dir, filename)
+    out_file = Path(output_dir, filename)
     null_device = open(os.devnull, 'w')
 
     # Compress the file
@@ -68,10 +68,10 @@ def compress_file(file_path: str, output_dir: str) -> bool:
                 "7z", "a", "-t7z", "-m0=LZMA", "-mx=9",
                 f"-md={DictionarySize.DS96}M",
                 f"-mfb={WordSize.WS24}",
-                out_file, file_path
+                str(out_file), str(file_path)
             ], stdout=null_device, stderr=null_device)
     except Exception as e:
-        logging.error("An error occurred compressing file!", exc_info=e)
+        # console.critical("An error occurred compressing file!", exc_info=e)
         return False
     return True
 
@@ -91,20 +91,20 @@ def compress_template(
     @return:
     """
     # Build the template path
-    from_dir = osp.join(con.cwd, f'plugins\\{plugin}\\templates' if plugin else 'templates')
-    to_dir = osp.join(con.cwd, f'plugins\\{plugin}\\templates\\compressed' if plugin else 'templates\\compressed')
-    from_file = osp.join(from_dir, file_name)
-    to_file = osp.join(to_dir, file_name.replace('.psd', '.7z').replace('.psb', '.7z'))
+    template_path = Path(con.path_plugins, plugin, 'templates') if plugin else con.path_templates
+    to_file = Path(template_path, 'compressed', Path(file_name).with_suffix('.7z'))
+    from_file = Path(template_path, file_name)
     null_device = open(os.devnull, 'w')
 
     # Compress the file
     s = perf_counter()
     try:
-        subprocess.run(
-            ["7z", "a", "-t7z", "-m0=LZMA", "-mx=9", f"-md={dict_size}M", f"-mfb={word_size}", to_file, from_file],
-            stdout=null_device, stderr=null_device)
+        subprocess.run([
+            "7z", "a", "-t7z", "-m0=LZMA", "-mx=9", f"-md={dict_size}M", f"-mfb={word_size}", to_file, from_file
+        ], stdout=null_device, stderr=null_device)
     except Exception as e:
-        logging.error("An error occurred compressing file!", exc_info=e)
+        # console.critical("An error occurred compressing file!", exc_info=e)
+        pass
     return get_file_size_mb(to_file), perf_counter()-s
 
 
@@ -113,17 +113,17 @@ def compress_plugin(plugin: str) -> None:
     Compress all PSD files in a plugin.
     @param plugin: Name of the plugin folder.
     """
-    compress_all(directory=osp.join(con.path_plugins, f"{plugin}\\templates"))
+    compress_all(Path(con.path_plugins, plugin, 'templates'))
 
 
-def compress_all(directory: Optional[str] = None) -> None:
+def compress_all(directory: Union[str, os.PathLike, None] = None) -> None:
     """
     Compress all PSD files in a directory.
     @param directory: Directory containing PSD files to compress.
     """
     # Create "compressed" subdirectory if it doesn't exist
     directory = directory or con.path_templates
-    output_dir = osp.join(directory, 'compressed')
+    output_dir = Path(directory, 'compressed')
     makedirs(output_dir, exist_ok=True)
 
     # Get a list of all .psd files in the directory
@@ -151,7 +151,7 @@ ARCHIVE DECOMPRESSION
 """
 
 
-def decompress_file(file_path: str) -> None:
+def decompress_file(file_path: Union[str, os.PathLike]) -> None:
     """
     Decompress target 7z archive.
     @param file_path: Path to the 7z archive.

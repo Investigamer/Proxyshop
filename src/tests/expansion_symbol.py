@@ -5,10 +5,7 @@ EXPANSION SYMBOL TESTING
 import os
 from functools import cached_property
 from pathlib import Path
-from typing import Optional
-
-# Use this to force a working directory if IDE doesn't support it
-# os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
+from typing import Optional, Union
 
 # Third Party Imports
 from photoshop.api._layerSet import LayerSet
@@ -17,22 +14,20 @@ import photoshop.api as ps
 import requests
 
 # Local Imports
-from src.settings import cfg
 from src.constants import con
+from src.settings import cfg
 from src import helpers as psd
 from src.enums.layers import LAYERS
 from src.enums.photoshop import Dimensions
+from src.utils.files import ensure_path_exists
 from src.utils.objects import PhotoshopHandler
 
 # Generate rarity folders if they don't exist
-SYM_COMMON = Path(os.path.join(con.cwd, "out/symbols/common"))
-SYM_UNCOMMON = Path(os.path.join(con.cwd, "out/symbols/uncommon"))
-SYM_RARE = Path(os.path.join(con.cwd, "out/symbols/rare"))
-SYM_MYTHIC = Path(os.path.join(con.cwd, "out/symbols/mythic"))
-[
-    n.mkdir(mode=711, parents=True, exist_ok=True)
-    for n in [SYM_COMMON, SYM_UNCOMMON, SYM_RARE, SYM_MYTHIC]
-]
+SYM_COMMON = Path(con.path_out, 'symbols', 'common')
+SYM_UNCOMMON = Path(con.path_out, 'symbols', 'uncommon')
+SYM_RARE = Path(con.path_out, 'symbols', 'rare')
+SYM_MYTHIC = Path(con.path_out, 'symbols', 'mythic')
+[ensure_path_exists(n) for n in [SYM_COMMON, SYM_UNCOMMON, SYM_RARE, SYM_MYTHIC]]
 
 """
 TEST CLASSES
@@ -68,10 +63,7 @@ class TestLayout:
 
 
 class TestTemplate:
-    """
-    Mimics template class
-    Keep `create_expansion_symbol` method updated
-    """
+    """Mimics template class. Keep `create_expansion_symbol` method updated."""
 
     def __init__(self, layout: TestLayout):
         self.layout = layout
@@ -193,10 +185,12 @@ class TestTemplate:
                 current_layer.resize(lay['scale'] * 100, lay['scale'] * 100, self.expansion_symbol_anchor)
 
 
-def test_symbol(code: str, rarity: str, directory=os.path.join(con.cwd, 'out/symbols')):
+def test_symbol(code: str, rarity: str, directory: Union[str, os.PathLike, None] = None):
     print(code, rarity.title())
     TestTemplate(TestLayout(code, rarity.lower()))
-    psd.save_document_jpeg(f"{code}-{rarity[0].lower()}", directory=directory)
+    directory = directory or Path(con.path_out, 'symbols')
+    path = Path(directory, f"{code}-{rarity[0].lower()}")
+    psd.save_document_jpeg(path)
     psd.reset_document()
 
 

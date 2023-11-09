@@ -13,7 +13,7 @@ import textwrap
 import os.path as osp
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable, Optional, Iterator
+from typing import Callable, Optional, Iterator, Union
 
 # Third Party Imports
 import requests
@@ -21,7 +21,7 @@ import requests
 # Local Imports
 from src.types.templates import TemplateDetails, TemplateUpdate
 from src.utils.compression import decompress_file
-from src.core import get_templates
+from src.loader import get_templates
 from src.utils.regex import Reg
 from src.constants import con
 from src.utils.env import ENV
@@ -88,10 +88,10 @@ def print_download(url: str, path: str, resume: str = None) -> None:
 
 
 def download_file(
-    file: str,
+    file: Union[str, os.PathLike],
     res: requests.Response,
     sess: requests.Session,
-    path: Optional[str] = None,
+    path: Union[str, os.PathLike, None] = None,
     callback: Optional[Callable] = None,
     chunk_size = 1024 * 1024
 ) -> bool:
@@ -119,11 +119,11 @@ def download_file(
                 if callback:
                     current += int(chunk_size)
                     callback(current, total)
-        if path and file != path:
+        if path and str(file) != str(path):
             # Rename TMP file
             shutil.move(file, path)
             # Decompress zipped file
-            if path[-3:] == '.7z':
+            if str(path)[-3:] == '.7z':
                 with con.lock_decompress:
                     decompress_file(path)
     except IOError as e:
@@ -187,7 +187,7 @@ def get_url_from_gdrive_confirmation(contents: str) -> str:
 
 def download_google(
     file_id: str,
-    path: str,
+    path: Union[str, os.PathLike],
     callback: Callable,
     use_cookies: bool = True
 ) -> bool:
@@ -259,7 +259,7 @@ AMAZON S3 UTILS
 """
 
 
-def download_s3(save_path: str, s3_path: str, callback: Optional[Callable] = None) -> bool:
+def download_s3(save_path: Union[str, os.PathLike], s3_path: str, callback: Optional[Callable] = None) -> bool:
     """
     Download template from Amazon S3 bucket.
     @param save_path: Path to save the file to.
@@ -367,13 +367,13 @@ def version_check(template: TemplateDetails) -> Optional[TemplateUpdate]:
     }
 
 
-def get_current_version(file_id: str, file_path: str) -> Optional[str]:
+def get_current_version(file_id: str, file_path: Union[str, os.PathLike]) -> Optional[str]:
     """
     Checks the current on-file version of this template.
     If the file is present, but no version tracked, fill in default.
-    @param file_id: Google Drive file ID
-    @param file_path: Path to the template PSD
-    @return: The current version, or None if not on-file
+    @param file_id: Google Drive file ID.
+    @param file_path: Path to the template PSD.
+    @return: The current version, or None if not on-file.
     """
     # Is it logged in the tracker?
     version = con.versions[file_id] if file_id in con.versions else None
@@ -408,7 +408,7 @@ def update_template(temp: TemplateUpdate, callback: Callable) -> bool:
     """
     try:
         # Adjust to 7z if needed
-        file_path = temp['path'].replace('.psd', '.7z') if '.7z' in temp['filename'] else temp['path']
+        file_path = temp['path'].with_suffix('.7z') if '.7z' in temp['filename'] else temp['path']
 
         # Download using Google Drive
         result = download_google(temp['id'], file_path, callback)

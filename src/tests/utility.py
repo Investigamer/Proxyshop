@@ -1,11 +1,11 @@
 """
-TESTING UTILITY
-For contributors and plugin development.
+* General Testing Utility
+* For contributors and plugin development.
 """
 # Standard Library Imports
 from contextlib import suppress
 from collections.abc import Iterable
-from pprint import pprint
+from pathlib import Path
 from typing import Optional, Union
 from _ctypes import COMError
 from os import path as osp, environ
@@ -14,17 +14,9 @@ import warnings
 import logging
 import json
 import csv
-
 import xml.dom.minidom
 
-from src.enums.layers import LAYERS
-
-# Use this to force a working directory if IDE doesn't support it
-# os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
-environ['HEADLESS'] = "True"
-
 # Third Party Imports
-from psd_tools import PSDImage
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
@@ -33,16 +25,15 @@ from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    ActionList,
     DialogModes,
-    LayerKind,
-    SaveOptions
+    LayerKind
 )
 from psd_tools.constants import Resource
 from psd_tools import PSDImage
 from psd_tools.psd.image_resources import ImageResource
 import xml.etree.ElementTree as ET
-from pprint import pprint
+
+environ['HEADLESS'] = "True"
 
 # Local Imports
 from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds, select_bounds
@@ -53,9 +44,9 @@ from src.utils.exceptions import PS_EXCEPTIONS
 from src.utils.objects import PhotoshopHandler
 from src.helpers.masks import copy_layer_mask
 from src.helpers import get_layer_dimensions, get_color
-from src.core import get_templates
+from src.loader import get_templates
 from src.constants import con
-from src.utils.testing import time_function
+from src.utils.testing import time_function, test_execution_time
 
 # Photoshop infrastructure
 app: PhotoshopHandler = con.app
@@ -69,7 +60,6 @@ TANG = [255, 97, 11]
 RED = [192, 55, 38]
 TAN = [245, 235, 210]
 BLACK = [0, 0, 0]
-
 
 """
 TEMPLATE TESTING UTILITIES
@@ -98,9 +88,9 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
 
 
 def make_duals(
-    name: str = "Pinlines & Textbox",
-    mask_top: Optional[str] = "MASK",
-    mask_bottom: Optional[str] = None
+        name: str = "Pinlines & Textbox",
+        mask_top: Optional[str] = "MASK",
+        mask_bottom: Optional[str] = None
 ):
     """
     Creates dual color layers for a given group.
@@ -135,9 +125,9 @@ def make_duals(
 
 
 def create_blended_layer(
-    colors: Union[str, list[str]],
-    group: LayerSet,
-    masks: Union[None, ArtLayer, list[ArtLayer]] = None
+        colors: Union[str, list[str]],
+        group: LayerSet,
+        masks: Union[None, ArtLayer, list[ArtLayer]] = None
 ):
     """
     Create a multicolor layer using a gradient mask.
@@ -160,8 +150,8 @@ def create_blended_layer(
 
         # Position the new layer and add a mask to previous, if previous layer exists
         if layers:
-            layer.move(layers[i-1], ElementPlacement.PlaceAfter)
-            copy_layer_mask(masks[i-1], layers[i-1])
+            layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
+            copy_layer_mask(masks[i - 1], layers[i - 1])
 
         # Add to the layer list
         layers.append(layer)
@@ -463,14 +453,14 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     desc3 = ActionDescriptor()
     desc4 = ActionDescriptor()
     ref1.putClass(sID("contentLayer"))
-    desc1.putReference(sID("target"),  ref1)
+    desc1.putReference(sID("target"), ref1)
     desc4.putDouble(sID("red"), color.rgb.red)
     desc4.putDouble(sID("green"), color.rgb.green)
     desc4.putDouble(sID("blue"), color.rgb.blue)
-    desc3.putObject(sID("color"), sID("RGBColor"),  desc4)
-    desc2.putObject(sID("type"), sID("solidColorLayer"),  desc3)
-    desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
-    app.executeaction(sID("make"), desc1,  NO_DIALOG)
+    desc3.putObject(sID("color"), sID("RGBColor"), desc4)
+    desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
+    desc1.putObject(sID("using"), sID("contentLayer"), desc2)
+    app.executeaction(sID("make"), desc1, NO_DIALOG)
     app.activeDocument.activeLayer.name = layer_name
 
     # Check dims
@@ -526,7 +516,6 @@ def log_all_template_fonts() -> dict:
     # Check each document
     logging.basicConfig(level=logging.INFO)
     for psd_file, temp_name in docs.items():
-
         # Alert the user
         logging.info(f"READING FONTS — {temp_name} [{osp.basename(psd_file)}] [{current}/{total}]")
         current += 1
@@ -588,7 +577,7 @@ def paste_to_document():
     desc1 = ActionDescriptor()
     desc1.PutEnumerated(sID("antiAlias"), sID("antiAliasType"), sID("antiAliasNone"))
     desc1.PutClass(sID("as"), sID("pixel"))
-    app.Executeaction(sID("paste"), desc1,  NO_DIALOG)
+    app.Executeaction(sID("paste"), desc1, NO_DIALOG)
 
 
 def select_canvas(doc: Document = None):
@@ -826,8 +815,8 @@ def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[
 
 @time_function
 def clear_reference_vertical(
-    layer: Optional[ArtLayer] = None,
-    reference: Union[ArtLayer, list[Union[int, float]], None] = None
+        layer: Optional[ArtLayer] = None,
+        reference: Union[ArtLayer, list[Union[int, float]], None] = None
 ) -> Union[int, float]:
     """
     Nudges a layer clear vertically of a given reference layer or area.
@@ -869,9 +858,9 @@ def new_clear_ref_methodology():
 """
 
 
-def convert_json_config_to_toml():
+def convert_json_config_to_toml(filename: str):
     # Import JSON render tests
-    with open(osp.join(con.path_data, 'base_settings.json'), 'r', encoding='utf-8') as f:
+    with open(Path(con.path_plugins, 'WarpDandy', 'config', filename), 'r', encoding='utf-8') as f:
         obj = json.load(f)
 
     # Create a new TOML document
@@ -885,7 +874,7 @@ def convert_json_config_to_toml():
             continue
 
         # Add section and title if needed
-        section = sec['section'].split('.')[1]
+        section = sec['section']
         if section != header:
             header = section
             doc[header] = tomlkit.table()
@@ -903,5 +892,5 @@ def convert_json_config_to_toml():
             doc[header][sec['key']].append('options', options)
 
     # Export render tests as TOML
-    with open(osp.join(con.path_data, 'configs/config_base.toml'), 'w', encoding='utf-8') as f:
+    with open(Path(con.path_plugins, 'MrTeferi', 'config', filename).with_suffix('.toml'), 'w', encoding='utf-8') as f:
         tomlkit.dump(doc, f)

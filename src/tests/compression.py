@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from PIL.Image import Resampling
 
 # Local Imports
-from src.utils.files import compress_template, WordSize, DictionarySize
+from src.utils.compression import WordSize, DictionarySize, compress_template
 from src.utils.image import downscale_image
 from src.console import console
 

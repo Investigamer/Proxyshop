@@ -3,6 +3,7 @@
 * Card Text Logic
 """
 # Standard Library Imports
+from pathlib import Path
 from typing import TypedDict
 
 # Local Imports
@@ -36,10 +37,7 @@ def test_all_cases() -> bool:
     # Load our test cases
     SUCCESS = True
     test_cases: dict[str, TestCaseTextItalic] = load_data_file(
-        data_type='toml',
-        file_name='text_italic',
-        file_path='tests'
-    )
+        Path(con.path_tests, 'text_italic.toml'))
 
     # Check each test case for success
     for name, case in test_cases.items():

@@ -2,11 +2,12 @@
 MODULE UTILITIES
 """
 import sys
-from importlib.util import spec_from_file_location, module_from_spec
+from pathlib import Path
 from types import ModuleType
+from importlib.util import spec_from_file_location, module_from_spec
 
 
-def get_loaded_module(module_path: str, module_name: str, recache: bool = False) -> ModuleType:
+def get_loaded_module(module_path: Path, module_name: str, recache: bool = False) -> ModuleType:
     """
     Lookup a loaded module by its filepath and reload it. If not found, load the module fresh.
     @param module_path: File path to the module.
@@ -25,7 +26,7 @@ def get_loaded_module(module_path: str, module_name: str, recache: bool = False)
     return get_new_module(module_path, module_name)
 
 
-def get_new_module(module_path: str, module_name: str) -> ModuleType:
+def get_new_module(module_path: Path, module_name: str) -> ModuleType:
     """
     Loads a module from a given path with assigned name.
     @param module_path: Path to module file.

@@ -10,6 +10,7 @@ from concurrent.futures import (
     ThreadPoolExecutor as Pool,
     as_completed,
     Future)
+from pathlib import Path
 from typing import Optional
 
 # Third Part Imports
@@ -18,6 +19,7 @@ from colorama import Fore, Style
 os.environ['HEADLESS'] = "True"
 
 # Local Imports
+from src.constants import con
 from src.utils.files import load_data_file
 from src.console import console as logr
 from src.layouts import layout_map, CardLayout
@@ -38,10 +40,7 @@ FrameData = list[str, str, str, str, bool, bool]
 
 def get_frame_logic_cases() -> dict[str, dict[str, FrameData]]:
     """Return frame logic test cases from TOML data file."""
-    return load_data_file(
-        data_type='toml',
-        file_name='frame_data',
-        file_path='tests')
+    return load_data_file(Path(con.path_tests, 'frame_data.toml'))
 
 
 def format_result(layout: CardLayout) -> FrameData:

@@ -4,10 +4,7 @@ import click
 # Local Imports
 from src.constants import con
 from src.console import console as logr
-from src.tests import (
-    frame_logic,
-    text_logic
-)
+from src.tests import frame_logic, text_logic
 
 """
 * TEST COMMANDS

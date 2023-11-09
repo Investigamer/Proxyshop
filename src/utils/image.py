@@ -2,7 +2,6 @@
 IMAGE UTILITIES
 """
 # Standard Library Imports
-from os import path as osp
 from pathlib import Path
 
 # Third Party Imports
@@ -10,7 +9,7 @@ from PIL import Image
 from PIL.Image import Resampling
 
 
-def downscale_image(path: str, **kwargs) -> None:
+def downscale_image(path: Path, **kwargs) -> None:
     """
     Downscale an image to max width of MAX_WIDTH.
     @param path: Path to the image.
@@ -20,10 +19,11 @@ def downscale_image(path: str, **kwargs) -> None:
     @keyword resample (Resampling): Resampling algorithm, default: LANCZOS
     """
     # Establish our source and destination directories
-    path_out = osp.join(osp.dirname(path), 'compressed')
-    Path(path_out).mkdir(mode=711, parents=True, exist_ok=True)
-    file_name = kwargs.get('name', osp.basename(osp.splitext(path)[0]))
-    save_path = osp.join(path_out, f"{file_name}.jpg")
+    path_out = Path(path.parent, 'compressed')
+    path_out.mkdir(mode=711, parents=True, exist_ok=True)
+    save_path = Path(
+        path_out, kwargs.get('name', path.name)
+    ).with_suffix('.jpg')
 
     # Establish our optional parameters
     max_width = kwargs.get('max_width', 3264)
