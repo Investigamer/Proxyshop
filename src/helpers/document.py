@@ -1,8 +1,9 @@
 """
 DOCUMENT HELPERS
 """
+import os
 # Standard Library Imports
-from os import path as osp
+from pathlib import Path
 from typing import Optional, Union
 
 # Third Party Imports
@@ -66,7 +67,7 @@ IMPORTING
 """
 
 
-def import_art(layer: ArtLayer, file: str, name: str = "Layer 1") -> ArtLayer:
+def import_art(layer: ArtLayer, file: Union[str, Path], name: str = "Layer 1") -> ArtLayer:
     """
     Imports an art file into the active layer.
     @param layer: Layer to make active and receive image.
@@ -75,14 +76,14 @@ def import_art(layer: ArtLayer, file: str, name: str = "Layer 1") -> ArtLayer:
     """
     desc = ActionDescriptor()
     app.activeDocument.activeLayer = layer
-    desc.putPath(sID("target"), file)
+    desc.putPath(sID("target"), str(file))
     app.executeAction(sID("placeEvent"), desc)
     app.activeDocument.activeLayer.name = name
     return app.activeDocument.activeLayer
 
 
 def import_svg(
-    file: str,
+    file: Union[str, os.PathLike],
     ref: Union[ArtLayer, LayerSet] = None,
     placement: Optional[ElementPlacement] = None
 ) -> ArtLayer:
@@ -95,7 +96,7 @@ def import_svg(
     """
     # Import the art
     desc = ActionDescriptor()
-    desc.putPath(sID("target"), file)
+    desc.putPath(sID("target"), str(file))
     app.executeAction(sID("placeEvent"), desc)
 
     # Position the layer if needed
@@ -106,7 +107,7 @@ def import_svg(
 
 def paste_file(
     layer: ArtLayer,
-    file: str,
+    file: Union[str, os.PathLike],
     action: any = None,
     action_args: dict = None
 ) -> None:
@@ -119,7 +120,7 @@ def paste_file(
     """
     # Select the correct layer, then load the file
     app.activeDocument.activeLayer = layer
-    app.load(file)
+    app.load(str(file))
 
     # Optionally run action on art before importing it
     if action:
@@ -276,60 +277,65 @@ SAVING AND CLOSING
 """
 
 
-def save_document_png(file_name: str, directory: str = 'out') -> None:
+def save_document_png(path: Path) -> None:
     """
-    Save the current document to /out/ as a PNG.
-    @param file_name: Name of the output file.
-    @param directory: Directory to save the file, /out/ by default.
+    Save the current document as a PNG.
+    @param path: Path to save the PNG file.
     """
     png_options = PNGSaveOptions()
     png_options.compression = 3
     png_options.interlaced = False
     app.activeDocument.saveAs(
-        file_path=osp.join(con.cwd, f"{directory}/{file_name}.png"),
-        options=png_options, asCopy=True
-    )
+        file_path=str(path.with_suffix('.png')),
+        options=png_options,
+        asCopy=True)
 
 
-def save_document_jpeg(file_name: str, directory: str = 'out') -> None:
+def save_document_jpeg(path: Path, optimize: bool = True) -> None:
     """
-    Save the current document to /out/ as a JPEG.
-    @param file_name: Name of the output file.
-    @param directory: Directory to save the file, /out/ by default.
+    Save the current document as a JPEG.
+    @param path: Path to save the JPEG file.
+    @param optimize: Whether to save with "Optimize Baseline". Reduces file size, but
+    may cause an error on older versions of Photoshop.
     """
-    jpeg_options = JPEGSaveOptions(quality=12)
-    jpeg_options.formatOptions = FormatOptionsType.OptimizedBaseline
+    try:
+        jpeg_options = JPEGSaveOptions(quality=12)
+        if optimize:
+            # Reduces filesize, might cause an error on older Photoshop versions
+            jpeg_options.formatOptions = FormatOptionsType.OptimizedBaseline
+        app.activeDocument.saveAs(
+            file_path=str(path.with_suffix('.jpg')),
+            options=jpeg_options,
+            asCopy=True)
+    except PS_EXCEPTIONS as e:
+        # Retry without Optimize Baseline
+        if optimize:
+            return save_document_jpeg(path, False)
+        raise OSError from e
+
+
+def save_document_psd(path: Path) -> None:
+    """
+    Save the current document as a PSD.
+    @param path: Path to save the PSD file.
+    """
     app.activeDocument.saveAs(
-        file_path=osp.join(con.cwd, f"{directory}/{file_name}.jpg"),
-        options=jpeg_options, asCopy=True
-    )
-
-
-def save_document_psd(file_name: str, directory: str = 'out') -> None:
-    """
-    Save the current document to /out/ as PSD.
-    @param file_name: Name of the output file.
-    @param directory: Directory to save the file, /out/ by default.
-    """
-    app.activeDocument.saveAs(
-        file_path=osp.join(con.cwd, f"{directory}/{file_name}.psd"),
+        file_path=str(path.with_suffix('.psd')),
         options=PhotoshopSaveOptions(),
         asCopy=True
     )
 
 
-def save_document_psb(file_name: str, directory: str = 'out') -> None:
+def save_document_psb(path: Path) -> None:
     """
-    Save the current document to /out/ as PSB.
-    @param file_name: Name of the output file.
-    @param directory: Directory to save the file, /out/ by default.
-    @return:
+    Save the current document as a PSB.
+    @param path: Path to save the PSB file.
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
     d2.putBoolean(sID('maximizeCompatibility'), True)
     d1.putObject(sID('as'), sID('largeDocumentFormat'), d2)
-    d1.putPath(sID('in'), osp.join(con.cwd, f"{directory}/{file_name}.psd"))
+    d1.putPath(sID('in'), str(path.with_suffix('.psb')))
     d1.putBoolean(sID('lowerCase'), True)
     app.executeAction(sID('save'), d1, DialogModes.DisplayNoDialogs)
 
