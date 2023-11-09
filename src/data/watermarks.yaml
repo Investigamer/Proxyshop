@@ -1,0 +1,23 @@
+###
+# * SNC Guilds
+# Symbol is tall and thin.
+###
+obscura:
+  scale: 92
+brokers:
+  scale: 92
+maestros:
+  scale: 92
+riveteers:
+  scale: 92
+cabaretti:
+  scale: 92
+
+###
+# * Other
+# Symbol is tall and thin.
+###
+phyrexian:
+  scale: 92
+desparked:
+  scale: 90

@@ -6,7 +6,7 @@ from src.utils.strings import StrEnum
 
 
 """
-APP SETTINGS
+* App Settings
 """
 
 
@@ -44,7 +44,7 @@ class ScryfallUnique (StrEnum):
 
 
 """
-BASE SETTINGS
+* Base Settings
 """
 
 
@@ -90,8 +90,19 @@ class CollectorPromo (StrEnum):
         return self.Automatic
 
 
+class WatermarkMode (StrEnum):
+    Disabled = "Disabled"
+    Automatic = "Automatic"
+    Fallback = "Fallback"
+    Forced = "Forced"
+
+    @enum_class_prop
+    def Default(self) -> str:
+        return self.Disabled
+
+
 """
-TEMPLATE SETTINGS
+* Template Settings
 """
 
 
