@@ -87,7 +87,7 @@ def get_rgb_from_hex(hex_code: str) -> SolidColor:
     @return: SolidColor object.
     """
     # Remove hashtag
-    hex_code = hex_code[1:] if hex_code.startswith('#') else hex_code
+    hex_code = hex_code.lstrip('#')
     # Hexadecimal abbreviated
     if len(hex_code) == 3:
         hex_code = "".join([n * 2 for n in hex_code])

@@ -4,7 +4,6 @@ TOOLS TAB OF GUI
 # Standard Library Imports
 import os
 from functools import cached_property
-from os import path as osp
 from pathlib import Path
 from typing import Any, Optional, Callable
 from threading import Event
@@ -34,7 +33,7 @@ class ToolsLayout(BoxLayout):
         @return: The result of the wrapped function.
         """
         def wrapper(self: 'ToolsLayout', *args):
-            while check := con.app.refresh_app():
+            while check := con.refresh_photoshop():
                 if not self.app.console.await_choice(
                     thr=Event(),
                     msg=get_photoshop_error_message(check),
@@ -56,24 +55,24 @@ class ToolsLayout(BoxLayout):
         return App.get_running_app()
 
     @process_wrapper
-    def render_showcases(self, images: Optional[list[str]] = None):
+    def render_showcases(self, images: Optional[list[Path]] = None):
 
         # Ensure showcase folder exists
-        Path(osp.join(con.cwd, "out/showcase")).mkdir(mode=711, parents=True, exist_ok=True)
+        Path(con.path_out, "showcase").mkdir(mode=711, parents=True, exist_ok=True)
 
         # Get our card images
-        if not images and len(images := self.get_images()) == 0:
+        if not images and len(images := self.get_images(con.path_out)) == 0:
             self.app.console.update("No art images found!")
             return
 
         # Open the showcase tool
-        con.app.load(osp.join(con.path_templates, 'tools/showcase.psd'))
+        con.app.load(os.path.join(con.path_templates, 'tools/showcase.psd'))
         docref: Document = con.app.activeDocument
 
         # Open each image and save with border crop
-        for i in images:
-            import_art(docref.activeLayer, i)
-            save_document_jpeg(osp.basename(i).split('.')[0], 'out/showcase')
+        for img in images:
+            import_art(docref.activeLayer, img)
+            save_document_jpeg(Path(con.path_out, 'showcase', img.with_suffix('.jpg').name))
             reset_document()
         close_document()
 
@@ -85,7 +84,7 @@ class ToolsLayout(BoxLayout):
 
     @process_wrapper
     def compress_renders(self):
-        if not (images := self.get_images()):
+        if not (images := self.get_images(con.path_out)):
             return
 
         with Pool(max_workers=(os.cpu_count() - 1) or 1) as executor:
@@ -99,25 +98,24 @@ class ToolsLayout(BoxLayout):
             [n.result() for n in as_completed(tasks)]
 
     """
-    FILE UTILS
+    * File Utils
     """
 
     @staticmethod
-    def get_images(path: str = "out") -> list[str]:
+    def get_images(path: Path) -> list[Path]:
         """
         Grab all supported image files within the "out" directory.
         @return: List of art files.
         """
         # Folder, file list, supported extensions
-        folder = osp.join(con.cwd, path)
-        all_files = os.listdir(folder)
+        all_files = os.listdir(path)
         ext = (".png", ".jpg", ".jpeg")
 
         # Select all images in folder not prepended with !
-        return [osp.join(folder, f) for f in all_files if f.endswith(ext)]
+        return [Path(path, f) for f in all_files if f.endswith(ext)]
 
     """
-    UI UTILS
+    * UI Utils
     """
 
     def disable_buttons(self):

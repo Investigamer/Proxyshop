@@ -1,12 +1,12 @@
 """
-* CONSOLE MODULE
+* Console Module
 """
 # Standard Library
 import logging
 import os
-import os.path as osp
 import time
 import traceback
+from pathlib import Path
 from threading import Lock, Event, Thread
 from datetime import datetime as dt
 from functools import cached_property
@@ -207,7 +207,7 @@ class TerminalConsole:
         self.logger.exception(error)
 
         # Add to log file
-        with open(osp.join(con.path_logs, log_file), "a", encoding="utf-8") as log:
+        with open(Path(con.path_logs, log_file), "a", encoding="utf-8") as log:
             log.write("============================================================================\n")
             log.write(f"> {self.time}\n")
             log.write("============================================================================\n")
@@ -255,7 +255,7 @@ class TerminalConsole:
         @param msg: Message to add to the console output.
         @param exception: Exception to log in /logs/error.txt.
         """
-        with open(osp.join(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
+        with open(Path(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
             log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
         return self.error(thr=thr, msg=msg, exception=exception)
 
