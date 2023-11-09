@@ -16,6 +16,7 @@ from photoshop.api._document import Document
 from photoshop.api import (
     AnchorPosition,
     ElementPlacement,
+    PurgeTarget,
     SolidColor,
     BlendMode,
     Urgency
@@ -24,7 +25,11 @@ from PIL import Image
 
 # Local Imports
 from src.console import console, Console
-from src.enums.mtg import watermark_color_map, MagicIcons, basic_land_color_map
+from src.enums.mtg import (
+    MagicIcons,
+    watermark_color_map,
+    basic_watermark_color_map
+)
 import src.format_text as ft
 from src.constants import con
 from src.settings import cfg
@@ -43,8 +48,9 @@ from src.enums.settings import (
     ExpansionSymbolMode,
     BorderColor,
     OutputFiletype,
-    CollectorPromo
+    CollectorPromo, WatermarkMode
 )
+from src.types.adobe import EffectBevel, LayerEffects
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.files import get_unique_filename
 from src.utils.objects import PhotoshopHandler
@@ -179,13 +185,13 @@ class BaseTemplate:
         }
 
     @cached_property
-    def output_directory(self) -> str:
+    def output_directory(self) -> Path:
         """Directory to save the rendered image."""
         if cfg.test_mode:
-            class_dir = f'out/{self.__class__.__name__}'
-            Path(osp.join(con.cwd, class_dir)).mkdir(mode=711, parents=True, exist_ok=True)
-            return class_dir
-        return 'out'
+            path = Path(con.path_out, self.__class__.__name__)
+            path.mkdir(mode=711, parents=True, exist_ok=True)
+            return path
+        return con.path_out
 
     @cached_property
     def output_file_name(self) -> str:
@@ -220,6 +226,11 @@ class BaseTemplate:
     def is_land(self) -> bool:
         """Governs whether to use normal or land pinlines group."""
         return self.layout.is_land
+
+    @cached_property
+    def is_basic_land(self):
+        """Governs Basic Land watermark and other Basic Land behavior."""
+        return any([bool(n in self.layout.type_line_raw) for n in ['Basic Land', 'Basic Snow Land']])
 
     @property
     def is_companion(self) -> bool:
@@ -385,15 +396,6 @@ class BaseTemplate:
     def text(self, value):
         """Add text layer to execute."""
         self._text = value
-
-    """
-    COLORS
-    """
-
-    @cached_property
-    def watermark_color_map(self) -> dict:
-        """Maps color values for Watermarks."""
-        return watermark_color_map.copy()
 
     """
     LAYER GROUPS
@@ -850,32 +852,58 @@ class BaseTemplate:
         svg.move(group, ElementPlacement.PlaceInside)
 
     """
-    WATERMARK
+    * Watermark
     """
+
+    @cached_property
+    def watermark_color_map(self) -> dict:
+        """Maps color values for Watermark."""
+        return watermark_color_map.copy()
+
+    @cached_property
+    def watermark_colors(self) -> list[SolidColor]:
+        """Colors to use for the Watermark."""
+        if self.pinlines in self.watermark_color_map:
+            return [self.watermark_color_map.get(self.pinlines, self.RGB_WHITE)]
+        elif len(self.identity) < 3:
+            return [self.watermark_color_map.get(c, self.RGB_WHITE) for c in self.identity]
+        return []
+
+    @cached_property
+    def watermark_fx(self) -> list[LayerEffects]:
+        """Defines the layer effects to use for the Watermark."""
+        if len(self.watermark_colors) == 1:
+            return [{
+                'type': 'color-overlay', 'opacity': 100,
+                'color': self.watermark_colors[0]
+            }]
+        if len(self.watermark_colors) == 2:
+            return [{
+                'type': 'gradient-overlay', 'rotation': 0,
+                'colors': [
+                    {'color': self.watermark_colors[0], 'location': 0, 'midpoint': 50},
+                    {'color': self.watermark_colors[1], 'location': 4096, 'midpoint': 50}
+                ]
+            }]
+        return []
 
     def create_watermark(self) -> None:
         """Builds the watermark."""
-        # Is the watermark from Scryfall supported?
-        wm_path = osp.join(con.path_img, f"watermarks/{self.layout.watermark}.svg")
-        if not self.layout.watermark or not osp.exists(wm_path):
-            return
-
-        # Decide what colors to use
-        colors = []
-        if len(self.pinlines) == 2:
-            colors.extend([self.watermark_color_map[c] for c in self.pinlines if c in self.watermark_color_map])
-        elif self.pinlines in self.watermark_color_map:
-            colors.append(self.watermark_color_map[self.pinlines])
-
-        # Check for valid reference, valid colors, valid text layers group for placement
-        if not self.textbox_reference or not colors or not self.text_group:
+        # Required values to generate a Watermark
+        if not all([
+            self.layout.watermark_svg,
+            self.layout.watermark,
+            self.textbox_reference,
+            self.watermark_colors,
+            self.text_group
+        ]):
             return
 
         # Get watermark custom settings if available
         wm_details = con.watermarks.get(self.layout.watermark, {})
 
         # Generate the watermark
-        wm = psd.import_svg(wm_path)
+        wm = psd.import_svg(str(self.layout.watermark_svg))
         psd.frame_layer(wm, self.textbox_reference, smallest=True)
         wm.resize(
             wm_details.get('scale', 80),
@@ -886,48 +914,46 @@ class BaseTemplate:
         wm.opacity = wm_details.get('opacity', cfg.watermark_opacity)
 
         # Add the colors
-        fx = []
-        if len(colors) == 1:
-            fx.append({
-                'type': 'color-overlay',
-                'opacity': 100,
-                'color': psd.get_color(colors[0])
-            })
-        elif len(colors) == 2:
-            fx.append({
-                'type': 'gradient-overlay',
-                'rotation': 0,
-                'colors': [
-                    {'color': colors[0], 'location': 0, 'midpoint': 50},
-                    {'color': colors[1], 'location': 4096, 'midpoint': 50}
-                ]
-            })
-        psd.apply_fx(wm, fx)
+        psd.apply_fx(wm, self.watermark_fx)
+
+    """
+    * Basic Land Watermark
+    """
+
+    @cached_property
+    def basic_watermark_color_map(self) -> dict:
+        """Maps color values for Basic Land Watermark."""
+        return basic_watermark_color_map.copy()
+
+    @cached_property
+    def basic_watermark_color(self) -> SolidColor:
+        """Color to use for the Basic Land Watermark."""
+        color = 'Snow' if self.layout.is_snow else self.layout.pinlines
+        return psd.get_color(self.basic_watermark_color_map[color])
+
+    @cached_property
+    def basic_watermark_fx(self) -> list[LayerEffects]:
+        """Defines the layer effects used on the Basic Land Watermark."""
+        return [
+            {'type': 'color-overlay', 'opacity': 100, 'color': self.basic_watermark_color},
+            {'type': 'bevel'}
+        ]
 
     def create_basic_watermark(self) -> None:
         """Builds a basic land watermark."""
 
         # Remove text
         self.layout.oracle_text = ''
+        self.layout.flavor_text = ''
 
         # Generate the watermark
-        wm = psd.import_svg(osp.join(con.path_img, f"watermarks/basics/{self.layout.pinlines.lower()}.svg"))
+        wm = psd.import_svg(Path(con.path_img, f"watermarks/basics/{self.layout.pinlines.lower()}.svg"))
         psd.frame_layer(wm, self.textbox_reference, smallest=True)
-        wm.resize(80, 80, AnchorPosition.MiddleCenter)
+        wm.resize(75, 75, AnchorPosition.MiddleCenter)
         wm.move(self.text_group, ElementPlacement.PlaceAfter)
 
         # Add effects
-        psd.apply_fx(wm, [
-            {
-                'type': 'color-overlay',
-                'opacity': 100,
-                'color': psd.get_color(
-                    basic_land_color_map[self.layout.pinlines])
-            },
-            {
-                'type': 'bevel'
-            }
-        ])
+        psd.apply_fx(wm, self.basic_watermark_fx)
 
     """
     BORDER
@@ -974,7 +1000,7 @@ class BaseTemplate:
         try:
             if self.docref:
                 psd.reset_document()
-                self.app.purge(4)
+                self.app.purge(PurgeTarget.AllCaches)
         except PS_EXCEPTIONS:
             pass
         console.end_await()
@@ -1111,7 +1137,7 @@ class BaseTemplate:
         check = self.run_tasks(
             [self.app.load],
             "PSD template failed to load!",
-            args=[self.layout.template_file]
+            args=[str(self.layout.template_file)]
         )
         if not all(check):
             return check[1]
@@ -1150,14 +1176,13 @@ class BaseTemplate:
             return check[1]
 
         # Add watermark
-        is_basic_land = bool('Basic Land' in self.layout.type_line_raw)
-        if cfg.enable_watermark and not is_basic_land:
+        if cfg.watermark_mode is not WatermarkMode.Disabled and not self.is_basic_land:
             check = self.run_tasks(
                 [self.create_watermark],
                 "Unable to generate watermark!")
             if not all(check):
                 return check[1]
-        elif is_basic_land and self.layout.card_class != con.basic_class:
+        elif cfg.enable_basic_watermark and self.is_basic_land:
             check = self.run_tasks(
                 [self.create_basic_watermark],
                 "Unable to generate basic land watermark!")
@@ -1202,7 +1227,7 @@ class BaseTemplate:
         check = self.run_tasks(
             [self.save_modes.get(cfg.output_filetype, psd.save_document_jpeg)],
             "Error during file save process!",
-            args=(self.output_file_name, self.output_directory)
+            args=[Path(self.output_directory, self.output_file_name)]
         )
         if not all(check):
             return check[1]
