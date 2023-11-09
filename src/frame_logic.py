@@ -526,6 +526,9 @@ def get_special_rarity(rarity: str, card: dict) -> str:
         # Championship cards
         if 'Champion' in card.get('set_name'):
             return Rarity.M
+        # Masterpiece
+        if card.get('set_type') == 'masterpiece':
+            return Rarity.M
         # Case like Prismatic Piper
         return Rarity.C
     # Bonus cards / other
