@@ -11,6 +11,22 @@ import string
 # Local Imports
 from src.utils.decorators import enum_class_prop
 
+# Maps strings to boolean values
+STR_BOOL_MAP = {
+    '1': True,
+    'y': True,
+    't': True,
+    'on': True,
+    'yes': True,
+    'true': True,
+    '0': False,
+    'n': False,
+    'f': False,
+    'no': False,
+    'off': False,
+    'false': False
+}
+
 """
 * Util classes
 """
@@ -133,6 +149,20 @@ def normalize_str(st: str, no_space: bool = False) -> str:
 
     # Remove punctuation
     return st.translate(str.maketrans("", "", string.punctuation))
+
+
+def str_to_bool(st: str) -> bool:
+    """
+    Converts a truthy string value to a bool. Conversion is case-insensitive.
+    @param st: True values are y, yes, t, true, on and 1.
+    False values are n, no, f, false, off and 0.
+    @return: Adjacent boolean value.
+    @raise: ValueError if string provided isn't a recognized truthy expression.
+    """
+    try:
+        return STR_BOOL_MAP[st.lower()]
+    except KeyError:
+        raise ValueError(f"Couldn't discern boolean value of string '{st}'!")
 
 
 """
