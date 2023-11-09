@@ -19,11 +19,12 @@ from src.enums.photoshop import Dimensions
 from src.enums.settings import (
     ExpansionSymbolMode,
     BorderlessColorMode,
-    BorderlessTextbox, ModernClassicCrown
+    BorderlessTextbox,
+    ModernClassicCrown
 )
 from src.frame_logic import contains_frame_colors
 from src.helpers import get_line_count
-from src.layouts import BasicLandLayout, TokenLayout
+from src.layouts import TokenLayout
 from src.templates._core import (
     StarterTemplate,
     NormalTemplate,
@@ -1275,6 +1276,13 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     """
 
     @property
+    def is_basic_land(self):
+        """Disable basic land watermark if Textless is enabled."""
+        if bool(cfg.get_setting(section="FRAME", key="Textless", default=False)):
+            return False
+        return super().is_basic_land
+
+    @property
     def is_fullart(self) -> bool:
         return True
 
@@ -1290,9 +1298,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     @cached_property
     def is_textless(self) -> bool:
         """Return True if this a textless render."""
-        if isinstance(self.layout, BasicLandLayout):
-            return True
-        if not any([self.layout.oracle_text, self.layout.flavor_text]):
+        if not any([self.layout.oracle_text, self.layout.flavor_text, self.is_basic_land]):
             return True
         return bool(cfg.get_setting(section="FRAME", key="Textless", default=False))
 
@@ -1862,7 +1868,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
 
         # Token adjustments
         if self.is_token:
-            self.text_layer_name.textItem.font = con.font_subtext
+            self.text_layer_name.textItem.font = con.font_artist
             psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
 
         # Nickname adjustments
@@ -1877,7 +1883,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             psd.enable_layer_fx(self.text_layer_type)
 
             # Rules text if not textless
-            if not self.is_textless:
+            if not self.is_textless and not self.is_basic_land:
                 psd.enable_layer_fx(self.text_layer_rules)
 
             # Flipside PT for front face Transform
