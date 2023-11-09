@@ -21,9 +21,29 @@ from src.settings import cfg
 from src.constants import con
 from src.types.cards import CardDetails
 from src.utils.exceptions import ScryfallError
+from src.utils.files import load_data_file, dump_data_file
 from src.utils.regex import Reg
 from src.utils.strings import msg_warn, normalize_str
 
+
+"""
+* Relevant Data
+"""
+
+# Scryfall API entrypoints
+SCRY_API_SETS = 'https://api.scryfall.com/sets'
+SCRY_API_CARDS = 'https://api.scryfall.com/cards'
+SCRY_API_CARDS_SEARCH = 'https://api.scryfall.com/cards/search'
+
+# MTGJSON API entrypoints
+MTGJSON_API = 'https://mtgjson.com/api/v5'
+
+# Data to remove from MTGJSON set data
+MTGJSON_SET_DATA_EXTRA = [
+    'sealedProduct',
+    'booster',
+    'cards'
+]
 
 """
 ERROR HANDLING
@@ -93,15 +113,11 @@ def get_card_data(
     @param card_number: Collector number of the card.
     @return: Scryfall dict or Exception.
     """
-    # Enforce Basic Land template?
-    name_normalized = normalize_str(card_name, True)
-    if name_normalized in BASIC_LANDS and not card_set:
-        with con.lock_func_cached:
-            return get_basic_land(card_name, name_normalized, card_set)
 
     # Establish Scryfall fetch action
+    name_normalized = normalize_str(card_name, True)
     action = get_card_unique if card_number else get_card_search
-    params = [card_set, card_number] if card_number else [card_name, card_set]
+    params = [card_set, str(card_number).lstrip('0 ')] if card_number else [card_name, card_set]
 
     # Query the card in alternate language
     if cfg.lang != "en":
@@ -133,38 +149,32 @@ def get_set_data(card_set: str) -> Optional[dict]:
     @return: MTG set dict or empty dict.
     """
     # Has this set been logged?
-    filepath = os.path.join(con.path_data_sets, f"SET-{card_set.upper()}.json")
-    if os.path.exists(filepath):
-        with con.lock_file_open:
-            with open(filepath, "r", encoding="utf-8") as f:
-                try:
-                    # Try to load the JSON data
-                    loaded = json.load(f)
-                    if loaded.get('scryfall'):
-                        return loaded
-                except json.JSONDecodeError as e:
-                    # JSON data invalid
-                    console.log_exception(e)
+    path = Path(con.path_data_sets, f"SET-{card_set.upper()}.json")
+    if os.path.exists(path):
+        try:
+            # Try to load existing data file
+            data = load_data_file(path)
+            if 'scryfall' in data:
+                return data
+        except Exception as e:
+            console.log_exception(e)
 
-    # Get set data
+    # Get Scryfall data, then check for token set
     data_scry = get_set_scryfall(card_set)
-
-    # Check for token set before progressing
     if data_scry.get('set_type', '') == 'token':
         card_set = data_scry.get('parent_set_code', card_set)
+
+    # Get MTGJSON data and fold it in
     data_mtg = get_set_mtgjson(card_set)
+    data_scry.update(data_mtg)
 
     # Save the data if both lookups were valid, or 'printed_size' is present
-    data_scry.update(data_mtg)
     if (data_mtg and data_scry) or 'printed_size' in data_scry:
-        with con.lock_file_open:
-            with open(filepath, "w", encoding="utf-8") as f:
-                try:
-                    # Try to dump the JSON data
-                    json.dump(data_scry, f, sort_keys=True, ensure_ascii=False)
-                except json.JSONDecodeError as e:
-                    # JSON data invalid
-                    console.log_exception(e)
+        try:
+            # Try to dump set data
+            dump_data_file(data_scry, path)
+        except Exception as e:
+            console.log_exception(e)
 
     # Enforce valid data
     return data_scry if isinstance(data_scry, dict) else {}
@@ -191,7 +201,7 @@ def get_card_unique(
     """
     lang = '' if lang == 'en' else f'/{lang}'
     res = requests.get(
-        url=f'https://api.scryfall.com/cards/{card_set.lower()}/{card_number}{lang}',
+        url=f'{SCRY_API_CARDS}/{card_set.lower()}/{card_number}{lang}',
         headers=con.http_header
     )
     card, url = res.json(), res.url
@@ -220,7 +230,7 @@ def get_card_search(
     """
     # Query Scryfall
     res = requests.get(
-        url = f"https://api.scryfall.com/cards/search",
+        url = SCRY_API_CARDS_SEARCH,
         headers=con.http_header,
         params={
             'unique': cfg.scry_unique,
@@ -229,9 +239,7 @@ def get_card_search(
             'include_extras': extras if extras else cfg.scry_extras,
             'q': f'!"{card_name}"'
                  f" lang:{lang}"
-                 f"{f' set:{card_set.lower()}' if card_set else ''}"
-        }
-    )
+                 f"{f' set:{card_set.lower()}' if card_set else ''}"})
 
     # Card data returned, Scryfall encoded URL
     card, url = res.json() or {}, res.url
@@ -245,6 +253,48 @@ def get_card_search(
     return ScryfallError(url, name=card_name, code=card_set, lang=lang)
 
 
+@handle_request_failure([])
+def get_cards_paged(url: str = SCRY_API_CARDS_SEARCH, all_pages: bool = True, **kwargs) -> list[dict]:
+    """
+    Grab paginated card list from a Scryfall API endpoint.
+    @param url: Scryfall API URL endpoint to access.
+    @param all_pages: Whether to return all additional pages, or just the first.
+    @param kwargs: Optional parameters to pass to API endpoint.
+    """
+    # Query Scryfall
+    res = requests.get(url=url, headers=con.http_header, params=kwargs).json()
+    cards = res.get('data', [])
+
+    # Add additional pages if any exist
+    if all_pages and res.get("has_more") and res.get("next_page"):
+        cards.extend(
+            get_cards_paged(
+                url=res.get['next_page'],
+                all_pages=all_pages
+            ))
+    return cards
+
+
+@handle_request_failure([])
+def get_cards_oracle(oracle_id: str, all_pages: bool = False, **kwargs) -> list[dict]:
+    """
+    Grab paginated card list from a Scryfall API endpoint using the Oracle ID of the card.
+    @param oracle_id: Scryfall Oracle ID of the card.
+    @param all_pages: Whether to return all additional pages, or just the first.
+    @param kwargs: Optional parameters to pass to API endpoint.
+    """
+    return get_cards_paged(
+        url=SCRY_API_CARDS_SEARCH,
+        all_pages=all_pages,
+        **{
+            'q': f'oracleid:{oracle_id}',
+            'dir': kwargs.pop('dir', 'asc'),
+            'order': kwargs.pop('order', 'released'),
+            'unique': kwargs.pop('unique', 'prints'),
+            **kwargs
+        })
+
+
 @handle_request_failure({})
 def get_set_mtgjson(card_set: str) -> dict:
     """
@@ -253,23 +303,16 @@ def get_set_mtgjson(card_set: str) -> dict:
     @return: MTGJson set dict or empty dict.
     """
     # Grab from MTG JSON
-    source = requests.get(
-        f"https://mtgjson.com/api/v5/{card_set.upper()}.json",
+    j = requests.get(
+        f"{MTGJSON_API}/{card_set.upper()}.json",
         headers=con.http_header
-    ).text
-    j = json.loads(source).get('data', {})
+    ).json().get('data', {})
 
-    # Minimize data stored
-    j.pop('cards', None)
-    j.pop('booster', None)
-    j.pop('sealedProduct', None)
+    # Add token count if tokens present
+    j['tokenCount'] = len(j.pop('tokens', []))
 
-    # Verify token count
-    if 'tokens' in j:
-        j['tokenCount'] = len(j.get('tokens', []))
-        j.pop('tokens', None)
-    else:
-        j['tokenCount'] = 0
+    # Remove unneeded data
+    [j.pop(n) for n in MTGJSON_SET_DATA_EXTRA]
 
     # Return data if valid
     return j if j.get('name') else {}
@@ -284,7 +327,7 @@ def get_set_scryfall(card_set: str) -> dict:
     """
     # Grab from Scryfall
     source = requests.get(
-        f"https://api.scryfall.com/sets/{card_set.upper()}",
+        f"{SCRY_API_SETS}/{card_set.upper()}",
         headers=con.http_header
     ).text
     j = json.loads(source)
@@ -312,14 +355,14 @@ CARD DATA UTILITIES
 """
 
 
-def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
+def parse_card_info(file_path: Path) -> CardDetails:
     """
     Retrieve card name from the input file, and optional tags (artist, set, number).
     @param file_path: Path to the image file.
     @return: Dict of card details.
     """
     # Extract just the card name
-    file_name = os.path.basename(os.path.splitext(str(file_path))[0])
+    file_name = file_path.stem
 
     # Match pattern and format data
     name_split = Reg.PATH_SPLIT.split(file_name)
@@ -378,11 +421,6 @@ def process_scryfall_data(data: dict) -> dict:
     @param data: Unprocessed scryfall data.
     @return: Processed scryfall data.
     """
-    # Add Basic Land layout
-    if any([n in data.get('type_line', '') for n in ['Basic Land', 'Basic Snow Land']]) and cfg.render_basic:
-        data['layout'] = 'basic'
-        return data
-
     # Modify meld card data to fit transform layout
     if data['layout'] == 'meld':
         # Ignore tokens and other objects
