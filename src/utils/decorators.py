@@ -1,8 +1,8 @@
 """
 * UTILITY DECORATORS
 """
-from typing import Callable
-
+from contextlib import suppress
+from typing import Callable, Any
 
 """
 * Decorator Funcs
@@ -66,6 +66,20 @@ def choose_class_route(condition: bool) -> Callable:
             if condition:
                 return func(self, *args, **kwargs)
             return getattr(super(self.__class__, self), func.__name__)(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def suppress_and_return(return_val: Any) -> Callable:
+    """
+    If an exception occurs within decorated function, suppress it and return given value.
+    @param return_val: Value to return if exception is encountered.
+    """
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            with suppress(Exception):
+                return func(self, *args, **kwargs)
+            return return_val
         return wrapper
     return decorator
 
