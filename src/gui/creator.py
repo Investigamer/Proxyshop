@@ -13,7 +13,7 @@ from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 
 # Local Imports
 from src.constants import con
-from src.core import TemplateDetails, get_templates, get_my_templates
+from src.loader import TemplateDetails, get_templates, get_my_templates
 from src.settings import cfg
 
 """

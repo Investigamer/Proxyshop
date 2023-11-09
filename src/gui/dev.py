@@ -14,7 +14,7 @@ from kivy.uix.label import Label
 
 # Local Imports
 from src.constants import con
-from src.core import get_templates, TemplateDetails
+from src.loader import get_templates, TemplateDetails
 from src.gui.utils import HoverButton
 
 

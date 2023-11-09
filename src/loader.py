@@ -5,19 +5,19 @@ LOADS PLUGINS AND TEMPLATES
 import os
 import sys
 import json
-import os.path as osp
+from pathlib import Path
 from typing import Callable
 from importlib import import_module
 
 # Local Imports
 from src.constants import con
-from src.settings import cfg
+from src.settings import cfg, ConfigManager
 from src.utils.modules import get_loaded_module
 from src.types.templates import TemplateDetails, TemplateManifest
 
 
 """
-TEMPLATE FUNCTIONS
+* Template Utils
 """
 
 
@@ -29,7 +29,7 @@ def get_template_class(template: TemplateDetails) -> Callable:
     """
     # Built-in template?
     if not template['plugin_path']:
-        return getattr(import_module("src.templates"), template['class_name'])
+        return getattr(import_module('src.templates'), template['class_name'])
 
     # Load the plugin module, use hot-loading if enabled
     module = get_loaded_module(
@@ -52,7 +52,7 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
     data: dict[str, list[TemplateDetails]] = {}
 
     # Load the built-in templates
-    with open(os.path.join(con.path_data, "app_templates.json"), encoding="utf-8") as f:
+    with open(Path(con.path_data, 'app_templates.json'), encoding="utf-8") as f:
         app_json: TemplateManifest = json.load(f)
 
     # Build a TemplateDetails for each template
@@ -64,9 +64,9 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                 "layout": card_type,
                 "class_name": template['class'],
                 "type": con.card_type_map_raw.get(card_type, 'Normal'),
-                "config_path": osp.join(con.path_configs, f"{template['class']}.json"),
-                "preview_path": osp.join(con.path_img, f"previews/{template['class']}.jpg"),
-                "template_path": osp.join(con.path_templates, template['file']),
+                "config": ConfigManager(template['class'], None),
+                "preview_path": Path(con.path_img, f"previews/{template['class']}.jpg"),
+                "template_path": Path(con.path_templates, template['file']),
                 "plugin_name": None,
                 "plugin_path": None,
             } for name, template in templates.items()
@@ -78,11 +78,11 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
     # Iterate through plugin folders
     for folder in [f for f in os.scandir(con.path_plugins) if f.is_dir()]:
         # Mandatory paths
-        py_file = osp.join(folder.path, 'templates.py')
-        json_file = osp.join(folder.path, 'manifest.json')
+        py_file = Path(folder.path, 'templates.py')
+        json_file = Path(folder.path, 'manifest.json')
 
         # Ensure mandatory paths exist
-        if not osp.exists(json_file) or not osp.exists(py_file):
+        if not all([json_file.is_file(), py_file.is_file()]):
             continue
 
         # Load json
@@ -111,9 +111,9 @@ def get_templates() -> dict[str, list[TemplateDetails]]:
                     "class_name": template['class'],
                     "plugin_name": str(folder.name),
                     "plugin_path": py_file,
-                    "config_path": osp.join(folder.path, f"configs/{template['class']}.json"),
-                    "preview_path": osp.join(folder.path, f"img/{template['class']}.jpg"),
-                    'template_path': osp.join(folder.path, f"templates/{template['file']}"),
+                    "config": ConfigManager(template['class'], str(folder.name)),
+                    "preview_path": Path(folder.path, f"img/{template['class']}.jpg"),
+                    'template_path': Path(folder.path, f"templates/{template['file']}"),
 
                 })
 

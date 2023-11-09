@@ -1,12 +1,11 @@
 """
 PROXYSHOP GUI LAUNCHER
 """
+import os
 # Standard Library Imports
 import sys
 import json
 import datetime
-from contextlib import suppress
-
 import win32clipboard
 import os.path as osp
 from io import BytesIO
@@ -14,6 +13,7 @@ from pathlib import Path
 from threading import Event
 from time import perf_counter
 from os import environ, listdir
+from contextlib import suppress
 from typing import Union, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
@@ -44,32 +44,41 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 # Local Imports
-from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
-from src.utils.files import remove_config_file, load_data_file
-from src.gui.creator import CreatorPanels
-from src.gui.dev import TestApp
-from src.gui.tools import ToolsLayout
-from src.gui.utils import HoverBehavior, HoverButton, GUI, DynamicTabPanel, DynamicTabItem
-from src.gui.settings import SettingsPopup
 from src.constants import con
-from src.core import (
+from src.loader import (
     get_templates,
     TemplateDetails,
     get_my_templates,
-    get_template_class
-)
+    get_template_class)
+from src.gui.creator import CreatorPanels
+from src.gui.dev import TestApp
+from src.gui.settings import SettingsPopup
+from src.gui.tools import ToolsLayout
+from src.gui.utils import (
+    DynamicTabPanel,
+    DynamicTabItem,
+    HoverBehavior,
+    HoverButton,
+    GUI)
+from src.layouts import (
+    CardLayout,
+    layout_map,
+    assign_layout,
+    join_dual_card_layouts)
 from src.settings import cfg
-from src.console import console
+from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
+from src.utils.files import remove_config_file, load_data_file
 from src.utils.download import download_s3
 from src.utils.fonts import check_app_fonts
-from src.layouts import CardLayout, layout_map, assign_layout, join_dual_card_layouts
 from src.utils.strings import (
     get_bullet_points,
     msg_success,
     msg_error,
     msg_warn,
-    msg_info
-)
+    msg_info)
+
+# Always place last
+from src.console import console
 
 # App configuration
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
@@ -218,7 +227,7 @@ class ProxyshopApp(App):
         @return: The result of the wrapped function.
         """
         def wrapper(self, *args):
-            while check := con.app.refresh_app():
+            while check := con.refresh_photoshop():
                 if not console.await_choice(
                     thr=Event(),
                     msg=get_photoshop_error_message(check),
@@ -326,7 +335,7 @@ class ProxyshopApp(App):
             try:
                 # Open a file select dialog in Photoshop
                 if files := con.app.openDialog():
-                    return files
+                    return [Path(f) for f in files]
                 # No files selected
                 return
             except PS_EXCEPTIONS as e:
@@ -338,7 +347,7 @@ class ProxyshopApp(App):
                     # Cancel the operation
                     return
                 # Refresh Photoshop, try again
-                con.app.refresh_app()
+                con.refresh_photoshop()
 
     def close_document(self) -> None:
         """Close Photoshop document if open."""
@@ -367,7 +376,7 @@ class ProxyshopApp(App):
         return self.render_all(files)
 
     @render_process_wrapper
-    def render_all(self, files: Optional[list[str]] = None) -> None:
+    def render_all(self, files: Optional[list[Union[str, os.PathLike]]] = None) -> None:
         """
         Render cards using all images located in the art folder.
         @param files: List of art file paths, if not provided use valid images in the art folder.
@@ -461,7 +470,7 @@ class ProxyshopApp(App):
         @param deep: Tests every card case for each template if enabled.
         """
         # Load data file and loop through test case sections
-        for card_type, cards in load_data_file('toml', "template_renders").items():
+        for card_type, cards in load_data_file(Path(con.path_tests, 'template_renders.toml')).items():
 
             # If not a deep test, only use first entry
             cards = {k: v for k, v in [next(iter(cards.items()))]} if not deep else cards
@@ -487,7 +496,7 @@ class ProxyshopApp(App):
                         continue
 
                     # Grab the template class and start the render thread
-                    layout.art_file = osp.join(con.path_img, "test.jpg")
+                    layout.art_file = Path(con.path_img, "test.jpg")
                     template['loaded_class'] = get_template_class(template)
                     if not self.start_render(template, layout):
                         failures.append((card_name, card_case, 'Failed to render'))
@@ -512,7 +521,7 @@ class ProxyshopApp(App):
         @param template: Specific template to test.
         """
         # Load test case cards
-        cases = load_data_file('toml', "template_renders")
+        cases = load_data_file(Path(con.path_tests, 'template_renders.toml'))
 
         # Is this template installed?
         console.update(msg_success(f"\n---- {template['class_name']} ----"))
@@ -531,7 +540,7 @@ class ProxyshopApp(App):
                 continue
 
             # Start the render
-            layout.art_file = osp.join(con.path_img, "test.jpg")
+            layout.art_file = Path(con.path_img, "test.jpg")
             template['loaded_class'] = get_template_class(template)
             result = self.start_render(template, layout)
 
@@ -677,7 +686,7 @@ class ProxyshopApp(App):
         try:
             if not ENV.DEV_MODE:
                 # Download updated library via Amazon S3 and update global constants
-                if not download_s3(osp.join(con.path_data, 'symbols.yaml'), 'symbols.yaml'):
+                if not download_s3(Path(con.path_data, 'symbols.yaml'), 'symbols.yaml'):
                     raise OSError("Amazon S3 download failed to write data to disk!")
                 con.reload()
             console.update(f"Expansion Symbols ... {msg_success('Library updated!')}")
@@ -829,16 +838,15 @@ class TemplateTabContainer(BoxLayout):
         if osp.exists(dst) and dst != src:
             self.ids.preview_image.source = dst
 
-    def set_preview_image(self, path: str) -> None:
+    def set_preview_image(self, path: Path) -> None:
         """
         Sets the preview image in this container to a given image, allowing for layout
         specification and NotFound fallback image.
         @param path: Main preview image path for a template.
         """
-        layout_specific = path.replace('.jpg', f'[{self._layout}].jpg')
-        self.ids.preview_image.source = layout_specific if osp.exists(layout_specific) else (
-            path if (osp.exists(path)) else osp.join(con.path_img, 'NotFound.jpg')
-        )
+        layout_specific = Path(str(path).replace('.jpg', f'[{self._layout}].jpg'))
+        self.ids.preview_image.source = str(layout_specific if layout_specific.is_file() else (
+            path if path.is_file() else Path(con.path_img, 'NotFound.jpg')))
 
 
 class TemplateView(ScrollView):
@@ -910,9 +918,7 @@ class TemplateRow(BoxLayout):
 
     def default_settings_button_check(self) -> None:
         """Checks for a template's config file and enables/disables the reset settings button."""
-        self.ids.reset_default_button.disabled = True if (
-            not osp.isfile(self.template['config_path'].replace('.json', '.ini'))
-        ) else False
+        self.ids.reset_default_button.disabled = False if self.template['config'].has_template_ini else True
 
 
 class TemplateSettingsButton(HoverButton):
@@ -929,7 +935,7 @@ class TemplateResetDefaultButton(HoverButton):
 
     async def reset_default(self):
         # Remove the config file and alert the user
-        if remove_config_file(self.parent.template['config_path'].replace('.json', '.ini')):
+        if remove_config_file(self.parent.template['config'].template_path_ini):
             console.update(f"{self.parent.template['name']} has been reset to global settings!")
         self.disabled = True
 
@@ -941,10 +947,10 @@ if __name__ == '__main__':
         resource_add_path(osp.join(sys._MEIPASS))
 
     # Ensure mandatory folders are created
-    Path(con.path_logs).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(con.path_templates).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(osp.join(con.cwd, "out")).mkdir(mode=711, parents=True, exist_ok=True)
-    Path(osp.join(con.path_data, "sets")).mkdir(mode=711, parents=True, exist_ok=True)
+    con.path_out.mkdir(mode=711, parents=True, exist_ok=True)
+    con.path_logs.mkdir(mode=711, parents=True, exist_ok=True)
+    con.path_templates.mkdir(mode=711, parents=True, exist_ok=True)
+    con.path_data_sets.mkdir(mode=711, parents=True, exist_ok=True)
 
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)
