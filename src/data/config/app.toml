@@ -1,0 +1,141 @@
+# CONF — APP
+[__CONFIG__]
+prefix = "APP"
+
+###
+# * File Settings
+###
+
+[FILES]
+title = "File Settings"
+
+[FILES."Output.Filetype"]
+title = "Output Filetype"
+desc = """File extension to use for rendered images."""
+type = "options"
+default = "jpg"
+options = ["jpg", "png", "psd"]
+
+[FILES."Save.Artist.Name"]
+title = "Save Artist Name"
+desc = """Include artist in rendered file name, e.g. Assassinate (Kev Walker).jpg"""
+type = "bool"
+default = 0
+
+[FILES."Overwrite.Duplicate"]
+title = "Overwrite Duplicates"
+desc = """Overwrite rendered files with identical file names."""
+type = "bool"
+default = 1
+
+###
+# * Scryfall Settings
+###
+
+[DATA]
+title = "Scryfall Settings"
+
+[DATA."Scryfall.Language"]
+title = "Scryfall Language"
+desc = """A scryfall supported language code to look for alternate language text.
+Phyrexian is not supported at this time."""
+type = "options"
+default = "en"
+options = ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"]
+
+[DATA."Scryfall.Sorting"]
+title = "Scryfall Sorting"
+desc = """The method used to sort the Scryfall card lookup results."""
+type = "options"
+default = "released"
+options = ["released", "set", "rarity", "usd", "eur", "edhrec", "artist"]
+
+[DATA."Scryfall.Ascending"]
+title = "Scryfall Search Ascending"
+desc = """When pulling cards from Scryfall, search ascending instead of descending.
+For example, in order of 'released', ascending would be oldest to newest."""
+type = "bool"
+default = 0
+
+[DATA."Scryfall.Extras"]
+title = "Scryfall Include Extras"
+desc = """When pulling cards from Scryfall, allow extras like promo prints, funny sets, etc."""
+type = "bool"
+default = 0
+
+[DATA."Scryfall.Unique"]
+title = "Scryfall Unique"
+desc = """Whether Scryfall should return card data for all unique arts, or all unique prints."""
+type = "options"
+default = "arts"
+options = ["arts", "prints"]
+
+###
+# * Text Settings
+###
+
+[TEXT]
+title = "Text Settings"
+
+[TEXT."Force.English.Formatting"]
+title = "Force English Formatting"
+desc = """Enabling this will force Photoshop text layers to use English formatting."""
+type = "bool"
+default = 0
+
+###
+# * Render Settings
+###
+
+[RENDER]
+title = "Render Settings"
+
+[RENDER."Skip.Failed"]
+title = "Skip Failed Cards"
+desc = """Automatically skip failed cards without asking for confirmation."""
+type = "bool"
+default = 0
+
+[RENDER."Render.Snow"]
+title = "Render Snow Cards with Snow Template"
+desc = """When enabled, snow cards will be rendered using Snow template type."""
+type = "bool"
+default = 0
+
+[RENDER."Render.Miracle"]
+title = "Render Miracle Cards with Miracle Template"
+desc = """When enabled, miracle cards will be rendered using Miracle template type."""
+type = "bool"
+default = 0
+
+[RENDER."Generative.Fill"]
+title = "Enable Generative Fill"
+desc = """When enabled, fullart and extended templates will fill empty space using Generative Fill instead of Content Aware Fill. This feature will not work unless running the Photoshop BETA version."""
+type = "bool"
+default = 0
+
+[RENDER."Vertical.Fullart"]
+title = "Always use vertical framing on Fullart Templates"
+desc = """When enabled, Fullart templates will frame all art using the vertical 'fullart' frame, even when horizontal art is provided. """
+type = "bool"
+default = 0
+
+###
+# * System Settings
+###
+
+[SYSTEM]
+title = "System Settings"
+
+[SYSTEM."Refresh.Plugins"]
+title = "Hotload Plugin Templates"
+desc = """Enabling this will cause plugin template code to be re-cached at each call.
+Will add minimal execution time but allows creators to live test code changes."""
+type = "bool"
+default = 0
+
+[SYSTEM."Test.Mode"]
+title = "Testing Mode"
+desc = """Enabling this will change the GUI into a simple testing interface."""
+type = "bool"
+default = 0

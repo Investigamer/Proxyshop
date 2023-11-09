@@ -1,0 +1,139 @@
+# CONF — BASE
+[__CONFIG__]
+prefix = "BASE"
+
+###
+# * Text Settings
+###
+
+[TEXT]
+title = "Text Options"
+
+[TEXT."Flavor.Divider"]
+title = "Enable Flavor Divider"
+desc = """Adds flavor divider to rendered card when appropriate."""
+type = "bool"
+default = 1
+
+[TEXT."No.Flavor.Text"]
+title = "Remove Flavor Text"
+desc = """Renders cards without flavor text."""
+type = "bool"
+default = 0
+
+[TEXT."No.Reminder.Text"]
+title = "Remove Reminder Text"
+desc = """Renders cards without reminder text."""
+type = "bool"
+default = 0
+
+[TEXT."Collector.Mode"]
+title = "Collector Mode"
+desc = """Default: Formats collector info like modern cards pre-2023.
+Modern: Formats collector info like March of the Machine and onwards.
+Minimal: Only includes artist, set code, and language.
+Artist: Only includes artist."""
+type = "options"
+default = "default"
+options = ["default", "modern", "minimal", "artist"]
+
+[TEXT."Collector.Promo"]
+title = "Collector Promo Star"
+desc = """Whether to use the promo star in collector info text on supported templates."""
+type = "options"
+default = "automatic"
+options = ["automatic", "always", "never"]
+
+###
+# * Symbol Settings
+###
+
+[SYMBOLS]
+title = "Expansion Symbols"
+
+[SYMBOLS."Symbol.Mode"]
+title = "Symbol Render Mode"
+desc = """SVG: Renders using SVG files sourced from CCGHQ.
+Font: Renders using Keyrune font + layer effects.
+None: Completely disables expansion symbol."""
+type = "options"
+default = "svg"
+options = ["svg", "font", "none"]
+
+[SYMBOLS."Default.Symbol"]
+title = "Default Expansion Symbol"
+desc = """Symbol used when an automatic symbol couldn't be found. Enter a recognized MTG or Keyrune set code."""
+type = "string"
+default = "MTG"
+
+[SYMBOLS."Force.Default.Symbol"]
+title = "Force Default Expansion Symbol"
+desc = """Forces Proxyshop to always used the Default Expansion Symbol chosen above."""
+type = "bool"
+default = 0
+
+[SYMBOLS."Symbol.Stroke.Size"]
+title = "Default Expansion Symbol Outline"
+desc = """Changes the default thickness of the expansion symbol outline in font mode."""
+type = "numeric"
+default = 6
+
+###
+# * Watermark Settings
+###
+
+[WATERMARKS]
+title = "Watermarks"
+
+[WATERMARKS."Watermark.Mode"]
+title = "Watermark Mode"
+desc = """[b]Automatic[/b]: Generates a watermark when present in Scryfall data.
+[b]Fallback[/b]: Automatic, but use Default defined below as a fallback for Scryfall data.
+[b]Forced[/b]: Always use Default watermark defined below."""
+type = "options"
+default = "Disabled"
+options = ["Disabled", "Automatic", "Fallback", "Forced"]
+
+[WATERMARKS."Default.Watermark"]
+title = "Default Watermark"
+desc = """Watermark to use as a fallback or manually generate. Enter a Scryfall recognized watermark or set code."""
+type = "string"
+default = "WOTC"
+
+[WATERMARKS."Watermark.Opacity"]
+title = "Watermark Default Opacity"
+desc = """Transparency value of the watermark, 0 being invisible 100 being fully visible."""
+type = "numeric"
+default = 30
+
+[WATERMARKS."Enable.Basic.Watermark"]
+title = "Enable Basic Land Watermark"
+desc = """Automatically generate mana watermark for Basic Land cards (also hides their rules text)."""
+type = "bool"
+default = 1
+
+###
+# * Template Render Settings
+###
+
+[TEMPLATES]
+title = "Template Options"
+
+[TEMPLATES."Manual.Edit"]
+title = "Manual Editing Mode"
+desc = """Pause the render process before saving to allow for manual edits."""
+type = "bool"
+default = 0
+
+[TEMPLATES."Import.Scryfall.Scan"]
+title = "Import Scryfall Scan"
+desc = """Will import the scryfall scan of each card into the document for reference. Useful for ensuring card accuracy when making manual changes."""
+type = "bool"
+default = 0
+
+[TEMPLATES."Border.Color"]
+title = "Border Color"
+desc = """Choose the color of the card border used across templates. Will work on most templates, but considered experimental."""
+type = "options"
+default = "black"
+options = ["black", "white", "silver", "gold"]
