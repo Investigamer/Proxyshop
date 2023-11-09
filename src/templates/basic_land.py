@@ -1,5 +1,6 @@
 """
 * BASIC LAND TEMPLATES
+* DEPRECATED in v1.13.0
 """
 # Standard Library Imports
 from functools import cached_property
