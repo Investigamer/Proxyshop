@@ -14,8 +14,8 @@ from src.settings import cfg
 from src.utils.decorators import auto_prop_cached, auto_prop
 from src.utils.regex import Reg
 from src.enums.mtg import Rarity, TransformIcons, planeswalkers_tall
-from src.enums.settings import CollectorMode
-from src.utils.scryfall import get_set_data, get_card_data, parse_card_info
+from src.enums.settings import CollectorMode, WatermarkMode
+from src.utils.scryfall import get_set_data, get_card_data, parse_card_info, get_cards_oracle
 from src.frame_logic import (
     get_frame_details,
     FrameDetails,
@@ -128,10 +128,11 @@ class NormalLayout:
     @auto_prop_cached
     def card_class(self) -> str:
         """Establish the card's template class type."""
-        if "Miracle" in self.frame_effects and cfg.render_miracle:
+        if self.is_miracle and cfg.render_miracle:
+            # Miracle cards
             return con.miracle_class
-        elif "Snow" in self.type_line_raw and cfg.render_snow:
-            # Pre-KHM Snow cards don't contain "Snow" frame effect
+        elif self.is_snow and cfg.render_snow:
+            # Snow cards
             return con.snow_class
         return con.normal_class
 
@@ -187,6 +188,12 @@ class NormalLayout:
         # Treat single face cards as front
         self.scryfall['front'] = True
         return self.scryfall
+
+    @auto_prop_cached
+    def first_print(self) -> dict:
+        """Card data fetched from Scryfall representing the first print of this card."""
+        first = get_cards_oracle(self.scryfall.get('oracle_id', ''))
+        return first[0] if first else {}
 
     @auto_prop_cached
     def frame_effects(self) -> list:
@@ -414,8 +421,55 @@ class NormalLayout:
 
     @auto_prop_cached
     def watermark(self) -> Optional[str]:
-        """Name of the card's watermark if provided."""
+        """Name of the card's watermark file that is actually used, if provided."""
+        if not self.watermark_svg:
+            return
+        if self.watermark_svg.stem.upper() == 'WM':
+            return self.watermark_svg.parent.stem.lower()
+        return self.watermark_svg.stem.lower()
+
+    @auto_prop_cached
+    def watermark_raw(self) -> Optional[str]:
+        """Name of the card's watermark from raw Scryfall data, if provided."""
         return self.card.get('watermark')
+
+    @auto_prop_cached
+    def watermark_svg(self) -> Optional[Path]:
+        """Path to the watermark SVG file, if provided."""
+        def _get_watermark(wm: str) -> Optional[Path]:
+            """Try finding a watermark in both possible locations, return None if unsuccessful."""
+            if not wm:
+                return
+            wm_low = wm.lower()
+
+            # Watermark special cases
+            if wm_low == 'con':
+                wm = 'conf'
+            elif wm_low == 'set':
+                wm = self.first_print.get('set', 'set')
+            elif wm_low == 'symbol':
+                wm = self.set
+
+            # Check both locations for watermark
+            p = Path(con.path_img, 'watermarks', f'{wm.lower()}.svg')
+            p = p if p.is_file() else Path(con.path_img, 'symbols', wm.upper(), 'WM.svg')
+            return p if p.is_file() else None
+
+        # Disabled Mode
+        if cfg.watermark_mode == WatermarkMode.Disabled:
+            return
+
+        # Forced mode
+        if cfg.watermark_mode == WatermarkMode.Forced:
+            return _get_watermark(cfg.watermark_default)
+
+        # Automatic mode
+        path = _get_watermark(self.watermark_raw)
+        if path or cfg.watermark_mode == WatermarkMode.Automatic:
+            return path
+
+        # Fallback mode
+        return _get_watermark(cfg.watermark_default)
 
     """
     * Bool Properties
@@ -480,6 +534,16 @@ class NormalLayout:
     def is_alt_lang(self) -> bool:
         """True if language selected isn't English."""
         return bool(self.lang != 'EN')
+
+    @auto_prop_cached
+    def is_miracle(self) -> bool:
+        """True if card is a 'Miracle' card."""
+        return bool("Miracle" in self.frame_effects)
+
+    @auto_prop_cached
+    def is_snow(self) -> bool:
+        """True if card is a 'Snow' card."""
+        return bool('Snow' in self.type_line_raw)
 
     """
     * Frame Properties
@@ -828,7 +892,7 @@ class AdventureLayout(NormalLayout):
     """
 
     @auto_prop_cached
-    def other_face(self) -> dict:
+    def adventure(self) -> dict:
         """Card object for adventure side."""
         return self.scryfall['card_faces'][1]
 
@@ -839,28 +903,33 @@ class AdventureLayout(NormalLayout):
     @auto_prop_cached
     def mana_adventure(self) -> str:
         """Mana cost of the adventure side."""
-        return self.other_face['mana_cost']
+        return self.adventure['mana_cost']
 
     @auto_prop_cached
     def name_adventure(self) -> str:
         """Name of the Adventure side."""
-        if self.is_alt_lang and 'printed_name' in self.other_face:
-            return self.other_face.get('printed_name', '')
-        return self.other_face.get('name', '')
+        if self.is_alt_lang and 'printed_name' in self.adventure:
+            return self.adventure.get('printed_name', '')
+        return self.adventure.get('name', '')
 
     @auto_prop_cached
     def type_line_adventure(self) -> str:
         """Type line of the Adventure side."""
-        if self.is_alt_lang and 'printed_type_line' in self.other_face:
-            return self.other_face.get('printed_type_line', '')
-        return self.other_face.get('type_line', '')
+        if self.is_alt_lang and 'printed_type_line' in self.adventure:
+            return self.adventure.get('printed_type_line', '')
+        return self.adventure.get('type_line', '')
 
     @auto_prop_cached
     def oracle_text_adventure(self) -> str:
         """Oracle text of the Adventure side."""
-        if self.is_alt_lang and 'printed_text' in self.other_face:
-            return self.other_face.get('printed_text', '')
-        return self.other_face.get('oracle_text', '')
+        if self.is_alt_lang and 'printed_text' in self.adventure:
+            return self.adventure.get('printed_text', '')
+        return self.adventure.get('oracle_text', '')
+
+    @auto_prop_cached
+    def flavor_text_adventure(self) -> str:
+        """Flavor text of the Adventure side."""
+        return self.adventure.get('flavor_text', '')
 
     """
     * Adventure Colors
@@ -868,12 +937,12 @@ class AdventureLayout(NormalLayout):
 
     @auto_prop_cached
     def color_identity_adventure(self) -> list[str]:
-        """Color identity of the Adventure side of this card."""
+        """Colors present in the adventure side mana cost."""
         return [n for n in get_mana_cost_colors(self.mana_adventure)]
 
     @auto_prop_cached
     def adventure_colors(self) -> str:
-        """Colors of adventure side of the card."""
+        """Color identity of adventure side frame elements."""
         if check_hybrid_mana_cost(self.color_identity_adventure, self.mana_adventure):
             return LAYERS.LAND
         if len(self.color_identity_adventure) > 1:
@@ -1266,11 +1335,6 @@ class TokenLayout(NormalLayout):
         return None if self.collector_number > min(nums) else min(nums)
 
 
-class BasicLandLayout(NormalLayout):
-    """Basic Land card layout."""
-    card_class: str = con.basic_class
-
-
 # Any Card Layout Type
 CardLayout = Union[
     NormalLayout,
@@ -1284,8 +1348,7 @@ CardLayout = Union[
     ClassLayout,
     SplitLayout,
     PlanarLayout,
-    TokenLayout,
-    BasicLandLayout
+    TokenLayout
 ]
 
 # Planeswalker Card Layouts
@@ -1313,6 +1376,5 @@ layout_map: dict[str, Type[CardLayout]] = {
     "battle": BattleLayout,
     "planar": PlanarLayout,
     "token": TokenLayout,
-    "emblem": TokenLayout,
-    'basic': BasicLandLayout
+    "emblem": TokenLayout
 }
