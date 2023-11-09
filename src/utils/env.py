@@ -4,7 +4,6 @@
 # Standard Library
 import sys
 from os import environ
-from distutils.util import strtobool
 from typing import Optional
 
 # Third Party Imports
@@ -13,6 +12,7 @@ from dotenv import dotenv_values
 # Current app version
 from src.__version__ import version as ENV_VERSION
 from src.utils.decorators import auto_prop_cached
+from src.utils.strings import str_to_bool
 
 # Load environment variables
 OS_ENV = dotenv_values('.env')
@@ -42,16 +42,16 @@ class Env:
     @auto_prop_cached
     def DEV_MODE(self) -> bool:
         if environ.get('ENV_DEV_MODE', None):
-            return bool(strtobool(environ['ENV_DEV_MODE']))
-        return not hasattr(sys, '_MEIPASS')
+            return str_to_bool(environ['ENV_DEV_MODE'])
+        return bool(not hasattr(sys, '_MEIPASS'))
 
     @auto_prop_cached
     def HEADLESS(self) -> bool:
-        return bool(strtobool(environ.get('HEADLESS', OS_ENV.get('HEADLESS', 'False'))))
+        return str_to_bool(environ.get('HEADLESS', OS_ENV.get('HEADLESS', 'False')))
 
     @auto_prop_cached
     def PS_ERROR_DIALOG(self) -> bool:
-        return bool(strtobool(environ.get('PS_ERROR_DIALOG', OS_ENV.get('PS_ERROR_DIALOG', 'False'))))
+        return str_to_bool(environ.get('PS_ERROR_DIALOG', OS_ENV.get('PS_ERROR_DIALOG', 'False')))
 
     @auto_prop_cached
     def PS_VERSION(self) -> Optional[str]:

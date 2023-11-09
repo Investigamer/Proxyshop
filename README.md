@@ -1,9 +1,10 @@
 # Proxyshop
-Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
-Inspired by Chilli-Axe's [original Photoshop automation app](https://github.com/chilli-axe/mtg-photoshop-automation).
-If you need help with this app, join our discord: https://discord.gg/magicproxies.
-
 <div align="center">
+
+Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
+Inspired by Chilli-Axe's [original Photoshop automation scripts](https://github.com/chilli-axe/mtg-photoshop-automation).
+If you need help with this app or wish to troubleshoot an issue, [ please join our discord](https://discord.gg/magicproxies)!
+
 
 ![Photoshop](https://img.shields.io/badge/photoshop-CC_2017+-informational?style=plastic)
 ![Python](https://img.shields.io/badge/python-3.9_|_3.10_|_3.11-blue?style=plastic)
