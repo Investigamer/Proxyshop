@@ -213,9 +213,6 @@ class Config:
 
 		# APP - RENDER
 		self.skip_failed = self.file.getboolean('APP.RENDER', 'Skip.Failed', fallback=False)
-		self.render_snow = self.file.getboolean('APP.RENDER', 'Render.Snow', fallback=False)
-		self.render_miracle = self.file.getboolean('APP.RENDER', 'Render.Miracle', fallback=False)
-		self.render_basic = self.file.getboolean('APP.RENDER', 'Render.Basic', fallback=True)
 		self.generative_fill = self.file.getboolean('APP.RENDER', 'Generative.Fill', fallback=False)
 		self.vertical_fullart = self.file.getboolean('APP.RENDER', 'Vertical.Fullart', fallback=False)
 

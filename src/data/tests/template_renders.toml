@@ -7,7 +7,10 @@
 "Drossforge Bridge" = "Dual Land"
 "Arcane Lighthouse" = "Colorless Land"
 "Ancient Ziggurat" = "Gold Land"
+Mountain = "Basic Land"
 "Ghost Ark" = "Vehicle"
+"Graven Lore" = "Snow"
+Terminus = "Miracle"
 
 [transform_front]
 "Docent of Perfection [EMN]" = "Moon Eldrazi DFC"
@@ -59,11 +62,6 @@ Gemrazer = "Creature"
 "Wizard Class" = "Mono Color"
 "Rogue Class" = "Dual Color"
 
-[miracle]
-Terminus = "Noncreature Mono"
-Absorb = "Noncreature Dual"
-"Snapcaster Mage" = "Creature"
-
 [planeswalker]
 "Liliana of the Veil" = "Mono"
 "Kasmina, Enigma Sage" = "Dual"
@@ -88,10 +86,6 @@ Absorb = "Noncreature Dual"
 [snow]
 "Graven Lore" = "Noncreature"
 "Priest of the Haunted Edge" = "Creature"
-
-[basic]
-Mountain = "Mountain"
-"Snow-Covered Island" = "Snow Island"
 
 [planar]
 "Pools of Becoming" = "Planar"

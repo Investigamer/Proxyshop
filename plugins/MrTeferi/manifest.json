@@ -29,6 +29,14 @@
             "class": "DoubleFeatureTemplate",
             "file": "double-feature.psd",
             "id": "1D88pzyudnGnUglWL7H-K5AlWjLPcaHfE"
+        },
+
+
+
+        "Dark Mode": {
+            "class": "BasicLandDarkMode",
+            "file": "basic-dark-mode.psd",
+            "id": "1amK4tWUAXEics9kMaAL4n2zkEGdh143D"
         }
     },
     "transform_front": {
@@ -41,13 +49,6 @@
         "Crimson Fang": {
             "class": "CrimsonFangTemplate",
             "file": "crimson-fang.psd"
-        }
-    },
-    "basic": {
-        "Dark Mode": {
-            "class": "BasicLandDarkMode",
-            "file": "basic-dark-mode.psd",
-            "id": "1amK4tWUAXEics9kMaAL4n2zkEGdh143D"
         }
     }
 }

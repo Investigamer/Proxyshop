@@ -32,10 +32,10 @@ FUNCTIONS
 """
 
 
-def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
+def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
     """
     Assign layout object to a card.
-    @param filename: String including card name, and the following optional tags:
+    @param filename: Path to the art file, filename supports optional tags:
         - (artist name)
         - [set code]
         - {collector number}
@@ -104,6 +104,7 @@ LAYOUT CLASSES
 
 class NormalLayout:
     """Defines unified properties for all cards and serves as the layout for any M15 style typical card."""
+    card_class: str = con.normal_class
 
     # Static properties
     is_transform: bool = False
@@ -125,17 +126,6 @@ class NormalLayout:
                 f"{f' [{self.set}]' if self.set else ''}"
                 f"{f' {{{self.collector_number}}}' if self.collector_number else ''}")
 
-    @auto_prop_cached
-    def card_class(self) -> str:
-        """Establish the card's template class type."""
-        if self.is_miracle and cfg.render_miracle:
-            # Miracle cards
-            return con.miracle_class
-        elif self.is_snow and cfg.render_snow:
-            # Snow cards
-            return con.snow_class
-        return con.normal_class
-
     """
     * Core Data
     """
@@ -153,7 +143,7 @@ class NormalLayout:
     @auto_prop_cached
     def set_data(self) -> dict:
         """Set data fetched from Scryfall and MTGJSON, only required for 'Normal' Collector Mode."""
-        if self.scryfall.get('set') != 'MTG' and cfg.collector_mode == CollectorMode.Normal:
+        if self.scryfall.get('set') != 'MTG':
             return get_set_data(self.scryfall.get('set')) or {}
         return {}
 
@@ -491,16 +481,6 @@ class NormalLayout:
         return 'Legendary' in self.type_line_raw
 
     @auto_prop_cached
-    def is_nyx(self) -> bool:
-        """True if card has Nyx enchantment background texture."""
-        return "nyxtouched" in self.frame_effects
-
-    @auto_prop_cached
-    def is_companion(self) -> bool:
-        """True if card is a Companion."""
-        return "companion" in self.frame_effects
-
-    @auto_prop_cached
     def is_colorless(self) -> bool:
         """True if card is colorless or devoid."""
         return self.frame['is_colorless']
@@ -534,6 +514,20 @@ class NormalLayout:
     def is_alt_lang(self) -> bool:
         """True if language selected isn't English."""
         return bool(self.lang != 'EN')
+
+    """
+    * Cosmetic Bool
+    """
+
+    @auto_prop_cached
+    def is_nyx(self) -> bool:
+        """True if card has Nyx enchantment background texture."""
+        return "nyxtouched" in self.frame_effects
+
+    @auto_prop_cached
+    def is_companion(self) -> bool:
+        """True if card is a Companion."""
+        return "companion" in self.frame_effects
 
     @auto_prop_cached
     def is_miracle(self) -> bool:

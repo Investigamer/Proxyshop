@@ -29,10 +29,6 @@
             "file": "normal-extended.psd",
             "id": "1iqMrsHlTOeOxCWPFcPaHlXK8x9yjfJ4d"
         },
-        "Extended Dark": {
-            "class": "ExtendedDarkTemplate",
-            "file": "normal-extended.psd"
-        },
         "Etched": {
             "class": "EtchedTemplate",
             "file": "etched.psd",
@@ -170,9 +166,9 @@
     },
     "adventure": {
         "Normal": {
-            "class": "AdventureTemplate",
-            "file": "adventure.psd",
-            "id": "18-L6zsFkn5vdyKN--1I7ZIX-P5ypVWCI"
+            "class": "AdventureVectorTemplate",
+            "file": "adventure-vector.psd",
+            "id": "TBA"
         }
     },
     "leveler": {
@@ -219,12 +215,6 @@
         "Universes Beyond": {
             "class": "UniversesBeyondBattleTemplate",
             "file": "battle.psd"
-        }
-    },
-    "miracle": {
-        "Normal": {
-            "class": "MiracleTemplate",
-            "file": "miracle.psd"
         }
     },
     "prototype": {
@@ -294,43 +284,11 @@
             "id": "1BwX6vwoH-HNnAjz8408_PujankJceFox"
         }
     },
-    "snow": {
-        "Normal": {
-            "class": "SnowTemplate",
-            "file": "snow.psd"
-        }
-    },
     "token": {
         "Normal": {
             "class": "TokenTemplate",
             "file": "token.psd",
             "id": "1oWzk6MSv5wQMVJJE3VossKWs1BylBvKP"
-        },
-        "Borderless": {
-            "class": "BorderlessVectorTemplate",
-            "file": "borderless-vector.psd"
-        }
-    },
-    "basic": {
-        "Normal": {
-            "class": "BasicLandTemplate",
-            "file": "basic.psd",
-            "id": "1jw-rwJdSP8rygswpC9w5FTPReMnE_ZLW"
-        },
-        "Theros": {
-            "class": "BasicLandTherosTemplate",
-            "file": "basic-theros.psd",
-            "id": "19pBacFX_kInMSKQJjeadEPdtEZudxrLY"
-        },
-        "Classic": {
-            "class": "BasicLandClassicTemplate",
-            "file": "basic-classic.psd",
-            "id": "1hChqS03m0EKTqWCFj9fIR0ONaUo78bI2"
-        },
-        "Unstable": {
-            "class": "BasicLandUnstableTemplate",
-            "file": "basic-unstable.psd",
-            "id": "1BlMtpiBh0UXsvA2ZC9rJBTp-RbelKsiK"
         },
         "Borderless": {
             "class": "BorderlessVectorTemplate",

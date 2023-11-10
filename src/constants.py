@@ -45,13 +45,10 @@ class Constants:
         "Prototype": ["prototype"],
         "Adventure": ["adventure"],
         "Leveler": ["leveler"],
-        "Saga": ["saga"],
         "Split": ["split"],
         "Class": ["class"],
         "Battle": ["battle"],
         "Token": ["token"],
-        "Miracle": ["miracle"],
-        "Snow": ["snow"],
         "Planar": ["planar"]
     }
 
@@ -73,6 +70,7 @@ class Constants:
         self.cwd = __PATH_ROOT__
         self.path_src = Path(self.cwd, 'src')
         self.path_out = Path(self.cwd, 'out')
+        self.path_art = Path(self.cwd, 'art')
         self.path_logs = Path(self.cwd, 'logs')
         self.path_fonts = Path(self.cwd, 'fonts')
         self.path_plugins = Path(self.cwd, 'plugins')
@@ -123,14 +121,12 @@ class Constants:
         self.leveler_class = "leveler"
         self.saga_class = "saga"
         self.class_class = "class"
-        self.miracle_class = "miracle"
         self.split_class = "split"
         self.planeswalker_class = "planeswalker"
         self.pw_tf_front_class = "pw_tf_front"
         self.pw_tf_back_class = "pw_tf_back"
         self.pw_mdfc_front_class = "pw_mdfc_front"
         self.pw_mdfc_back_class = "pw_mdfc_back"
-        self.snow_class = "snow"
         self.planar_class = "planar"
         self.prototype_class = "prototype"
         self.token_class = "token"
