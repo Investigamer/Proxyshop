@@ -1,22 +1,20 @@
 """
 PROXYSHOP GUI LAUNCHER
 """
-import os
 # Standard Library Imports
+import os
 import sys
 import json
-import datetime
-import win32clipboard
-import os.path as osp
 from io import BytesIO
 from pathlib import Path
-from threading import Event
 from time import perf_counter
-from os import environ, listdir
 from contextlib import suppress
+import win32clipboard as clipboard
+from datetime import datetime as dt
+from threading import Event, Thread, Lock
+from multiprocessing import cpu_count
 from typing import Union, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import cpu_count
 
 # Third-party Imports
 import requests
@@ -24,9 +22,8 @@ from PIL import Image as PImage
 from photoshop.api._document import Document
 from photoshop.api import SaveOptions, DialogModes
 
-# Environment variables
-environ["KIVY_LOG_MODE"] = "PYTHON"
-environ["HEADLESS"] = "False"
+from src.utils.decorators import auto_prop, auto_prop_cached
+# Load Environment variables
 from src.utils.env import ENV
 
 # Kivy Imports
@@ -163,7 +160,7 @@ class ProxyshopApp(App):
     @property
     def icon(self) -> str:
         """Icon displayed in the task bar and the corner of the window."""
-        return osp.join(con.path_img, 'proxyshop.png')
+        return os.path.join(con.path_img, 'proxyshop.png')
 
     @property
     def cont_padding(self) -> float:
@@ -178,23 +175,23 @@ class ProxyshopApp(App):
     RENDERING PROPERTIES
     """
 
-    @property
+    @auto_prop_cached
+    def _render_lock(self) -> Lock:
+        return Lock()
+
+    @auto_prop_cached
+    def _dropped_files(self) -> list[Path]:
+        return []
+
+    @auto_prop
     def templates_selected(self) -> dict[str, str]:
         """Tracks the templates currently selected by the user."""
         return self._templates_selected
 
-    @templates_selected.setter
-    def templates_selected(self, value):
-        self._templates_selected = value
-
-    @property
+    @auto_prop
     def current_render(self):
         """Tracks the current template class being used for rendering."""
         return self._current_render
-
-    @current_render.setter
-    def current_render(self, value):
-        self._current_render = value
 
     @property
     def docref(self) -> Optional[Document]:
@@ -227,22 +224,23 @@ class ProxyshopApp(App):
         @return: The result of the wrapped function.
         """
         def wrapper(self, *args):
-            while check := con.refresh_photoshop():
-                if not console.await_choice(
-                    thr=Event(),
-                    msg=get_photoshop_error_message(check),
-                    end="Hit Continue to try again, or Cancel to end the operation.\n"
-                ):
-                    # Cancel this operation
-                    return
+            with self._render_lock:
+                while check := con.refresh_photoshop():
+                    if not console.await_choice(
+                        thr=Event(),
+                        msg=get_photoshop_error_message(check),
+                        end="Hit Continue to try again, or Cancel to end the operation.\n"
+                    ):
+                        # Cancel this operation
+                        return
 
-            # Disable buttons / clear console on enter
-            self.reset(disable_buttons=True, clear_console=True)
-            result = func(self, *args)
+                # Disable buttons / clear console on enter
+                self.reset(disable_buttons=True, clear_console=True)
+                result = func(self, *args)
 
-            # Enable buttons / close document on exit
-            self.reset(enable_buttons=True, close_document=True)
-            return result
+                # Enable buttons / close document on exit
+                self.reset(enable_buttons=True, close_document=True)
+                return result
         return wrapper
 
     """
@@ -269,29 +267,28 @@ class ProxyshopApp(App):
             btn.disabled = True
 
     @staticmethod
-    def get_art_files(folder: str = 'art') -> list[str]:
+    def get_art_files(folder: Union[str, os.PathLike] = con.path_art) -> list[Path]:
         """
         Grab all supported image files within a given directory.
         @param folder: Path within the working directory containing images.
         @return: List of art files.
         """
         # Folder, file list, supported extensions
-        folder = osp.join(con.cwd, folder)
-        all_files = listdir(folder)
+        all_files = os.listdir(folder)
         ext = (".png", ".jpg", ".tif", ".jpeg", ".jpf")
 
         # Select all images in folder not prepended with !
-        files = [osp.join(folder, f) for f in all_files if f.endswith(ext) and not f.startswith('!')]
+        files = [Path(folder, f) for f in all_files if f.endswith(ext) and not f.startswith('!')]
 
         # Check for webp files
-        files_webp = [osp.join(folder, f) for f in all_files if f.endswith('.webp') and not f.startswith('!')]
+        files_webp = [Path(folder, f) for f in all_files if f.endswith('.webp') and not f.startswith('!')]
 
         # Check if Photoshop version supports webp
         if files_webp and not con.app.supports_webp:
             console.update(msg_warn('Skipped WEBP image, WEBP requires Photoshop ^23.2.0'))
         elif files_webp:
             files.extend(files_webp)
-        return files
+        return sorted(files)
 
     def reset(
             self,
@@ -481,7 +478,7 @@ class ProxyshopApp(App):
 
                 # Is this template installed?
                 console.update(f"{template['class_name']} ... ", end="")
-                if not osp.isfile(template['template_path']):
+                if not template['template_path'].is_file():
                     console.update(msg_warn(f"SKIPPED (Template not installed)"))
                     continue
                 failures: list[tuple[str, str, str]] = []
@@ -525,7 +522,7 @@ class ProxyshopApp(App):
 
         # Is this template installed?
         console.update(msg_success(f"\n---- {template['class_name']} ----"))
-        if not osp.isfile(template['template_path']):
+        if not template['template_path'].is_file():
             console.update(msg_warn("SKIPPED (Template not installed)"))
             return
 
@@ -639,25 +636,24 @@ class ProxyshopApp(App):
 
     def screenshot_window(self):
         """Take a screenshot of the Kivy window."""
-        window: Window = self.root_window
-        screenshot_path = osp.join(con.cwd, "out/screenshots")
-        Path(screenshot_path).mkdir(mode=711, parents=True, exist_ok=True)
-        img_path = osp.join(screenshot_path, datetime.datetime.now().strftime("%m-%d-%Y, %H%M%S.jpg"))
-        img_path = window.screenshot(name=img_path)
+        path = Path(
+            con.path_out, "screenshots",
+            dt.now().strftime("%m-%d-%Y, %H%M%S.jpg"))
+        path.mkdir(mode=711, parents=True, exist_ok=True)
+        img_path = self.root_window.screenshot(name=str(path))
 
         # Copy image to clipboard
-        try:
-            image = PImage.open(img_path)
-            output = BytesIO()
-            image.convert("RGB").save(output, "BMP")
-            data = output.getvalue()[14:]
-            output.close()
-            win32clipboard.OpenClipboard()
-            win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
-            win32clipboard.CloseClipboard()
-        except Exception as e:
-            console.log_exception(e)
+        with suppress(Exception):
+            with PImage.open(img_path) as f:
+                with BytesIO() as bmp:
+                    # Load image data
+                    f.convert("RGB").save(bmp, "BMP")
+                    data = bmp.getvalue()[14:]
+
+            # Apply data to the clipboard
+            clipboard.OpenClipboard(), clipboard.EmptyClipboard()
+            clipboard.SetClipboardData(clipboard.CF_DIB, data)
+            clipboard.CloseClipboard()
 
     @staticmethod
     async def open_app_settings() -> None:
@@ -669,7 +665,29 @@ class ProxyshopApp(App):
         """Build the app for display."""
         layout = TestApp() if cfg.test_mode else ProxyshopPanels()
         layout.add_widget(console)
+        Window.bind(
+            # Bind drop files event
+            on_drop_file=self.queue_dropped_file,
+            on_drop_end=self.render_dropped_files)
         return layout
+
+    def queue_dropped_file(self, _window, path: bytes, _x, _y) -> None:
+        """Queue a dropped in file for rendering."""
+        if self._render_lock.locked():
+            return
+        self._dropped_files.append(Path(path.decode()))
+
+    def render_dropped_files(self, _window, _x, _y) -> None:
+        """Initiate a separate thread to render last dropped in cards."""
+        if self._render_lock.locked():
+            return
+        files = [f for f in self._dropped_files if f.is_file()]
+        folders = [f for f in self._dropped_files if f.is_dir()]
+        [files.extend(self.get_art_files(f)) for f in folders]
+        del self._dropped_files
+
+        # Set up render job in separate thread
+        Thread(target=self.render_all, args=(files,), daemon=True).start()
 
     def on_start(self) -> None:
         """Fired after build is fired. Run a diagnostic check to see what works."""
@@ -799,9 +817,6 @@ class TemplateModule(DynamicTabPanel):
         # Add template list to the scroll box
         scroll_box.add_widget(TemplateList(template_list, preview=container.ids.preview_image))
 
-        # Set the current preview image
-        container.set_preview_image(template_list[0]['preview_path'])
-
         # Add scroll box to the container and return it
         container.ids.template_view_container.add_widget(scroll_box)
         return container
@@ -818,8 +833,7 @@ class TemplateTabContainer(BoxLayout):
         """Toggles the preview image on multi-side templates like Transform."""
 
         # Define source path, destination path, and toggle options
-        dst = ""
-        src = str(self.ids.preview_image.source)
+        dst = src = self.ids.preview_image.source
         toggle_options = (
             ['[transform_front]', '[transform_back]'],
             ['[mdfc_front]', '[mdfc_back]'],
@@ -829,13 +843,11 @@ class TemplateTabContainer(BoxLayout):
 
         # Check if any toggle options are present
         for option in toggle_options:
-            if option[0] in src:
-                dst = src.replace(option[0], option[1])
-            elif option[1] in src:
-                dst = src.replace(option[1], option[0])
+            a, b = option
+            dst = src.replace(a, b) if a in src else src.replace(b, a)
 
         # Toggle image if opposing type exists
-        if osp.exists(dst) and dst != src:
+        if os.path.exists(dst) and dst != src:
             self.ids.preview_image.source = dst
 
     def set_preview_image(self, path: Path) -> None:
@@ -864,24 +876,37 @@ class TemplateList(BoxLayout):
 
     def add_template_rows(self):
         """Add a row for each template in this list."""
-        missing = []
+        missing, found = [], []
 
         # Create a list of buttons
         for template in self.temps:
-            # Is this template available?
-            if not osp.exists(template['template_path']):
+
+            # Is template installed?
+            if not template['template_path'].is_file():
                 missing.append([template, self.preview])
-            else:
-                self.add_widget(TemplateRow(
-                    template=template,
-                    preview=self.preview
-                ))
+                continue
+
+            # Add installed template
+            widget = TemplateRow(
+                template=template,
+                preview=self.preview)
+            self.add_widget(widget)
+            found.append(widget)
 
         # Add the missing templates
+        uninstalled = []
         for m in missing:
             row = TemplateRow(template=m[0], preview=m[1])
             row.disabled = True
             self.add_widget(row)
+            uninstalled.append(row)
+
+        # Make the initial selection
+        if not any([found, uninstalled]):
+            return
+        btn = (found if found else uninstalled)[0].ids.toggle_button
+        btn.state, btn.disabled = 'down', True
+        App.get_running_app().select_template(btn)
 
     def reload_template_rows(self):
         """Remove existing rows and generate new ones using current template data."""
@@ -902,11 +927,6 @@ class TemplateRow(BoxLayout):
         self.type = template['type']
         self.preview = template['preview_path']
         self.ids.toggle_button.text = self.name
-
-        # Normal template default selected
-        if self.name == "Normal":
-            self.ids.toggle_button.state = "down"
-            self.ids.toggle_button.disabled = True
 
         # Check if config file is present
         self.default_settings_button_check()
@@ -944,7 +964,7 @@ if __name__ == '__main__':
 
     # Kivy packaging for PyInstaller
     if hasattr(sys, '_MEIPASS'):
-        resource_add_path(osp.join(sys._MEIPASS))
+        resource_add_path(os.path.join(sys._MEIPASS))
 
     # Ensure mandatory folders are created
     con.path_out.mkdir(mode=711, parents=True, exist_ok=True)
@@ -954,5 +974,5 @@ if __name__ == '__main__':
 
     # Launch the app
     Factory.register('HoverBehavior', HoverBehavior)
-    Builder.load_file(osp.join(con.path_kv, "proxyshop.kv"))
+    Builder.load_file(os.path.join(con.path_kv, "proxyshop.kv"))
     ProxyshopApp().run()
