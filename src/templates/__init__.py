@@ -2,6 +2,7 @@
 TEMPLATES MODULE
 """
 from src.templates._core import *
+from src.templates._cosmetic import *
 from src.templates._vector import *
 from src.templates.normal import *
 from src.templates.planeswalker import *

@@ -1,0 +1,8 @@
+[FRAME]
+title = "Frame Options"
+
+[FRAME."Dark.Mode"]
+title = "Dark Mode"
+desc = """When enabled, card will render with blacked out textbox and white text."""
+type = "bool"
+default = 0
