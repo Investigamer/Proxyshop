@@ -163,6 +163,7 @@ cython_debug/
 /testing.py
 # User generated data files
 /src/data/mtg
+/src/data/custom_symbols.yaml
 # User specific version tracker
 /src/data/version_tracker.json
 # Generated new release
