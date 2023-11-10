@@ -17,6 +17,11 @@ from src.utils.strings import str_to_bool
 # Load environment variables
 OS_ENV = dotenv_values('.env')
 
+# KIVY Environment
+environ.setdefault('KIVY_LOG_MODE', 'PYTHON')
+environ.setdefault('KIVY_NO_FILELOG', '1')
+environ.setdefault('HEADLESS', '0')
+
 # Try to import private API keys
 try:
     from src.__private__ import GOOGLE_KEY
