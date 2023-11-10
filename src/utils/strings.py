@@ -8,9 +8,6 @@ from typing import Union, Optional
 import unicodedata
 import string
 
-# Local Imports
-from src.utils.decorators import enum_class_prop
-
 # Maps strings to boolean values
 STR_BOOL_MAP = {
     '1': True,
@@ -49,7 +46,7 @@ class StrEnum(str, Enum, metaclass=StrEnumMeta):
     def value(self) -> str:
         return str(self._value_)
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return "default"
 

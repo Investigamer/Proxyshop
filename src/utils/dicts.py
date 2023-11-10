@@ -1,8 +1,7 @@
 """
 * Dictionary Utils
 """
-from typing import Hashable
-
+from typing import Hashable, Any
 
 """
 * Dict Inversions
@@ -57,3 +56,26 @@ def dict_sort_by_val(d: dict, reverse: bool = False) -> dict:
     @return: Value sorted dictionary.
     """
     return dict(sorted(d.items(), key=lambda item: item[1], reverse=reverse))
+
+
+"""
+* Dict Data Utils
+"""
+
+
+def dict_first(d: dict) -> tuple[Hashable, Any]:
+    """
+    Extract the first key, value pair from a dictionary.
+    @param d: Dictionary to retrieve first key, value pair from.
+    @return: Tuple containing key, value.
+    """
+    return next(iter(d.items()))
+
+
+def dict_last(d: dict) -> tuple[Hashable, Any]:
+    """
+    Extract the last key, value pair from a dictionary.
+    @param d: Dictionary to retrieve last key, value pair from.
+    @return: Tuple containing key, value.
+    """
+    return list(d.items())[-1]
