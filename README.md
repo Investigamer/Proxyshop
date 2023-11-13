@@ -21,7 +21,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 - Photoshop (2017-2024 Supported)
 - Windows (currently incompatible with Mac/Linux)
 - [The Photoshop templates](https://drive.google.com/drive/u/0/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3) (Can be downloaded in the app)
-- Required fonts (included in `/fonts`):
+- Required fonts (included in `fonts/`):
     - **Beleren Proxy Bold** — For Card Name, Typeline, Power/Toughness
     - **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
     - **Plantin MT Pro** — For rules text, install **all** variants included
@@ -38,7 +38,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 # 🚀 Setup Guide
 1) Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
 2) Install the fonts included in the `fonts/` folder, please note that `Keyrune` and `Proxyglyph` may need to be updated in future releases.
-3) Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#art-file-naming) for more info).
+3) Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
 4) Launch `Proxyshop.exe`. Click the **Update** button. Proxyshop will load templates available to download, grab what you want.
 5) Hit **Render All** to render every card art in the `art/` folder. Hit **Render Target** to render one or more specific card arts.
 6) You can also drag art images or folders containing art images onto the Proxyshop app, Proxyshop will automatically start rendering those cards.
@@ -138,8 +138,8 @@ poetry config virtualenvs.in-project true
 # Install the Proxyshop project
 poetry install
 ```
-- Install the fonts included in the `fonts` folder. Do not delete these, even after you install them (some are used by the GUI).
-- **[Optional]** Currently, the Python version of Proxyshop cannot download templates using the **Update** button, because our API keys are not made public. If you wish to download the Proxyshop templates, [follow this guide](#downloading-templates-manually) to download them manually.
+- Install the fonts included in the `fonts/` folder. Do not delete these, even after you install them (some are used by the GUI).
+- **_Optional_**: Currently, the Python version of Proxyshop cannot download templates using the **Update** button, because our API keys are not made public. If you wish to download the Proxyshop templates, [follow this guide](#-download-templates-manually) to download them manually.
 - Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
 - Run the app:
 ```bash
@@ -159,8 +159,8 @@ If you wish to download the templates manually, visit [this link](https://drive.
 - Once the zips are downloaded, move them into the `templates/` folder. Select them all, Right-click -> 7-Zip -> Extract here.
 - Once extracted, you will have a lot of `.7z` archive files, this is because we compress PSD templates to reduce their hosting footprint.
 - Once again, select the `.7z` archives, and extract using the same process.
-- You will also notice two folders: `MrTeferi` and `SilvanMTG`
-- Copy the contents of these folders to: `plugins/MrTeferi/templates` and `plugins/SilvanMTG/templates`
+- You will also notice two folders: `MrTeferi/` and `SilvanMTG/`
+- Copy the contents of these folders to: `plugins/MrTeferi/templates/` and `plugins/SilvanMTG/templates/`
 - Once again, extract those `.7z` archives using the same process as before. All done!
 
 
@@ -186,7 +186,7 @@ Feel free to [join our discord](http://discord.gg/magicproxies) and participate 
 #### SVG Mode
 - Ensure SVG mode is enabled under "Symbol Render Mode".
 - Change "Default Symbol" to a 2-4 letter code of your choice, and enable "Force Default Symbol".
-- Head over to `src/img/symbols` and create a folder named according to that code, or you can use one of the symbols that already exists.
+- Head over to `src/img/symbols/` and create a folder named according to that code, or you can use one of the symbols that already exists.
 - If making a custom symbol, add the SVG files to the folder you created, name each file according to the first letter of its rarity (capitalized).
 - That symbol will now be used, you're good to go!
 
