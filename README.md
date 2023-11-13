@@ -1,6 +1,6 @@
 <div align="center" markdown="1" style="font-size: large;">
 
-![Showcase Image](https://github.com/MrTeferi/Proxyshop/tree/main/src/img/cover-photo.png)
+![Showcase Image](https://raw.githubusercontent.com/MrTeferi/Proxyshop/main/src/img/cover-photo.png)
 Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
 Inspired by Chilli-Axe's [original Photoshop automation scripts](https://github.com/chilli-axe/mtg-photoshop-automation).
 If you need help with this app or wish to troubleshoot an issue, [please join our discord](https://discord.gg/magicproxies)!
