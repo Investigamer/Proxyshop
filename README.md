@@ -36,13 +36,13 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 <!-- TODO: Add citations for the source of various fonts. -->
 
 # 🚀 Setup Guide
-1) Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
-2) Install the fonts included in the `fonts/` folder, please note that `Keyrune` and `Proxyglyph` may need to be updated in future releases.
-3) Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
-4) Launch `Proxyshop.exe`. Click the **Update** button. Proxyshop will load templates available to download, grab what you want.
-5) Hit **Render All** to render every card art in the `art/` folder. Hit **Render Target** to render one or more specific card arts.
-6) You can also drag art images or folders containing art images onto the Proxyshop app, Proxyshop will automatically start rendering those cards.
-7) During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
+1. Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
+2. Install the fonts included in the `fonts/` folder, please note that `Keyrune` and `Proxyglyph` may need to be updated in future releases.
+3. Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
+4. Launch `Proxyshop.exe`. Click the **Update** button. Proxyshop will load templates available to download, grab what you want.
+5. Hit **Render All** to render every card art in the `art/` folder. Hit **Render Target** to render one or more specific card arts.
+6. You can also drag art images or folders containing art images onto the Proxyshop app, Proxyshop will automatically start rendering those cards.
+7. During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
 
 # ✒️ Art File Naming
 - Art file types currently supported are: `jpg`, `jpeg`, `jpf`, `png`, `tif`, and `webp`. **NOTE**: `webp` requires Photoshop 2022+.
@@ -67,7 +67,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 
 # 💻 Using the Proxyshop GUI
 
-### 'Render Cards' Tab
+### Render Cards Tab
 - The main tab for rendering authentic Magic the Gathering cards.
 - **Render All**: Renders a card image using each art image found in the `art/` folder.
 - **Render Target**: Opens file select in Photoshop, renders a card image using each art image you select.
@@ -91,13 +91,13 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     - **Cancel**: Becomes active when cards are being rendered, can cancel the render operation at any time or if an error occurs.
     - **Update**: Opens the **Updater** panel which allows you to download new templates and update existing ones.
 
-### 'Custom Creator' Tab
+### Custom Creator Tab
 - This tab controls the custom card creator.
 - This feature is currently considered **experimental beta** and may have issues.
 - You can currently render **Normal**, **Planeswalker**, or **Saga** cards, just fill in the appropriate data and hit **Render Custom**.
 - More features and card types will be added in the near future.
 
-### 'Tools' Tab
+### Tools Tab
 - This tab contains a growing list of helpful tools and utilities.
 - **Render All Showcases**: Generates a bordered showcase image for each card image in the `out/` folder, showcases will be placed in `out/showcase/`.
 - **Render Target Showcase**: Opens a file select in Photoshop, generates a bordered showcase image for each card image you select.
@@ -107,50 +107,50 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     - **800 DPI**: Downscales card images above 800 DPI to a maximum of 800 DPI. Most Proxyshop templates are 1200 DPI which is much higher than anyone really needs. Most printing services do not print above 800 DPI. (**Recommended**: On)
 
 # 🐍 Setup Guide (Python Environment)
-- Install Poetry using one of these methods:
-```shell
-# Install pipx, then install poetry with pipx (Recommended)
-python -m pip install --user pipx
-python -m pipx ensurepath
-pipx install poetry
-
-# Install using Powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-
-# Install using WSL (Windows Subsystem for Linux)
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Install using scoop
-scoop install poetry
-```
-- Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***:
-```shell
-git clone https://github.com/MrTeferi/Proxyshop.git
-```
-- Navigate to the **root directory** and install the Proxyshop project with poetry:
-```shell
-# Move to the Proxyshop repository we just cloned
-cd Proxyshop
-
-# OPTIONAL: Configure poetry to setup the environment locally
-poetry config virtualenvs.in-project true
-
-# Install the Proxyshop project
-poetry install
-```
-- Install the fonts included in the `fonts/` folder. Do not delete these, even after you install them (some are used by the GUI).
-- **_Optional_**: Currently, the Python version of Proxyshop cannot download templates using the **Update** button, because our API keys are not made public. If you wish to download the Proxyshop templates, [follow this guide](#-download-templates-manually) to download them manually.
-- Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
-- Run the app:
-```bash
-# OPTION 1) Execute via poetry
-poetry run main.py
-
-# OPTION 2) Enter the poetry environment, then execute normally
-poetry shell
-py main.py
-```
-- Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
+1.  Install Poetry using one of these methods.
+    ```shell
+    # Install pipx, then install poetry with pipx (Recommended)
+    python -m pip install --user pipx
+    python -m pipx ensurepath
+    pipx install poetry
+    
+    # Install using Powershell
+    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+    
+    # Install using WSL (Windows Subsystem for Linux)
+    curl -sSL https://install.python-poetry.org | python3 -
+    
+    # Install using scoop
+    scoop install poetry
+    ```
+2.  Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***.
+    ```shell
+    git clone https://github.com/MrTeferi/Proxyshop.git
+    ```
+3.  Navigate to the **root directory** and install the Proxyshop project with poetry.
+    ```shell
+    # Move to the Proxyshop repository we just cloned
+    cd Proxyshop
+    
+    # OPTIONAL: Configure poetry to setup the environment locally
+    poetry config virtualenvs.in-project true
+    
+    # Install the Proxyshop project
+    poetry install
+    ```
+4. Install the fonts included in the `fonts/` folder. Do not delete these, even after you install them (some are used by the GUI).
+5. **_Optional_**: Currently, the Python version of Proxyshop cannot download templates using the **Update** button, because our API keys are not made public. If you wish to download the Proxyshop templates, [follow this guide](#-download-templates-manually) to download them manually.
+6. Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
+7.  Run the app.
+    ```bash
+    # OPTION 1) Execute via poetry
+    poetry run main.py
+    
+    # OPTION 2) Enter the poetry environment, then execute normally
+    poetry shell
+    py main.py
+    ```
+8. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
 
 # 💾 Download Templates Manually
 If you wish to download the templates manually, visit [this link](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3):
