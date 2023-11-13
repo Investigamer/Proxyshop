@@ -273,7 +273,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
 
 </details>
 
-## ✨ Credits
+# ✨ Credits
 - Our [amazing Patreon supporters](https://www.patreon.com/mpcfill) who literally keep this project going.
 - Chilli Axe for his outstanding [MTG Photoshop Automation](https://github.com/chilli-axe/mtg-photoshop-automation) project that Proxyshop was inspired by, and for producing many of the base PSD templates that have been modified to work with Proxyshop.
 - Additional template and asset support from:
