@@ -366,23 +366,23 @@ class ProxyshopApp(App):
     """
 
     @render_process_wrapper
-    def render_target(self) -> None:
-        """Open the file select dialog in Photoshop and pass the selected arts to render_all."""
-        if not (files := self.select_art()):
-            return
-        return self.render_all(files)
-
-    @render_process_wrapper
-    def render_all(self, files: Optional[list[Union[str, os.PathLike]]] = None) -> None:
+    def render_all(self, target: bool = False) -> None:
         """
         Render cards using all images located in the art folder.
-        @param files: List of art file paths, if not provided use valid images in the art folder.
+        @param target: Whether to do a targeted render operation.
         """
         # Get our templates
         temps = get_my_templates(self.templates_selected)
 
-        # Get art files, make sure there's at least 1
-        if not files and len(files := self.get_art_files()) == 0:
+        # Get our art files
+        files = self.select_art() if target else self.get_art_files()
+
+        # No files provided
+        if not files and target:
+            # Cancelled targeted render
+            return
+        if not files:
+            # No files in art folder
             console.update("No art images found!")
             return
 
@@ -905,8 +905,8 @@ class TemplateList(BoxLayout):
         if not any([found, uninstalled]):
             return
         btn = (found if found else uninstalled)[0].ids.toggle_button
-        btn.state, btn.disabled = 'down', True
-        App.get_running_app().select_template(btn)
+        btn.state = 'down'
+        btn.dispatch('on_press')
 
     def reload_template_rows(self):
         """Remove existing rows and generate new ones using current template data."""

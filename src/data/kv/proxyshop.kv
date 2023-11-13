@@ -44,7 +44,7 @@
                         text: "Render Target"
                         options: ["RENDER TARGET"]
                         font_size: sp(18)
-                        on_press: Thread(target=app.render_target, daemon=True).start()
+                        on_press: Thread(target=app.render_all, args=(True,), daemon=True).start()
                         background_color: get_color_from_hex("#376aa3")
                     HoverButton:
                         id: rend_all_btn
