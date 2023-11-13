@@ -1,0 +1,4 @@
+# Adventure
+
+::: src.templates.adventure
+

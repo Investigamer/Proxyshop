@@ -1,0 +1,4 @@
+# Battle
+
+::: src.templates.battle
+

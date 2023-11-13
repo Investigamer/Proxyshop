@@ -48,11 +48,11 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 - Art file types currently supported are: `jpg`, `jpeg`, `jpf`, `png`, `tif`, and `webp`. **NOTE**: `webp` requires Photoshop 2022+.
 - Art files should be named after **real Magic the Gathering cards** and should be named as accurately as possible, e.g. `Damnation.jpg`.
 - Proxyshop supports several optional tags when naming your art files, to give you more control over how the card is rendered!
-    - **Set Tag** `[SET]`: Forces Photoshop to render a version of that card from a **specific MTG expansion** matching the given **set code**. This tag is **not** case sensitive, so both "set" and "SET" will work.
+    - **Set** `[SET]`: Forces Photoshop to render a version of that card from a **specific MTG expansion** matching the given **set code**. This tag is **not** case sensitive, so both "set" and "SET" will work.
     ```
     Damnation [TSR].jpg
     ```
-    - **Collector Number Tag** `{num}`: Only works if **Set Tag** was also provided, render a version of that card with the exact **set code** and **number** combination. This is particularly useful in cases where a set has multiple versions of the same card, for example Secret Lair (SLD) has 3 different versions of **Brainstorm**.
+    - **Collector Number** `{num}`: Only works if **Set** tag was also provided, render a version of that card with the exact **set code** and **number** combination. This is particularly useful in cases where a set has multiple versions of the same card, for example Secret Lair (SLD) has 3 different versions of **Brainstorm**.
     ```
     Brainstorm [SLD] {175}.jpg
     ```
