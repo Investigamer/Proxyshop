@@ -1,6 +1,6 @@
 <div align="center" markdown="1" style="font-size: large;">
 
-![Showcase Image](https://raw.githubusercontent.com/MrTeferi/Proxyshop/main/src/img/cover-photo.png)
+![Showcase Image](/src/img/cover-photo.png)
 Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
 Inspired by Chilli-Axe's [original Photoshop automation scripts](https://github.com/chilli-axe/mtg-photoshop-automation).
 If you need help with this app or wish to troubleshoot an issue, [please join our discord](https://discord.gg/magicproxies)!
@@ -42,7 +42,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 6. You can also drag art images or folders containing art images onto the Proxyshop app, Proxyshop will automatically start rendering those cards.
 7. During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
 
-# ✒️ Art File Naming
+# 🎨 Art File Naming
 - Art file types currently supported are: `jpg`, `jpeg`, `jpf`, `png`, `tif`, and `webp`. **NOTE**: `webp` requires Photoshop 2022+.
 - Art files should be named after **real Magic the Gathering cards** and should be named as accurately as possible, e.g. `Damnation.jpg`.
 - Proxyshop supports several optional tags when naming your art files, to give you more control over how the card is rendered!
@@ -105,6 +105,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     - **800 DPI**: Downscales card images above 800 DPI to a maximum of 800 DPI. Most Proxyshop templates are 1200 DPI which is much higher than anyone really needs. Most printing services do not print above 800 DPI. (**Recommended**: On)
 
 # 🐍 Setup Guide (Python Environment)
+Setting up the Python environment for Proxyshop is intended for advanced users, contributors, and anyone who wants to get their hands dirty making a plugin or custom template for the app!
 1.  Install Poetry using one of these methods.
     ```shell
     # Install pipx, then install poetry with pipx (Recommended)
