@@ -30,6 +30,7 @@ class TransformMod(BaseTemplate):
     Adds:
         * Flipside power/toughness on the front if opposite side is a Creature.
         * Transform icon, inherited from BaseTemplate, is made visible.
+
     Modifies:
         * Rules text layer has 2 new options: a creature and noncreature option with flipside PT cutout.
         * PT, name, and type text are all white UNLESS this is an eldrazi, e.g. Eldritch Moon transform cards.
@@ -39,13 +40,13 @@ class TransformMod(BaseTemplate):
     def frame_layer_methods(self) -> list[Callable]:
         # Add Transform frame layers step
         funcs = [self.enable_transform_layers] if self.is_transform else []
-        return [*super().frame_layer_methods, *funcs]
+        return super().frame_layer_methods + funcs
 
     @cached_property
     def text_layer_methods(self) -> list[Callable]:
         # Add Transform text layers step
         funcs = [self.text_layers_transform] if self.is_transform else []
-        return [*super().frame_layer_methods, *funcs]
+        return super().text_layer_methods + funcs
 
     """
     TEXT LAYERS
@@ -172,6 +173,12 @@ class VectorTransformMod(TransformMod, VectorTemplate):
 
 class TransformTemplate (TransformMod, NormalTemplate):
     """Template for double faced Transform cards introduced in Innistrad block."""
+
+    @cached_property
+    def pinlines_layer(self) -> Optional[ArtLayer]:
+        """Does not support colored land layers."""
+        if self.is_land and self.pinlines != LAYERS.LAND:
+            return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
 class IxalanTemplate (NormalTemplate):
