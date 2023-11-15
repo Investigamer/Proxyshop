@@ -48,9 +48,10 @@ from src.enums.settings import (
     ExpansionSymbolMode,
     BorderColor,
     OutputFiletype,
-    CollectorPromo, WatermarkMode
+    CollectorPromo,
+    WatermarkMode
 )
-from src.types.adobe import EffectBevel, LayerEffects
+from src.types.adobe import LayerEffects, LayerContainer
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 from src.utils.files import get_unique_filename
 from src.utils.objects import PhotoshopHandler
@@ -65,7 +66,8 @@ class BaseTemplate:
     a ton of optional built-in utility properties and methods for building templates.
     * All template classes should extend to this class at bare minimum.
     """
-    template_suffix = ""
+    frame_suffix = 'Normal'
+    template_suffix = ''
 
     def __init__(self, layout: Any, **kwargs):
 
@@ -209,7 +211,8 @@ class BaseTemplate:
         return sanitize_filename(f"{self.layout.name_raw}{f' ({suffix})' if suffix else ''}")
 
     """
-    BOOL
+    * Uncached Toggle Properties
+    * Static value or directly accessed from Layout object.
     """
 
     @property
@@ -226,16 +229,6 @@ class BaseTemplate:
     def is_land(self) -> bool:
         """Governs whether to use normal or land pinlines group."""
         return self.layout.is_land
-
-    @cached_property
-    def is_basic_land(self):
-        """Governs Basic Land watermark and other Basic Land behavior."""
-        return any([bool(n in self.layout.type_line_raw) for n in ['Basic Land', 'Basic Snow Land']])
-
-    @property
-    def is_companion(self) -> bool:
-        """Enables hollow crown step and companion crown layer."""
-        return self.layout.is_companion
 
     @property
     def is_artifact(self) -> bool:
@@ -258,11 +251,6 @@ class BaseTemplate:
         return self.layout.is_colorless
 
     @property
-    def is_nyx(self) -> bool:
-        """Enables hollow crown and nyx background layers."""
-        return self.layout.is_nyx
-
-    @property
     def is_front(self) -> bool:
         """Governs render behavior on MDFC and Transform cards."""
         return self.layout.is_front
@@ -277,6 +265,46 @@ class BaseTemplate:
         """Governs behavior on double faced card varieties."""
         return self.layout.is_mdfc
 
+    @property
+    def is_hollow_crown(self) -> bool:
+        """Governs whether a hollow crown should be rendered."""
+        return False
+
+    @property
+    def is_fullart(self) -> bool:
+        """Returns True if art must be treated as Fullart."""
+        return False
+
+    @property
+    def is_companion(self) -> bool:
+        """Enables companion cosmetic elements."""
+        return self.layout.is_companion
+
+    @property
+    def is_nyx(self) -> bool:
+        """Enables nyxtouched cosmetic elements."""
+        return self.layout.is_nyx
+
+    @property
+    def is_snow(self) -> bool:
+        """Enables snow cosmetic elements."""
+        return self.layout.is_snow
+
+    @property
+    def is_miracle(self) -> bool:
+        """Enables miracle cosmetic elements."""
+        return self.layout.is_miracle
+
+    """
+    * Cached Properties
+    * Calculated in BaseTemplate class
+    """
+
+    @cached_property
+    def is_basic_land(self):
+        """Governs Basic Land watermark and other Basic Land behavior."""
+        return any([bool(n in self.layout.type_line_raw) for n in ['Basic Land', 'Basic Snow Land']])
+
     @cached_property
     def is_centered(self) -> bool:
         """Governs whether rules text is centered."""
@@ -286,12 +314,12 @@ class BaseTemplate:
             and "\n" not in self.layout.oracle_text
         )
 
-    @property
+    @cached_property
     def is_name_shifted(self) -> bool:
         """Governs whether to use the shifted name text layer."""
         return bool(self.is_transform or self.is_mdfc)
 
-    @property
+    @cached_property
     def is_type_shifted(self) -> bool:
         """Governs whether to use the shifted typeline text layer."""
         return bool(self.layout.color_indicator)
@@ -313,14 +341,9 @@ class BaseTemplate:
         return False
 
     @cached_property
-    def is_fullart(self) -> bool:
-        """Returns True if art must be treated as Fullart."""
-        return False
-
-    @cached_property
     def is_content_aware_enabled(self) -> bool:
         """Governs whether content aware fill should be performed during the art loading step."""
-        if self.is_fullart and 'Full' not in self.art_reference.name:
+        if self.is_fullart and [n not in self.art_reference.name for n in ['Full', 'Borderless']]:
             # By default, fill when we want a fullart image but didn't receive one
             return True
         return False
@@ -335,7 +358,7 @@ class BaseTemplate:
         return False
 
     """
-    FRAME DETAILS
+    * Frame Details
     """
 
     @property
@@ -507,10 +530,6 @@ class BaseTemplate:
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
         """Background texture layer."""
-        # Try finding Nyx background
-        if self.is_nyx:
-            if layer := psd.getLayer(self.background, LAYERS.NYX):
-                return layer
         # Try finding Vehicle background
         if self.is_vehicle and self.background == LAYERS.VEHICLE:
             return psd.getLayer(
@@ -547,11 +566,6 @@ class BaseTemplate:
                 self.text_layer_pt.textItem.color = self.RGB_WHITE
                 return layer
         return psd.getLayer(self.twins, LAYERS.PT_BOX)
-
-    @cached_property
-    def companion_layer(self) -> Optional[ArtLayer]:
-        """Companion inner crown layer."""
-        return psd.getLayer(self.pinlines, LAYERS.COMPANION)
 
     @cached_property
     def crown_shadow_layer(self) -> Union[ArtLayer, LayerSet, None]:
@@ -1099,6 +1113,14 @@ class BaseTemplate:
         """Enable the correct layers for this card's frame."""
         pass
 
+    def enable_crown(self) -> None:
+        """Enable layers required by the Legendary Crown."""
+        pass
+
+    def enable_hollow_crown(self) -> None:
+        """Enable layers required by the Hollow Legendary Crown modification"""
+        pass
+
     def basic_text_layers(self) -> None:
         """Establish mana cost, name (scaled to clear mana cost), and typeline (scaled to not overlap set symbol)."""
         pass
@@ -1277,11 +1299,11 @@ class StarterTemplate (BaseTemplate):
 
 class NormalTemplate (StarterTemplate):
     """
-    * Standard M15 Template
+    * Utility Template containing the most important "batteries included" functionality.
     * Adds remaining logic that is required for any normal M15 style card, including Rules and PT text, enabling
-    frame layers, enabling the legendary crown, and enabling a hollow crown if needed.
-    * In most cases this will be the template you want to extend to, unless creating a template for non-normal
-    types like planeswalker, double faced cards, etc. This template contains all the essential bells and whistles
+    frame layers, and enabling the legendary crown as well as hollow crown if implemented by modifiers or otherwise.
+    * In most cases this will be the template you want to extend to, unless creating a template for advanced
+    types like planeswalker, saga, etc.
     """
 
     @cached_property
@@ -1351,18 +1373,14 @@ class NormalTemplate (StarterTemplate):
     def enable_crown(self) -> None:
         """Enable the Legendary crown."""
         self.crown_layer.visible = True
-        if isinstance(self.border_group, LayerSet):
+        if isinstance(self.border_group, LayerContainer):
             # Swap Normal border for Legendary border
             psd.getLayer(LAYERS.NORMAL_BORDER, self.border_group).visible = False
             psd.getLayer(LAYERS.LEGENDARY_BORDER, self.border_group).visible = True
 
-        # Nyx/Companion: Enable the hollow crown shadow and layer mask on crown, pinlines, and shadows
-        if self.is_nyx or self.is_companion:
+        # Call hollow crown step
+        if self.is_hollow_crown:
             self.enable_hollow_crown()
-
-            # Enable companion texture
-            if self.is_companion and self.companion_layer:
-                self.companion_layer.visible = True
 
     def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
         """Enable the hollow legendary crown."""
@@ -1375,12 +1393,7 @@ class NormalTemplate (StarterTemplate):
 
 
 class NormalEssentialsTemplate (NormalTemplate):
-    """Normal Template without support for Nyx layers, companion layers, hollow crown, etc."""
-
-    @property
-    def is_nyx(self) -> bool:
-        return False
-
-    @property
-    def is_companion(self) -> bool:
-        return False
+    """
+    * Original extendable class for creating an M15 Style template without Nyx or Companion layers.
+    * DEPRECATED, left here for backwards compatibility.
+    """
