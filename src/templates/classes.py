@@ -12,6 +12,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._core import NormalTemplate
+from src.templates._cosmetic import VectorNyxMod
 from src.templates._vector import VectorTemplate
 from src.enums.mtg import pinline_color_map
 import src.text_layers as text_classes
@@ -184,7 +185,7 @@ class ClassMod (NormalTemplate):
 """
 
 
-class ClassVectorTemplate (ClassMod, VectorTemplate):
+class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     """Class template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
@@ -223,11 +224,6 @@ class ClassVectorTemplate (ClassMod, VectorTemplate):
     """
     GROUPS
     """
-
-    @cached_property
-    def background_group(self) -> LayerSet:
-        """Support both Nyx and normal Background layers."""
-        return psd.getLayerSet(LAYERS.NYX if self.is_nyx else LAYERS.BACKGROUND)
 
     @cached_property
     def crown_group(self) -> LayerSet:
@@ -391,7 +387,7 @@ class ClassVectorTemplate (ClassMod, VectorTemplate):
 
 class UniversesBeyondClassTemplate(ClassVectorTemplate):
     """Saga Vector template with Universes Beyond frame treatment."""
-    template_suffix = "Universes Beyond"
+    template_suffix = 'Universes Beyond'
 
     """
     COLORS

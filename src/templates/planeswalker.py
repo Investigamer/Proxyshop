@@ -12,6 +12,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._core import StarterTemplate
+from src.templates._cosmetic import BorderlessMod, FullartMod
 from src.templates.transform import TransformMod
 from src.templates.mdfc import MDFCMod
 import src.text_layers as text_classes
@@ -21,11 +22,12 @@ import src.format_text as ft
 import src.helpers as psd
 
 
-class PlaneswalkerTemplate (StarterTemplate):
+class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     """
     * The main Planeswalker template to extend to for essential Planeswalker support.
     * Does not support MDFC or Transform Planeswalker cards.
     """
+    frame_suffix = 'Normal'
 
     def __init__(self, layout: PlaneswalkerLayouts, **kwargs):
         super().__init__(layout, **kwargs)
@@ -60,7 +62,7 @@ class PlaneswalkerTemplate (StarterTemplate):
 
     @cached_property
     def art_frame_vertical(self):
-        """Use special Borderless frame for Colorless cards."""
+        """Use special Borderless frame for 'Colorless' cards."""
         if self.is_colorless:
             return LAYERS.BORDERLESS_FRAME
         return LAYERS.FULL_ART_FRAME
@@ -69,20 +71,6 @@ class PlaneswalkerTemplate (StarterTemplate):
     def fill_color(self):
         """Ragged lines mask fill color."""
         return self.RGB_BLACK
-
-    """
-    TOGGLE
-    """
-
-    @cached_property
-    def is_fullart(self) -> bool:
-        """Always prefer vertical art."""
-        return True
-
-    @cached_property
-    def is_content_aware_enabled(self) -> bool:
-        """Always content aware fill non-vertical art."""
-        return True if not self.is_art_vertical else False
 
     """
     PLANESWALKER LAYERS
@@ -372,40 +360,21 @@ class PlaneswalkerTemplate (StarterTemplate):
         line.translate(0, (target_position - reference_position))
 
 
-class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
+class PlaneswalkerExtendedTemplate (BorderlessMod, PlaneswalkerTemplate):
     """
     * An extended version of PlaneswalkerTemplate.
     * Functionally identical except for the lack of background textures.
     """
-    template_suffix = "Extended"
+    frame_suffix = 'Extended'
 
     """
-    DETAILS
+    * Details
     """
 
     @property
     def art_frame_vertical(self) -> str:
+        """No separation for 'Colorless' cards."""
         return LAYERS.FULL_ART_FRAME
-
-    """
-    PROPERTIES
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    @cached_property
-    def is_content_aware_enabled(self):
-        return True
-
-    """
-    LAYERS
-    """
-
-    @cached_property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
 
 
 """
@@ -437,7 +406,6 @@ class PlaneswalkerMDFCTemplate (MDFCMod, PlaneswalkerTemplate):
 
 class PlaneswalkerMDFCExtendedTemplate (MDFCMod, PlaneswalkerExtendedTemplate):
     """Adds support for MDFC functionality to the existing PlaneswalkerExtendedTemplate."""
-    template_suffix = "Extended"
 
     """
     GROUPS
@@ -500,7 +468,6 @@ class PlaneswalkerTransformTemplate (TransformMod, PlaneswalkerTemplate):
 
 class PlaneswalkerTransformExtendedTemplate (TransformMod, PlaneswalkerExtendedTemplate):
     """Adds support for Transform functionality to the existing PlaneswalkerExtendedTemplate."""
-    template_suffix = "Extended"
 
     """
     GROUPS

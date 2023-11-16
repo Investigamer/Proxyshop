@@ -12,6 +12,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.mtg import saga_banner_color_map, saga_stripe_color_map, pinline_color_map
+from src.templates import VectorNyxMod
 from src.templates._core import NormalTemplate
 from src.templates._vector import VectorTemplate
 from src.templates.transform import VectorTransformMod
@@ -299,7 +300,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
 """
 
 
-class SagaVectorTemplate(VectorSagaMod, VectorTransformMod, VectorTemplate):
+class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, VectorTemplate):
     """Saga template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
@@ -338,10 +339,6 @@ class SagaVectorTemplate(VectorSagaMod, VectorTransformMod, VectorTemplate):
     """
     GROUPS
     """
-
-    @cached_property
-    def background_group(self) -> LayerSet:
-        return psd.getLayerSet(LAYERS.NYX if self.is_nyx else LAYERS.BACKGROUND)
 
     @cached_property
     def crown_group(self) -> LayerSet:
@@ -509,7 +506,7 @@ class SagaVectorTemplate(VectorSagaMod, VectorTransformMod, VectorTemplate):
 
 class UniversesBeyondSagaTemplate(SagaVectorTemplate):
     """Saga Vector template with Universes Beyond frame treatment."""
-    template_suffix = "Universes Beyond"
+    template_suffix = 'Universes Beyond'
 
     """
     COLORS

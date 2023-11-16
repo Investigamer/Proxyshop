@@ -13,12 +13,13 @@ from photoshop.api._layerSet import LayerSet
 from src.templates._core import StarterTemplate
 from src.utils.strings import is_multiline
 import src.text_layers as text_classes
+from src.templates import FullartMod
 from src.enums.layers import LAYERS
 from src.constants import con
 import src.helpers as psd
 
 
-class TokenTemplate(StarterTemplate):
+class TokenTemplate(FullartMod, StarterTemplate):
     """
     * A template for Token cards.
     * Allows for three types of oracle text: None, One-Line, and Full size.
@@ -29,17 +30,10 @@ class TokenTemplate(StarterTemplate):
     Modifies:
         * Only supports a singular frame layer which is the Background layer.
     """
+    frame_suffix = 'Token'
 
     """
-    TOGGLE
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    """
-    LAYERS
+    * Layers
     """
 
     @cached_property
