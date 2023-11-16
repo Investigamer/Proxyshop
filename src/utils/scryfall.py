@@ -4,7 +4,6 @@ FUNCTIONS THAT INTERACT WITH SCRYFALL
 # Standard Library Imports
 import os
 import json
-from functools import cache
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Optional, Union, Callable, Any
@@ -15,7 +14,7 @@ from ratelimit import sleep_and_retry, RateLimitDecorator
 from backoff import on_exception, expo
 
 # Local Imports
-from src.enums.mtg import BASIC_LANDS, TransformIcons
+from src.enums.mtg import TransformIcons
 from src.console import console
 from src.settings import cfg
 from src.constants import con
@@ -378,27 +377,6 @@ def parse_card_info(file_path: Path) -> CardDetails:
         'artist': artist.group(1) if artist else '',
         'number': number.group(1) if number and code else '',
         'creator': name_split[-1] if '$' in file_name else '',
-    }
-
-
-@cache
-def get_basic_land(card_name: str, name_normalized: str, set_code: Optional[str]) -> dict:
-    """
-    Generate fake Scryfall data from basic land.
-    @param card_name: Name of the basic land card.
-    @param name_normalized: Normalized version of the name string.
-    @param set_code: Desired set code for the basic land.
-    @return: Fake scryfall data.
-    """
-    return {
-        'name': card_name,
-        'set': (set_code or 'MTG').upper(),
-        'layout': 'basic',
-        'rarity': 'common',
-        'collector_number': None,
-        'printed_count': None,
-        'type_line': BASIC_LANDS.get(
-            name_normalized, 'Basic Land')
     }
 
 

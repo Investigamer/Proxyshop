@@ -247,9 +247,9 @@ def add_color_to_gradient(
     midpoint: int
 ) -> None:
     """
-
+    Adds a SolidColor to gradient at a given location, with a given midpoint.
     @param action_list: Action list to add this color to.
-    @param color: SolidColor object
+    @param color: SolidColor object.
     @param location: Location of the color along the track.
     @param midpoint: Percentage midpoint between this color and the next.
     """
