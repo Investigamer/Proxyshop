@@ -27,9 +27,9 @@ from src.helpers import get_line_count
 from src.layouts import TokenLayout
 from src.templates._core import (
     StarterTemplate,
-    NormalTemplate,
-    NormalEssentialsTemplate
+    NormalTemplate
 )
+from src.templates._cosmetic import ExtendedMod, FullartMod, NyxMod, VectorBorderlessMod, CompanionMod
 from src.templates._vector import VectorTemplate
 from src.templates.transform import VectorTransformMod
 from src.templates.mdfc import VectorMDFCMod
@@ -46,6 +46,13 @@ from src.settings import cfg
 import src.helpers as psd
 
 
+class M15Template (NyxMod, CompanionMod, NormalTemplate):
+    """
+    * Standard M15 Template
+    * Adds support for Nyx, Companion, and Snow features.
+    """
+
+
 """
 * ADDON TEMPLATES
 * These templates use normal.psd and are fundamentally the same as NormalTemplate
@@ -53,20 +60,11 @@ with certain features enabled.
 """
 
 
-class FullartTemplate (NormalTemplate):
+class FullartTemplate (FullartMod, M15Template):
     """Fullart treatment for the Normal template. Adds translucent type bar and textbox."""
-    template_suffix = "Fullart"
 
     """
-    TOGGLE
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    """
-    LAYERS
+    * Layers
     """
 
     @cached_property
@@ -75,7 +73,7 @@ class FullartTemplate (NormalTemplate):
         return psd.getLayerSet("Overlay")
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -104,22 +102,19 @@ class FullartTemplate (NormalTemplate):
 
 class StargazingTemplate (FullartTemplate):
     """Stargazing template from 'Theros: Beyond Death' showcase cards. Always uses nyx backgrounds."""
-    template_suffix = "Stargazing"
+    template_suffix = 'Stargazing'
 
     """
-    TOGGLE
+    * Bool
     """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
 
     @property
     def is_nyx(self) -> bool:
+        """Always use Nyx frame."""
         return True
 
     """
-    LAYERS
+    * Layers
     """
 
     @property
@@ -136,7 +131,7 @@ class StargazingTemplate (FullartTemplate):
         return psd.getLayer(self.twins, LAYERS.PT_BOX + ' Dark')
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -172,90 +167,60 @@ class StargazingTemplate (FullartTemplate):
 """
 
 
-class ExtendedTemplate (NormalTemplate):
+class ExtendedTemplate (ExtendedMod, M15Template):
     """
     * An extended-art version of the normal template.
     * Empty edge outside the art reference is always content aware filled.
     """
-    template_suffix = "Extended"
+
+    """
+    * Bool
+    """
 
     @property
-    def is_content_aware_enabled(self) -> bool:
-        return True
+    def is_dark_mode(self) -> bool:
+        """Governs whether Dark Mode is enabled."""
+        return bool(cfg.get_setting('Frame', 'Dark.Mode', default=False))
 
-
-class ExtendedDarkTemplate (ExtendedTemplate):
     """
-    * A dark version of the Extended template.
-    * Popularized by MaleMPC on MPCAutofill back in the day.
+    * Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
-        # White rules text
+        """Small rules text changes for dark mode."""
         super().rules_text_and_pt_layers()
-        self.text_layer_rules.textItem.color = psd.rgb_white()
+
+        # White rules text for dark mode
+        if self.is_dark_mode:
+            self.text_layer_rules.textItem.color = psd.rgb_white()
 
     def enable_frame_layers(self) -> None:
-        # Enable the dark textbox overlay
+        """Small layer changes for dark mode."""
         super().enable_frame_layers()
-        psd.getLayer("Dark", "Overlays").visible = True
 
-        # White divider
-        if self.layout.flavor_text and self.layout.oracle_text and cfg.flavor_divider:
-            psd.enable_layer_fx(self.divider_layer)
+        # Dark mode changes
+        if self.is_dark_mode:
+            psd.getLayer("Dark", "Overlays").visible = True
 
-
-class BorderlessTemplate (ExtendedTemplate):
-    """
-    * The borderless showcase template first used on the Women's Day Secret Lair.
-    * Doesn't have any background layers, needs a layer mask on the pinlines group when card is legendary.
-    """
-    template_suffix = "Borderless"
-
-    """
-    TOGGLE
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    """
-    LAYERS
-    """
-
-    @property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
-
-    """
-    METHODS
-    """
-
-    def enable_crown(self) -> None:
-        # Enable the Legendary crown, no hollow crown or border swap.
-        psd.enable_mask(self.pinlines_layer.parent)
-        self.crown_layer.visible = True
+            # White divider
+            if self.layout.flavor_text and self.layout.oracle_text and cfg.flavor_divider:
+                psd.enable_layer_fx(self.divider_layer)
 
 
-class InventionTemplate (NormalEssentialsTemplate):
+class InventionTemplate (FullartMod, NormalTemplate):
     """Kaladesh Invention template. Uses either Bronze or Silver frame layers depending on setting."""
-    template_suffix = "Masterpiece"
+    template_suffix = 'Masterpiece'
 
     """
-    TOGGLE
+    * Bool
     """
-
-    @cached_property
-    def is_fullart(self) -> bool:
-        return True
 
     @property
     def is_land(self) -> bool:
         return False
 
     """
-    DETAILS
+    * Frame Details
     """
 
     @cached_property
@@ -272,27 +237,23 @@ class InventionTemplate (NormalEssentialsTemplate):
         return self.twins
 
 
-class ExpeditionTemplate (NormalEssentialsTemplate):
+class ExpeditionTemplate (FullartMod, NormalTemplate):
     """
     Zendikar Rising Expedition template. Masks pinlines for legendary cards, has a single static background layer,
     doesn't support color indicator, companion, or nyx layers.
     """
-    template_suffix = "Expedition"
+    template_suffix = 'Expedition'
 
     """
-    TOGGLE
+    * Bool
     """
 
     @property
     def is_land(self) -> bool:
         return False
 
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
     """
-    LAYERS
+    * Layers
     """
 
     @cached_property
@@ -306,7 +267,7 @@ class ExpeditionTemplate (NormalEssentialsTemplate):
         return
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_crown(self):
@@ -320,12 +281,12 @@ class ExpeditionTemplate (NormalEssentialsTemplate):
         psd.enable_mask(self.pinlines_layer.parent)
 
 
-class SnowTemplate (NormalEssentialsTemplate):
+class SnowTemplate (NormalTemplate):
     """A snow template with textures from Kaldheim's snow cards."""
-    template_suffix = "Snow"
+    template_suffix = 'Snow'
 
 
-class MiracleTemplate (NormalTemplate):
+class MiracleTemplate (NyxMod, NormalTemplate):
     """A template for miracle cards introduced in Avacyn Restored."""
 
     @property
@@ -348,19 +309,19 @@ class MiracleTemplate (NormalTemplate):
 
 class ClassicTemplate (StarterTemplate):
     """A template for 7th Edition frame. Lacks some of the Normal Template features."""
+    frame_suffix = 'Classic'
 
     """
-    DETAILS
+    * Frame Details
     """
 
     @cached_property
     def template_suffix(self) -> str:
-        if self.is_promo_star:
-            return "Promo Classic"
-        return "Classic"
+        """Add Promo if promo star enabled."""
+        return 'Promo' if self.is_promo_star else ''
 
     """
-    TOGGLE
+    * Bool
     """
 
     @cached_property
@@ -397,7 +358,7 @@ class ClassicTemplate (StarterTemplate):
         return False
 
     """
-    FRAME LAYERS
+    * Layers
     """
 
     @cached_property
@@ -436,7 +397,7 @@ class ClassicTemplate (StarterTemplate):
         )
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -444,7 +405,7 @@ class ClassicTemplate (StarterTemplate):
         return psd.getLayer(LAYERS.EXTENDED, LAYERS.MASKS)
 
     """
-    METHODS
+    * Methods
     """
 
     def collector_info_authentic(self) -> None:
@@ -539,10 +500,10 @@ class EtchedTemplate (VectorTemplate):
     except for Artifact cards. Uses pinline colors for the textbox always. No hollow crown, no companion or
     nyx layers.
     """
-    template_suffix = "Etched"
+    template_suffix = 'Etched'
 
     """
-    GROUPS
+    * Groups
     """
 
     @cached_property
@@ -551,7 +512,7 @@ class EtchedTemplate (VectorTemplate):
         return
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -585,7 +546,7 @@ class EtchedTemplate (VectorTemplate):
         return self.pinlines
 
     """
-    LAYERS
+    * Layers
     """
 
     @cached_property
@@ -594,7 +555,7 @@ class EtchedTemplate (VectorTemplate):
         return psd.getLayerSet(LAYERS.DIVIDER, self.text_group)
 
     """
-    SHAPES
+    * Shapes
     """
 
     @cached_property
@@ -605,7 +566,7 @@ class EtchedTemplate (VectorTemplate):
         return []
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -614,7 +575,7 @@ class EtchedTemplate (VectorTemplate):
         return [psd.getLayer(LAYERS.NORMAL, [self.pinlines_group, LAYERS.SHAPE])] if self.is_legendary else []
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_crown(self) -> None:
@@ -629,10 +590,11 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
     Based on iDerp's Classic Remastered template, modified to work with Proxyshop, colored pinlines added for
     land generation. PT box added for creatures. Does not support Nyx or Companion layers.
     """
-    template_suffix = "Classic Remastered"
+    frame_suffix = 'Classic'
+    template_suffix = 'Remastered'
 
     """
-    DETAILS
+    * Frame Details
     """
 
     @cached_property
@@ -653,7 +615,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return self.layout.background
 
     """
-    TOGGLE
+    * Bool
     """
 
     @property
@@ -662,7 +624,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return False
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -706,7 +668,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return self.background_colors
 
     """
-    GROUPS
+    * Groups
     """
 
     @cached_property
@@ -746,7 +708,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return group
 
     """
-    LAYERS
+    * Layers
     """
 
     @cached_property
@@ -766,7 +728,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return layer
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -776,7 +738,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return []
 
     """
-    SHAPES
+    * Shapes
     """
 
     @cached_property
@@ -826,7 +788,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
             self.text_layer_mana.translate(0, -10)
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_hollow_crown(self, **kwargs) -> None:
@@ -835,7 +797,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         pass
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def enable_transform_layers(self) -> None:
@@ -857,10 +819,10 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
     an alternative way to build a highly complex template which can work for multiple card types.
     Credit to Kyle of Card Conjurer, WarpDandy, SilvanMTG, Chilli and MrTeferi.
     """
-    template_suffix = "Universes Beyond"
+    template_suffix = 'Universes Beyond'
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -884,7 +846,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         return psd.get_pinline_gradient(self.pinlines, color_map=self.crown_color_map)
 
     """
-    GROUPS
+    * Groups
     """
 
     @cached_property
@@ -894,7 +856,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         return super().background_group
 
     """
-    LAYERS
+    * Layers
     """
 
     @cached_property
@@ -905,7 +867,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         return layer
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -920,7 +882,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         ]
 
     """
-    SHAPES
+    * Shapes
     """
 
     @cached_property
@@ -932,7 +894,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         return psd.getLayerSet(name, [self.pinlines_group, LAYERS.SHAPE])
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -953,7 +915,7 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
         psd.getLayerSet(LAYERS.LEGENDARY, self.pinlines_shape.parent).visible = True
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def enable_transform_layers_back(self) -> None:
@@ -971,10 +933,10 @@ class LOTRTemplate (VectorTemplate):
     * Credit to Tupinambá (Pedro Neves) for the master template
     * With additional support from CompC and MrTeferi
     """
-    template_suffix = "Lord of the Rings"
+    template_suffix = 'Lord of the Rings'
 
     """
-    COLOR MAPS
+    * Color Maps
     """
 
     @cached_property
@@ -1008,7 +970,7 @@ class LOTRTemplate (VectorTemplate):
         }
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -1031,7 +993,7 @@ class LOTRTemplate (VectorTemplate):
             color_map=self.dark_color_map)
 
     """
-    GROUPS
+    * Groups
     """
 
     @cached_property
@@ -1042,7 +1004,7 @@ class LOTRTemplate (VectorTemplate):
         return groups
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -1053,7 +1015,7 @@ class LOTRTemplate (VectorTemplate):
         return []
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -1099,9 +1061,8 @@ class LOTRTemplate (VectorTemplate):
             self.crown_group.visible = True
 
 
-class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplate):
+class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransformMod, VectorTemplate):
     """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
-    template_suffix = "Borderless"
 
     def __init__(self, layout, **kwargs):
         if not cfg.exit_early:
@@ -1109,7 +1070,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         super().__init__(layout, **kwargs)
 
     """
-    SETTINGS
+    * Settings
     """
 
     @cached_property
@@ -1237,7 +1198,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             enum_class=BorderlessColorMode)
 
     """
-    DETAILS
+    * Frame Details
     """
 
     @cached_property
@@ -1272,7 +1233,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return psd.create_color_layer if isinstance(self.textbox_colors, SolidColor) else psd.create_gradient_layer
 
     """
-    TOGGLE
+    * Bool
     """
 
     @property
@@ -1281,14 +1242,6 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         if bool(cfg.get_setting(section="FRAME", key="Textless", default=False)):
             return False
         return super().is_basic_land
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    @property
-    def is_content_aware_enabled(self) -> bool:
-        return True
 
     @cached_property
     def is_token(self) -> bool:
@@ -1348,7 +1301,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return bool((self.is_mdfc or self.is_transform) and self.is_front and self.front_face_colors)
 
     """
-    COLOR MAPS
+    * Color Maps
     """
 
     @cached_property
@@ -1407,7 +1360,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         }
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -1423,7 +1376,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         elif self.is_hybrid:
             colors = LAYERS.HYBRID
 
-        # Use artifact background if artifact mode isn't colored
+        # Use artifact twins if artifact mode isn't colored
         if self.is_artifact and not self.is_land and self.artifact_color_mode not in [
             BorderlessColorMode.Twins_And_PT,
             BorderlessColorMode.Twins,
@@ -1450,7 +1403,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         elif self.is_hybrid:
             colors = LAYERS.HYBRID
 
-        # Use background color if artifact mode isn't colored
+        # Use artifact twins color if artifact mode isn't colored
         if self.is_artifact and not self.is_land and self.artifact_color_mode not in [
             BorderlessColorMode.Twins_And_PT,
             BorderlessColorMode.All,
@@ -1477,7 +1430,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         if self.is_hybrid or (self.is_multicolor and self.multicolor_textbox):
             colors = self.identity
 
-        # Use background color if artifact mod isn't colored
+        # Use artifact textbox color if artifact mod isn't colored
         if self.is_artifact and self.artifact_color_mode not in [
             BorderlessColorMode.Textbox,
             BorderlessColorMode.All
@@ -1515,7 +1468,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             location_map=self.gradient_location_map)
 
     """
-    GROUPS
+    * Groups
     """
 
     @cached_property
@@ -1536,7 +1489,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return psd.getLayerSet(LAYERS.NICKNAME)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
     @cached_property
@@ -1569,7 +1522,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return super().text_layer_name
 
     """
-    REFERENCES
+    * References
     """
 
     @cached_property
@@ -1578,7 +1531,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return psd.getLayer(self.size, [self.text_group, LAYERS.TEXTBOX_REFERENCE])
 
     """
-    VECTOR SHAPES
+    * Shapes
     """
 
     @cached_property
@@ -1653,7 +1606,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         ]
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -1718,7 +1671,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         ]
 
     """
-    EFFECTS
+    * Effects
     """
 
     @cached_property
@@ -1726,7 +1679,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         return psd.getLayer(LAYERS.NICKNAME, LAYERS.EFFECTS)
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -1895,7 +1848,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             psd.enable_layer_fx(self.text_layer_pt)
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def text_layers_transform_front(self) -> None:
@@ -1915,7 +1868,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         pass
 
     """
-    MDFC METHODS
+    * MDFC Methods
     """
 
     def text_layers_mdfc_front(self) -> None:
@@ -1925,7 +1878,7 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             self.swap_font_color()
 
     """
-    UTILITY METHODS
+    * Util Methods
     """
 
     def swap_font_color(self, color: SolidColor = None) -> None:
@@ -1954,23 +1907,26 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
     """A modern frame version of iDerp's 'Classic Remastered' template."""
 
     """
-    BOOL
+    * Bool
     """
 
     @property
     def is_vehicle(self) -> bool:
+        """Does not support Vehicle textures."""
         return False
 
     @property
     def is_extended(self) -> bool:
+        """TODO: Based on whether the extended setting is enabled."""
         return True
 
     @property
     def is_content_aware_enabled(self) -> bool:
-        return True
+        """Force enabled if 'is_extended' setting is enabled."""
+        return True if self.is_extended else super().is_content_aware_enabled
 
     """
-    SETTINGS
+    * Settings
     """
 
     @cached_property
@@ -1979,7 +1935,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         return cfg.get_option("FRAME", "Crown.Mode", ModernClassicCrown)
 
     """
-    COLOR MAPS
+    * Color Maps
     """
 
     @cached_property
@@ -1991,7 +1947,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         }
 
     """
-    COLORS
+    * Colors
     """
 
     @cached_property
@@ -2021,7 +1977,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
     """
-    SHAPES
+    * Shapes
     """
 
     @cached_property
@@ -2073,7 +2029,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
             *crown]
 
     """
-    MASKS
+    * Masks
     """
 
     @cached_property
@@ -2139,7 +2095,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         ]
 
     """
-    METHODS
+    * Util Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -2164,7 +2120,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
             masks=self.crown_masks)
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def enable_transform_layers_back(self) -> None:
@@ -2176,7 +2132,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         super().enable_transform_layers_back()
 
     """
-    MDFC METHODS
+    * MDFC Methods
     """
 
     def enable_mdfc_layers_back(self) -> None:
