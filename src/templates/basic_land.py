@@ -13,6 +13,7 @@ from photoshop.api._layerSet import LayerSet
 from src.templates._core import BaseTemplate
 from src.settings import cfg
 import src.helpers as psd
+from src.templates._cosmetic import BorderlessMod, FullartMod
 
 
 class BasicLandTemplate (BaseTemplate):
@@ -33,20 +34,19 @@ class BasicLandClassicTemplate (BasicLandTemplate):
     """
     * 7th edition classic frame basic land template.
     """
+    frame_suffix = 'Classic'
 
     @cached_property
     def template_suffix(self) -> str:
-        if self.promo_star:
-            return "Promo Classic"
-        return "Classic"
+        return 'Promo' if self.promo_star else ''
 
     @property
-    def promo_star(self) -> str:
-        return cfg.get_setting(
-            section="FRAME",
-            key="Promo.Star",
+    def promo_star(self) -> bool:
+        return bool(cfg.get_setting(
+            section='FRAME',
+            key='Promo.Star',
             default=False
-        )
+        ))
 
     def enable_frame_layers(self):
         super().enable_frame_layers()
@@ -56,32 +56,20 @@ class BasicLandClassicTemplate (BasicLandTemplate):
             psd.getLayerSet("Promo Star").visible = True
 
 
-class BasicLandUnstableTemplate (BasicLandTemplate):
+class BasicLandUnstableTemplate (BorderlessMod, BasicLandTemplate):
     """
     * Basic land template for the borderless basics from Unstable.
     * Doesn't support expansion symbol.
     """
-    template_suffix = "Unstable"
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    @property
-    def is_content_aware_enabled(self) -> bool:
-        return True
+    frame_suffix = 'Fullart'
 
     def expansion_symbol(self):
         """Does not support expansion symbol."""
         pass
 
 
-class BasicLandTherosTemplate (BasicLandTemplate):
+class BasicLandTherosTemplate (FullartMod, BasicLandTemplate):
     """
     * Fullart basic land template introduced in Theros: Beyond Death.
     """
-    template_suffix = "Theros"
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
+    template_suffix = 'Theros'
