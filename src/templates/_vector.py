@@ -438,7 +438,7 @@ class VectorTemplate (NormalTemplate):
             masks=self.crown_masks)
 
         # Enable Hollow Crown
-        if self.is_nyx or self.is_companion:
+        if self.is_hollow_crown:
             self.enable_hollow_crown(
                 masks=[self.crown_group],
                 vector_masks=[self.pinlines_group]
