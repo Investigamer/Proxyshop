@@ -1,0 +1,35 @@
+["Name"]
+text = "Card Name.jpg"
+result = {name='Card Name', set='', number='', artist='', creator=''}
+
+["Name/Set"]
+text = "Card Name [SET].jpg"
+result = {name='Card Name', set='SET', number='', artist='', creator=''}
+
+["Name/Artist"]
+text = "Card Name (Artist).jpg"
+result = {name='Card Name', set='', number='', artist='Artist', creator=''}
+
+["Name/Creator"]
+text = "Card Name$Creator.jpg"
+result = {name='Card Name', set='', number='', artist='', creator='Creator'}
+
+["Name/Set/Num"]
+text = "Card Name [SET] {075}.jpg"
+result = {name='Card Name', set='SET', number='75', artist='', creator=''}
+
+["Name/Artist/Set/Num"]
+text = "Card Name (Artist) [SET] {205}.jpg"
+result = {name='Card Name', set='', number='205', artist='Artist', creator=''}
+
+["Name/Set/Creator"]
+text = "Card Name [SET]$Creator"
+result = {name='Card Name', set='SET', number='', artist='', creator='Creator'}
+
+["Name/Set/Num/Creator"]
+text = "Card Name [SET] {180}$Creator"
+result = {name='Card Name', set='SET', number='180', artist='', creator='Creator'}
+
+["Name/Artist/Set/Num/Creator"]
+text = "Card Name (Artist) [SET] {180}$Creator"
+result = {name='Card Name', set='SET', number='180', artist='Artist', creator='Creator'}
