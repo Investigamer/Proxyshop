@@ -47,6 +47,7 @@ class Constants:
         "Leveler": ["leveler"],
         "Split": ["split"],
         "Class": ["class"],
+        "Saga": ["saga"],
         "Battle": ["battle"],
         "Token": ["token"],
         "Planar": ["planar"]
@@ -96,10 +97,10 @@ class Constants:
 
         # Key files used by the app
         self.path_scryfall_scan = Path(self.path_logs, "card.jpg")
-        self.path_watermarks = Path(self.path_data, 'watermarks.yaml')
+        self.path_watermarks = Path(self.path_data, 'watermarks.yml')
         self.path_version_tracker = Path(self.path_data, 'version_tracker.json')
-        self.path_expansion_symbols = Path(self.path_data, 'symbols.yaml')
-        self.path_custom_symbols = Path(self.path_data, "custom_symbols.yaml")
+        self.path_expansion_symbols = Path(self.path_data, 'symbols.yml')
+        self.path_custom_symbols = Path(self.path_data, "symbols.user.yml")
 
         # Locking handlers for multithreading
         self.lock_file_open = Lock()

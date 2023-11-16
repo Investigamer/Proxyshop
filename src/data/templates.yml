@@ -104,7 +104,7 @@ mutate.psd:
   id: '1A5YNZA9Z9eE_jdDIPFJCqp_AxcEiAcdL'
   templates: { Normal: { MutateTemplate: mutate } }
 
-adventure-vector.psd:
+normal-vector.psd:
   id: 'TBA'
   templates: { Normal: { AdventureVectorTemplate: adventure } }
 

@@ -167,7 +167,7 @@
     "adventure": {
         "Normal": {
             "class": "AdventureVectorTemplate",
-            "file": "adventure-vector.psd",
+            "file": "normal-vector.psd",
             "id": "TBA"
         }
     },
