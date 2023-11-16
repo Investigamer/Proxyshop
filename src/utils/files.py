@@ -50,6 +50,14 @@ data_types: dict[str, DataFileType] = {
         'load': toml_load, 'load_kw': {},
         'dump': toml_dump, 'dump_kw': {'sort_keys': True}
     },
+    'yml': {
+        'load': yaml_load, 'load_kw': {'Loader': yamlLoader},
+        'dump': yaml_dump, 'dump_kw': {
+            'Dumper': yamlDumper,
+            'sort_keys': True,
+            'indent': 2,
+            'allow_unicode': True}
+    },
     'yaml': {
         'load': yaml_load, 'load_kw': {'Loader': yamlLoader},
         'dump': yaml_dump, 'dump_kw': {
@@ -102,7 +110,7 @@ def load_data_file(
     @raise OSError: If loading data file fails.
     """
     data_type = Path(data_file).suffix[1:]
-    parser: DataFileType = data_types.get(data_type, {})
+    parser: DataFileType = data_types.get(data_type, {}).copy()
     if not parser:
         raise ValueError("Data file provided does not match a supported data file type.\n"
                          f"Types supported: {', '.join(data_types.keys())}\n"
