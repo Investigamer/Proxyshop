@@ -704,7 +704,7 @@ class ProxyshopApp(App):
         try:
             if not ENV.DEV_MODE:
                 # Download updated library via Amazon S3 and update global constants
-                if not download_s3(Path(con.path_data, 'symbols.yaml'), 'symbols.yaml'):
+                if not download_s3(con.path_expansion_symbols, con.path_expansion_symbols.name):
                     raise OSError("Amazon S3 download failed to write data to disk!")
                 con.reload()
             console.update(f"Expansion Symbols ... {msg_success('Library updated!')}")
@@ -712,6 +712,17 @@ class ProxyshopApp(App):
             # Encountered an error while updating
             console.update(f"Expansion Symbols ... {msg_warn('Library update failed!')}")
             console.log_exception(e)
+
+        # Check if API keys are valid
+        keys_missing = [k for k, v in [
+            ('Google Drive', ENV.API_GOOGLE),
+            ('Amazon S3', ENV.API_AMAZON)
+        ] if not v]
+        status = f"Keys disabled: {', '.join(keys_missing)}" if keys_missing else ''
+        console.update(
+            f"Updater API Keys ... "
+            f"{msg_warn(status) if status else msg_success('Keys retrieved!')}"
+        )
 
         # Check Photoshop status
         result = con.refresh_photoshop()
@@ -967,6 +978,7 @@ if __name__ == '__main__':
         resource_add_path(os.path.join(sys._MEIPASS))
 
     # Ensure mandatory folders are created
+    con.path_art.mkdir(mode=711, parents=True, exist_ok=True)
     con.path_out.mkdir(mode=711, parents=True, exist_ok=True)
     con.path_logs.mkdir(mode=711, parents=True, exist_ok=True)
     con.path_templates.mkdir(mode=711, parents=True, exist_ok=True)
