@@ -1,10 +1,12 @@
 """
 Utility Helpers Module
 """
+
 # Standard Library Imports
-from enum import Enum, EnumMeta
 from functools import cached_property
 from typing import Union, Optional
+from enum import Enum, EnumMeta
+from contextlib import suppress
 import unicodedata
 import string
 
@@ -160,6 +162,13 @@ def str_to_bool(st: str) -> bool:
         return STR_BOOL_MAP[st.lower()]
     except KeyError:
         raise ValueError(f"Couldn't discern boolean value of string '{st}'!")
+
+
+def str_to_bool_safe(st: str, default: bool = False) -> bool:
+    """Utility wrapper for str_to_bool, returns default if error is raised."""
+    with suppress(Exception):
+        return str_to_bool(st)
+    return default
 
 
 """
