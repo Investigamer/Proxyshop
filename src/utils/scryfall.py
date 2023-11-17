@@ -311,7 +311,7 @@ def get_set_mtgjson(card_set: str) -> dict:
     j['tokenCount'] = len(j.pop('tokens', []))
 
     # Remove unneeded data
-    [j.pop(n) for n in MTGJSON_SET_DATA_EXTRA]
+    [j.pop(n, []) for n in MTGJSON_SET_DATA_EXTRA]
 
     # Return data if valid
     return j if j.get('name') else {}
