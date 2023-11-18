@@ -1,5 +1,5 @@
 """
-LAYER EFFECTS HELPERS
+* Helpers: Layer Effects
 """
 # Standard Library Imports
 from typing import Union, Optional
@@ -8,7 +8,6 @@ from typing import Union, Optional
 from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
-
 
 # Local Imports
 from src.constants import con
@@ -31,7 +30,7 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 """
-BLENDING EFFECTS UTILITIES
+* Blending Utilities
 """
 
 
@@ -57,7 +56,7 @@ def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]])
 
 
 """
-LAYER EFFECTS UTILITIES
+* Layer Effects Utilities
 """
 
 
@@ -152,7 +151,7 @@ def copy_layer_fx(from_layer: Union[ArtLayer, LayerSet], to_layer: Union[ArtLaye
 
 
 """
-APPLYING LAYER EFFECTS
+* Applying Layer Effects
 """
 
 
@@ -297,8 +296,7 @@ def apply_fx_bevel(action: ActionDescriptor, fx: EffectBevel) -> None:
     @param action: Pending layer effects action descriptor.
     @param fx: Bevel effect properties.
     """
-    d1 = ActionDescriptor()
-    d2 = ActionDescriptor()
+    d1, d2 = ActionDescriptor(), ActionDescriptor()
     d1.PutEnumerated(sID("highlightMode"), sID("blendMode"), sID("screen"))
     apply_color(d1, fx.get('highlight_color', [255, 255, 255]), 'highlightColor')
     d1.PutUnitDouble(sID("highlightOpacity"), sID("percentUnit"),  fx.get('highlight_opacity', 70))

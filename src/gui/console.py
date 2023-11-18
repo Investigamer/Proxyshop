@@ -84,7 +84,7 @@ class GUIConsole(BoxLayout):
         """
         Boilerplate message for awaiting a user response.
         """
-        return "Manual editing enabled!\nClick continue to proceed..."
+        return "Manual editing enabled! Click Continue to proceed ..."
 
     @property
     def message_skipping(self):

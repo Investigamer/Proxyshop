@@ -158,9 +158,9 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_repla
 
 def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
     """
-    Remove text up to a certain index from a TextLayer.
+    Remove text after certain index from a TextLayer.
     @param layer: TextLayer containing the text to modify.
-    @param idx: Index to remove up to.
+    @param idx: Index to remove after.
     """
     # Establish our text key and descriptor ID's
     app.activeDocument.activeLayer = layer

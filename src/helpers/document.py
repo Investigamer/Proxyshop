@@ -340,9 +340,14 @@ def save_document_psb(path: Path) -> None:
     app.executeAction(sID('save'), d1, DialogModes.DisplayNoDialogs)
 
 
-def close_document() -> None:
-    """Close the active document."""
-    app.activeDocument.close(SaveOptions.DoNotSaveChanges)
+def close_document(save: bool = False) -> None:
+    """Close the active document.
+
+    Args:
+        save: Whether to save changes to the document before closing.
+    """
+    save_options = SaveOptions.SaveChanges if save else SaveOptions.DoNotSaveChanges
+    app.activeDocument.close(save_options)
 
 
 """

@@ -19,9 +19,7 @@ LAYER EFFECTS
 
 
 class EffectStroke(TypedDict):
-    """
-    Layer Effect - Stroke
-    """
+    """Layer Effect: Stroke"""
     type: Literal['stroke']
     weight: NotRequired[int]
     color: SolidColor
@@ -34,9 +32,7 @@ class EffectStroke(TypedDict):
 
 
 class EffectDropShadow(TypedDict):
-    """
-    Layer Effect - Drop Shadow
-    """
+    """Layer Effect: Drop Shadow"""
     type: Literal['drop-shadow']
     opacity: NotRequired[Union[float, int]]
     rotation: NotRequired[Union[float, int]]
@@ -47,18 +43,14 @@ class EffectDropShadow(TypedDict):
 
 
 class EffectGradientColor(TypedDict):
-    """
-    An individual color within a Gradient Layer Effect.
-    """
+    """An individual color within a EffectGradientOverlay."""
     color: SolidColor
     location: NotRequired[int]
     midpoint: NotRequired[int]
 
 
 class EffectGradientOverlay(TypedDict):
-    """
-    Layer Effect - Drop Shadow
-    """
+    """Layer Effect: Drop Shadow"""
     type: Literal['gradient-overlay']
     size: NotRequired[int]
     scale: NotRequired[int]
@@ -68,18 +60,14 @@ class EffectGradientOverlay(TypedDict):
 
 
 class EffectColorOverlay(TypedDict):
-    """
-    Layer Effect - Color Overlay
-    """
+    """Layer Effect: Color Overlay"""
     type: Literal['color-overlay']
     opacity: NotRequired[Union[float, int]]
     color: Union[SolidColor, list[int]]
 
 
 class EffectBevel(TypedDict):
-    """
-    Layer Effect - Bevel
-    """
+    """Layer Effect: Bevel"""
     type: Literal['bevel']
     highlight_opacity: NotRequired[Union[float, int]]
     highlight_color: NotRequired[Union[SolidColor, list[int]]]
@@ -92,13 +80,19 @@ class EffectBevel(TypedDict):
     softness: NotRequired[Union[float, int]]
 
 
-LayerEffects = Union[EffectStroke, EffectDropShadow, EffectGradientOverlay, EffectColorOverlay, EffectBevel]
-
-
 """
-LAYER TYPES
+* Types
 """
 
-
+# Check against: isinstance
 LayerContainer = LayerSet, Document, Dispatch
 LayerObject = LayerSet, ArtLayer, Dispatch
+
+# Type: Any layer effect
+LayerEffects = Union[
+    EffectStroke,
+    EffectDropShadow,
+    EffectGradientOverlay,
+    EffectColorOverlay,
+    EffectBevel
+]

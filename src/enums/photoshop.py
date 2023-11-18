@@ -1,5 +1,5 @@
 """
-Enums for Photoshop Actions
+* Enums for Photoshop Actions
 """
 # Standard Library Imports
 from enum import Enum

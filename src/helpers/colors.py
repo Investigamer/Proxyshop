@@ -6,7 +6,7 @@ from typing import Union, Optional
 
 # Third Party Imports
 from photoshop.api import SolidColor, DialogModes, ActionList, ActionDescriptor, ColorModel, LayerKind
-from photoshop.api._artlayer import ArtLayer
+from photoshop.api._artlayer import ArtLayer, TextItem
 
 # Local Imports
 from src.constants import con
@@ -162,6 +162,15 @@ def get_text_layer_color(layer: ArtLayer) -> SolidColor:
         if hasattr(layer.textItem, 'color'):
             return layer.textItem.color
         print(f"Couldn't retrieve color of layer: {layer.name}")
+    return rgb_black()
+
+
+def get_text_item_color(item: TextItem) -> SolidColor:
+    """Utility definition for `get_text_layer_color`, targeting a known TextItem."""
+    if isinstance(item, TextItem):
+        if hasattr(item, 'color'):
+            return item.color
+        print(f"Couldn't retrieve color of TextItem!")
     return rgb_black()
 
 
