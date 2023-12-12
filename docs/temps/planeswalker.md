@@ -1,41 +1,41 @@
-# Dicts
+# Planeswalker
 
-::: src.utils.dicts.reverse_dict
+::: src.templates.planeswalker.PlaneswalkerTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.reverse_dict_safe
+::: src.templates.planeswalker.PlaneswalkerExtendedTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_key
+::: src.templates.planeswalker.PlaneswalkerMDFCTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_val
+::: src.templates.planeswalker.PlaneswalkerMDFCExtendedTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_first
+::: src.templates.planeswalker.PlaneswalkerTransformTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_last
+::: src.templates.planeswalker.PlaneswalkerTransformExtendedTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

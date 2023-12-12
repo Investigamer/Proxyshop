@@ -1,4 +1,0 @@
-# Battle
-
-::: src.templates.battle
-

@@ -1,4 +1,0 @@
-# Planar
-
-::: src.templates.planar
-

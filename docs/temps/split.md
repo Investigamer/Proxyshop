@@ -1,6 +1,6 @@
-# Env
+# Split
 
-::: src.utils.env.Env
+::: src.templates.split.SplitTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

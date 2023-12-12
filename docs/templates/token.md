@@ -1,4 +1,0 @@
-# Token
-
-::: src.templates.token
-

@@ -1,4 +1,0 @@
-# Planeswalker
-
-::: src.templates.planeswalker
-

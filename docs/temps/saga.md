@@ -1,41 +1,27 @@
-# Dicts
+# Saga
 
-::: src.utils.dicts.reverse_dict
+::: src.templates.saga.SagaMod
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.reverse_dict_safe
+::: src.templates.saga.VectorSagaMod
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_key
+::: src.templates.saga.SagaVectorTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_val
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_first
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_last
+::: src.templates.saga.UniversesBeyondSagaTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

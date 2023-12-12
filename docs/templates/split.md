@@ -1,4 +1,0 @@
-# Split
-
-::: src.templates.split
-

@@ -34,24 +34,24 @@ nav:
 - Changelog: changelog.md
 - Reference:
   - Template Classes:
-    - templates/_core.md
-    - templates/_cosmetic.md
-    - templates/_vector.md
-    - templates/adventure.md
-    - templates/basic_land.md
-    - templates/battle.md
-    - templates/classes.md
-    - templates/leveler.md
-    - templates/mdfc.md
-    - templates/mutate.md
-    - templates/normal.md
-    - templates/planar.md
-    - templates/planeswalker.md
-    - templates/prototype.md
-    - templates/saga.md
-    - templates/split.md
-    - templates/token.md
-    - templates/transform.md
+    - temps/_core.md
+    - temps/_cosmetic.md
+    - temps/_vector.md
+    - temps/adventure.md
+    - temps/basic_land.md
+    - temps/battle.md
+    - temps/classes.md
+    - temps/leveler.md
+    - temps/mdfc.md
+    - temps/mutate.md
+    - temps/normal.md
+    - temps/planar.md
+    - temps/planeswalker.md
+    - temps/prototype.md
+    - temps/saga.md
+    - temps/split.md
+    - temps/token.md
+    - temps/transform.md
   - Photoshop Helpers:
     - helpers/actions.md
     - helpers/adjustments.md
@@ -61,11 +61,13 @@ nav:
     - helpers/document.md
     - helpers/effects.md
     - helpers/expansion_symbol.md
+    - helpers/expansionsymbol.md
     - helpers/layers.md
     - helpers/masks.md
     - helpers/position.md
     - helpers/text.md
   - App Utilities:
+    - utils/api.md
     - utils/build.md
     - utils/compression.md
     - utils/decorators.md
@@ -83,6 +85,7 @@ nav:
     - utils/strings.md
     - utils/testing.md
   - Text Layer Classes: text_layers.md
+  - Card Layouts: layouts.md
 - License: license.md
 plugins:
 - include-markdown
@@ -94,31 +97,26 @@ plugins:
     handlers:
       python:
         rendering:
-          show_root_heading: true
-          show_root_toc_entry: true
-          show_root_full_path: false
-          show_object_full_path: false
+          show_bases: true
           show_category_heading: true
-          show_if_no_docstring: false
-          show_source_summary: true
-          show_bases: false
-          show_inherited_members: false
-          members:
-            exclude: [ NO_DIALOG, __init__, __repr__, __str__ ]
-          show_docstring_functions: true
           show_docstring_classes: true
           show_docstring_examples: false
+          show_docstring_functions: true
           show_docstring_other_parameters: false
-          show_source: false
+          show_if_no_docstring: false
+          show_inherited_members: false
+          show_object_full_path: false
+          show_root_full_path: false
+          show_root_heading: false
+          show_root_toc_entry: true
           show_signature: true
           show_signature_annotations: true
-          heading_level: 2
+          show_source: false
+          show_source_summary: true
         selection:
-          filters:
-            - "!NO_DIALOG"  # exclude private objects
           docstring_options:
             ignore_init_summary: true
-          docstring_style: 'google'
+          docstring_style: google
 - minify:
     htmlmin_opts:
       remove_comments: true

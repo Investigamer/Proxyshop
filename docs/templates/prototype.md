@@ -1,4 +1,0 @@
-# Prototype
-
-::: src.templates.prototype
-

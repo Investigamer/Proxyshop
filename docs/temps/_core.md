@@ -1,41 +1,27 @@
-# Dicts
+# Core
 
-::: src.utils.dicts.reverse_dict
+::: src.templates._core.BaseTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.reverse_dict_safe
+::: src.templates._core.StarterTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_key
+::: src.templates._core.NormalTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_val
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_first
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_last
+::: src.templates._core.NormalEssentialsTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

@@ -1,6 +1,6 @@
-# Env
+# Token
 
-::: src.utils.env.Env
+::: src.templates.token.TokenTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

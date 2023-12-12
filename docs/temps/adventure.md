@@ -1,41 +1,27 @@
-# Dicts
+# Adventure
 
-::: src.utils.dicts.reverse_dict
+::: src.templates.adventure.AdventureMod
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.reverse_dict_safe
+::: src.templates.adventure.AdventureVectorMod
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_key
+::: src.templates.adventure.AdventureTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.dicts.dict_sort_by_val
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_first
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.utils.dicts.dict_last
+::: src.templates.adventure.AdventureVectorTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

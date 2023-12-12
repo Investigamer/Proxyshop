@@ -1,4 +1,0 @@
-# Mdfc
-
-::: src.templates.mdfc
-

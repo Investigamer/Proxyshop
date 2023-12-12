@@ -1,132 +1,104 @@
-# Layers
+# Normal
 
-::: src.helpers.layers.getLayer
+::: src.templates.normal.M15Template
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.getLayerSet
+::: src.templates.normal.FullartTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.create_new_layer
+::: src.templates.normal.StargazingTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.merge_layers
+::: src.templates.normal.ExtendedTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.group_layers
+::: src.templates.normal.InventionTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.duplicate_group
+::: src.templates.normal.ExpeditionTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.merge_group
+::: src.templates.normal.SnowTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.smart_layer
+::: src.templates.normal.MiracleTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.edit_smart_layer
+::: src.templates.normal.ClassicTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.unpack_smart_layer
+::: src.templates.normal.EtchedTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.lock_layer
+::: src.templates.normal.ClassicRemasteredTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.unlock_layer
+::: src.templates.normal.UniversesBeyondTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.select_bounds
+::: src.templates.normal.LOTRTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.select_layer
+::: src.templates.normal.BorderlessVectorTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.helpers.layers.select_layers
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.helpers.layers.select_no_layers
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.helpers.layers.select_layer_bounds
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.helpers.layers.select_layer_pixels
-    options:
-        show_root_members_full_path: false
-        show_category_heading: true
-        show_root_full_path: false
-        show_root_heading: true
-
-::: src.helpers.layers.select_vector_layer_pixels
+::: src.templates.normal.ClassicModernTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

@@ -1,13 +1,13 @@
-# Objects
+# Prototype
 
-::: src.utils.objects.Singleton
+::: src.templates.prototype.PrototypeMod
     options:
         show_root_members_full_path: false
         show_category_heading: true
         show_root_full_path: false
         show_root_heading: true
 
-::: src.utils.objects.PhotoshopHandler
+::: src.templates.prototype.PrototypeTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true

@@ -1,4 +1,0 @@
-# Normal
-
-::: src.templates.normal
-

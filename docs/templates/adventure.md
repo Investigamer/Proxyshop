@@ -1,4 +1,0 @@
-# Adventure
-
-::: src.templates.adventure
-

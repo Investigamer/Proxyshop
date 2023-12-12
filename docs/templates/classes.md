@@ -1,4 +1,0 @@
-# Classes
-
-::: src.templates.classes
-

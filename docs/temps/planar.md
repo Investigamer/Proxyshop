@@ -1,6 +1,6 @@
-# Env
+# Planar
 
-::: src.utils.env.Env
+::: src.templates.planar.PlanarTemplate
     options:
         show_root_members_full_path: false
         show_category_heading: true
