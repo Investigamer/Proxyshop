@@ -9,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
-!src/data/build/
 develop-eggs/
 dist/
 downloads/
@@ -161,10 +160,8 @@ cython_debug/
 /logs
 # For personal testing
 /testing.py
-# User generated data files
-/src/data/mtg
-/src/data/symbols.user.yml
-/src/data/constants.user.yml
+# User custom data files
+/src/data/user.yml
 # User specific version tracker
 /src/data/version_tracker.json
 # Generated new release
@@ -187,3 +184,8 @@ cython_debug/
 /plugins/*/configs/*.ini
 # Test generated symbol images
 /src/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]
+# Ignore symbols -- downloaded from mtg-vectors repository
+/src/img/symbols
+/src/data/hexproof
+# Allow the internal build tools
+!src/data/build/
