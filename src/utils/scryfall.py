@@ -325,18 +325,30 @@ def parse_card_info(file_path: Union[str, Path]) -> CardDetails:
     name_split = Reg.PATH_SPLIT.split(file_name)
     artist = Reg.PATH_ARTIST.search(file_name)
     number = Reg.PATH_NUM.search(file_name)
-    code = Reg.PATH_SET.search(file_name)
-    nickname = Reg.PATH_NICKNAME.search(file_name)
+    set_or_cfg = Reg.PATH_SET_OR_CFG.search(file_name)
+
+    code = None
+    additional_cfg = {}
+    for cfg in set_or_cfg.groups() if set_or_cfg else []:
+        cfg_name_and_value = cfg.split("=", 1)
+        if len(cfg_name_and_value) == 1:
+            code = cfg
+        elif len(cfg_name_and_value) == 2:
+            [cfg_name, cfg_value] = cfg_name_and_value
+            additional_cfg[cfg_name] = cfg_value
+        else:
+            # Not supported
+            pass
 
     # Return dictionary
     return {
         'filename': file_path,
         'name': name_split[0].strip(),
-        'set': code.group(1) if code else '',
+        'set': code if code else '',
         'artist': artist.group(1) if artist else '',
         'number': number.group(1) if number and code else '',
         'creator': name_split[-1] if '$' in file_name else '',
-        'nickname': nickname.group(1) if nickname else '',
+        'additional_cfg': additional_cfg,
     }
 
 

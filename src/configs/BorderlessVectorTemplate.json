@@ -43,7 +43,7 @@
   {
     "type": "bool",
     "title": "[b]Use Nickname[/b]",
-    "desc": "When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify in the image name as `Nick-Name` (those are back ticks).\n[b](Default: False)[/b]",
+    "desc": "When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify in the image name as [nick=...].\n[b](Default: False)[/b]",
     "section": "TEXT",
     "key": "Nickname",
     "default": 0
