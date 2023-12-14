@@ -1181,6 +1181,11 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
             default=False))
 
     @cached_property
+    def panorama_is_horizontal(self) -> bool:
+        """Returns True if panorama goes both down and to the side."""
+        return self.panorama_mode_enabled and self.layout.file['panorama_size'][1] > 1
+
+    @cached_property
     def multicolor_textbox(self) -> bool:
         """Returns True if Textbox for multicolored cards should use blended colors."""
         return bool(cfg.get_setting(
@@ -1267,7 +1272,10 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
     @cached_property
     def art_frame(self) -> str:
         if self.panorama_mode_enabled:
-            return f"{LAYERS.FULL_ART_FRAME}"
+            if self.panorama_is_horizontal:
+                return f"{LAYERS.FULL_CARD_FRAME}"
+            else:
+                return f"{LAYERS.FULL_ART_FRAME}"
         else:
             # Use different positioning based on textbox size
             return f"{LAYERS.ART_FRAME} {self.size}"

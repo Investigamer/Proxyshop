@@ -616,8 +616,8 @@ class BaseTemplate:
             psd.import_art(self.art_layer, self.layout.art_file)
 
         # Frame the artwork
-        if 'panorama_element' in self.layout.file:
-            psd.frame_panorama(self.active_layer, self.art_reference, self.layout.file['panorama_element'])
+        if self.panorama_mode_enabled:
+            psd.frame_panorama(self.active_layer, self.art_reference, self.layout.file['panorama_element'], self.layout.file['panorama_size'])
         else:
             psd.frame_layer(self.active_layer, self.art_reference)
 
@@ -946,7 +946,9 @@ class BaseTemplate:
     @try_photoshop
     def color_border(self) -> None:
         """Color this card's border based on given setting."""
-        if self.border_color != BorderColor.Black:
+        if self.panorama_is_horizontal:
+            self.border_group.visible = False
+        elif self.border_color != BorderColor.Black:
             psd.apply_fx(self.border_group, [{
                 'type': 'color-overlay',
                 'color': psd.get_color(self.border_color)

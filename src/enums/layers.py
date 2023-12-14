@@ -189,6 +189,7 @@ class LAYERS (StrEnum):
 
     # Art Frames
     ART_FRAME = "Art Frame"
+    FULL_CARD_FRAME = "Full Card Frame"
     FULL_ART_FRAME = "Full Art Frame"
     BORDERLESS_FRAME = "Borderless Frame"
     BASIC_ART_FRAME = "Basic Art Frame"

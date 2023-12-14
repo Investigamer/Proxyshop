@@ -72,6 +72,8 @@ from src.utils.strings import (
     msg_info
 )
 
+from src.utils.scryfall import parse_card_info
+
 # App configuration
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 Config.remove_option('input', 'wm_touch')
@@ -393,13 +395,12 @@ class ProxyshopApp(App):
             with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
                 cards = pool.map(assign_layout, cards)
 
-            # Get artist info and path to panorama art
-            get_name = lambda f: osp.basename(osp.splitext(definition)[0])
+            # Get panorama art file
+            get_name = lambda f: osp.basename(osp.splitext(f)[0])
             file_name = get_name(definition)
-            artist = Reg.PATH_ARTIST.search(file_name)
             parent_dir = Path(definition).parent.absolute()
-            all_files = listdir(Path(definition).parent.absolute())
-            art_files = [ osp.join(parent_dir, f) for f in all_files if get_name(f) == file_name and not Path(f).suffix == ".txt" ]
+            art_files = [ f for f in listdir(Path(definition).parent.absolute()) if Path(f).suffix != ".txt" ]
+            art_files = [ osp.join(parent_dir, f) for f in art_files if get_name(f) == file_name ]
             if len(art_files) == 0:
                 proceed = console.error(
                     msg=f"\n[b]Panorama {definition} has no possible art files[/b] ...\n",
@@ -412,13 +413,18 @@ class ProxyshopApp(App):
                 )
 
             if proceed and len(art_files) > 0:
-                art_file = art_files[0]
                 cards = list(cards)
+
+                card_info = parse_card_info(definition)
+                artist = card_info.get('artist', '')
+                pano_size = [int(c) for c in card_info.get('additional_cfg', {}).get('pano', '{}x1'.format(len(cards))).split('x')]
+                art_file = art_files[0]
+
                 for (i, card) in enumerate(cards):
-                    if artist:
-                        card.file['artist'] = artist.group(1)
+                    card.file['artist'] = artist
                     card.file['filename'] = art_file
                     card.file['panorama_element'] = i
+                    card.file['panorama_size'] = pano_size
                 panorama_cards += cards
 
         # Run through each file, assigning layout
