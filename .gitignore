@@ -170,7 +170,7 @@ cython_debug/
 /src/__private__.py
 # All plugins that aren't MrTeferi or SilvanMTG
 /plugins/*
-!/plugins/MrTeferi
+!/plugins/Investigamer
 !/plugins/SilvanMTG
 /plugins/*/config_ini
 # PSD templates directories
