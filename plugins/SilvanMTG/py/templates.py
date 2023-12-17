@@ -1,5 +1,5 @@
 """
-SILVAN'S TEMPLATES
+* SilvanMTG Templates
 """
 # Standard Library Imports
 from functools import cached_property
@@ -9,12 +9,16 @@ from typing import Optional
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates import ExtendedTemplate, MDFCMod
 from src.enums.layers import LAYERS
 import src.helpers as psd
+from src.templates import MDFCMod, ExtendedMod, M15Template
+
+"""
+* Template Classes
+"""
 
 
-class SilvanExtendedTemplate (ExtendedTemplate):
+class SilvanExtendedTemplate (ExtendedMod, M15Template):
     """Silvan's legendary extended template used for WillieTanner proxies."""
     template_suffix = "Extended"
 
@@ -35,21 +39,8 @@ class SilvanExtendedTemplate (ExtendedTemplate):
         if self.background_layer:
             psd.enable_mask(self.background_layer.parent)
 
-    def enable_hollow_crown(self, shadows: Optional[ArtLayer] = None) -> None:
 
-        # Mask shadows overlaying hollow crown
-        psd.enable_mask(self.crown_layer.parent)
-        psd.enable_mask(self.pinlines_layer.parent)
-        psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW).visible = True
-        psd.enable_mask(psd.getLayer(LAYERS.SHADOWS))
-
-
-"""
-MDFC TEMPLATES
-"""
-
-
-class SilvanMDFCTemplate (MDFCMod, ExtendedTemplate):
+class SilvanMDFCTemplate (MDFCMod, ExtendedMod, M15Template):
     """Silvan extended template modified for MDFC cards."""
 
     def enable_crown(self) -> None:

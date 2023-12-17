@@ -1,20 +1,22 @@
 """
 Pencil Sketchify Action Module
 """
+# Standard Library Imports
 from threading import Event
 from typing import Union
 
-from src.constants import con
-from src.console import console
+# Third Party Imports
 import photoshop.api as ps
-app = con.app
-cID = app.charIDToTypeID
-sID = app.stringIDToTypeID
+
+# Local Imports
+from src import APP, CONSOLE
+
+# QOL Definitions
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 dialog_mode = ps.DialogModes.DisplayNoDialogs
 
-
 """
-HELPERS
+* Action Funcs
 """
 
 
@@ -24,7 +26,7 @@ def new_layer(index: int):
 	ref1.putClass(cID('Lyr '))
 	desc1.putReference(cID('null'), ref1)
 	desc1.putInteger(cID('LyrI'), index)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 
 def select_bg():
@@ -36,7 +38,7 @@ def select_bg():
 	list1 = ps.ActionList()
 	list1.putInteger(1)
 	desc1.putList(cID('LyrI'), list1)
-	app.executeAction(cID('slct'), desc1, dialog_mode)
+	APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 
 def reset_colors():
@@ -44,7 +46,7 @@ def reset_colors():
 	ref1 = ps.ActionReference()
 	ref1.putProperty(cID('Clr '), cID('Clrs'))
 	desc1.putReference(cID('null'), ref1)
-	app.executeAction(cID('Rset'), desc1, dialog_mode)
+	APP.executeAction(cID('Rset'), desc1, dialog_mode)
 
 
 def move_layer(pos, index: Union[int, list[int]]):
@@ -63,7 +65,7 @@ def move_layer(pos, index: Union[int, list[int]]):
 	for i in index:
 		list1.putInteger(i)
 	desc1.putList(cID('LyrI'), list1)
-	app.executeAction(cID('move'), desc1, dialog_mode)
+	APP.executeAction(cID('move'), desc1, dialog_mode)
 
 
 def set_opacity(opacity: float):
@@ -74,7 +76,7 @@ def set_opacity(opacity: float):
 	desc2 = ps.ActionDescriptor()
 	desc2.putUnitDouble(cID('Opct'), cID('#Prc'), opacity)
 	desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-	app.executeAction(cID('setd'), desc1, dialog_mode)
+	APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 
 def select_layer(name: str, index: int):
@@ -86,7 +88,7 @@ def select_layer(name: str, index: int):
 	list1 = ps.ActionList()
 	list1.putInteger(index)
 	desc1.putList(cID('LyrI'), list1)
-	app.executeAction(cID('slct'), desc1, dialog_mode)
+	APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 
 def select_layers(name: str, layers: list[int]):
@@ -101,19 +103,19 @@ def select_layers(name: str, layers: list[int]):
 	for layer in layers:
 		list1.putInteger(layer)
 	desc1.putList(cID('LyrI'), list1)
-	app.executeAction(cID('slct'), desc1, dialog_mode)
+	APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 
 def auto_tone():
 	desc1 = ps.ActionDescriptor()
 	desc1.putBoolean(cID('Auto'), True)
-	app.executeAction(cID('Lvls'), desc1, dialog_mode)
+	APP.executeAction(cID('Lvls'), desc1, dialog_mode)
 
 
 def auto_contrast():
 	desc1 = ps.ActionDescriptor()
 	desc1.putBoolean(cID('AuCo'), True)
-	app.executeAction(cID('Lvls'), desc1, dialog_mode)
+	APP.executeAction(cID('Lvls'), desc1, dialog_mode)
 
 
 def hide_layer(name=None):
@@ -126,7 +128,7 @@ def hide_layer(name=None):
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 	list1.putReference(ref1)
 	desc1.putList(cID('null'), list1)
-	app.executeAction(cID('Hd  '), desc1, dialog_mode)
+	APP.executeAction(cID('Hd  '), desc1, dialog_mode)
 
 
 def show_layer(name=None):
@@ -139,7 +141,7 @@ def show_layer(name=None):
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 	list1.putReference(ref1)
 	desc1.putList(cID('null'), list1)
-	app.executeAction(cID('Shw '), desc1, dialog_mode)
+	APP.executeAction(cID('Shw '), desc1, dialog_mode)
 
 
 def delete_layers(layers):
@@ -151,7 +153,7 @@ def delete_layers(layers):
 	for layer in layers:
 		list1.putInteger(layer)
 	desc1.putList(cID('LyrI'), list1)
-	app.executeAction(cID('Dlt '), desc1, dialog_mode)
+	APP.executeAction(cID('Dlt '), desc1, dialog_mode)
 
 
 """
@@ -167,7 +169,7 @@ def blend(key):
 	desc2 = ps.ActionDescriptor()
 	desc2.putEnumerated(cID('Md  '), cID('BlnM'), sID(key))
 	desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-	app.executeAction(cID('setd'), desc1, dialog_mode)
+	APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 
 """
@@ -185,7 +187,7 @@ def filter_photocopy(detail: int = 2, darken: int = 5):
 	desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('Phtc'))
 	desc1.putInteger(sID('detail '), detail)
 	desc1.putInteger(sID('darken'), darken)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 
 # Utility commands
@@ -205,7 +207,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	"""
 
 	# Is the main layer "Layer 1"
-	app.activeDocument.activeLayer.name = "Background"
+	APP.activeDocument.activeLayer.name = "Background"
 
 	# Make - New Layer 1
 	new_layer(139)
@@ -227,13 +229,13 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putObject(cID('Clr '), sID("RGBColor"), desc4)
 	desc2.putObject(cID('Type'), sID("solidColorLayer"), desc3)
 	desc1.putObject(cID('Usng'), sID("contentLayer"), desc2)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Select
 	select_bg()
 
 	# Layer Via Copy - Background copy
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(3, 240)
@@ -251,7 +253,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background copy 2
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(4, 242)
@@ -274,7 +276,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putInteger(cID('Drkn'), 49)
 	list1.putObject(cID('GEfc'), desc3)
 	desc1.putList(cID('GEfs'), list1)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set - Blending Multiply
 	blend_multiply()
@@ -283,7 +285,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 3
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(5, 244)
@@ -305,7 +307,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putInteger(cID('Drkn'), 49)
 	list1.putObject(cID('GEfc'), desc3)
 	desc1.putList(cID('GEfs'), list1)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set - Blending Multiply
 	blend_multiply()
@@ -317,7 +319,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 4
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(6, 246)
@@ -331,10 +333,10 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('EdgW'), 1)
 	desc1.putInteger(cID('EdgB'), 20)
 	desc1.putInteger(cID('Smth'), 15)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Desaturate
-	app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# Levels - Auto Tone
 	auto_tone()
@@ -356,10 +358,10 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc2.putList(cID('Inpt'), list2)
 	list1.putObject(cID('LvlA'), desc2)
 	desc1.putList(cID('Adjs'), list1)
-	app.executeAction(cID('Lvls'), desc1, dialog_mode)
+	APP.executeAction(cID('Lvls'), desc1, dialog_mode)
 
 	# Invert
-	app.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
 
 	# Set
 	blend_multiply()
@@ -368,21 +370,21 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 5
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(7, 248)
 
 	# Layer Via Copy - Background Copy 6
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Invert
-	app.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
 
 	# Gaussian Blur
 	desc1 = ps.ActionDescriptor()
 	desc1.putUnitDouble(cID('Rds '), cID('#Pxl'), 50)
-	app.executeAction(sID('gaussianBlur'), desc1, dialog_mode)
+	APP.executeAction(sID('gaussianBlur'), desc1, dialog_mode)
 
 	# Set - Blending Color Dodge
 	blend_color_dodge()
@@ -391,13 +393,13 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_layers("Background copy 5", [248, 249])
 
 	# Merge Layers
-	app.executeAction(sID('mergeLayersNew'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('mergeLayersNew'), ps.ActionDescriptor(), dialog_mode)
 
 	# Desaturate
-	app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# Layer Via Copy - Background Copy 7
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Reset
 	reset_colors()
@@ -408,10 +410,10 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('EdgW'), 1)
 	desc1.putInteger(cID('EdgB'), 20)
 	desc1.putInteger(cID('Smth'), 15)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Invert
-	app.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
 
 	# Set
 	blend_multiply()
@@ -423,24 +425,24 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_layers("Background copy 6", [249, 250])
 
 	# Merge Layers
-	app.executeAction(sID('mergeLayersNew'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('mergeLayersNew'), ps.ActionDescriptor(), dialog_mode)
 
 	# Select
 	select_bg()
 
 	# Layer Via Copy - Background Copy 5
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(8, 252)
 
 	# Desaturate
-	app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# High Pass Filter
 	desc1 = ps.ActionDescriptor()
 	desc1.putUnitDouble(cID('Rds '), cID('#Pxl'), 30)
-	app.executeAction(sID('highPass'), desc1, dialog_mode)
+	APP.executeAction(sID('highPass'), desc1, dialog_mode)
 
 	# Set - Blending Linear Light
 	blend_linear_light()
@@ -467,7 +469,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	list1.putObject(cID('Blnd'), desc3)
 	desc2.putList(cID('Blnd'), list1)
 	desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-	app.executeAction(cID('setd'), desc1, dialog_mode)
+	APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
 	set_opacity(50)
@@ -476,7 +478,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 6
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(9, 254)
@@ -490,10 +492,10 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('NmbL'), 8)
 	desc1.putInteger(cID('EdgS'), 10)
 	desc1.putInteger(cID('EdgF'), 1)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Desaturate
-	app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# Levels - Auto Tone
 	auto_tone()
@@ -508,13 +510,13 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(sID("midtonesLowerLimit"), 105)
 	desc1.putInteger(sID("midtonesUpperLimit"), 150)
 	desc1.putInteger(sID("colorModel"), 0)
-	app.executeAction(sID('colorRange'), desc1, dialog_mode)
+	APP.executeAction(sID('colorRange'), desc1, dialog_mode)
 
 	# Layer Via Copy - Layer 2
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Find Edges
-	app.executeAction(sID('findEdges'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('findEdges'), ps.ActionDescriptor(), dialog_mode)
 
 	# Hide
 	hide_layer("Background copy 6")
@@ -526,7 +528,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background copy 8
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(9, 257)
@@ -540,10 +542,10 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('NmbL'), 8)
 	desc1.putInteger(cID('EdgS'), 8)
 	desc1.putInteger(cID('EdgF'), 1)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Desaturate
-	app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# Levels
 	auto_tone()
@@ -558,13 +560,13 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(sID("midtonesLowerLimit"), 105)
 	desc1.putInteger(sID("midtonesUpperLimit"), 150)
 	desc1.putInteger(sID("colorModel"), 0)
-	app.executeAction(sID('colorRange'), desc1, dialog_mode)
+	APP.executeAction(sID('colorRange'), desc1, dialog_mode)
 
 	# Layer Via Copy - Layer 3
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Find Edges
-	app.executeAction(sID('findEdges'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('findEdges'), ps.ActionDescriptor(), dialog_mode)
 
 	# Select
 	select_layer("Background copy 8", 257)
@@ -618,7 +620,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 6
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(11, 261)
@@ -635,7 +637,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('SclV'), 100)
 	desc1.putEnumerated(cID('UndA'), cID('UndA'), cID('RptE'))
 	desc1.putInteger(cID('RndS'), 1260853)
-	app.executeAction(cID('Wave'), desc1, dialog_mode)
+	APP.executeAction(cID('Wave'), desc1, dialog_mode)
 
 	# Reset
 	reset_colors()
@@ -655,7 +657,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putInteger(cID('Drkn'), 49)
 	list1.putObject(cID('GEfc'), desc3)
 	desc1.putList(cID('GEfs'), list1)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Levels - Auto Tone
 	auto_tone()
@@ -676,7 +678,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 8
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(12, 263)
@@ -691,7 +693,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	blend_multiply()
 
 	# Layer Via Copy - Background Copy 9
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Transform
 	desc1 = ps.ActionDescriptor()
@@ -707,7 +709,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putUnitDouble(cID('Hght'), cID('#Prc'), 110)
 	desc1.putBoolean(cID('Lnkd'), True)
 	desc1.putEnumerated(cID('Intr'), cID('Intp'), cID('Bcbc'))
-	app.executeAction(cID('Trnf'), desc1, dialog_mode)
+	APP.executeAction(cID('Trnf'), desc1, dialog_mode)
 
 	# Select
 	select_layer("Background copy 8", 263)
@@ -726,7 +728,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putUnitDouble(cID('Hght'), cID('#Prc'), 90)
 	desc1.putBoolean(cID('Lnkd'), True)
 	desc1.putEnumerated(cID('Intr'), cID('Intp'), cID('Bcbc'))
-	app.executeAction(cID('Trnf'), desc1, dialog_mode)
+	APP.executeAction(cID('Trnf'), desc1, dialog_mode)
 
 	# Select
 	select_layers("Background copy 9", [263, 264])
@@ -759,7 +761,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putEnumerated(cID('Usng'), cID('FlCn'), cID('Gry '))
 	desc1.putUnitDouble(cID('Opct'), cID('#Prc'), 100)
 	desc1.putEnumerated(cID('Md  '), cID('BlnM'), cID('Nrml'))
-	app.executeAction(cID('Fl  '), desc1, dialog_mode)
+	APP.executeAction(cID('Fl  '), desc1, dialog_mode)
 
 	# Filter Gallery - Texturizer
 	desc1 = ps.ActionDescriptor()
@@ -769,7 +771,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('Rlf '), 4)
 	desc1.putEnumerated(cID('LghD'), cID('LghD'), cID('LDTp'))
 	desc1.putBoolean(cID('InvT'), False)
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set - Blending Soft Light
 	blend_soft_light()
@@ -785,7 +787,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putEnumerated(cID('Usng'), cID('FlCn'), cID('FrgC'))
 	desc1.putUnitDouble(cID('Opct'), cID('#Prc'), 100)
 	desc1.putEnumerated(cID('Md  '), cID('BlnM'), cID('Nrml'))
-	app.executeAction(cID('Fl  '), desc1, dialog_mode)
+	APP.executeAction(cID('Fl  '), desc1, dialog_mode)
 
 	# Add Noise
 	desc1 = ps.ActionDescriptor()
@@ -793,8 +795,8 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putUnitDouble(cID('Nose'), cID('#Prc'), 25)
 	desc1.putBoolean(cID('Mnch'), True)
 	desc1.putInteger(cID('FlRs'), 1315132)
-	app.executeAction(sID('addNoise'), desc1, dialog_mode)
-	app.activeDocument.activeLayer.opacity = 40
+	APP.executeAction(sID('addNoise'), desc1, dialog_mode)
+	APP.activeDocument.activeLayer.opacity = 40
 
 	# Set
 	blend_screen()
@@ -813,7 +815,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc2.putList(cID('Inpt'), list2)
 	list1.putObject(cID('LvlA'), desc2)
 	desc1.putList(cID('Adjs'), list1)
-	app.executeAction(cID('Lvls'), desc1, dialog_mode)
+	APP.executeAction(cID('Lvls'), desc1, dialog_mode)
 
 	# Select
 	select_layer("Background copy 4", 246)
@@ -890,7 +892,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putObject(cID('Grad'), cID('Grdn'), desc4)
 	desc2.putObject(cID('Type'), cID('GdMp'), desc3)
 	desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
 	blend_soft_light()
@@ -908,7 +910,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putEnumerated(sID("presetKind"), sID("presetKindType"), sID("presetKindDefault"))
 	desc2.putObject(cID('Type'), cID('Lvls'), desc3)
 	desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set - Levels Adjustment Layer Settings
 	desc1 = ps.ActionDescriptor()
@@ -930,7 +932,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	list1.putObject(cID('LvlA'), desc3)
 	desc2.putList(cID('Adjs'), list1)
 	desc1.putObject(cID('T   '), cID('Lvls'), desc2)
-	app.executeAction(cID('setd'), desc1, dialog_mode)
+	APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	select_layer("Background copy 6", 112)
@@ -942,7 +944,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background Copy 10
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(18, 121)
@@ -956,7 +958,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc1.putInteger(cID('StrL'), 15)
 	desc1.putInteger(cID('LgDr'), 50)
 	desc1.putEnumerated(cID('SDir'), cID('StrD'), cID('SDRD'))
-	app.executeAction(1195730531, desc1, dialog_mode)
+	APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set
 	blend_overlay()
@@ -971,7 +973,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	select_bg()
 
 	# Layer Via Copy - Background copy 11
-	app.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
+	APP.executeAction(sID('copyToLayer'), ps.ActionDescriptor(), dialog_mode)
 
 	# Move
 	move_layer(16, 127)
@@ -992,14 +994,14 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putBoolean(cID('Clrz'), False)
 	desc2.putObject(cID('Type'), cID('HStr'), desc3)
 	desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Create Clipping Mask
 	desc1 = ps.ActionDescriptor()
 	ref1 = ps.ActionReference()
 	ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 	desc1.putReference(cID('null'), ref1)
-	app.executeAction(sID('groupEvent'), desc1, dialog_mode)
+	APP.executeAction(sID('groupEvent'), desc1, dialog_mode)
 
 	# Select
 	select_layers("Background copy 11", [127, 128])
@@ -1021,24 +1023,24 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 	desc3.putBoolean(cID('Clrz'), False)
 	desc2.putObject(cID('Type'), cID('HStr'), desc3)
 	desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-	app.executeAction(cID('Mk  '), desc1, dialog_mode)
+	APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Merge Visible
 	desc1 = ps.ActionDescriptor()
 	desc1.putBoolean(cID('Dplc'), True)
-	app.executeAction(sID('mergeVisible'), desc1, dialog_mode)
+	APP.executeAction(sID('mergeVisible'), desc1, dialog_mode)
 
 	# Desaturate
 	def step182():
 
-		app.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
+		APP.executeAction(cID('Dstt'), ps.ActionDescriptor(), dialog_mode)
 
 	# High Pass
 	def step183():
 
 		desc1 = ps.ActionDescriptor()
 		desc1.putUnitDouble(cID('Rds '), cID('#Pxl'), 1)
-		app.executeAction(sID('highPass'), desc1, dialog_mode)
+		APP.executeAction(sID('highPass'), desc1, dialog_mode)
 
 	# Set
 	def step184():
@@ -1050,7 +1052,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		desc2 = ps.ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), sID("vividLight"))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	def step185():
@@ -1063,7 +1065,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		list1 = ps.ActionList()
 		list1.putInteger(90)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Select
 	def step186():
@@ -1097,7 +1099,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		list1.putInteger(130)
 		list1.putInteger(131)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Make
 	def step187():
@@ -1115,7 +1117,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		desc1.putInteger(sID("layerSectionStart"), 136)
 		desc1.putInteger(sID("layerSectionEnd"), 137)
 		desc1.putString(cID('Nm  '), "Pencil Sketch")
-		app.executeAction(cID('Mk  '), desc1, dialog_mode)
+		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Make
 	def step188():
@@ -1126,7 +1128,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		ref1.putEnumerated(cID('Chnl'), cID('Chnl'), cID('Msk '))
 		desc1.putReference(cID('At  '), ref1)
 		desc1.putEnumerated(cID('Usng'), cID('UsrM'), cID('RvlA'))
-		app.executeAction(cID('Mk  '), desc1, dialog_mode)
+		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
 	def step189():
@@ -1138,7 +1140,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		desc2 = ps.ActionDescriptor()
 		desc2.putBoolean(cID('Usrs'), False)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	def step190():
@@ -1151,7 +1153,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		list1 = ps.ActionList()
 		list1.putInteger(139)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Delete
 	def step191():
@@ -1163,7 +1165,7 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 		list1 = ps.ActionList()
 		list1.putInteger(139)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('Dlt '), desc1, dialog_mode)
+		APP.executeAction(cID('Dlt '), desc1, dialog_mode)
 
 	# Select Background
 	def step343(): select_bg()
@@ -1185,5 +1187,5 @@ def run(thr: Event, draft_sketch=False, rough_sketch=False, black_and_white=True
 
 	# Flatten
 	if manual_editing:
-		console.await_choice(thr, "Sketch Action complete, hit continue when ready!")
-	app.executeAction(cID("FltI"), None, dialog_mode)
+		CONSOLE.await_choice(thr, "Sketch Action complete, hit continue when ready!")
+	APP.executeAction(cID("FltI"), None, dialog_mode)

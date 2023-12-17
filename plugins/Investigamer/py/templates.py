@@ -1,5 +1,5 @@
 """
-MRTEFERI TEMPLATES
+* Plugin: Investigamer
 """
 # Standard Library
 from functools import cached_property
@@ -9,35 +9,35 @@ from typing import Optional, Callable
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.templates import NormalEssentialsTemplate, BasicLandTemplate, TransformMod
-from actions import pencilsketch, sketch
+from src import CFG, ENV
 from src.enums.layers import LAYERS
-from src.settings import cfg
 import src.helpers as psd
+from src.templates import TransformMod, NormalTemplate, ExtendedMod
+from plugins.Investigamer.py import pencilsketch, sketch
 
 
 """
-NORMAL TEMPLATES
+* Template Classes
 """
 
 
-class SketchTemplate (NormalEssentialsTemplate):
+class SketchTemplate (NormalTemplate):
     """
-    Sketch showcase from MH2
-    Original PSD by Nelynes
+    * Sketch showcase from MH2
+    * Original PSD by Nelynes
     """
     template_suffix = "Sketch"
 
     """
-    SKETCH ACTION
+    * Sketch Action
     """
 
     @property
     def art_action(self) -> Optional[Callable]:
         # Skip action if in test mode
-        if cfg.test_mode:
+        if ENV.TEST_MODE:
             return
-        action = cfg.get_setting(
+        action = CFG.get_setting(
             section="ACTION",
             key="Sketch.Action",
             default="Advanced Sketch",
@@ -52,26 +52,26 @@ class SketchTemplate (NormalEssentialsTemplate):
     @property
     def art_action_args(self) -> Optional[dict]:
         # Skip if in test mode or using quick sketch
-        if cfg.test_mode or not self.art_action == pencilsketch.run:
+        if ENV.TEST_MODE or not self.art_action == pencilsketch.run:
             return
         return {
             'thr': self.event,
-            'rough_sketch': cfg.get_setting(
+            'rough_sketch': CFG.get_setting(
                 section="ACTION",
                 key="Rough.Sketch.Lines",
                 default=False
             ),
-            'draft_sketch': cfg.get_setting(
+            'draft_sketch': CFG.get_setting(
                 section="ACTION",
                 key="Draft.Sketch.Lines",
                 default=False
             ),
-            'black_and_white': cfg.get_setting(
+            'black_and_white': CFG.get_setting(
                 section="ACTION",
                 key="Black.And.White",
                 default=False
             ),
-            'manual_editing': cfg.get_setting(
+            'manual_editing': CFG.get_setting(
                 section="ACTION",
                 key="Sketch.Manual.Editing",
                 default=False
@@ -79,7 +79,7 @@ class SketchTemplate (NormalEssentialsTemplate):
         }
 
 
-class KaldheimTemplate (NormalEssentialsTemplate):
+class KaldheimTemplate (NormalTemplate):
     """
     Kaldheim viking legendary showcase.
     Original Template by FeuerAmeise
@@ -87,7 +87,7 @@ class KaldheimTemplate (NormalEssentialsTemplate):
     template_suffix = "Kaldheim"
 
     """
-    TOGGLE
+    * Bool Properties
     """
 
     @property
@@ -95,7 +95,7 @@ class KaldheimTemplate (NormalEssentialsTemplate):
         return False
 
     """
-    LAYERS
+    * Layer Properties
     """
 
     @property
@@ -123,7 +123,7 @@ class KaldheimTemplate (NormalEssentialsTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
-class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
+class CrimsonFangTemplate (TransformMod, NormalTemplate):
     """
     The crimson vow showcase template.
     Original template by michayggdrasil
@@ -133,7 +133,7 @@ class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
     template_suffix = "Fang"
 
     """
-    DETAILS
+    * Details
     """
 
     @property
@@ -142,7 +142,7 @@ class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
         return self.pinlines
 
     """
-    TOGGLE
+    * Bool Properties
     """
 
     @property
@@ -151,7 +151,7 @@ class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
         return False
 
     """
-    LAYERS
+    * Layer Properties
     """
 
     @cached_property
@@ -173,14 +173,12 @@ class CrimsonFangTemplate (TransformMod, NormalEssentialsTemplate):
         pass
 
 
-class PhyrexianTemplate (NormalEssentialsTemplate):
-    """
-    From the Phyrexian secret lair promo
-    """
+class PhyrexianTemplate (NormalTemplate):
+    """From the Phyrexian secret lair promo."""
     template_suffix = "Phyrexian"
 
     """
-    LAYERS
+    * Layer Properties
     """
 
     @property
@@ -192,7 +190,7 @@ class PhyrexianTemplate (NormalEssentialsTemplate):
         return
 
 
-class DoubleFeatureTemplate (NormalEssentialsTemplate):
+class DoubleFeatureTemplate (NormalTemplate):
     """
     Midnight Hunt / Vow Double Feature Showcase
     Original assets from Warpdandy's Proximity Template
@@ -201,7 +199,7 @@ class DoubleFeatureTemplate (NormalEssentialsTemplate):
     template_suffix = "Double Feature"
 
     """
-    LAYERS
+    * Layer Properties
     """
 
     @property
@@ -222,16 +220,16 @@ CLASSIC TEMPLATE VARIANTS
 """
 
 
-class ColorshiftedTemplate (NormalEssentialsTemplate):
+class ColorshiftedTemplate (NormalTemplate):
     """
     Planar Chaos era colorshifted template
     Rendered from CC and MSE assets. Most title boxes are built into pinlines.
     Doesn't support special layers for nyx, companion, land, or colorless.
     """
-    template_suffix = "Shifted"
+    template_suffix = "Colorshifted"
 
     """
-    TOGGLE
+    * Bool Properties
     """
 
     @property
@@ -243,7 +241,7 @@ class ColorshiftedTemplate (NormalEssentialsTemplate):
         return False
 
     """
-    LAYERS
+    * Layer Properties
     """
 
     @cached_property
@@ -268,7 +266,7 @@ class ColorshiftedTemplate (NormalEssentialsTemplate):
         return psd.getLayerSet(LAYERS.PT_BOX)
 
     """
-    METHODS
+    * Methods
     """
 
     def collector_info(self):
@@ -288,16 +286,13 @@ BASIC LAND TEMPLATES
 """
 
 
-class BasicLandDarkMode (BasicLandTemplate):
+class BasicLandDarkMode (ExtendedMod, NormalTemplate):
     """
     Basic land Dark Mode
     Credit to Vittorio Masia (Sid)
+    @todo: Update for Normal
     """
-    template_suffix = "Dark"
-
-    @cached_property
-    def is_content_aware_enabled(self):
-        return True
+    template_suffix = "Dark Mode"
 
     def collector_info(self):
         # Collector info only has artist

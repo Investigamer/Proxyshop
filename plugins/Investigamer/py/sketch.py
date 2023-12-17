@@ -1,16 +1,18 @@
 """
-Sketchify Action Module
+* Sketchify Action Module
 """
+# Third Party Imports
 import photoshop.api as ps
-app = ps.Application()
-cID = app.charIDToTypeID
-sID = app.stringIDToTypeID
+
+# Local Imports
+from src import APP
+
+# QOL Definitions
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 
 
 def run():
-	"""
-	NewSketchify Steps
-	"""
+	"""Trix old sketchify Steps."""
 
 	# Duplicate
 	def step1(enabled=True, dialog=False):
@@ -23,14 +25,14 @@ def run():
 		desc1.putReference(cID('null'), ref1)
 		desc1.putString(cID('Nm  '), "Layer 1 copy")
 		desc1.putInteger(cID('Vrsn'), 5)
-		app.executeAction(cID('Dplc'), desc1, dialog_mode)
+		APP.executeAction(cID('Dplc'), desc1, dialog_mode)
 
 	# Invert
 	def step2(enabled=True, dialog=False):
 		if not enabled: return
 		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		app.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+		APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
 
 	# Gaussian Blur
 	def step3(enabled=True, dialog=False):
@@ -39,7 +41,7 @@ def run():
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
 		desc1 = ps.ActionDescriptor()
 		desc1.putUnitDouble(cID('Rds '), cID('#Pxl'), 65)
-		app.executeAction(sID('gaussianBlur'), desc1, dialog_mode)
+		APP.executeAction(sID('gaussianBlur'), desc1, dialog_mode)
 
 	# Set
 	def step4(enabled=True, dialog=False):
@@ -53,7 +55,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('CDdg'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Make
 	def step5(enabled=True, dialog=False):
@@ -69,7 +71,7 @@ def run():
 		desc3.putEnumerated(sID("presetKind"), sID("presetKindType"), sID("presetKindDefault"))
 		desc2.putObject(cID('Type'), cID('Lvls'), desc3)
 		desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-		app.executeAction(cID('Mk  '), desc1, dialog_mode)
+		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
 	def step6(enabled=True, dialog=False):
@@ -95,7 +97,7 @@ def run():
 		list1.putObject(cID('LvlA'), desc3)
 		desc2.putList(cID('Adjs'), list1)
 		desc1.putObject(cID('T   '), cID('Lvls'), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Make
 	def step7(enabled=True, dialog=False):
@@ -123,7 +125,7 @@ def run():
 		desc3.putObject(sID("tintColor"), sID("RGBColor"), desc4)
 		desc2.putObject(cID('Type'), cID('BanW'), desc3)
 		desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
-		app.executeAction(cID('Mk  '), desc1, dialog_mode)
+		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
 	def step8(enabled=True, dialog=False):
@@ -135,14 +137,14 @@ def run():
 		ref1.putProperty(cID('Chnl'), sID("selection"))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putEnumerated(cID('T   '), cID('Ordn'), cID('Al  '))
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Copy Merged
 	def step9(enabled=True, dialog=False):
 		if not enabled: return
 		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		app.executeAction(sID('copyMerged'), ps.ActionDescriptor(), dialog_mode)
+		APP.executeAction(sID('copyMerged'), ps.ActionDescriptor(), dialog_mode)
 
 	# Paste
 	def step10(enabled=True, dialog=False):
@@ -152,7 +154,7 @@ def run():
 		desc1 = ps.ActionDescriptor()
 		desc1.putEnumerated(cID('AntA'), cID('Annt'), cID('Anno'))
 		desc1.putClass(cID('As  '), cID('Pxel'))
-		app.executeAction(cID('past'), desc1, dialog_mode)
+		APP.executeAction(cID('past'), desc1, dialog_mode)
 
 	# Filter Gallery
 	def step11(enabled=True, dialog=False):
@@ -164,14 +166,14 @@ def run():
 		desc1.putInteger(cID('EdgW'), 1)
 		desc1.putInteger(cID('EdgB'), 20)
 		desc1.putInteger(cID('Smth'), 15)
-		app.executeAction(1195730531, desc1, dialog_mode)
+		APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Invert
 	def step12(enabled=True, dialog=False):
 		if not enabled: return
 		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		app.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+		APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
 
 	# Set
 	def step13(enabled=True, dialog=False):
@@ -185,7 +187,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('Mltp'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
 	def step14(enabled=True, dialog=False):
@@ -199,7 +201,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 60)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	def step15(enabled=True, dialog=False):
@@ -214,7 +216,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(6)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Make
 	def step16(enabled=True, dialog=False):
@@ -226,7 +228,7 @@ def run():
 		ref1.putClass(cID('Lyr '))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putInteger(cID('LyrI'), 8)
-		app.executeAction(cID('Mk  '), desc1, dialog_mode)
+		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Select
 	def step17(enabled=True, dialog=False):
@@ -241,7 +243,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(7)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Fill
 	def step18(enabled=True, dialog=False):
@@ -250,7 +252,7 @@ def run():
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
 		desc1 = ps.ActionDescriptor()
 		desc1.putEnumerated(cID('Usng'), cID('FlCn'), cID('BckC'))
-		app.executeAction(cID('Fl  '), desc1, dialog_mode)
+		APP.executeAction(cID('Fl  '), desc1, dialog_mode)
 
 	# Filter Gallery
 	def step19(enabled=True, dialog=False):
@@ -264,7 +266,7 @@ def run():
 		desc1.putInteger(cID('Rlf '), 4)
 		desc1.putEnumerated(cID('LghD'), cID('LghD'), cID('LDTp'))
 		desc1.putBoolean(cID('InvT'), False)
-		app.executeAction(1195730531, desc1, dialog_mode)
+		APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set
 	def step20(enabled=True, dialog=False):
@@ -278,7 +280,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('Mltp'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
 	def step21(enabled=True, dialog=False):
@@ -292,7 +294,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 70)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	def step22(enabled=True, dialog=False):
@@ -307,7 +309,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(6)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Set
 	def step23(enabled=True, dialog=False):
@@ -321,7 +323,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 50)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
 	def step24(enabled=True, dialog=False):
@@ -336,7 +338,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(1)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('slct'), desc1, dialog_mode)
+		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Duplicate
 	def step25(enabled=True, dialog=False):
@@ -352,7 +354,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(35)
 		desc1.putList(cID('Idnt'), list1)
-		app.executeAction(cID('Dplc'), desc1, dialog_mode)
+		APP.executeAction(cID('Dplc'), desc1, dialog_mode)
 
 	# Move
 	def step26(enabled=True, dialog=False):
@@ -371,7 +373,7 @@ def run():
 		list1 = ps.ActionList()
 		list1.putInteger(35)
 		desc1.putList(cID('LyrI'), list1)
-		app.executeAction(cID('move'), desc1, dialog_mode)
+		APP.executeAction(cID('move'), desc1, dialog_mode)
 
 	# Set
 	def step27(enabled=True, dialog=False):
@@ -385,7 +387,7 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 40)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
 	def step28(enabled=True, dialog=False):
@@ -399,14 +401,14 @@ def run():
 		desc2 = ps.ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('HrdL'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		app.executeAction(cID('setd'), desc1, dialog_mode)
+		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Merge Visible
 	def step29(enabled=True, dialog=False):
 		if not enabled: return
 		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
 		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		app.executeAction(sID('mergeVisible'), ps.ActionDescriptor(), dialog_mode)
+		APP.executeAction(sID('mergeVisible'), ps.ActionDescriptor(), dialog_mode)
 
 	# Run each step
 	step1()      # Duplicate
