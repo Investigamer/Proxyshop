@@ -51,20 +51,17 @@ options = ["automatic", "always", "never"]
 [SYMBOLS]
 title = "Expansion Symbols"
 
-[SYMBOLS."Symbol.Mode"]
-title = "Symbol Render Mode"
-desc = """SVG: Renders using SVG files sourced from CCGHQ.
-Font: Renders using Keyrune font + layer effects.
-None: Completely disables expansion symbol."""
-type = "options"
-default = "svg"
-options = ["svg", "font", "none"]
+[SYMBOLS."Enable.Expansion.Symbol"]
+title = "Enable Expansion Symbol"
+desc = """Governs whether the SVG expansion symbol is placed on the typeline."""
+type = "bool"
+default = 1
 
 [SYMBOLS."Default.Symbol"]
 title = "Default Expansion Symbol"
 desc = """Symbol used when an automatic symbol couldn't be found. Enter a recognized MTG or Keyrune set code."""
 type = "string"
-default = "MTG"
+default = "DEFAULT"
 
 [SYMBOLS."Force.Default.Symbol"]
 title = "Force Default Expansion Symbol"
