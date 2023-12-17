@@ -28,14 +28,13 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 - Optional (but recommended) fonts:
     - **Magic The Gathering** — Required by Classic template
     - **Matrix Bold** — Required by Colorshifted template
-    - **Keyrune** — Required for "Font" expansion symbol mode
     - **Mana** — For various additional card symbols
 
 <!-- TODO: Add citations for the source of various fonts. -->
 
 # 🚀 Setup Guide
 1. Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
-2. Install the fonts included in the `fonts/` folder, please note that `Keyrune` and `Proxyglyph` may need to be updated in future releases.
+2. Install the fonts included in the `fonts/` folder, please note that `Proxyglyph` may need to be updated in future releases.
 3. Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
 4. Launch `Proxyshop.exe`. Click the **Update** button. Proxyshop will load templates available to download, grab what you want.
 5. Hit **Render All** to render every card art in the `art/` folder. Hit **Render Target** to render one or more specific card arts.
@@ -172,22 +171,11 @@ Feel free to [join our discord](http://discord.gg/magicproxies) and participate 
   How do I change the set symbol to something else?
 </summary>
 
-#### Font Mode
-- Under "Symbol Render Mode", ensure "Font" Mode is enabled in Global Settings, or in the Settings for the template you wish to customize.
-- Head over to https://keyrune.andrewgioia.com/cheatsheet.html, choose a symbol.
-- Copy the **set code** of the symbol you want, it'll be the 2-4 letters after "ss-" in the code next to the symbol, for example SOI (Shadows Over Innistrad).
-- In the same settings panel, enter this code for the "Default Symbol" setting.
-- In the same settings panel, enable "Force Default Symbol", doing so will ensure this symbol is used for all cards rendered globally/using this template.
-- **[Optional]** To customize the look of this symbol, you'll need to:
-    1) Add an entry to `src/data/custom_symbols.json`.
-    2) Look at how symbols are defined in `src/data/expansion_symbols.json` for examples.
-
-#### SVG Mode
-- Ensure SVG mode is enabled under "Symbol Render Mode".
-- Change "Default Symbol" to a 2-4 letter code of your choice, and enable "Force Default Symbol".
-- Head over to `src/img/symbols/` and create a folder named according to that code, or you can use one of the symbols that already exists.
-- If making a custom symbol, add the SVG files to the folder you created, name each file according to the first letter of its rarity (capitalized).
-- That symbol will now be used, you're good to go!
+In settings, change "Default Symbol" to the set code of the symbol you want, and enable "Force Default Symbol".
+If you wish to add a totally custom symbol, here's the process:
+- Head over to `src/img/symbols/` and create a folder named according a new custom code.
+- Add your custom SVG symbols to the folder you created, name each file according to the first letter of its rarity (capitalized).
+- Set that symbol as "Default Symbol" and enabled "Force Default Symbol". You're good to go!
 
 </details>
 
