@@ -83,10 +83,6 @@ Gemrazer = "Creature"
 [pw_mdfc_back]
 "Will, Scholar of Frost" = "Mono"
 
-[snow]
-"Graven Lore" = "Noncreature"
-"Priest of the Haunted Edge" = "Creature"
-
 [planar]
 "Pools of Becoming" = "Planar"
 
