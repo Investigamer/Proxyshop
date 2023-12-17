@@ -1,7 +1,129 @@
 """
-* MTG Enums
+* Enums: MTG Related Data
 """
+# Local Imports
 from src.utils.strings import StrEnum
+
+"""
+* Card Layout Nomenclature
+"""
+
+
+class LayoutCategory(StrEnum):
+    """Card layout category, broad naming used for displaying on GUI elements."""
+    Adventure = 'Adventure'
+    Battle = 'Battle'
+    Class = 'Class'
+    Ixalan = 'Ixalan'
+    Leveler = 'Leveler'
+    MDFC = 'MDFC'
+    Mutate = 'Mutate'
+    Normal = 'Normal'
+    Planar = 'Planar'
+    Planeswalker = 'Planeswalker'
+    PlaneswalkerMDFC = 'Planeswalker MDFC'
+    PlaneswalkerTransform = 'Planeswalker Transform'
+    Prototype = 'Prototype'
+    Saga = 'Saga'
+    Split = 'Split'
+    Token = 'Token'
+    Transform = 'Transform'
+
+
+class LayoutType(StrEnum):
+    """Card layout type, fine-grained naming separated by front/back where applicable."""
+    Adventure = 'adventure'
+    Battle = 'battle'
+    Class = 'class'
+    Ixalan = 'ixalan'
+    Leveler = 'leveler'
+    MDFCBack = 'mdfc_back'
+    MDFCFront = 'mdfc_front'
+    Mutate = 'mutate'
+    Normal = 'normal'
+    Planar = 'planar'
+    Planeswalker = 'planeswalker'
+    PlaneswalkerMDFCBack = 'pw_mdfc_back'
+    PlaneswalkerMDFCFront = 'pw_mdfc_front'
+    PlaneswalkerTransformBack = 'pw_tf_back'
+    PlaneswalkerTransformFront = 'pw_tf_front'
+    Prototype = 'prototype'
+    Saga = 'saga'
+    Split = 'split'
+    Token = 'token'
+    TransformBack = 'transform_back'
+    TransformFront = 'transform_front'
+
+
+class LayoutScryfall(StrEnum):
+    """Card layout type, according to Scryfall data."""
+    Normal = 'normal'
+    Split = 'split'
+    Flip = 'flip'
+    Transform = 'transform'
+    MDFC = 'modal_dfc'
+    Meld = 'meld'
+    Leveler = 'leveler'
+    Class = 'class'
+    Saga = 'saga'
+    Adventure = 'adventure'
+    Mutate = 'mutate'
+    Prototype = 'prototype'
+    Battle = 'battle'
+    Planar = 'planar'
+    Scheme = 'scheme'
+    Vanguard = 'vanguard'
+    Token = 'token'
+    DoubleFacedToken = 'double_faced_token'
+    Emblem = 'emblem'
+    Augment = 'augment'
+    Host = 'host'
+    ArtSeries = 'art_series'
+    ReversibleCard = 'reversible_card'
+
+    # Definitions added to Scryfall data in postprocessing
+    PlaneswalkerMDFC = 'planeswalker_mdfc'
+    PlaneswalkerTransform = 'planeswalker_tf'
+
+
+"""Maps Layout categories to a list of equivalent Layout types."""
+layout_map_category: dict[LayoutCategory, list[LayoutType]] = {
+    LayoutCategory.Normal: [LayoutType.Normal],
+    LayoutCategory.MDFC: [LayoutType.MDFCFront, LayoutType.MDFCBack],
+    LayoutCategory.Transform: [LayoutType.TransformFront, LayoutType.TransformBack],
+    LayoutCategory.Planeswalker: [LayoutType.Planeswalker],
+    LayoutCategory.PlaneswalkerMDFC: [LayoutType.PlaneswalkerMDFCFront, LayoutType.PlaneswalkerMDFCBack],
+    LayoutCategory.PlaneswalkerTransform: [LayoutType.PlaneswalkerTransformFront, LayoutType.PlaneswalkerTransformBack],
+    LayoutCategory.Saga: [LayoutType.Saga],
+    LayoutCategory.Class: [LayoutType.Class],
+    LayoutCategory.Ixalan: [LayoutType.Ixalan],
+    LayoutCategory.Mutate: [LayoutType.Mutate],
+    LayoutCategory.Prototype: [LayoutType.Prototype],
+    LayoutCategory.Adventure: [LayoutType.Adventure],
+    LayoutCategory.Leveler: [LayoutType.Leveler],
+    LayoutCategory.Split: [LayoutType.Split],
+    LayoutCategory.Battle: [LayoutType.Battle],
+    LayoutCategory.Token: [LayoutType.Token],
+    LayoutCategory.Planar: [LayoutType.Planar]
+}
+
+
+"""Maps Layout types to their equivalent Layout category."""
+layout_map_types = {
+    raw: named for named, raw in sum([
+        [(k, n) for n in names] for k, names in layout_map_category.items()
+    ], [])
+}
+
+
+"""Maps Layout types to a display formatted Layout category (with Back or Front)."""
+layout_map_types_display = {
+    raw: (
+        f'{named} Front' if 'front' in raw else (
+            f'{named} Back' if 'back' in raw else named)
+    ) for raw, named in layout_map_types.items()
+}
+
 
 """
 * Symbol Libraries
@@ -216,6 +338,7 @@ rarity_gradient_map = {
 }
 
 main_color_map = {
+    # Named colors
     'black': [0, 0, 0],
     'white': [255, 255, 255],
     'silver': [167, 177, 186],

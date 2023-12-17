@@ -1,13 +1,16 @@
 """
-LAYER NAME ENUMS
+* Enums: Layer Names
 """
 from src.utils.strings import StrEnum
 
+"""
+* Enums
+"""
+
 
 class LAYERS (StrEnum):
-    """
-    Layer Names
-    """
+    """Layer name definitions."""
+
     # Default art layer
     DEFAULT = "Layer 1"
 
