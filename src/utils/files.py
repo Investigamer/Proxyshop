@@ -1,5 +1,5 @@
 """
-* File Utilities
+* Utils: Files
 """
 # Standard Library Imports
 import os
@@ -7,8 +7,6 @@ import json
 import shutil
 from configparser import ConfigParser
 from contextlib import suppress
-from os import path as osp
-from os import remove
 from pathlib import Path
 from typing import Optional, TypedDict, Callable, Union
 from threading import Lock
@@ -37,6 +35,38 @@ class DataFileType (TypedDict):
     dump_kw: dict[str, Union[Callable, bool, str]]
 
 
+"""Data File: TOML (.toml) data type."""
+DataFileTOML = DataFileType(
+    load=toml_load,
+    dump=toml_dump,
+    load_kw={},
+    dump_kw={'sort_keys': True})
+
+"""Data File: YAML (.yaml) data type."""
+DataFileYAML = DataFileType(
+    load=yaml_load,
+    dump=yaml_dump,
+    load_kw={
+        'Loader': yamlLoader},
+    dump_kw={
+        'allow_unicode': True,
+        'Dumper': yamlDumper,
+        'sort_keys': True,
+        'indent': 2,
+    })
+
+"""Data File: JSON (.json) data type."""
+DataFileJSON = DataFileType(
+    load=json.load,
+    dump=json.dump,
+    load_kw={},
+    dump_kw={
+        'sort_keys': True,
+        'indent': 2,
+        'ensure_ascii': False
+    })
+
+
 """
 * Constants
 """
@@ -44,114 +74,101 @@ class DataFileType (TypedDict):
 # File util locking mechanism
 util_file_lock = Lock()
 
-# Data types for loading test case files
+# Data types alias map
 data_types: dict[str, DataFileType] = {
-    'toml': {
-        'load': toml_load, 'load_kw': {},
-        'dump': toml_dump, 'dump_kw': {'sort_keys': True}
-    },
-    'yml': {
-        'load': yaml_load, 'load_kw': {'Loader': yamlLoader},
-        'dump': yaml_dump, 'dump_kw': {
-            'Dumper': yamlDumper,
-            'sort_keys': True,
-            'indent': 2,
-            'allow_unicode': True}
-    },
-    'yaml': {
-        'load': yaml_load, 'load_kw': {'Loader': yamlLoader},
-        'dump': yaml_dump, 'dump_kw': {
-            'Dumper': yamlDumper,
-            'sort_keys': True,
-            'indent': 2,
-            'allow_unicode': True}
-    },
-    'json': {
-        'load': json.load, 'load_kw': {},
-        'dump': json.dump, 'dump_kw': {
-            'sort_keys': True,
-            'indent': 2,
-            'ensure_ascii': False
-        }
-    }
+    '.toml': DataFileTOML,
+    '.yaml': DataFileYAML,
+    '.yml': DataFileYAML,
+    '.json': DataFileJSON,
 }
-
-
-"""
-* File Info Utils
-"""
-
-
-def get_file_size_mb(file_path: Union[str, os.PathLike], decimal: int = 1) -> float:
-    """
-    Get a file's size in megabytes rounded.
-    @param file_path: Path to the file.
-    @param decimal: Number of decimal places to allow when rounding.
-    @return: Float representing the filesize in megabytes rounded.
-    """
-    return round(os.path.getsize(file_path) / (1024 * 1024), decimal)
-
+supported_data_types = tuple(data_types.keys())
 
 """
 * Data File Utils
 """
 
 
+def validate_data_file(path: Path) -> None:
+    """Checks if a data file exists and is a valid data file type. Raises an exception if validation fails.
+
+    Args:
+        path: Path to the data file.
+
+    Raises:
+        FileNotFoundError: If data file does not exist.
+        ValueError: If data file type not supported.
+    """
+    # Check if file exists
+    if not path.is_file():
+        raise FileNotFoundError(f"Data file does not exist:\n{str(path)}")
+
+    # Check if data file is a supported data type
+    if path.suffix.lower() not in supported_data_types:
+        raise ValueError("Data file provided does not match a supported data file type.\n"
+                         f"Types supported: {', '.join(supported_data_types)}\n"
+                         f"Type received: {path.suffix}")
+
+
 def load_data_file(
-    data_file: Union[str, os.PathLike],
+    path: Path,
     config: Optional[dict] = None
 ) -> Union[list, dict, tuple, set]:
+    """Load data  object from a data file.
+
+    Args:
+        path: Path to the data file to be loaded.
+        config: Dict data to modify DataFileType configuration for this data load procedure.
+
+    Returns:
+        Data object such as dict, list, tuple, set, etc.
+
+    Raises:
+        FileNotFoundError: If data file does not exist.
+        ValueError: If data file type not supported.
+        OSError: If dumping to data file fails.
     """
-    Load object from a data file.
-    @param data_file: Path to the data file to be loaded.
-    @param config: Dict data to modify DataFileType configuration for this data load procedure.
-    @return: Iterable or dict object loaded from data file.
-    @raise ValueError: If data file type not supported.
-    @raise OSError: If loading data file fails.
-    """
-    data_type = Path(data_file).suffix[1:]
-    parser: DataFileType = data_types.get(data_type, {}).copy()
-    if not parser:
-        raise ValueError("Data file provided does not match a supported data file type.\n"
-                         f"Types supported: {', '.join(data_types.keys())}\n"
-                         f"Type received: {data_type}")
-    if config:
-        parser.update(config)
-    with util_file_lock:
-        with open(data_file, 'r', encoding='utf-8') as f:
-            try:
-                return parser['load'](f, **parser['load_kw']) or {}
-            except Exception as e:
-                raise OSError(f"Unable to load data from data file:\n{data_file}") from e
+    # Check if data file is valid
+    validate_data_file(path)
+
+    # Pull the parser and insert user config into kwargs
+    parser: DataFileType = data_types.get(path.suffix.lower(), {}).copy()
+    kwargs = parser['load_kw'].update(config) if config else parser['load_kw']
+
+    # Attempt to load data
+    with util_file_lock, suppress(Exception), open(path, 'r', encoding='utf-8') as f:
+        data = parser['load'](f, **kwargs) or {}
+        return data
+    raise OSError(f"Unable to load data from data file:\n{str(path)}")
 
 
 def dump_data_file(
     obj: Union[list, dict, tuple, set],
-    data_file: Union[str, os.PathLike],
+    path: Path,
     config: Optional[dict] = None
 ) -> None:
+    """Dump data object to a data file.
+
+    Args:
+        obj: Iterable or dict object to save to data file.
+        path: Path to the data file to be dumped.
+        config: Dict data to modify DataFileType configuration for this data dump procedure.
+
+    Raises:
+        FileNotFoundError: If data file does not exist.
+        ValueError: If data file type not supported.
+        OSError: If dumping to data file fails.
     """
-    Dump object to a data file.
-    @param obj: Iterable or dict object to save to data file.
-    @param data_file: Path to the data file to be dumps.
-    @param config: Dict data to modify DataFileType configuration for this data dump procedure.
-    @raise ValueError: If data file type not supported.
-    @raise OSError: If dumping to data file fails.
-    """
-    data_type = Path(data_file).suffix[1:]
-    parser: DataFileType = data_types.get(data_type, {})
-    if not parser:
-        raise ValueError("Data file provided does not match a supported data file type.\n"
-                         f"Types supported: {', '.join(data_types.keys())}\n"
-                         f"Type received: {data_type}")
-    if config:
-        parser.update(config)
-    with util_file_lock:
-        with open(data_file, 'w', encoding='utf-8') as f:
-            try:
-                parser['dump'](obj, f, **parser['dump_kw'])
-            except Exception as e:
-                raise OSError(f"Unable to dump data to data file:\n{data_file}") from e
+    # Check if data file is valid
+    validate_data_file(path)
+
+    # Pull the parser and insert user config into kwargs
+    parser: DataFileType = data_types.get(path.suffix.lower(), {}).copy()
+    kwargs = parser['dump_kw'].update(config) if config else parser['dump_kw']
+
+    # Attempt to dump data
+    with suppress(Exception), util_file_lock, open(path, 'w', encoding='utf-8') as f:
+        parser['dump'](obj, f, **kwargs)
+    raise OSError(f"Unable to dump data from data file:\n{str(path)}")
 
 
 """
@@ -278,7 +295,7 @@ def get_kivy_config_from_schema(config: Path) -> str:
     @return: Json string dump of validated data.
     """
     # Need to load data as JSON
-    raw = load_data_file(data_file=config)
+    raw = load_data_file(config)
 
     # Use correct parser
     if config.suffix == '.toml':
@@ -293,7 +310,7 @@ def copy_config_or_verify(path_from: Path, path_to: Path, data_file: Path) -> No
     @param path_to: Path to the file to create, if it doesn't exist.
     @param data_file: Data schema file to use for validating an existing INI file.
     """
-    if osp.isfile(path_to):
+    if os.path.isfile(path_to):
         return verify_config_fields(path_to, data_file)
     shutil.copy(path_from, path_to)
 
@@ -303,9 +320,9 @@ def remove_config_file(ini_file: str) -> bool:
     Check if config file exists, then remove it.
     @return: True if removed, False if not.
     """
-    if osp.isfile(ini_file):
+    if os.path.isfile(ini_file):
         with suppress(Exception):
-            remove(ini_file)
+            os.remove(ini_file)
             return True
     return False
 
@@ -324,6 +341,24 @@ def get_config_object(path: Union[str, os.PathLike, list[Union[str, os.PathLike]
 
 
 """
+* Project File Utils
+"""
+
+
+def get_app_version(path: Path) -> str:
+    """Returns the version string stored in the root project file.
+
+    Args:
+        path: Path to the root project file.
+
+    Returns:
+        Current version string.
+    """
+    project = load_data_file(path)
+    return project.get('tool', {}).get('poetry', {}).get('version', '1.0.0')
+
+
+"""
 * Paths and filenames
 """
 
@@ -337,7 +372,7 @@ def check_valid_file(path: Union[str, os.PathLike], ext: Optional[str] = None) -
     """
     with suppress(Exception):
         check = str(path).lower()
-        if osp.isfile(check):
+        if os.path.isfile(check):
             if ext:
                 ext = (ext if ext.startswith('.') else f'.{ext}').lower()
                 if not check.endswith(ext):
@@ -351,22 +386,32 @@ def ensure_path_exists(path: Union[str, os.PathLike]) -> None:
     Ensure that directories in path exists.
     @param path: Folder path to check and create if necessary.
     """
-    Path(osp.dirname(path)).mkdir(mode=711, parents=True, exist_ok=True)
+    Path(os.path.dirname(path)).mkdir(mode=777, parents=True, exist_ok=True)
 
 
-def get_unique_filename(path: Union[str, os.PathLike], name: str, ext: str, suffix: str) -> str:
+def get_unique_filename(path: Path) -> Path:
     """
     If a filepath exists, number the file according to the lowest number that doesn't exist.
     @param path: Path to the file.
-    @param name: Name of the file.
-    @param ext: Extension of the file.
-    @param suffix: Suffix to add before the number.
-    @return: Unique filename.
     """
-    num = 0
-    new_name = f"{name} ({suffix})" if suffix else name
-    suffix = f' ({suffix}'+' {})' if suffix else ' ({})'
-    while Path(path, f"{new_name}{ext}").is_file():
-        num += 1
-        new_name = f"{name}{suffix.format(num)}"
-    return new_name
+    i = 1
+    stem = path.stem
+    while path.is_file():
+        path = path.with_stem(f'{stem} ({i})')
+        i += 1
+    return path
+
+
+"""
+* File Info Utils
+"""
+
+
+def get_file_size_mb(file_path: Union[str, os.PathLike], decimal: int = 1) -> float:
+    """
+    Get a file's size in megabytes rounded.
+    @param file_path: Path to the file.
+    @param decimal: Number of decimal places to allow when rounding.
+    @return: Float representing the filesize in megabytes rounded.
+    """
+    return round(os.path.getsize(file_path) / (1024 * 1024), decimal)
