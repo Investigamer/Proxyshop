@@ -1,8 +1,7 @@
 """
-TESTING UTILITIES
+* Utils: Testing
 """
-# Standard Library
-import time
+# Standard Library Imports
 from time import perf_counter
 from operator import itemgetter
 from typing import Optional, Union, Callable
@@ -11,18 +10,22 @@ from typing import Optional, Union, Callable
 import colorama
 from colorama import Fore
 
-
 """
-DECORATORS
+* Util Decorators
 """
 
 
-def time_function(func):
-    """Print the execution time in seconds of any decorated function."""
+def time_function(func: Callable) -> Callable:
+    """Print the execution time in seconds of any decorated function.
+
+    Args:
+        func: The wrapped function.
+    """
     def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
+        """Wraps the function call in a `perf_counter` timer."""
+        start_time = perf_counter()
         result = func(*args, **kwargs)
-        end_time = time.perf_counter()
+        end_time = perf_counter()
         execution_time = end_time - start_time
         print(f"Executed {func.__name__} in {execution_time:.4f} seconds")
         return result
@@ -30,7 +33,7 @@ def time_function(func):
 
 
 """
-UTIL FUNCS
+* Util Funcs
 """
 
 
@@ -43,17 +46,20 @@ def test_execution_time(
     check_result=True,
     reset_func: Optional[Callable] = None
 ) -> None:
+    """Test the execution time of a new function against an older function.
+
+    Todo:
+        Needs a complete rewrite.
+
+    Args:
+        new_func: New callable function to test.
+        old_func: Older callable function to compare against.
+        iterations: How many times to run these functions, higher means better sample size.
+        args: Args to pass to the newer function, and older function unless specified in args_old.
+        args_old: Args to pass to the older function.
+        check_result: Whether to check if results match.
+        reset_func: Optional function to call to reset app state between actions.
     """
-    Test the execution time of a new function against an older function.
-    @param new_func: New callable function to test.
-    @param old_func: Older callable function to compare against.
-    @param iterations: How many times to run these functions, higher means better sample size.
-    @param args: Args to pass to the newer function, and older function unless specified in args_old.
-    @param args_old: Args to pass to the older function.
-    @param check_result: Whether to check if results match.
-    @param reset_func: Optional function to call to reset app state between actions.
-    """
-    # TODO: Needs some major refactoring
     # Test configuration
     args = args or []
     args_old = args_old or args

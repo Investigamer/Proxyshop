@@ -1,5 +1,5 @@
 """
-IMAGE UTILITIES
+* Utils: Images
 """
 # Standard Library Imports
 from pathlib import Path
@@ -7,6 +7,10 @@ from pathlib import Path
 # Third Party Imports
 from PIL import Image
 from PIL.Image import Resampling
+
+"""
+* Util Funcs
+"""
 
 
 def downscale_image(path: Path, **kwargs) -> bool:

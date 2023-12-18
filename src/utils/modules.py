@@ -1,40 +1,43 @@
 """
-MODULE UTILITIES
+* Utils: Modules
 """
+# Standard Library Imports
 import sys
-from pathlib import Path
+import importlib
 from types import ModuleType
-from importlib.util import spec_from_file_location, module_from_spec
+from contextlib import suppress
 
 
-def get_loaded_module(module_path: Path, module_name: str, recache: bool = False) -> ModuleType:
+"""
+* Module Funcs
+"""
+
+
+def get_loaded_module(module_path: str, hotswap: bool = False) -> ModuleType:
+    """Lookup a loaded module by its filepath and reload it. If not found, load the module fresh.
+
+    Args:
+        module_path: Path to the module in module notation, e.g. "src.templates"
+        hotswap: If True, always load modules fresh.
+
+    Returns:
+        ModuleType: Loaded module.
+
+    Raises:
+        ImportError: If module couldn't be loaded successfully.
     """
-    Lookup a loaded module by its filepath and reload it. If not found, load the module fresh.
-    @param module_path: File path to the module.
-    @param module_name: Name to give the module if loading it fresh.
-    @param recache: If True, reload the module before returning it.
-    @return: True if loaded, otherwise False.
-    """
-    # Check if this module has been imported before
-    if module_name in sys.modules:
-        if recache:
-            del sys.modules[module_name]
-            return get_new_module(module_path, module_name)
-        return sys.modules[module_name]
 
-    # Model not loaded, load it now
-    return get_new_module(module_path, module_name)
+    # Check if the module has already been loaded
+    if not hotswap and module_path in sys.modules:
+        return sys.modules[module_path]
+    elif hotswap and module_path in sys.modules:
+        del sys.modules[module_path]
 
+    # Load the module fresh and cache it
+    with suppress(Exception):
+        module = importlib.import_module(module_path)
+        sys.modules[module_path] = module
+        return module
 
-def get_new_module(module_path: Path, module_name: str) -> ModuleType:
-    """
-    Loads a module from a given path with assigned name.
-    @param module_path: Path to module file.
-    @param module_name: Name of the loaded module.
-    @return: Loaded module.
-    """
-    spec = spec_from_file_location(module_name, module_path)
-    module = module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules[module_name] = module
-    return module
+    # Import error occurred
+    raise ImportError(f"Error loading module: '{module_path}'")
