@@ -1,21 +1,44 @@
+"""
+* Utils: Compressing and Decompressing Archives
+"""
 # Standard Library
+from contextlib import suppress
+import gzip
+import lzma
 import os
-import subprocess
-from glob import glob
-from os import path as osp, makedirs
 from pathlib import Path
-from time import perf_counter
-from typing import Optional, Union
+import shutil
+import subprocess
+import tarfile
+from threading import Lock
+from typing import Optional, Callable
+import zipfile
 
 # Third Party Imports
 from tqdm import tqdm
 import py7zr
-import click
 
 # Local Imports
-from src.constants import con
 from src.utils.strings import StrEnum
-from src.utils.files import get_file_size_mb
+
+# Locking mechanism
+ARCHIVE_LOCK = Lock()
+
+"""
+* Enums
+"""
+
+
+class ArchiveExt(StrEnum):
+    """Recognized archive extensions."""
+    Zip = '.zip'
+    GZip = '.gz'
+    XZip = '.xz'
+    SevenZip = '.7z'
+    TarZip = '.tar.zip'
+    TarGZip = '.tar.gz'
+    TarXZip = '.tar.xz'
+    TarSevenZip = '.tar.xz'
 
 
 class WordSize(StrEnum):
@@ -46,151 +69,219 @@ class DictionarySize(StrEnum):
 
 
 """
-UTILITY FUNCS
+* Compression Utils
 """
 
 
-def compress_file(file_path: Union[str, os.PathLike], output_dir: Union[str, os.PathLike]) -> bool:
-    """
-    Compress a target file and save it as a 7z archive to the output directory.
-    @param file_path: File to compress.
-    @param output_dir: Directory to save archive to.
-    @return: True if compression succeeded, otherwise False.
-    """
-    # Define the output file path
-    filename = osp.basename(file_path).replace('.psd', '.7z')
-    out_file = Path(output_dir, filename)
-    null_device = open(os.devnull, 'w')
-
-    # Compress the file
-    try:
-        subprocess.run([
-                "7z", "a", "-t7z", "-m0=LZMA", "-mx=9",
-                f"-md={DictionarySize.DS96}M",
-                f"-mfb={WordSize.WS24}",
-                str(out_file), str(file_path)
-            ], stdout=null_device, stderr=null_device)
-    except Exception as e:
-        # console.critical("An error occurred compressing file!", exc_info=e)
-        return False
-    return True
-
-
-def compress_template(
-    file_name: str,
-    plugin: Optional[str] = None,
+def compress_7z(
+    path_in: Path,
+    path_out: Optional[Path] = None,
     word_size: WordSize = WordSize.WS16,
     dict_size: DictionarySize = DictionarySize.DS1536
-):
+) -> Path:
+    """Compress a target file and save it as a 7z archive to the output directory.
+
+    Args:
+        path_in: File to compress.
+        path_out: Path to the archive to be saved. Use 'compressed' subdirectory if not provided.
+        word_size: Word size value to use for the compression.
+        dict_size: Dictionary size value to use for the compression.
     """
-    Compress a given template from an optional given plugin.
-    @param file_name: Template PSD/PSB file name.
-    @param plugin: Plugin containing the template, assume a base template if not provided.
-    @param word_size: Word size value to use for the compression.
-    @param dict_size: Dictionary size value to use for the compression.
-    @return:
-    """
-    # Build the template path
-    template_path = Path(con.path_plugins, plugin, 'templates') if plugin else con.path_templates
-    to_file = Path(template_path, 'compressed', Path(file_name).with_suffix('.7z'))
-    from_file = Path(template_path, file_name)
+    # Define the output file path
+    path_out = path_out or Path(path_in.parent, 'compressed', path_in.name)
+    path_out = path_out.with_suffix('.7z')
     null_device = open(os.devnull, 'w')
 
     # Compress the file
-    s = perf_counter()
-    try:
+    with suppress(Exception):
         subprocess.run([
-            "7z", "a", "-t7z", "-m0=LZMA", "-mx=9", f"-md={dict_size}M", f"-mfb={word_size}", to_file, from_file
+            "7z", "a", "-t7z", "-m0=LZMA", "-mx=9",
+            f"-md={dict_size}M",
+            f"-mfb={word_size}",
+            str(path_out),
+            str(path_in)
         ], stdout=null_device, stderr=null_device)
-    except Exception as e:
-        # console.critical("An error occurred compressing file!", exc_info=e)
-        pass
-    return get_file_size_mb(to_file), perf_counter()-s
+    return path_out
 
 
-def compress_plugin(plugin: str) -> None:
-    """
-    Compress all PSD files in a plugin.
-    @param plugin: Name of the plugin folder.
-    """
-    compress_all(Path(con.path_plugins, plugin, 'templates'))
+def compress_7z_all(
+    path_in: Path,
+    path_out: Path = None,
+    word_size: WordSize = WordSize.WS16,
+    dict_size: DictionarySize = DictionarySize.DS1536
+) -> None:
+    """Compress every file inside `path_in` directory as 7z archives, then output
+    those archives in the `path_out`.
 
-
-def compress_all(directory: Union[str, os.PathLike, None] = None) -> None:
+    Args:
+        path_in: Directory containing files to compress.
+        path_out: Directory to place the archives. Use a subdirectory 'compressed' if not provided.
+        word_size: Word size value to use for the compression.
+        dict_size: Dictionary size value to use for the compression.
     """
-    Compress all PSD files in a directory.
-    @param directory: Directory containing PSD files to compress.
-    """
-    # Create "compressed" subdirectory if it doesn't exist
-    directory = directory or con.path_templates
-    output_dir = Path(directory, 'compressed')
-    makedirs(output_dir, exist_ok=True)
+    # Use "compressed" subdirectory if not provided, ensure output directory exists
+    path_out = path_out or Path(path_out, 'compressed')
+    path_out.mkdir(mode=777, parents=True, exist_ok=True)
 
     # Get a list of all .psd files in the directory
-    files = glob(osp.join(directory, '*.psd'))
+    files = [
+        Path(path_in, n) for n in os.listdir(path_in)
+        if Path(path_in, n).is_file()]
 
     # Compress each file
     with tqdm(total=len(files), desc="Compressing files", unit="file") as pbar:
         for f in files:
-            pbar.set_description(osp.basename(f))
-            compress_file(f, output_dir)
+            p = (path_out / f.name).with_suffix('.7z')
+            pbar.set_description(f.name)
+            compress_7z(
+                path_in=f,
+                path_out=p,
+                word_size=word_size,
+                dict_size=dict_size)
             pbar.update()
 
 
-def compress_all_templates():
-    """Compress all app templates."""
-    # Compress base templates
-    compress_all(con.path_templates)
-
-    # Compress plugin templates
-    _ = [compress_plugin(p) for p in ['MrTeferi', 'SilvanMTG']]
-
-
 """
-ARCHIVE DECOMPRESSION
+* Decompression Utils
 """
 
 
-def decompress_file(file_path: Union[str, os.PathLike]) -> None:
+def unpack_zip(path: Path) -> None:
+    """Unpack target 'zip' archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
     """
-    Decompress target 7z archive.
-    @param file_path: Path to the 7z archive.
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    with zipfile.ZipFile(path, 'r') as zip_ref:
+        zip_ref.extractall(path=path.parent)
+
+
+def unpack_gz(path: Path) -> None:
+    """Unpack target 'gz' archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
     """
-    with py7zr.SevenZipFile(file_path, 'r') as archive:
-        archive.extractall(path=osp.dirname(file_path))
-    os.remove(file_path)
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    output = path.parent / path.name.replace('.gz', '')
+    with gzip.open(path, 'rb') as arch:
+        with open(output, 'wb') as f:
+            shutil.copyfileobj(arch, f)
 
 
-"""
-CLI COMMANDS
-"""
+def unpack_xz(path: Path) -> None:
+    """Unpack target 'xz' archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    output = path.parent / path.name.replace('.xz', '')
+    with lzma.open(path, mode='r') as arch:
+        with open(output, 'wb') as f:
+            shutil.copyfileobj(arch, f)
 
 
-@click.group()
-def compress_cli():
-    """File utilities CLI."""
-    pass
+def unpack_7z(path: Path) -> None:
+    """Unpack target '7z' archive.
+
+    Args:
+        path: path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    with py7zr.SevenZipFile(path, 'r') as arch:
+        arch.extractall(path=path.parent)
 
 
-@click.command()
-@click.argument('template')
-@click.argument('plugin', required=False)
-def compress_template(template: str, plugin: Optional[str] = None) -> None:
-    compress_template(
-        file_name=template,
-        plugin=plugin)
+def unpack_tar_zip(path: Path) -> None:
+    """Unpack target `tar.gz` archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    with zipfile.ZipFile(path, 'r') as zip_ref:
+        zip_ref.extractall(path=path)
+    with tarfile.open(path.with_suffix('.tar'), 'r') as tar:
+        tar.extractall(path=path.parent)
 
 
-@click.command()
-@click.argument('plugin')
-def compress_plugin(plugin: str) -> None:
-    compress_plugin(plugin=plugin)
+def unpack_tar_gz(path: Path) -> None:
+    """Unpack target `tar.gz` archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    with tarfile.open(path, 'r:gz') as tar:
+        tar.extractall(path=path.parent)
 
 
-@click.command()
-def compress_all() -> None:
-    compress_all()
+def unpack_tar_xz(path: Path) -> None:
+    """Unpack target `tar.xz` archive.
+
+    Args:
+        path: Path to the archive.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f'Archive not found: {str(path)}')
+    with tarfile.open(path, 'r:xz') as tar:
+        tar.extractall(path=path.parent)
 
 
-# Export CLI
-__all__ = ['compress_cli']
+def unpack_archive(path: Path, remove: bool = True) -> None:
+    """Unpack an archive using the correct methodology based on its extension.
+
+    Args:
+        path: Path to the archive.
+        remove: Whether to remove the archive after unpacking.
+
+    Raises:
+        FileNotFoundError: If archive couldn't be located.
+        Not
+    """
+    action_map: dict[str, Callable] = {
+        ArchiveExt.Zip: unpack_zip,
+        ArchiveExt.GZip: unpack_gz,
+        ArchiveExt.XZip: unpack_xz,
+        ArchiveExt.TarZip: unpack_tar_zip,
+        ArchiveExt.TarGZip: unpack_tar_gz,
+        ArchiveExt.TarXZip: unpack_tar_xz,
+        ArchiveExt.SevenZip: unpack_7z,
+        ArchiveExt.TarSevenZip: unpack_7z
+    }
+    if path.suffix not in action_map:
+        raise NotImplementedError(
+            f"File extension '{path.suffix}' not a supported archive type!")
+    with ARCHIVE_LOCK:
+        action_map[path.suffix](path)
+    if remove:
+        os.remove(path)
