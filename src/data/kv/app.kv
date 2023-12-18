@@ -22,7 +22,6 @@
                 size: self.size
                 pos: self.pos
         MainTab:
-            text: "Render Cards"
             spacing: 0
             BoxLayout:
                 id: container
@@ -90,15 +89,15 @@
         width: 0.735294117*preview_image.height if preview_image.height <=612 else 450
         background_color: get_color_from_hex("#303030")
         ButtonImage:
-            source: 'src/img/NotFound.jpg'
+            source: 'src/img/notfound.jpg'
             id: preview_image
             mipmap: True
             fit_mode: "scale-down"
             nocache: True
-            on_press: self.parent.parent.toggle_preview_image()
+            on_press: self.manager.toggle_preview_image()
             canvas:
                 Rectangle:
-                    source: "src/img/Overlay.png"
+                    source: "src/img/overlay.png"
                     size: preview_image.size
                     pos: preview_image.pos
         BoxLayout:
