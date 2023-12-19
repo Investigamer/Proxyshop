@@ -1,5 +1,13 @@
+"""
+* Vector Parent Classes
+* Vector templates use more advanced automation techniques including:
+    - Automatically blended multicolor textures
+    - Automatically blended SolidColor and gradient layers
+    - Automatically generated color indicators
+    - Architecture for mask and shape enabling based on card archetype
+* Vector templates can be challenging for beginners, but have huge benefits.
+"""
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional, Union
 
 # Third Party Imports
@@ -11,16 +19,21 @@ from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.frame_logic import contains_frame_colors
+from src.enums.adobe import LayerObject
+from src.enums.layers import LAYERS
 from src.enums.mtg import (
     crown_color_map,
     indicator_color_map,
     pinline_color_map
 )
+from src.frame_logic import contains_frame_colors
 import src.helpers as psd
-from src.enums.layers import LAYERS
 from src.templates import NormalTemplate
-from src.types.adobe import LayerObject
+from src.utils.properties import auto_prop_cached
+
+"""
+* Template Classes
+"""
 
 
 class VectorTemplate (NormalTemplate):
@@ -30,12 +43,12 @@ class VectorTemplate (NormalTemplate):
     DETAILS
     """
 
-    @cached_property
+    @auto_prop_cached
     def color_limit(self) -> int:
         """The maximum allowed colors that should be blended plus 1."""
         return 3
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_action(self) -> Union[psd.create_color_layer, psd.create_gradient_layer]:
         """Function to call to generate pinline colors. Usually to generate a solid color or gradient layer."""
         return psd.create_color_layer if isinstance(self.pinlines_colors, SolidColor) else psd.create_gradient_layer
@@ -44,17 +57,17 @@ class VectorTemplate (NormalTemplate):
     COLOR MAPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinline_color_map(self) -> dict:
         """Maps color values for the Pinlines."""
         return pinline_color_map.copy()
 
-    @cached_property
+    @auto_prop_cached
     def crown_color_map(self) -> dict:
         """Maps color values for the Legendary Crown."""
         return crown_color_map.copy()
 
-    @cached_property
+    @auto_prop_cached
     def indicator_color_map(self) -> dict:
         """Maps color values for the Color Indicator."""
         return indicator_color_map.copy()
@@ -63,7 +76,7 @@ class VectorTemplate (NormalTemplate):
     COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
@@ -71,7 +84,7 @@ class VectorTemplate (NormalTemplate):
             color_map=self.pinline_color_map
         )
 
-    @cached_property
+    @auto_prop_cached
     def indicator_colors(self) -> list[SolidColor]:
         """Must be returned as list of SolidColor objects."""
         return [
@@ -79,22 +92,22 @@ class VectorTemplate (NormalTemplate):
             for c in self.layout.color_indicator[::-1]
         ] if self.is_type_shifted else []
 
-    @cached_property
+    @auto_prop_cached
     def textbox_colors(self) -> Optional[str]:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
-    @cached_property
+    @auto_prop_cached
     def crown_colors(self) -> Optional[str]:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
-    @cached_property
+    @auto_prop_cached
     def twins_colors(self) -> Optional[str]:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.twins
 
-    @cached_property
+    @auto_prop_cached
     def background_colors(self) -> Optional[str]:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.background
@@ -103,54 +116,54 @@ class VectorTemplate (NormalTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_group(self) -> Optional[LayerSet]:
         """Group containing pinlines colors, textures, or other groups."""
         return psd.getLayerSet(LAYERS.PINLINES)
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_groups(self) -> list[LayerSet]:
         """Groups where pinline colors will be generated."""
         return [self.pinlines_group]
 
-    @cached_property
+    @auto_prop_cached
     def twins_group(self) -> Optional[LayerSet]:
         """Group containing twins texture layers."""
         return psd.getLayerSet(LAYERS.TWINS)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> Optional[LayerSet]:
         """Group containing textbox texture layers."""
         return psd.getLayerSet(LAYERS.TEXTBOX)
 
-    @cached_property
+    @auto_prop_cached
     def background_group(self) -> Optional[LayerSet]:
         """Group containing background texture layers."""
         return psd.getLayerSet(LAYERS.BACKGROUND)
 
-    @cached_property
+    @auto_prop_cached
     def crown_group(self) -> Optional[LayerSet]:
         """Group containing Legendary Crown texture layers."""
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN)
 
-    @cached_property
+    @auto_prop_cached
     def pt_group(self) -> Optional[LayerSet]:
         """Group containing PT Box texture layers."""
         return psd.getLayerSet(LAYERS.PT_BOX)
 
-    @cached_property
+    @auto_prop_cached
     def indicator_group(self) -> Optional[LayerSet]:
         """Group where Color Indicator colors will be generated."""
         if group := psd.getLayerSet(LAYERS.SHAPE, LAYERS.COLOR_INDICATOR):
             group.parent.visible = True
         return group
 
-    @cached_property
+    @auto_prop_cached
     def mask_group(self) -> Optional[LayerSet]:
         """Group containing masks used to blend and adjust various layers."""
         return psd.getLayerSet(LAYERS.MASKS)
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # MDFC Text Group
         if self.is_mdfc:
@@ -167,14 +180,14 @@ class VectorTemplate (NormalTemplate):
     VECTOR SHAPES
     """
 
-    @cached_property
+    @auto_prop_cached
     def border_shape(self) -> Optional[ArtLayer]:
         """Vector shape representing the card border."""
         if self.is_legendary:
             return psd.getLayer(LAYERS.LEGENDARY, self.border_group)
         return psd.getLayer(LAYERS.NORMAL, self.border_group)
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_shape(self) -> Optional[ArtLayer]:
         """Vector shape representing the card pinlines."""
         return psd.getLayer(
@@ -182,19 +195,19 @@ class VectorTemplate (NormalTemplate):
             if self.is_transform else LAYERS.NORMAL,
             [self.pinlines_group, LAYERS.SHAPE])
 
-    @cached_property
+    @auto_prop_cached
     def textbox_shape(self) -> Optional[ArtLayer]:
         """Vector shape representing the card textbox."""
         name = LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL
         return psd.getLayer(name, [self.textbox_group, LAYERS.SHAPE])
 
-    @cached_property
+    @auto_prop_cached
     def twins_shape(self) -> Optional[ArtLayer]:
         """Vector shape representing the card name and title boxes."""
         name = LAYERS.TRANSFORM if self.is_transform or self.is_mdfc else LAYERS.NORMAL
         return psd.getLayer(name, [self.twins_group, LAYERS.SHAPE])
 
-    @cached_property
+    @auto_prop_cached
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         """Vector shapes that should be enabled during the enable_shape_layers step."""
         return [
@@ -208,12 +221,12 @@ class VectorTemplate (NormalTemplate):
     BLENDING MASKS
     """
 
-    @cached_property
+    @auto_prop_cached
     def mask_layers(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend multicolored layers."""
         return [psd.getLayer(LAYERS.HALF, self.mask_group)]
 
-    @cached_property
+    @auto_prop_cached
     def indicator_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to build the Color Indicator."""
         if len(self.layout.color_indicator) == 2:
@@ -229,22 +242,22 @@ class VectorTemplate (NormalTemplate):
             ]
         return []
 
-    @cached_property
+    @auto_prop_cached
     def crown_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend legendary crown layers. Defaults to mask_layers."""
         return self.mask_layers
 
-    @cached_property
+    @auto_prop_cached
     def textbox_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend textbox layers. Defaults to mask_layers."""
         return self.mask_layers
 
-    @cached_property
+    @auto_prop_cached
     def background_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend background layers. Defaults to mask_layers."""
         return self.mask_layers
 
-    @cached_property
+    @auto_prop_cached
     def twins_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend background layers. Defaults to mask_layers."""
         return self.mask_layers
@@ -253,7 +266,7 @@ class VectorTemplate (NormalTemplate):
     MASKS
     """
 
-    @cached_property
+    @auto_prop_cached
     def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
         """
         Masks that should be copied or enabled during the `enable_layer_masks` step. Not utilized by default.

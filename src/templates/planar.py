@@ -3,18 +3,22 @@
 """
 # Standard Library Imports
 from typing import Optional
-from functools import cached_property
 
 # Third Party Imports
 from photoshop.api.application import ArtLayer
 
 # Local Imports
+from src import CFG
+from src.utils.properties import auto_prop_cached
 from src.templates._core import StarterTemplate
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
 from src.layouts import CardLayout
-from src.settings import cfg
 import src.helpers as psd
+
+"""
+* Template Classes
+"""
 
 
 class PlanarTemplate (StarterTemplate):
@@ -23,14 +27,14 @@ class PlanarTemplate (StarterTemplate):
     """
 
     def __init__(self, layout: CardLayout, **kwargs):
-        cfg.exit_early = True
+        CFG.exit_early = True
         super().__init__(layout, **kwargs)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_static_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.STATIC_ABILITY, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_chaos_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.CHAOS_ABILITY, self.text_group)
 
@@ -45,7 +49,7 @@ class PlanarTemplate (StarterTemplate):
             text_classes.ScaledTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.expansion_symbol_layer
+                reference = self.expansion_symbol_layer or self.expansion_reference
             )
         ])
 

@@ -2,7 +2,6 @@
 * CLASS TEMPLATES
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Union, Optional, Callable
 
 # Third Party Imports
@@ -11,15 +10,20 @@ from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
+from src.enums.layers import LAYERS
+from src.enums.mtg import pinline_color_map
+import src.format_text as ft
+import src.helpers as psd
+from src.layouts import ClassLayout
 from src.templates._core import NormalTemplate
 from src.templates._cosmetic import VectorNyxMod
 from src.templates._vector import VectorTemplate
-from src.enums.mtg import pinline_color_map
 import src.text_layers as text_classes
-from src.enums.layers import LAYERS
-from src.layouts import ClassLayout
-import src.format_text as ft
-import src.helpers as psd
+from src.utils.properties import auto_prop_cached
+
+"""
+* Modifier Classes
+"""
 
 
 class ClassMod (NormalTemplate):
@@ -42,33 +46,33 @@ class ClassMod (NormalTemplate):
     CLASS METHODS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
         funcs = [self.text_layers_classes] if isinstance(self.layout, ClassLayout) else []
         return [*super().text_layer_methods, *funcs]
 
-    @cached_property
+    @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
         funcs = [self.frame_layers_classes] if isinstance(self.layout, ClassLayout) else []
         return [*super().frame_layer_methods, *funcs]
 
-    @cached_property
-    def general_methods(self) -> list[Callable]:
+    @auto_prop_cached
+    def post_text_methods(self) -> list[Callable]:
         """Position Class abilities and stage dividers."""
         funcs = [self.layer_positioning_classes] if isinstance(self.layout, ClassLayout) else []
-        return [*super().general_methods, *funcs]
+        return [*super().post_text_methods, *funcs]
 
     """
     CLASS GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def class_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.CLASS)
 
-    @cached_property
+    @auto_prop_cached
     def stage_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.STAGE, self.class_group)
 
@@ -76,7 +80,7 @@ class ClassMod (NormalTemplate):
     CLASS TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def texT_layer_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.TEXT, self.class_group)
 
@@ -180,8 +184,7 @@ class ClassMod (NormalTemplate):
 
 
 """
-* VECTOR TEMPLATES
-* Class templates that use vectorized layer structure.
+* Template Classes
 """
 
 
@@ -192,7 +195,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     BOOL
     """
 
-    @cached_property
+    @auto_prop_cached
     def is_name_shifted(self) -> bool:
         # Back face TF symbol is on right side
         return bool(self.is_transform and self.is_front)
@@ -201,7 +204,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_colors(self) -> list[str]:
         # Transform back side textures
         if self.is_transform and not self.is_front:
@@ -216,7 +219,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
         # Single color front textures
         return [self.pinlines]
 
-    @cached_property
+    @auto_prop_cached
     def crown_colors(self) -> Union[SolidColor, list[dict]]:
         # Return SolidColor or Gradient dict notation for colored adjustment layers
         return psd.get_pinline_gradient(self.pinlines, self.crown_color_map)
@@ -225,12 +228,12 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def crown_group(self) -> LayerSet:
         """Use inner shape group for Legendary Crown."""
         return psd.getLayerSet(LAYERS.SHAPE, LAYERS.LEGENDARY_CROWN)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """Must enable textbox group."""
         if group := psd.getLayerSet(LAYERS.TEXTBOX):
@@ -241,7 +244,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def twins_layer(self) -> Optional[ArtLayer]:
         # Use Back face versions for back side Transform
         return psd.getLayer(
@@ -252,17 +255,17 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def art_reference(self) -> ArtLayer:
         return psd.getLayer(LAYERS.ART_FRAME + " Left")
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         if self.is_front and self.is_flipside_creature:
             return psd.getLayer(f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}", self.class_group)
         return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.class_group)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_position_reference(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.ART_FRAME + " Right")
 
@@ -270,12 +273,12 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     BLENDING MASKS
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_masks(self) -> list[ArtLayer]:
         """Blends the textbox colors."""
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.TEXTBOX])]
 
-    @cached_property
+    @auto_prop_cached
     def background_masks(self) -> list[ArtLayer]:
         """Blends the background colors."""
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BACKGROUND])]
@@ -284,7 +287,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     SHAPES
     """
 
-    @cached_property
+    @auto_prop_cached
     def border_shape(self) -> Optional[ArtLayer]:
         """Support a Normal and Legendary border for front-face Transform."""
         if self.is_transform and self.is_front:
@@ -293,7 +296,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
                 self.border_group)
         return super().border_shape
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_shapes(self) -> list[LayerSet]:
         """Support front and back face Transform pinlines, and optional Legendary pinline shape."""
         shapes = [psd.getLayerSet(LAYERS.LEGENDARY, [self.pinlines_group, LAYERS.SHAPE])] if self.is_legendary else []
@@ -306,7 +309,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
             ), *shapes
         ]
 
-    @cached_property
+    @auto_prop_cached
     def twins_shape(self) -> ArtLayer:
         """Support both front and back face Transform shapes."""
         return psd.getLayer(
@@ -314,14 +317,14 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
             if self.is_transform else LAYERS.NORMAL,
             [self.twins_group, LAYERS.SHAPE])
 
-    @cached_property
+    @auto_prop_cached
     def outline_shape(self):
         """Outline for the textbox and art."""
         return psd.getLayer(
             LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
             LAYERS.OUTLINE)
 
-    @cached_property
+    @auto_prop_cached
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         """Add support for outline shape and multiple pinlines shapes."""
         return [
@@ -335,7 +338,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     MASKS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_mask(self) -> list[ArtLayer, ArtLayer]:
         """Mask hiding pinlines effects inside textbox and art frame."""
         return [
@@ -345,7 +348,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
             self.pinlines_group
         ]
 
-    @cached_property
+    @auto_prop_cached
     def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
         """Support a pinlines mask."""
         return [self.pinlines_mask]
@@ -393,7 +396,7 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
     COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinline_color_map(self) -> dict:
         colors = pinline_color_map.copy()
         colors.update({
@@ -409,7 +412,7 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
         })
         return colors
 
-    @cached_property
+    @auto_prop_cached
     def textbox_colors(self) -> list[str]:
         # Dual color front textures
         if 1 < len(self.identity) < self.color_limit:
@@ -417,7 +420,7 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
         # Single color front textures
         return [self.pinlines]
 
-    @cached_property
+    @auto_prop_cached
     def twins_colors(self) -> Optional[str]:
         return f"{self.twins} Beyond"
 
@@ -425,11 +428,11 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def background_group(self) -> LayerSet:
         return psd.getLayerSet(f'{LAYERS.BACKGROUND} Beyond')
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """Must enable group."""
         if group := psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond"):

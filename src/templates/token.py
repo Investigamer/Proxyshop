@@ -1,22 +1,26 @@
 """
-* TOKEN TEMPLATES
+* Templates: Token
 """
 # Standard Library Imports
 from typing import Optional
-from functools import cached_property
 
 # Third Party Imports
 from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import StarterTemplate
-from src.utils.strings import is_multiline
-import src.text_layers as text_classes
-from src.templates import FullartMod
+from src import CON
 from src.enums.layers import LAYERS
-from src.constants import con
 import src.helpers as psd
+from src.templates._core import StarterTemplate
+from src.templates._cosmetic import FullartMod
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+from src.utils.strings import is_multiline
+
+"""
+* Template Classes
+"""
 
 
 class TokenTemplate(FullartMod, StarterTemplate):
@@ -36,7 +40,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
     * Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def background_layer(self) -> Optional[ArtLayer]:
         # Background is based on Legendary toggle as well as Creature toggle
         return psd.getLayer(self.layout.pinlines, [
@@ -49,7 +53,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """A group containing background, text, and reference based upon oracle text requirements."""
         if not self.layout.oracle_text and not self.layout.flavor_text:
@@ -76,17 +80,17 @@ class TokenTemplate(FullartMod, StarterTemplate):
         # Only one frame for art reference
         return psd.getLayer(LAYERS.ART_FRAME)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         # Pull from the textbox group
         return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def type_line_reference(self) -> ArtLayer:
         """Reference to scale the TypeLine."""
         return psd.getLayer(LAYERS.TYPE_LINE_REFERENCE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def name_reference(self) -> ArtLayer:
         """Reference to scale the Card Name"""
         if self.is_legendary:
@@ -97,12 +101,12 @@ class TokenTemplate(FullartMod, StarterTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> ArtLayer:
         # Pull from the textbox group
         return psd.getLayer(LAYERS.TYPE_LINE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
         # Full textbox group has both creature and noncreature option
         if self.textbox_group.name == LAYERS.FULL:
@@ -144,7 +148,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
 
     def rules_text_and_pt_layers(self) -> None:
         # Adjust the default linebreak lead
-        con.line_break_lead = 3
+        CON.line_break_lead = 3
 
         # Rules Text
         if self.textbox_group.name == LAYERS.ONE_LINE:

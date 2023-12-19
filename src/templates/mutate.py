@@ -1,19 +1,23 @@
 """
-* MUTATE TEMPLATES
+* Mutate Templates
 """
 # Standard Library
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
 from photoshop.api.application import ArtLayer
 
-from src.layouts import MutateLayout
 # Local Imports
-from src.templates._core import NormalTemplate
-import src.text_layers as text_classes
 from src.enums.layers import LAYERS
 import src.helpers as psd
+from src.layouts import MutateLayout
+from src.templates._core import NormalTemplate
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+
+"""
+* Modifier Classes
+"""
 
 
 class MutateMod (NormalTemplate):
@@ -28,7 +32,7 @@ class MutateMod (NormalTemplate):
     DETAILS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Mutate text layers."""
         funcs = [self.text_layers_mutate] if isinstance(self.layout, MutateLayout) else []
@@ -38,7 +42,7 @@ class MutateMod (NormalTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_mutate(self) -> Optional[ArtLayer]:
         """Text layer containing the mutate text."""
         return psd.getLayer(LAYERS.MUTATE, self.text_group)
@@ -47,7 +51,7 @@ class MutateMod (NormalTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def mutate_reference(self) -> Optional[ArtLayer]:
         """Mutate textbox reference."""
         return psd.getLayer(LAYERS.MUTATE_REFERENCE, self.text_group)
@@ -66,6 +70,11 @@ class MutateMod (NormalTemplate):
                 contents = self.layout.mutate_text,
                 flavor = self.layout.flavor_text,
                 reference = self.mutate_reference))
+
+
+"""
+* Template Classes
+"""
 
 
 class MutateTemplate (MutateMod, NormalTemplate):

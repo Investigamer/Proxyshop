@@ -1,19 +1,19 @@
 """
-* BASIC LAND TEMPLATES
-* DEPRECATED in v1.13.0
+* Basic Land Templates
+* Deprecated in v1.13.0
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import BaseTemplate
-from src.settings import cfg
-import src.helpers as psd
+from src import CFG
 from src.templates._cosmetic import BorderlessMod, FullartMod
+from src.utils.properties import auto_prop_cached
+from src.templates._core import BaseTemplate
+import src.helpers as psd
 
 
 class BasicLandTemplate (BaseTemplate):
@@ -22,7 +22,7 @@ class BasicLandTemplate (BaseTemplate):
     basic land types.
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_group(self) -> Optional[LayerSet]:
         return self.docref
 
@@ -36,13 +36,13 @@ class BasicLandClassicTemplate (BasicLandTemplate):
     """
     frame_suffix = 'Classic'
 
-    @cached_property
+    @auto_prop_cached
     def template_suffix(self) -> str:
         return 'Promo' if self.promo_star else ''
 
     @property
     def promo_star(self) -> bool:
-        return bool(cfg.get_setting(
+        return bool(CFG.get_setting(
             section='FRAME',
             key='Promo.Star',
             default=False
@@ -63,7 +63,7 @@ class BasicLandUnstableTemplate (BorderlessMod, BasicLandTemplate):
     """
     frame_suffix = 'Fullart'
 
-    def expansion_symbol(self):
+    def load_expansion_symbol(self):
         """Does not support expansion symbol."""
         pass
 

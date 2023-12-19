@@ -2,7 +2,6 @@
 * Cosmetic Template Class Modifiers
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -10,11 +9,11 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import BaseTemplate
-from src.templates._vector import VectorTemplate
 from src.enums.layers import LAYERS
 import src.helpers as psd
-
+from src.templates._core import BaseTemplate
+from src.templates._vector import VectorTemplate
+from src.utils.properties import auto_prop_cached
 
 """
 * Mods that change 'Art Frame' behavior
@@ -29,15 +28,7 @@ class ExtendedMod (BaseTemplate):
         - 'is_content_aware_enabled': Enabled
     """
     frame_suffix = 'Extended'
-
-    """
-    * Bool
-    """
-
-    @property
-    def is_content_aware_enabled(self) -> bool:
-        """Enable content aware fill for Extended Art Frame."""
-        return True
+    is_content_aware_enabled = True
 
 
 class FullartMod (BaseTemplate):
@@ -48,15 +39,7 @@ class FullartMod (BaseTemplate):
         - 'is_fullart': Enabled
     """
     frame_suffix = 'Fullart'
-
-    """
-    * Bool
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        """Mark this a 'Full Art' card."""
-        return True
+    is_fullart = True
 
 
 class BorderlessMod (BaseTemplate):
@@ -69,20 +52,8 @@ class BorderlessMod (BaseTemplate):
         - 'background_layer': None
     """
     frame_suffix = 'Borderless'
-
-    """
-    * Bool
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        """Mark this a 'Full Art' card."""
-        return True
-
-    @property
-    def is_content_aware_enabled(self) -> bool:
-        """Borderless templates should always content aware fill edges."""
-        return True
+    is_fullart = True
+    is_content_aware_enabled = True
 
     """
     * Layers
@@ -132,7 +103,7 @@ class NyxMod (BaseTemplate):
     * Bool
     """
 
-    @cached_property
+    @auto_prop_cached
     def is_hollow_crown(self) -> bool:
         """Enable hollow crown for Nyx cards."""
         if self.is_nyx:
@@ -143,7 +114,7 @@ class NyxMod (BaseTemplate):
     * Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def background_layer(self) -> Optional[ArtLayer]:
         """Try finding a Nyx background layer if the card is a 'Nyxtouched' frame."""
         if self.is_nyx:
@@ -158,11 +129,12 @@ class VectorNyxMod (NyxMod, VectorTemplate):
 
     Inherits:
         - 'NyxMod'
+
     Adds:
         - 'background_group': Use 'Nyx' group if card is Nyxtouched.
     """
 
-    @cached_property
+    @auto_prop_cached
     def background_group(self) -> Optional[LayerSet]:
         """Try finding a Nyx background group if the card is a 'Nyxtouched' frame."""
         if self.is_nyx:
@@ -177,12 +149,13 @@ class CompanionMod (BaseTemplate):
 
     Modifies:
         - 'is_hollow_crown': Enabled for Companion cards
+
     Adds:
         - 'companion_layer': Defines the Companion texture layer if card is Companion
         - 'enable_companion_layers': Called when card is a Companion
     """
 
-    @cached_property
+    @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         """Add companion layers step."""
         funcs = [self.enable_companion_layers] if self.is_companion else []
@@ -192,7 +165,7 @@ class CompanionMod (BaseTemplate):
     * Bool
     """
 
-    @cached_property
+    @auto_prop_cached
     def is_hollow_crown(self) -> bool:
         """Enable hollow crown for Companion cards."""
         if self.is_companion:
@@ -203,7 +176,7 @@ class CompanionMod (BaseTemplate):
     * Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def companion_layer(self) -> Optional[ArtLayer]:
         """Companion inner crown layer."""
         return psd.getLayer(self.pinlines, LAYERS.COMPANION)
@@ -224,13 +197,15 @@ class VectorCompanionMod (CompanionMod, VectorTemplate):
 
     Inherits:
         - 'CompanionMod'
+
     Adds:
         - 'companion_group': Defines the group containing Companion textures if card is Companion
+
     Modifies:
         - 'enable_companion_layers': Uses 'create_blended_layer' to blend companion textures.
     """
 
-    @cached_property
+    @auto_prop_cached
     def companion_group(self) -> Optional[LayerSet]:
         """Group containing Companion inner crown textures."""
         return psd.getLayerSet(LAYERS.COMPANION)

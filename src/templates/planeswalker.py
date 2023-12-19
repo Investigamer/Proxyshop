@@ -2,7 +2,6 @@
 * PLANESWALKER TEMPLATES
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -11,15 +10,21 @@ from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import StarterTemplate
-from src.templates._cosmetic import BorderlessMod, FullartMod
-from src.templates.transform import TransformMod
-from src.templates.mdfc import MDFCMod
-import src.text_layers as text_classes
 from src.enums.layers import LAYERS
-from src.layouts import PlaneswalkerLayouts
 import src.format_text as ft
 import src.helpers as psd
+from src.layouts import PlaneswalkerLayouts
+from src.templates._core import StarterTemplate
+from src.templates._cosmetic import BorderlessMod, FullartMod
+from src.templates.mdfc import MDFCMod
+from src.templates.transform import TransformMod
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+
+"""
+* Template Classes
+"""
+# TODO: Planeswalker Modifier Classes
 
 
 class PlaneswalkerTemplate (FullartMod, StarterTemplate):
@@ -37,16 +42,16 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
         self._icons = []
         self._colons = []
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Planeswalker text layers."""
         return [*super().text_layer_methods, self.pw_text_layers]
 
-    @cached_property
-    def general_methods(self) -> list[Callable]:
+    @auto_prop_cached
+    def post_text_methods(self) -> list[Callable]:
         """Add Planeswalker layer positioning and ability mask step."""
         return [
-            *super().general_methods,
+            *super().post_text_methods,
             self.pw_layer_positioning,
             self.pw_ability_mask
         ]
@@ -55,19 +60,19 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     DETAILS
     """
 
-    @cached_property
+    @auto_prop_cached
     def abilities(self) -> list[dict]:
         """List of Planeswalker abilities data."""
         return self.layout.pw_abilities
 
-    @cached_property
+    @auto_prop_cached
     def art_frame_vertical(self):
         """Use special Borderless frame for 'Colorless' cards."""
         if self.is_colorless:
             return LAYERS.BORDERLESS_FRAME
         return LAYERS.FULL_ART_FRAME
 
-    @cached_property
+    @auto_prop_cached
     def fill_color(self):
         """Ragged lines mask fill color."""
         return self.RGB_BLACK
@@ -104,34 +109,34 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def group(self) -> LayerSet:
         """The main Planeswalker layer group, sized according to number of abilities."""
         if group := psd.getLayerSet(f"pw-{str(self.layout.pw_size)}"):
             group.visible = True
             return group
 
-    @cached_property
+    @auto_prop_cached
     def loyalty_group(self) -> LayerSet:
         """Group containing Planeswalker loyalty graphics."""
         return psd.getLayerSet(LAYERS.LOYALTY_GRAPHICS)
 
-    @cached_property
+    @auto_prop_cached
     def border_group(self) -> Optional[LayerSet]:
         """Border group, nested in the appropriate Planeswalker group."""
         return psd.getLayerSet(LAYERS.BORDER, self.group)
 
-    @cached_property
+    @auto_prop_cached
     def mask_group(self) -> Optional[LayerSet]:
         """Group containing the vector shapes used to create the ragged lines divider mask."""
         return psd.getLayerSet(LAYERS.MASKS)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> Optional[LayerSet]:
         """Group to populate with ragged lines divider mask."""
         return psd.getLayerSet("Ragged Lines", [self.group, LAYERS.TEXTBOX, "Ability Dividers"])
 
-    @cached_property
+    @auto_prop_cached
     def text_group(self) -> LayerSet:
         """Text Layer group, nexted in the appropriate Planeswalker group."""
         return psd.getLayerSet(LAYERS.TEXT_AND_ICONS, self.group)
@@ -140,19 +145,19 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     FRAME LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def twins_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.twins, psd.getLayerSet(LAYERS.TWINS, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, psd.getLayerSet(LAYERS.PINLINES, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def background_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.background, psd.getLayerSet(LAYERS.BACKGROUND, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def color_indicator_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, [self.group, LAYERS.COLOR_INDICATOR])
 
@@ -160,19 +165,19 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_loyalty(self) -> ArtLayer:
         return psd.getLayer(LAYERS.TEXT, [self.loyalty_group, LAYERS.STARTING_LOYALTY])
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.ABILITY_TEXT, self.loyalty_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_static(self) -> ArtLayer:
         return psd.getLayer(LAYERS.STATIC_TEXT, self.loyalty_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_colon(self) -> ArtLayer:
         return psd.getLayer(LAYERS.COLON, self.loyalty_group)
 
@@ -180,11 +185,11 @@ class PlaneswalkerTemplate (FullartMod, StarterTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def top_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_TOP_REFERENCE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def adj_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_ADJUSTMENT_REFERENCE, self.text_group)
 
@@ -389,7 +394,7 @@ class PlaneswalkerMDFCTemplate (MDFCMod, PlaneswalkerTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Both DFC groups at top level
         return psd.getLayerSet(self.face_type, LAYERS.MDFC)
@@ -398,7 +403,7 @@ class PlaneswalkerMDFCTemplate (MDFCMod, PlaneswalkerTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name is always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
@@ -411,7 +416,7 @@ class PlaneswalkerMDFCExtendedTemplate (MDFCMod, PlaneswalkerExtendedTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Both DFC groups at top level
         return psd.getLayerSet(self.face_type, LAYERS.MDFC)
@@ -420,7 +425,7 @@ class PlaneswalkerMDFCExtendedTemplate (MDFCMod, PlaneswalkerExtendedTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name is always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
@@ -438,7 +443,7 @@ class PlaneswalkerTransformTemplate (TransformMod, PlaneswalkerTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Transform group at top level
         return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
@@ -447,12 +452,12 @@ class PlaneswalkerTransformTemplate (TransformMod, PlaneswalkerTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
         # Typeline always shifted
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
@@ -473,7 +478,7 @@ class PlaneswalkerTransformExtendedTemplate (TransformMod, PlaneswalkerExtendedT
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Transform group at top level
         return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
@@ -482,12 +487,12 @@ class PlaneswalkerTransformExtendedTemplate (TransformMod, PlaneswalkerExtendedT
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
         # Typeline always shifted
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)

@@ -2,7 +2,6 @@
 * BATTLE TEMPLATES
 """
 # Standard Library
-from functools import cached_property
 from typing import Callable, Optional, Union
 
 # Third Party Imports
@@ -11,17 +10,17 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-import src.helpers as psd
 from src.enums.layers import LAYERS
 from src.enums.mtg import pinline_color_map
+import src.helpers as psd
 from src.layouts import BattleLayout
-from src.text_layers import TextField, CreatureFormattedTextArea
 from src.templates._core import BaseTemplate
 from src.templates._vector import VectorTemplate
-
+from src.text_layers import TextField, CreatureFormattedTextArea
+from src.utils.properties import auto_prop_cached
 
 """
-MODIFIER CLASSES
+* Modifier Classes
 """
 
 
@@ -35,7 +34,7 @@ class BattleMod (BaseTemplate):
         * Might add support for Transform icon in the future, if other symbols are used.
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
         funcs = [self.text_layers_battle] if isinstance(self.layout, BattleLayout) else []
@@ -45,24 +44,24 @@ class BattleMod (BaseTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Doesn't need to be shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
         """Supports noncreature and creature, with or without flipside PT."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
             return psd.getLayer(LAYERS.RULES_TEXT_FLIP, self.text_group)
         return psd.getLayer(LAYERS.RULES_TEXT, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_flipside_pt(self) -> Optional[ArtLayer]:
         """Flipside power/toughness layer for front face Transform cards."""
         return psd.getLayer(LAYERS.FLIPSIDE_POWER_TOUGHNESS, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_defense(self) -> Optional[ArtLayer]:
         """Battle defense number in bottom right corner."""
         return psd.getLayer(LAYERS.DEFENSE, self.text_group)
@@ -71,14 +70,14 @@ class BattleMod (BaseTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def pt_top_reference(self) -> Optional[ArtLayer]:
         """Reference used to get the top of the PT box."""
         return psd.getLayer(
             f"{LAYERS.PT_TOP_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.PT_TOP_REFERENCE,
             self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def pt_adjustment_reference(self) -> Optional[ArtLayer]:
         """Reference used to get the location of the PT box."""
         return psd.getLayer(
@@ -146,7 +145,7 @@ class BattleMod (BaseTemplate):
 
 
 """
-TEMPLATE CLASSES
+* Template Classes
 """
 
 
@@ -173,7 +172,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
     COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
@@ -186,11 +185,11 @@ class BattleTemplate (BattleMod, VectorTemplate):
     SHAPES
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_shape(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.NORMAL, [self.textbox_group, LAYERS.SHAPE])
 
-    @cached_property
+    @auto_prop_cached
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         return [self.textbox_shape]
 
@@ -202,7 +201,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinline_color_map(self) -> dict:
         colors = pinline_color_map.copy()
         colors.update({
@@ -218,7 +217,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
         })
         return colors
 
-    @cached_property
+    @auto_prop_cached
     def twins_colors(self) -> Optional[str]:
         return f"{self.twins} Beyond"
 
@@ -226,7 +225,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """Textbox Beyond group."""
         return psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond")
@@ -235,6 +234,6 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     SHAPES
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_shape(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.NORMAL, [self.textbox_group, LAYERS.SHAPE])
