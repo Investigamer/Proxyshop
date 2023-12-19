@@ -1,7 +1,8 @@
 """
 SETTINGS ENUMS
 """
-from src.utils.decorators import enum_class_prop
+# Local Imports
+from src.utils.properties import enum_class_prop
 from src.utils.strings import StrEnum
 
 
@@ -10,7 +11,7 @@ from src.utils.strings import StrEnum
 """
 
 
-class OutputFiletype (StrEnum):
+class OutputFileType (StrEnum):
     JPG = "jpg"
     PNG = "png"
     PSD = "psd"
@@ -57,16 +58,6 @@ class CollectorMode (StrEnum):
     @enum_class_prop
     def Default(self) -> str:
         return self.Normal
-
-
-class ExpansionSymbolMode (StrEnum):
-    SVG = "svg"
-    Font = "font"
-    Disabled = "none"
-
-    @enum_class_prop
-    def Default(self) -> str:
-        return self.SVG
 
 
 class BorderColor (StrEnum):
