@@ -1,5 +1,5 @@
 """
-TEXT HELPERS
+* Helpers: Text Items
 """
 # Standard Library Imports
 from typing import Union, Optional, Any
@@ -9,74 +9,79 @@ from photoshop.api import DialogModes, ActionDescriptor, ActionReference, Action
 from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
-from src.constants import con
+from src import APP
 from src.helpers import pixels_to_points, get_layer_dimensions
 from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 """
-TEXT UTILITIES
+* Text Utils
 """
 
 
 def get_font_size(layer: ArtLayer) -> float:
-    """
-    Get scale factor adjusted font size of a given text layer.
-    @param layer: Text layer to get size of.
+    """Get scale factor adjusted font size of a given text layer.
+
+    Args:
+        layer: Text layer to get size of.
     """
     return round(layer.textItem.size * get_text_scale_factor(layer), 2)
 
 
 def get_text_key(layer: ArtLayer) -> Any:
-    """
-    Get the textKey action reference from a TextLayer.
-    @param layer: ArtLayer which must be a TextLayer kind.
+    """Get the textKey action reference from a TextLayer.
+
+    Args:
+        layer: ArtLayer which must be a TextLayer kind.
     """
     reference = ActionReference()
     reference.putIdentifier(sID('layer'), layer.id)
-    descriptor = app.executeActionGet(reference)
+    descriptor = APP.executeActionGet(reference)
     return descriptor.getObjectValue(sID('textKey'))
 
 
 def apply_text_key(text_layer, text_key) -> None:
-    """
-    Applies a TextKey action descriptor to a given TextLayer.
-    @param text_layer: ArtLayer which must be a TextLayer kind.
-    @param text_key: TextKey extracted from a TextLayer that has been modified.
+    """Applies a TextKey action descriptor to a given TextLayer.
+
+    Args:
+        text_layer: ArtLayer which must be a TextLayer kind.
+        text_key: TextKey extracted from a TextLayer that has been modified.
     """
     action, ref = ActionDescriptor(), ActionReference()
     ref.putIdentifier(sID("layer"), text_layer.id)
     action.putReference(sID("target"), ref)
     action.putObject(sID("to"), sID("textLayer"), text_key)
-    app.executeAction(sID("set"), action, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("set"), action, DialogModes.DisplayNoDialogs)
 
 
 def get_line_count(layer: Optional[ArtLayer] = None) -> int:
-    """
-    Get the number of lines in a paragraph text layer.
-    @param layer: Text layer that contains a paragraph TextItem.
-    @return: Number of lines in the TextItem.
+    """Get the number of lines in a paragraph text layer.
+
+    Args:
+        layer: Text layer that contains a paragraph TextItem.
+
+    Returns:
+        Number of lines in the TextItem.
     """
     return round(pixels_to_points(get_layer_dimensions(layer)['height']) / layer.textItem.leading)
 
 
 """
-MODIFYING TEXT
+* Modifying Text
 """
 
 
 def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
-    """
-    Replaces target "find" text with "replace" text in a given TextLayer.
-    @param layer: ArtLayer which must be a TextLayer kind.
-    @param find: Text to find in the layer.
-    @param replace: Text to replace the found text with.
+    """Replaces target "find" text with "replace" text in a given TextLayer.
+
+    Args:
+        layer: ArtLayer which must be a TextLayer kind.
+        find: Text to find in the layer.
+        replace: Text to replace the found text with.
     """
     # Establish our text key and reference text
     text_key: ActionDescriptor = get_text_key(layer)
@@ -121,16 +126,17 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
 
 
 def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_replace: bool = True) -> None:
-    """
-    Replace all instances of `replace_this` in the specified layer with `replace_with`, using Photoshop's
+    """Replace all instances of `replace_this` in the specified layer with `replace_with`, using Photoshop's
     built-in search and replace feature. Slower than `replace_text`, but can handle multi-style strings.
-    @param layer: Layer object to search through.
-    @param find: Text string to search for.
-    @param replace: Text string to replace matches with.
-    @param targeted_replace: Disables layer targeting if False, if True may cause a crash on older PS versions.
+
+    Args:
+        layer: Layer object to search through.
+        find: Text string to search for.
+        replace: Text string to replace matches with.
+        targeted_replace: Disables layer targeting if False, if True may cause a crash on older PS versions.
     """
     # Set the active layer
-    app.activeDocument.activeLayer = layer
+    APP.activeDocument.activeLayer = layer
 
     # Find and replace
     desc31 = ActionDescriptor()
@@ -143,7 +149,7 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_repla
     desc32.putString(sID("replace"), f"""{replace}""")
     desc32.putBoolean(
         sID("checkAll"),  # Targeted replace doesn't work on old PS versions
-        False if targeted_replace and app.supports_target_text_replace() else True
+        False if targeted_replace and APP.supports_target_text_replace() else True
     )
     desc32.putBoolean(sID("forward"), True)
     desc32.putBoolean(sID("caseSensitive"), True)
@@ -151,19 +157,20 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_repla
     desc32.putBoolean(sID("ignoreAccents"), True)
     desc31.putObject(sID("using"), sID("findReplace"), desc32)
     try:
-        app.executeAction(sID("findReplace"), desc31, NO_DIALOG)
+        APP.executeAction(sID("findReplace"), desc31, NO_DIALOG)
     except PS_EXCEPTIONS:
         replace_text_robust(layer, find, replace, False)
 
 
 def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
-    """
-    Remove text after certain index from a TextLayer.
-    @param layer: TextLayer containing the text to modify.
-    @param idx: Index to remove after.
+    """Remove text after certain index from a TextLayer.
+
+    Args:
+        layer: TextLayer containing the text to modify.
+        idx: Index to remove after.
     """
     # Establish our text key and descriptor ID's
-    app.activeDocument.activeLayer = layer
+    APP.activeDocument.activeLayer = layer
     key: ActionDescriptor = get_text_key(layer)
     current_text = key.getString(sID("textKey"))
     new_text = current_text[0:idx - 1]
@@ -201,13 +208,14 @@ def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
 
 
 def remove_leading_text(layer: ArtLayer, idx: int) -> None:
-    """
-    Remove text up to a certain index from a TextLayer.
-    @param layer: TextLayer containing the text to modify.
-    @param idx: Index to remove up to.
+    """Remove text up to a certain index from a TextLayer.
+
+    Args:
+        layer: TextLayer containing the text to modify.
+        idx: Index to remove up to.
     """
     # Establish our text key and descriptor ID's
-    app.activeDocument.activeLayer = layer
+    APP.activeDocument.activeLayer = layer
     key: ActionDescriptor = get_text_key(layer)
     current_text = key.getString(sID("textKey"))
     new_text = current_text[idx + 1:]
@@ -251,7 +259,7 @@ def remove_leading_text(layer: ArtLayer, idx: int) -> None:
 
 
 """
-GETTING TEXT ITEM SIZE
+* Text Item Size
 """
 
 
@@ -260,13 +268,15 @@ def get_text_scale_factor(
     axis: Optional[Union[str, list]] = 'yy',
     text_key = None
 ) -> Union[int, float, list[Union[int, float]]]:
-    """
-    Get the scale factor of the document for changing text size.
-    @param layer: The layer to make active and run the check on.
-    @param axis: Scale axis or list of scale axis to check
-                 (xx: horizontal, yy: vertical)
-    @param text_key: textKey action descriptor
-    @return: Float scale factor
+    """Get the scale factor of the document for changing text size.
+
+    Args:
+        layer: The layer to make active and run the check on.
+        axis: Scale axis or list of scale axis to check (xx: horizontal, yy: vertical).
+        text_key: textKey action descriptor
+
+    Returns:
+        Float scale factor
     """
     # Get the textKey if not provided
     if not text_key:
@@ -286,15 +296,16 @@ def get_text_scale_factor(
 
 
 """
-APPLYING TEXT CHANGES
+* Applying Text Changes
 """
 
 
 def set_text_leading(layer: ArtLayer, size: Union[float, int]) -> None:
-    """
-    Manually assign font leading to a layer using action descriptors.
-    @param layer: Layer containing TextItem to change leading of.
-    @param size: New textItem font leading.
+    """Manually assign font leading to a layer using action descriptors.
+
+    Args:
+        layer: Layer containing TextItem to change leading of.
+        size: New textItem font leading.
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -306,14 +317,15 @@ def set_text_leading(layer: ArtLayer, size: Union[float, int]) -> None:
     desc2.putInteger(sID("typeStyleOperationType"), 3)
     desc2.putUnitDouble(sID("leading"), sID("pointsUnit"), size)
     desc1.putObject(sID("to"), sID("textStyle"), desc2)
-    app.executeaction(sID("set"), desc1, NO_DIALOG)
+    APP.executeaction(sID("set"), desc1, NO_DIALOG)
 
 
 def set_text_size(layer: ArtLayer, size: Union[float, int]) -> None:
-    """
-    Manually assign font size to a layer using action descriptors.
-    @param layer: Layer containing TextItem to change size of.
-    @param size: New textItem font size.
+    """Manually assign font size to a layer using action descriptors.
+
+    Args:
+        layer: Layer containing TextItem to change size of.
+        size: New textItem font size.
     """
     # Set the new size
     desc1 = ActionDescriptor()
@@ -326,13 +338,14 @@ def set_text_size(layer: ArtLayer, size: Union[float, int]) -> None:
     desc2.putInteger(sID("typeStyleOperationType"), 3)
     desc2.putUnitDouble(sID("size"), sID("pointsUnit"), size)
     desc1.putObject(sID("to"), sID("textStyle"), desc2)
-    app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
+    APP.executeAction(sID("set"), desc1, NO_DIALOG)
 
 
 def set_composer_single_line(layer: ArtLayer) -> None:
-    """
-    Set text layer to single line composer.
-    @param layer: Layer containing TextItem to set composer for.
+    """Set text layer to single line composer.
+
+    Args:
+        layer: Layer containing TextItem to set composer for.
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -340,21 +353,22 @@ def set_composer_single_line(layer: ArtLayer) -> None:
     ref1.putProperty(sID("property"), sID("textStyle"))
     ref1.putIdentifier(sID("textLayer"), layer.id)
     desc1.putReference(sID("target"), ref1)
-    desc2.PutInteger(sID("textOverrideFeatureName"),  808464691)
-    desc2.PutBoolean(sID("textEveryLineComposer"), False)
-    desc1.PutObject(sID("to"), sID("paragraphStyle"),  desc2)
-    app.Executeaction(sID("set"), desc1,  NO_DIALOG)
+    desc2.putInteger(sID("textOverrideFeatureName"), 808464691)
+    desc2.putBoolean(sID("textEveryLineComposer"), False)
+    desc1.putObject(sID("to"), sID("paragraphStyle"), desc2)
+    APP.executeAction(sID("set"), desc1,  NO_DIALOG)
 
 
 """
-FONTS
+* Fonts
 """
 
 
 def set_font(layer: ArtLayer, font_name: str) -> None:
+    """Set the font of a given TextItem layer using a given name.
+
+    Args:
+        layer: ArtLayer containing TextItem.
+        font_name:  Name of the font to set.
     """
-    Set the font of a given TextItem layer using a given name.
-    @param layer: ArtLayer containing TextItem.
-    @param font_name:  Name of the font to set.
-    """
-    layer.textItem.font = app.fonts.getByName(font_name).postScriptName
+    layer.textItem.font = APP.fonts.getByName(font_name).postScriptName

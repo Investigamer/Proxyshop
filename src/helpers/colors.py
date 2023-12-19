@@ -1,5 +1,5 @@
 """
-COLOR HELPERS
+* Helpers: Colors
 """
 # Standard Library Imports
 from typing import Union, Optional
@@ -9,14 +9,12 @@ from photoshop.api import SolidColor, DialogModes, ActionList, ActionDescriptor,
 from photoshop.api._artlayer import ArtLayer, TextItem
 
 # Local Imports
-from src.constants import con
+from src import APP, CON
 from src.enums.layers import LAYERS
 from src.enums.mtg import pinline_color_map
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
@@ -26,10 +24,12 @@ CONVERTING COLOR
 
 
 def hex_to_rgb(color: str) -> list[int]:
-    """
-    Convert a hexadecimal color code into RGB value list.
-    @param color: Hexadecimal color code, e.g. #F5D676
-    @return: Color in RGB list notation.
+    """Convert a hexadecimal color code into RGB value list.
+
+    Args:
+        color: Hexadecimal color code, e.g. #F5D676
+    Returns:
+        Color in RGB list notation.
     """
     if '#' in color:
         color = color[1:]
@@ -42,36 +42,42 @@ GETTING COLOR
 
 
 def rgb_black() -> SolidColor:
-    """
-    Creates a black SolidColor object.
-    @return: SolidColor object.
+    """Creates a black SolidColor object.
+
+    Returns:
+        SolidColor object.
     """
     return get_rgb(0, 0, 0)
 
 
 def rgb_grey() -> SolidColor:
-    """
-    Creates a grey SolidColor object.
-    @return: SolidColor object.
+    """Creates a grey SolidColor object.
+
+    Returns:
+        SolidColor object.
     """
     return get_rgb(170, 170, 170)
 
 
 def rgb_white() -> SolidColor:
-    """
-    Creates a white SolidColor object.
-    @return: SolidColor object.
+    """Creates a white SolidColor object.
+
+    Returns:
+        SolidColor object.
     """
     return get_rgb(255, 255, 255)
 
 
 def get_rgb(r: int, g: int, b: int) -> SolidColor:
-    """
-    Creates a SolidColor object with the given RGB values.
-    @param r: Integer from 0 to 255 for red spectrum.
-    @param g: Integer from 0 to 255 for green spectrum.
-    @param b: Integer from 0 to 255 for blue spectrum.
-    @return: SolidColor object.
+    """Creates a SolidColor object with the given RGB values.
+
+    Args:
+        r: Integer from 0 to 255 for red spectrum.
+        g: Integer from 0 to 255 for green spectrum.
+        b: Integer from 0 to 255 for blue spectrum.
+
+    Returns:
+        SolidColor object.
     """
     color = SolidColor()
     color.rgb.red = r
@@ -81,10 +87,13 @@ def get_rgb(r: int, g: int, b: int) -> SolidColor:
 
 
 def get_rgb_from_hex(hex_code: str) -> SolidColor:
-    """
-    Creates an RGB SolidColor object with the given hex value. Allows prepending # or without.
-    @param hex_code: Hexadecimal color code.
-    @return: SolidColor object.
+    """Creates an RGB SolidColor object with the given hex value. Allows prepending # or without.
+
+    Args:
+        hex_code: Hexadecimal color code.
+
+    Returns:
+        SolidColor object.
     """
     # Remove hashtag
     hex_code = hex_code.lstrip('#')
@@ -98,13 +107,16 @@ def get_rgb_from_hex(hex_code: str) -> SolidColor:
 
 
 def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
-    """
-    Creates a SolidColor object with the given CMYK values.
-    @param c: Float from 0.0 to 100.0 for Cyan component.
-    @param m: Float from 0.0 to 100.0 for Magenta component.
-    @param y: Float from 0.0 to 100.0 for Yellow component.
-    @param k: Float from 0.0 to 100.0 for black component.
-    @return: SolidColor object.
+    """Creates a SolidColor object with the given CMYK values.
+
+    Args:
+        c: Float from 0.0 to 100.0 for Cyan component.
+        m: Float from 0.0 to 100.0 for Magenta component.
+        y: Float from 0.0 to 100.0 for Yellow component.
+        k: Float from 0.0 to 100.0 for black component.
+
+    Returns:
+        SolidColor object.
     """
     color = SolidColor()
     color.cmyk.cyan = c
@@ -115,10 +127,14 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
 
 
 def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
-    """
-    Automatically get either cmyk or rgb color given a range of
-    @param color: Array containing 3 (RGB) or 4 (CMYK) numbers between 0 and 255, or the name of a known color.
-    @return: SolidColor object.
+    """Automatically get either cmyk or rgb color given a range of possible input notations.
+
+    Args:
+        color: List of 3 (RGB) or 4 (CMYK) numbers between 0 and 255, or the name of a known color, or dictionary
+            color notation, e.g. {r: num, g: num, b: num}
+
+    Returns:
+        SolidColor object.
     """
     try:
         if isinstance(color, SolidColor):
@@ -134,8 +150,8 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
                 return get_cmyk(color['c'], color['m'], color['y'], color['k'])
         if isinstance(color, str):
             # Named color
-            if color in con.colors:
-                return get_color(con.colors[color])
+            if color in CON.colors:
+                return get_color(CON.colors[color])
             # Hexadecimal
             return get_rgb_from_hex(color)
         if isinstance(color, list):
@@ -152,11 +168,14 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
 
 
 def get_text_layer_color(layer: ArtLayer) -> SolidColor:
-    """
-    Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
-    against errors and null values by defaulting to rgb_black() in the event of a problem.
-    @param layer: Layer object that must be TextLayer
-    @return: SolidColor object representing the color of the text item.
+    """Occasionally, Photoshop has issues with retrieving the color of a text layer. This helper guards
+    against errors and null values by defaulting to black in the event of a problem.
+
+    Args:
+        layer: Layer object that must be TextLayer
+
+    Returns:
+        SolidColor object representing the color of the text item.
     """
     if isinstance(layer, ArtLayer) and layer.kind == LayerKind.TextLayer:
         if hasattr(layer.textItem, 'color'):
@@ -180,11 +199,12 @@ APPLYING COLOR
 
 
 def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
-    """
-    Applies RGB color to action descriptor from a list of values.
-    @param action: ActionDescriptor object.
-    @param color: List of integers for R, G, B.
-    @param color_type: Color action descriptor type, defaults to 'color'.
+    """Applies RGB color to action descriptor from a list of values.
+
+    Args:
+        action: ActionDescriptor object.
+        color: List of integers for R, G, B.
+        color_type: Color action descriptor type, defaults to 'color'.
     """
     ad = ActionDescriptor()
     ad.putDouble(sID("red"), color[0])
@@ -194,11 +214,12 @@ def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: 
 
 
 def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
-    """
-    Applies CMYK color to action descriptor from a list of values.
-    @param action: ActionDescriptor object.
-    @param color: List of integers for R, G, B.
-    @param color_type: Color action descriptor type, defaults to 'color'.
+    """Applies CMYK color to action descriptor from a list of values.
+
+    Args:
+        action: ActionDescriptor object.
+        color: List of integers for R, G, B.
+        color_type: Color action descriptor type, defaults to 'color'.
     """
     ad = ActionDescriptor()
     ad.putDouble(sID("cyan"), color[0])
@@ -209,31 +230,34 @@ def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type:
 
 
 def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
-    """
-    Apply RGB SolidColor object to action descriptor.
-    @param action: ActionDescriptor object.
-    @param c: SolidColor object matching RGB model.
-    @param color_type: Color action descriptor type, defaults to 'color'.
+    """Apply RGB SolidColor object to action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        c: SolidColor object matching RGB model.
+        color_type: Color action descriptor type, defaults to 'color'.
     """
     apply_rgb_from_list(action, [c.rgb.red, c.rgb.green, c.rgb.blue], color_type)
 
 
 def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
-    """
-    Apply CMYK SolidColor object to action descriptor.
-    @param action: ActionDescriptor object.
-    @param c: SolidColor object matching CMYK model.
-    @param color_type: Color action descriptor type, defaults to 'color'.
+    """Apply CMYK SolidColor object to action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        c: SolidColor object matching CMYK model.
+        color_type: Color action descriptor type, defaults to 'color'.
     """
     apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
 
 
 def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], color_type: str = 'color') -> None:
-    """
-    Applies color to the specified action descriptor.
-    @param action: ActionDescriptor object.
-    @param color: RGB/CMYK SolidColor object, or list of RGB/CMYK values.
-    @param color_type: Color action descriptor type, defaults to 'color'.
+    """Applies color to the specified action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        color: RGB/CMYK SolidColor object, or list of RGB/CMYK values.
+        color_type: Color action descriptor type, defaults to 'color'.
     """
     if isinstance(color, list):
         # List notation
@@ -255,12 +279,13 @@ def add_color_to_gradient(
     location: int,
     midpoint: int
 ) -> None:
-    """
-    Adds a SolidColor to gradient at a given location, with a given midpoint.
-    @param action_list: Action list to add this color to.
-    @param color: SolidColor object.
-    @param location: Location of the color along the track.
-    @param midpoint: Percentage midpoint between this color and the next.
+    """Adds a SolidColor to gradient at a given location, with a given midpoint.
+
+    Args:
+        action_list: Action list to add this color to.
+        color: SolidColor object.
+        location: Location of the color along the track.
+        midpoint: Percentage midpoint between this color and the next.
     """
     action = ActionDescriptor()
     apply_color(action, color)
@@ -274,7 +299,7 @@ def fill_layer_primary():
     """Fill active layer using foreground color."""
     desc1 = ActionDescriptor()
     desc1.putEnumerated(sID("using"), sID("fillContents"), sID("foregroundColor"))
-    app.executeAction(sID("fill"), desc1, NO_DIALOG)
+    APP.executeAction(sID("fill"), desc1, NO_DIALOG)
 
 
 def get_pinline_gradient(
@@ -282,12 +307,15 @@ def get_pinline_gradient(
         color_map: Optional[dict] = None,
         location_map: dict = None
 ) -> Union[SolidColor, list[dict]]:
-    """
-    Return a gradient color list notation for some given pinline colors.
-    @param colors: Pinline colors to produce a gradient.
-    @param color_map: Color map to color the pinlines.
-    @param location_map: Location map to position gradients.
-    @return: Gradient color list notation.
+    """Return a gradient color list notation for some given pinline colors.
+
+    Args:
+        colors: Pinline colors to produce a gradient.
+        color_map: Color map to color the pinlines.
+        location_map: Location map to position gradients.
+
+    Returns:
+        Gradient color list notation.
     """
     # Establish the color_map
     if not color_map:
@@ -295,7 +323,7 @@ def get_pinline_gradient(
 
     # Establish the location map
     if not location_map:
-        location_map = con.gradient_locations
+        location_map = CON.gradient_locations
 
     # Return our colors
     if not colors:

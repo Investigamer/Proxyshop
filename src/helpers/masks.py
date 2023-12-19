@@ -1,5 +1,5 @@
 """
-MASK HELPERS
+* Helpers: Masks
 """
 # Standard Library Imports
 from typing import Union
@@ -10,24 +10,28 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.constants import con
+from src import APP
 from src.helpers.layers import select_layer
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+
+"""
+* Copying Masks
+"""
 
 
 def copy_layer_mask(
     layer_from: Union[ArtLayer, LayerSet],
     layer_to: Union[ArtLayer, LayerSet]
 ) -> None:
-    """
-    Copies mask from one layer to another.
-    @param layer_from: Layer to copy from.
-    @param layer_to: Layer to copy to.
+    """Copies mask from one layer to another.
+
+    Args:
+        layer_from: Layer to copy from.
+        layer_to: Layer to copy to.
     """
     desc1 = ActionDescriptor()
     ref17 = ActionReference()
@@ -39,17 +43,18 @@ def copy_layer_mask(
     ref18.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
     ref18.putIdentifier(sID("layer"), layer_from.id)
     desc1.putReference(sID("using"), ref18)
-    app.executeAction(sID("make"), desc1, NO_DIALOG)
+    APP.executeAction(sID("make"), desc1, NO_DIALOG)
 
 
 def copy_vector_mask(
     layer_from: Union[ArtLayer, LayerSet],
     layer_to: Union[ArtLayer, LayerSet]
 ) -> None:
-    """
-    Copies vector mask from one layer to another.
-    @param layer_from: Layer to copy from.
-    @param layer_to: Layer to copy to.
+    """Copies vector mask from one layer to another.
+
+    Args:
+        layer_from: Layer to copy from.
+        layer_to: Layer to copy to.
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -63,38 +68,45 @@ def copy_vector_mask(
     ref3.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
     ref3.putIdentifier(sID("layer"), layer_from.id)
     desc1.putReference(sID("using"),  ref3)
-    app.executeaction(sID("make"), desc1, NO_DIALOG)
+    APP.executeAction(sID("make"), desc1, NO_DIALOG)
+
+
+"""
+* Applying Masks
+"""
 
 
 def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
-    """
-    Sets the layer mask to apply only to layer effects in blending options.
-    @param layer: ArtLayer or LayerSet object.
+    """Sets the layer mask to apply only to layer effects in blending options.
+
+    Args:
+        layer: ArtLayer or LayerSet object.
     """
     if not layer:
-        layer = app.activeDocument.activeLayer
+        layer = APP.activeDocument.activeLayer
     ref = ActionReference()
     ref.putIdentifier(sID("layer"), layer.id)
-    desc = app.executeActionGet(ref)
+    desc = APP.executeActionGet(ref)
     layer_fx = desc.getObjectValue(sID('layerEffects'))
     layer_fx.putBoolean(sID("layerMaskAsGlobalMask"), True)
     desc = ActionDescriptor()
     desc.putReference(sID("target"), ref)
     desc.putObject(sID("to"), sID("layer"), layer_fx)
-    app.executeAction(sID("set"), desc,  NO_DIALOG)
+    APP.executeAction(sID("set"), desc,  NO_DIALOG)
 
 
 def set_layer_mask(
     layer: Union[ArtLayer, LayerSet, None] = None,
     visible: bool = True
 ) -> None:
-    """
-    Set the visibility of a layer's mask.
-    @param layer: ArtLayer object.
-    @param visible: Whether to make the layer mask visible.
+    """Set the visibility of a layer's mask.
+
+    Args:
+        layer: ArtLayer object.
+        visible: Whether to make the layer mask visible.
     """
     if not layer:
-        layer = app.activeDocument.activeLayer
+        layer = APP.activeDocument.activeLayer
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
     ref1 = ActionReference()
@@ -102,29 +114,32 @@ def set_layer_mask(
     desc1.putReference(sID("target"), ref1)
     desc2.putBoolean(cID("UsrM"), visible)
     desc1.putObject(cID("T   "), cID("Lyr "), desc2)
-    app.executeAction(cID("setd"), desc1, NO_DIALOG)
+    APP.executeAction(cID("setd"), desc1, NO_DIALOG)
 
 
 def enable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Enables a given layer's mask.
-    @param layer: ArtLayer object.
+    """Enables a given layer's mask.
+
+    Args:
+        layer: ArtLayer object.
     """
     set_layer_mask(layer, True)
 
 
 def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Disables a given layer's mask.
-    @param layer: ArtLayer object.
+    """Disables a given layer's mask.
+
+    Args:
+        layer: ArtLayer object.
     """
     set_layer_mask(layer, False)
 
 
 def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Applies a given layer's mask.
-    @param layer: ArtLayer or LayerSet object, use active layer if not provided.
+    """Applies a given layer's mask.
+
+    Args:
+        layer: ArtLayer or LayerSet object, use active layer if not provided.
     """
     if layer:
         select_layer(layer)
@@ -133,34 +148,21 @@ def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     ref1.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
     desc1.putReference(sID("target"),  ref1)
     desc1.putBoolean(sID("apply"), True)
-    app.executeaction(sID("delete"), desc1, NO_DIALOG)
-
-
-def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Removes a given layer's mask.
-    @param layer: ArtLayer ore LayerSet object, use active layer if not provided.
-    """
-    if layer:
-        app.activeDocument.activeLayer = layer
-    desc1 = ActionDescriptor()
-    ref1 = ActionReference()
-    ref1.putEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
-    desc1.putReference(sID("target"), ref1)
-    app.executeAction(sID("delete"), desc1, NO_DIALOG)
+    APP.executeAction(sID("delete"), desc1, NO_DIALOG)
 
 
 def set_layer_vector_mask(
     layer: Union[ArtLayer, LayerSet, None] = None,
     visible: bool = False
 ) -> None:
-    """
-    Set the visibility of a layer's vector mask.
-    @param layer: ArtLayer object.
-    @param visible: Whether to make the vector mask visible.
+    """Set the visibility of a layer's vector mask.
+
+    Args:
+        layer: ArtLayer object.
+        visible: Whether to make the vector mask visible.
     """
     if not layer:
-        layer = app.activeDocument.activeLayer
+        layer = APP.activeDocument.activeLayer
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
     ref1 = ActionReference()
@@ -168,20 +170,42 @@ def set_layer_vector_mask(
     desc1.putReference(sID("target"), ref1)
     desc2.putBoolean(sID("vectorMaskEnabled"), visible)
     desc1.putObject(sID("to"), sID("layer"), desc2)
-    app.executeAction(sID("set"), desc1, NO_DIALOG)
+    APP.executeAction(sID("set"), desc1, NO_DIALOG)
 
 
 def enable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Enables a given layer's vector mask.
-    @param layer: ArtLayer object.
+    """Enables a given layer's vector mask.
+
+    Args:
+        layer: ArtLayer object.
     """
     set_layer_vector_mask(layer, True)
 
 
 def disable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
-    """
-    Disables a given layer's vector mask.
-    @param layer: ArtLayer object.
+    """Disables a given layer's vector mask.
+
+    Args:
+        layer: ArtLayer object.
     """
     set_layer_vector_mask(layer, False)
+
+
+"""
+* Removing Masks
+"""
+
+
+def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+    """Removes a given layer's mask.
+
+    Args:
+        layer: ArtLayer ore LayerSet object, use active layer if not provided.
+    """
+    if layer:
+        APP.activeDocument.activeLayer = layer
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref1.putEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
+    desc1.putReference(sID("target"), ref1)
+    APP.executeAction(sID("delete"), desc1, NO_DIALOG)

@@ -2,31 +2,98 @@
 * Helpers: Layer Effects
 """
 # Standard Library Imports
-from typing import Union, Optional
+from typing import Union, Optional, Literal, TypedDict, NotRequired
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
+from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList, SolidColor
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.constants import con
+from src import APP
 from src.helpers.colors import rgb_black, apply_color, get_color, add_color_to_gradient
-from src.enums.photoshop import Stroke
-from src.types.adobe import (
-    LayerEffects,
-    EffectStroke,
-    EffectDropShadow,
-    EffectColorOverlay,
-    EffectGradientOverlay,
-    EffectBevel
-)
+from src.enums.adobe import Stroke
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+
+"""
+* Types
+"""
+
+
+class EffectStroke(TypedDict):
+    """Layer Effect: Stroke"""
+    type: Literal['stroke']
+    weight: NotRequired[int]
+    color: SolidColor
+    opacity: NotRequired[int]
+    style: Literal[
+        'in', 'insetFrame',
+        'out', 'outsetFrame',
+        'center', 'centeredFrame'
+    ]
+
+
+class EffectDropShadow(TypedDict):
+    """Layer Effect: Drop Shadow"""
+    type: Literal['drop-shadow']
+    opacity: NotRequired[Union[float, int]]
+    rotation: NotRequired[Union[float, int]]
+    distance: NotRequired[Union[float, int]]
+    spread: NotRequired[Union[float, int]]
+    size: NotRequired[Union[float, int]]
+    noise: NotRequired[Union[float, int]]
+
+
+class EffectGradientColor(TypedDict):
+    """An individual color within a EffectGradientOverlay."""
+    color: SolidColor
+    location: NotRequired[int]
+    midpoint: NotRequired[int]
+
+
+class EffectGradientOverlay(TypedDict):
+    """Layer Effect: Drop Shadow"""
+    type: Literal['gradient-overlay']
+    size: NotRequired[int]
+    scale: NotRequired[int]
+    rotation: NotRequired[int]
+    opacity: NotRequired[int]
+    colors: list[EffectGradientColor]
+
+
+class EffectColorOverlay(TypedDict):
+    """Layer Effect: Color Overlay"""
+    type: Literal['color-overlay']
+    opacity: NotRequired[Union[float, int]]
+    color: Union[SolidColor, list[int]]
+
+
+class EffectBevel(TypedDict):
+    """Layer Effect: Bevel"""
+    type: Literal['bevel']
+    highlight_opacity: NotRequired[Union[float, int]]
+    highlight_color: NotRequired[Union[SolidColor, list[int]]]
+    shadow_opacity: NotRequired[Union[float, int]]
+    shadow_color: NotRequired[Union[SolidColor, list[int]]]
+    rotation: NotRequired[Union[float, int]]
+    altitude: NotRequired[Union[float, int]]
+    depth: NotRequired[Union[float, int]]
+    size: NotRequired[Union[float, int]]
+    softness: NotRequired[Union[float, int]]
+
+
+# Type: Any layer effect
+LayerEffects = Union[
+    EffectBevel,
+    EffectColorOverlay,
+    EffectDropShadow,
+    EffectGradientOverlay,
+    EffectStroke
+]
 
 
 """
@@ -35,14 +102,15 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]]) -> None:
-    """
-    Sets the fill opacity of a given layer.
-    @param opacity: Fill opacity to set.
-    @param layer: ArtLayer or LayerSet object.
+    """Sets the fill opacity of a given layer.
+
+    Args:
+        opacity: Fill opacity to set.
+        layer: ArtLayer or LayerSet object.
     """
     # Set the active layer
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
 
     # Set the layer's fill opacity
     d = ActionDescriptor()
@@ -52,7 +120,7 @@ def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]])
     d.PutReference(sID("target"),  ref)
     d1.PutUnitDouble(sID("fillOpacity"), sID("percentUnit"), opacity)
     d.PutObject(sID("to"), sID("layer"),  d1)
-    app.ExecuteAction(sID("set"), d, NO_DIALOG)
+    APP.executeAction(sID("set"), d, NO_DIALOG)
 
 
 """
@@ -61,14 +129,15 @@ def set_fill_opacity(opacity: float, layer: Optional[Union[ArtLayer, LayerSet]])
 
 
 def set_layer_fx_visibility(layer: Optional[Union[ArtLayer, LayerSet]] = None, visible: bool = True) -> None:
-    """
-    Shows or hides the layer effects on a given layer.
-    @param layer: ArtLayer or LayerSet, use active if not provided.
-    @param visible: Make visible if True, otherwise hide.
+    """Shows or hides the layer effects on a given layer.
+
+    Args:
+        layer: ArtLayer or LayerSet, use active if not provided.
+        visible: Make visible if True, otherwise hide.
     """
     # Set the active layer
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
 
     # Set the layer's FX visibility
     ref = ActionReference()
@@ -78,60 +147,65 @@ def set_layer_fx_visibility(layer: Optional[Union[ArtLayer, LayerSet]] = None, v
     ref.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
     action_list.putReference(ref)
     desc.putList(sID("target"),  action_list)
-    app.executeAction(sID("show" if visible else "hide"), desc, NO_DIALOG)
+    APP.executeAction(sID("show" if visible else "hide"), desc, NO_DIALOG)
 
 
 def enable_layer_fx(layer: Optional[Union[ArtLayer, LayerSet]] = None) -> None:
-    """
-    Passthrough function for `change_fx_visibility` to enable effects on layer.
-    @param layer: ArtLayer or LayerSet, will use active if not provided.
+    """Utility definition for `change_fx_visibility` to enable effects on layer.
+
+    Args:
+        layer: ArtLayer or LayerSet, will use active if not provided.
     """
     set_layer_fx_visibility(layer, True)
 
 
 def disable_layer_fx(layer: Optional[Union[ArtLayer, LayerSet]] = None) -> None:
-    """
-    Passthrough function for `change_fx_visibility` to disable effects on layer.
-    @param layer: ArtLayer or LayerSet, will use active if not provided.
+    """Utility definition for `change_fx_visibility` to disable effects on layer.
+
+    Args:
+        layer: ArtLayer or LayerSet, will use active if not provided.
     """
     set_layer_fx_visibility(layer, False)
 
 
 def clear_layer_fx(layer: Union[ArtLayer, LayerSet, None]) -> None:
-    """
-    Removes all layer style effects.
-    @param layer: Layer object
+    """Removes all layer style effects.
+
+    Args:
+        layer: Layer object
     """
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
     try:
         desc1600 = ActionDescriptor()
         ref126 = ActionReference()
         ref126.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
         desc1600.putReference(sID("target"), ref126)
-        app.ExecuteAction(sID("disableLayerStyle"), desc1600, NO_DIALOG)
+        APP.executeAction(sID("disableLayerStyle"), desc1600, NO_DIALOG)
     except Exception as e:
         print(e, f'\nLayer "{layer.name}" has no effects!')
 
 
 def rasterize_layer_fx(layer: ArtLayer) -> None:
-    """
-    Rasterizes a layer including its style.
-    @param layer: Layer object
+    """Rasterizes a layer including its style.
+
+    Args:
+        layer: Layer object
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     ref1.putIdentifier(sID("layer"), layer.id)
     desc1.putReference(sID("target"),  ref1)
     desc1.putEnumerated(sID("what"), sID("rasterizeItem"), sID("layerStyle"))
-    app.ExecuteAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
+    APP.executeAction(sID("rasterizeLayer"), desc1, NO_DIALOG)
 
 
 def copy_layer_fx(from_layer: Union[ArtLayer, LayerSet], to_layer: Union[ArtLayer, LayerSet]) -> None:
-    """
-    Copies the layer effects from one layer to another layer.
-    @param from_layer: Layer to copy effects from.
-    @param to_layer: Layer to apply effects to.
+    """Copies the layer effects from one layer to another layer.
+
+    Args:
+        from_layer: Layer to copy effects from.
+        to_layer: Layer to apply effects to.
     """
     # Get layer effects from source layer
     desc_get = ActionDescriptor()
@@ -139,7 +213,7 @@ def copy_layer_fx(from_layer: Union[ArtLayer, LayerSet], to_layer: Union[ArtLaye
     ref_get.putIdentifier(sID("layer"), from_layer.id)
     desc_get.putReference(sID("null"), ref_get)
     desc_get.putEnumerated(sID("class"), sID("class"), sID("layerEffects"))
-    result_desc = app.executeAction(sID("get"), desc_get, NO_DIALOG)
+    result_desc = APP.executeAction(sID("get"), desc_get, NO_DIALOG)
 
     # Apply layer effects to target layer
     desc_set = ActionDescriptor()
@@ -147,7 +221,7 @@ def copy_layer_fx(from_layer: Union[ArtLayer, LayerSet], to_layer: Union[ArtLaye
     ref_set.putIdentifier(sID("layer"), to_layer.id)
     desc_set.putReference(sID("null"), ref_set)
     desc_set.putObject(sID("to"), sID("layerEffects"), result_desc.getObjectValue(sID("layerEffects")))
-    app.executeAction(sID("set"), desc_set, NO_DIALOG)
+    APP.executeAction(sID("set"), desc_set, NO_DIALOG)
 
 
 """
@@ -156,13 +230,14 @@ def copy_layer_fx(from_layer: Union[ArtLayer, LayerSet], to_layer: Union[ArtLaye
 
 
 def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> None:
-    """
-    Apply multiple layer effects to a layer.
-    @param layer: Layer or Layer Set object.
-    @param effects: List of effects to apply.
+    """Apply multiple layer effects to a layer.
+
+    Args:
+        layer: Layer or Layer Set object.
+        effects: List of effects to apply.
     """
     # Set up the main action
-    app.activeDocument.activeLayer = layer
+    APP.activeDocument.activeLayer = layer
     main_action = ActionDescriptor()
     fx_action = ActionDescriptor()
     main_ref = ActionReference()
@@ -185,14 +260,15 @@ def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> N
 
     # Apply all fx actions
     main_action.putObject(sID("to"), sID("layerEffects"), fx_action)
-    app.ExecuteAction(sID("set"), main_action, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("set"), main_action, DialogModes.DisplayNoDialogs)
 
 
 def apply_fx_stroke(action: ActionDescriptor, fx: EffectStroke) -> None:
-    """
-    Adds stroke effect to layer effects action.
-    @param action: Pending layer effects action descriptor.
-    @param fx: Stroke effect properties.
+    """Adds stroke effect to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Stroke effect properties.
     """
     d = ActionDescriptor()
     d.putEnumerated(sID("style"), sID("frameStyle"), Stroke.position(fx.get('style', 'out')))
@@ -206,10 +282,11 @@ def apply_fx_stroke(action: ActionDescriptor, fx: EffectStroke) -> None:
 
 
 def apply_fx_drop_shadow(action: ActionDescriptor, fx: EffectDropShadow) -> None:
-    """
-    Adds drop shadow effect to layer effects action.
-    @param action: Pending layer effects action descriptor.
-    @param fx: Drop Shadow effect properties.
+    """Adds drop shadow effect to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Drop Shadow effect properties.
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
@@ -230,10 +307,11 @@ def apply_fx_drop_shadow(action: ActionDescriptor, fx: EffectDropShadow) -> None
 
 
 def apply_fx_gradient_overlay(action: ActionDescriptor, fx: EffectGradientOverlay) -> None:
-    """
-    Adds gradient effect to layer effects action.
-    @param action: Pending layer effects action descriptor.
-    @param fx: Gradient Overlay effect properties.
+    """Adds gradient effect to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Gradient Overlay effect properties.
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
@@ -278,10 +356,11 @@ def apply_fx_gradient_overlay(action: ActionDescriptor, fx: EffectGradientOverla
 
 
 def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> None:
-    """
-    Adds a solid color overlay to layer effects action.
-    @param action: Pending layer effects action descriptor.
-    @param fx: Color Overlay effect properties.
+    """Adds a solid color overlay to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Color Overlay effect properties.
     """
     d = ActionDescriptor()
     d.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
@@ -291,10 +370,11 @@ def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> 
 
 
 def apply_fx_bevel(action: ActionDescriptor, fx: EffectBevel) -> None:
-    """
-    Adds a bevel to layer effects action.
-    @param action: Pending layer effects action descriptor.
-    @param fx: Bevel effect properties.
+    """Adds a bevel to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Bevel effect properties.
     """
     d1, d2 = ActionDescriptor(), ActionDescriptor()
     d1.PutEnumerated(sID("highlightMode"), sID("blendMode"), sID("screen"))

@@ -1,29 +1,28 @@
 """
-ACTION HELPERS
+* Helpers: Actions
 """
-# Standard Library Imports
-
 # Third Party Imports
 from photoshop.api import (
-    DialogModes, ActionDescriptor, ActionReference
+    DialogModes,
+    ActionDescriptor,
+    ActionReference
 )
 
-
 # Local Imports
-from src.constants import con
+from src import APP
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID = APP.stringIDToTypeID
+cID = APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 def run_action(action_set: str, action: str) -> None:
-    """
-    Runs a Photoshop action.
-    @param action_set: Name of the group the action is in.
-    @param action: Name of the action.
+    """Runs a Photoshop action.
+
+    Args:
+        action_set: Name of the group the action is in.
+        action: Name of the action.
     """
     desc310 = ActionDescriptor()
     ref7 = ActionReference()
@@ -32,4 +31,4 @@ def run_action(action_set: str, action: str) -> None:
     ref7.putName(sID("action"),  action)
     ref7.putName(sID("actionSet"),  action_set)
     desc310.putReference(sID("target"),  ref7)
-    app.ExecuteAction(sID("play"), desc310, NO_DIALOG)
+    APP.ExecuteAction(sID("play"), desc310, NO_DIALOG)
