@@ -62,6 +62,5 @@ changelog_start_rev = '1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
-    "pyproject.toml:version",
-    "src/__version__.py"
+    "pyproject.toml:version"
 ]
