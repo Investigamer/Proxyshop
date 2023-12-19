@@ -1,5 +1,5 @@
 """
-DEV MODE
+* Test Mode App
 """
 # Standard Library Imports
 import os
@@ -11,50 +11,50 @@ from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+from kivy.metrics import dp, sp
 
 # Local Imports
-from src.constants import con
-from src.loader import get_templates, TemplateDetails
+from src import PATH
+from src._loader import TemplateDetails, TemplateCategoryMap
 from src.gui.utils import HoverButton
 
 
 class TestApp(BoxLayout):
-    """
-    Template Tester
-    """
-    Builder.load_file(os.path.join(con.path_kv, "dev.kv"))
+    """Template Tester."""
+    #Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "dev.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.selector = None
+        self._app = App.get_running_app()
+        self.selector = TemplateSelector(self)
 
     def select_template(self):
-        self.selector = TemplateSelector(self)
+        """Select a target template to test."""
         self.selector.open()
-
-    def test_target(self, card_type: str, template: TemplateDetails):
-        self.selector.dismiss()
-        threading.Thread(
-            target=App.get_running_app().test_target,
-            args=(card_type, template), daemon=True
-        ).start()
 
 
 class TemplateSelector(Popup):
-    def __init__(self, test_app: TestApp, **kwargs):
-        self.test_app = test_app
-        self.size_hint = (.8, .8)
-        super().__init__(**kwargs)
+    def __init__(self, root: TestApp, **kwargs):
+        self.test_app = root
+        super().__init__(
+            size_hint=(.8, .8),
+            **kwargs)
+
+        # Templates by type
+        template_map: TemplateCategoryMap = self.test_app._app.templates
+        self.templates = {
+            card_type: templates for category, mapped in template_map.items()
+            for card_type, templates in mapped['map'].items()}
 
         # Add template buttons
-        for card_type, templates in get_templates().items():
+        for card_type, templates in self.templates.items():
             self.ids.content.add_widget(Label(
                 text=card_type.replace("_", " ").title(),
                 size_hint=(1, None),
-                font_size=25,
-                height=45
+                font_size=sp(25),
+                height=dp(45)
             ))
-            for template in templates:
+            for name, template in templates.items():
                 self.ids.content.add_widget(SelectorButton(
                     self.test_app,
                     template=template,
@@ -70,8 +70,12 @@ class SelectorButton(HoverButton):
         self.card_type = card_type
         self.template = template
         self.size_hint = (1, None)
-        self.font_size = 20
-        self.height = 35
+        self.font_size = sp(20)
+        self.height = dp(35)
 
     def on_release(self, **kwargs):
-        self.test_app.test_target(self.card_type, self.template)
+        """Launch app method 'test_target' on release."""
+        threading.Thread(
+            target=self.test_app._app.test_target,
+            args=(self.card_type, self.template), daemon=True
+        ).start()

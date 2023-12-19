@@ -29,8 +29,7 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 # Local Imports
-from src.loader import TemplateDetails
-from src.settings import ConfigManager
+from src._loader import TemplateDetails, ConfigManager
 
 
 """

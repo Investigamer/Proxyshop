@@ -25,7 +25,7 @@ from src.utils.strings import msg_bold
 
 class CreatorPanels(TabbedPanel):
     """Panel tab the 'Creator' tab which renders custom cards."""
-    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
+    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -213,3 +213,12 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
+
+
+class CreatorTab(TabbedPanelItem):
+    """Custom card creator tab."""
+    text = 'Creator'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.add_widget(CreatorPanels())

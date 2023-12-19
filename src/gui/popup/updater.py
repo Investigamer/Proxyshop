@@ -1,35 +1,27 @@
 """
 * GUI Popup: Updater
 """
-# Standard Library Imports
-import os
-from typing import Optional
-
 # Third Party Imports
 import asynckivy as ak
-from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.label import Label
 
 # Local Imports
-from src import CON, PATH
-from src.gui._state import GUI
-from src.utils.download import check_for_updates, update_template
+from src import CON, TEMPLATES
+from src._loader import AppTemplate, check_for_updates
 from src.utils.strings import msg_success, msg_error, msg_italics
-
 
 """
 * GUI Classes
 """
-# TODO: Swap 'TemplateUpdate' dict for AppTemplate object.
 
 
 class UpdatePopup(Popup):
     """Popup modal for updating templates."""
-    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "updater.kv"))
-    updates: dict[str, list[TemplateUpdate]] = {}
+    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "updater.kv"))
+    updates: list[AppTemplate] = []
     loading = True
     categories = {}
     entries = {}
@@ -40,7 +32,7 @@ class UpdatePopup(Popup):
 
     def check_for_updates(self):
         """Runs the check_for_updates core function and fills the update dictionary."""
-        self.updates = check_for_updates()
+        self.updates: list[AppTemplate] = check_for_updates(TEMPLATES)
 
     async def populate_updates(self):
         """Load the list of updates available."""
@@ -54,15 +46,14 @@ class UpdatePopup(Popup):
             self.ids.container.padding = [0, 0, 0, 0]
             self.loading = False
 
-        # Loop through categories
-        for cat, temps in self.updates.items():
+        # Loop through templates
+        for i, t in enumerate(self.updates):
 
-            # Loop through updates within this category
-            for i, temp in enumerate(temps):
-                # Alternate table item color
-                bg_color = "#101010" if bg_color == "#181818" else "#181818"
-                self.entries[temp['id']] = UpdateEntry(self, temp, bg_color)
-                self.ids.container.add_widget(self.entries[temp['id']])
+            # Alternate table item color
+            bg_color = "#101010" if bg_color == "#181818" else "#181818"
+            update_entry = UpdateEntry(self, t, bg_color)
+            self.ids.container.add_widget(update_entry)
+            self.entries[str(t.path_psd)] = update_entry
 
         # Remove loading text
         self.ids.loading_text.text = msg_italics(" No updates found!") if (
@@ -71,49 +62,48 @@ class UpdatePopup(Popup):
 
 
 class UpdateEntry(BoxLayout):
-    def __init__(self, parent: Popup, temp: dict, bg_color: str, **kwargs):
-        plugin = f" [size=18]({temp['plugin']})[/size]" if temp.get('plugin') else ""
+    def __init__(self, parent: UpdatePopup, template: AppTemplate, bg_color: str, **kwargs):
         self.bg_color = bg_color
-        self.name = f"{temp['type']} - {temp['name']}{plugin}"
-        self.status = msg_success(temp['version'])
-        self.data: TemplateUpdate = temp
+        self.name = template.name
+        self.status = msg_success(template.update_version)
+        self.template: AppTemplate = template
         self.root = parent
         super().__init__(**kwargs)
 
-    @property
-    def template_row(self) -> Optional[BoxLayout]:
-        if rows_type := GUI.template_row.get(self.data['type']):
-            if isinstance(rows_type, dict) and rows_type.get(self.data['name_base']):
-                return rows_type.get(self.data['name_base'])
-        return
-
     async def download_update(self, download: BoxLayout) -> None:
-        self.progress = UpdateProgress(self.data['size'])
+        """Initiates a template update download.
+
+        Args:
+            download: Layout object containing the download progress bar or status.
+        """
+        self.progress = UpdateProgress(self.template.update_size)
         download.clear_widgets()
         download.add_widget(self.progress)
         result = await ak.run_in_thread(
-            lambda: update_template(
-                self.data,
+            lambda: self.template.update_template(
                 self.progress.update_progress),
-            daemon=True
-        )
+            daemon=True)
         await ak.sleep(.5)
+
+        # Success
         if result:
-            self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
-            if self.template_row:
-                self.template_row.parent.reload_template_rows()
-        else:
-            download.clear_widgets()
-            download.add_widget(Label(text=msg_error("FAILED"), markup=True))
+            return await self.mark_updated()
+
+        # Failed
+        download.clear_widgets()
+        download.add_widget(Label(text=msg_error("FAILED"), markup=True))
 
     async def mark_updated(self):
-        self.root.ids.container.remove_widget(self.root.entries[self.data['id']])
-        CON.versions[self.data['id']] = self.data['version']
-        CON.update_version_tracker()
+        """Update template version, remove pending update, and remove the template row."""
 
-    def update_progress(self, tran: int, total: int) -> None:
-        progress = int((tran/total)*100)
-        self.progress.value = progress
+        # Update version tracker and reset update data
+        CON.versions[self.template.google_drive_id] = self.template.update_version
+        CON.update_version_tracker()
+        self.template._update = {}
+
+        # Remove this widget
+        self.root.ids.container.remove_widget(self.root.entries[str(self.template.path_psd)])
+        del self.root.entries[str(self.template.path_psd)]
 
 
 class UpdateProgress(ProgressBar):
@@ -123,4 +113,10 @@ class UpdateProgress(ProgressBar):
         self.current = 0
 
     def update_progress(self, tran: int, total: int) -> None:
+        """Update the download progress bar via callback.
+
+        Args:
+            tran: Bytes transferred so far.
+            total: Total bytes to transfer.
+        """
         self.value = int((tran / total) * 100)

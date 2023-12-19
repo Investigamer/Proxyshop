@@ -14,10 +14,11 @@ from photoshop.api._document import Document
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.tabbedpanel import TabbedPanelItem
 from kivy.app import App
 
 # Local Imports
-from src import APP, CON, PATH
+from src import APP, PATH
 from src.utils.properties import auto_prop_cached
 from src.utils.image import downscale_image
 from src.utils.exceptions import get_photoshop_error_message
@@ -25,7 +26,7 @@ from src.helpers import import_art, reset_document, save_document_jpeg, close_do
 
 
 class ToolsLayout(BoxLayout):
-    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "tools.kv"))
+    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "tools.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -178,3 +179,12 @@ class ToolsLayout(BoxLayout):
 
         # Select all images in folder not prepended with !
         return [Path(path, f) for f in all_files if f.endswith(ext)]
+
+
+class ToolsTab(TabbedPanelItem):
+    """Utility tools tab."""
+    text = 'Tools'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.add_widget(ToolsLayout())
