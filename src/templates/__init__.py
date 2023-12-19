@@ -1,5 +1,5 @@
 """
-TEMPLATES MODULE
+* Templates Modules
 """
 from src.templates._core import *
 from src.templates._cosmetic import *
