@@ -2,7 +2,7 @@
 * GUI Module
 """
 # Local Imports
-from ._state import get_main_app, GUI
+from ._state import GlobalAccess, GUI
 
 # Export objects
-__all__ = ['get_main_app', 'GUI']
+__all__ = ['GlobalAccess', 'GUI']

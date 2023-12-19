@@ -30,7 +30,7 @@ from kivy.uix.widget import Widget
 
 # Local Imports
 from src._loader import TemplateDetails, ConfigManager
-
+from src.gui._state import GlobalAccess
 
 """
 AESTHETIC CLASSES
@@ -181,7 +181,7 @@ SETTINGS POPUP
 """
 
 
-class SettingsPopup(ModalView):
+class SettingsPopup(ModalView, GlobalAccess):
     """Popup menu for changing app or template settings."""
 
     """

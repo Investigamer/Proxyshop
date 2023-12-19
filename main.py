@@ -4,12 +4,14 @@
 # Standard Library Imports
 import os
 import sys
+from pprint import pprint
+from traceback import format_exception
 
 # Third Party Imports
 from kivy.resources import resource_add_path
 
 # Local Imports
-from src.gui._state import register_kv_classes, load_kv_files, load_kv_config
+from src.gui._state import register_kv_classes, load_kv_config
 from src.gui.app import ProxyshopGUIApp
 
 
@@ -23,5 +25,21 @@ if __name__ == '__main__':
     # Load KV files
     load_kv_config()
     register_kv_classes()
-    load_kv_files()
-    ProxyshopGUIApp().run()
+    try:
+        from src import (
+            APP, CFG, CON, CONSOLE, ENV,
+            PLUGINS, TEMPLATES, TEMPLATE_MAP, TEMPLATE_DEFAULTS
+        )
+        ProxyshopGUIApp(
+            app=APP,
+            con=CON,
+            cfg=CFG,
+            env=ENV,
+            console=CONSOLE,
+            plugins=PLUGINS,
+            templates=TEMPLATES,
+            template_map=TEMPLATE_MAP,
+            templates_default=TEMPLATE_DEFAULTS,
+        ).run()
+    except Exception as e:
+        pprint(format_exception(e))

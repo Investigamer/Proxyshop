@@ -6,7 +6,6 @@ import os
 import threading
 
 # Third Party Imports
-from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
@@ -14,18 +13,18 @@ from kivy.uix.label import Label
 from kivy.metrics import dp, sp
 
 # Local Imports
-from src import PATH
+from src._state import PATH
 from src._loader import TemplateDetails, TemplateCategoryMap
+from src.gui._state import GlobalAccess
 from src.gui.utils import HoverButton
 
 
-class TestApp(BoxLayout):
+class TestApp(BoxLayout, GlobalAccess):
     """Template Tester."""
-    #Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "dev.kv"))
+    #Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "test.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._app = App.get_running_app()
         self.selector = TemplateSelector(self)
 
     def select_template(self):
@@ -33,7 +32,7 @@ class TestApp(BoxLayout):
         self.selector.open()
 
 
-class TemplateSelector(Popup):
+class TemplateSelector(Popup, GlobalAccess):
     def __init__(self, root: TestApp, **kwargs):
         self.test_app = root
         super().__init__(
@@ -41,7 +40,7 @@ class TemplateSelector(Popup):
             **kwargs)
 
         # Templates by type
-        template_map: TemplateCategoryMap = self.test_app._app.templates
+        template_map: TemplateCategoryMap = self.main.templates
         self.templates = {
             card_type: templates for category, mapped in template_map.items()
             for card_type, templates in mapped['map'].items()}
@@ -63,7 +62,7 @@ class TemplateSelector(Popup):
                 ))
 
 
-class SelectorButton(HoverButton):
+class SelectorButton(HoverButton, GlobalAccess):
     def __init__(self, root: TestApp, template: TemplateDetails, card_type: str, **kwargs):
         super().__init__(**kwargs)
         self.test_app = root
@@ -76,6 +75,6 @@ class SelectorButton(HoverButton):
     def on_release(self, **kwargs):
         """Launch app method 'test_target' on release."""
         threading.Thread(
-            target=self.test_app._app.test_target,
+            target=self.main.test_target,
             args=(self.card_type, self.template), daemon=True
         ).start()

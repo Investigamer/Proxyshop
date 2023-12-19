@@ -3,9 +3,8 @@
 """
 # Standard Library Imports
 import os
-from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 from threading import Event
 from concurrent.futures import ThreadPoolExecutor as Pool, as_completed
 
@@ -14,24 +13,18 @@ from photoshop.api._document import Document
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.tabbedpanel import TabbedPanelItem
-from kivy.app import App
 
 # Local Imports
-from src import APP, PATH
+from src._state import PATH
+from src.gui._state import GlobalAccess
 from src.utils.properties import auto_prop_cached
 from src.utils.image import downscale_image
 from src.utils.exceptions import get_photoshop_error_message
 from src.helpers import import_art, reset_document, save_document_jpeg, close_document
 
 
-class ToolsLayout(BoxLayout):
-    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "tools.kv"))
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._app.toggle_buttons.extend(
-            self.toggle_buttons)
+class ToolsPanel(BoxLayout, GlobalAccess):
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "tools.kv"))
 
     class PSD:
         """PSD tool paths."""
@@ -47,9 +40,9 @@ class ToolsLayout(BoxLayout):
         Returns:
             The result of the wrapped function.
         """
-        def wrapper(self: 'ToolsLayout', *args):
-            while check := APP.refresh_app():
-                if not self._app.console.await_choice(
+        def wrapper(self: 'ToolsPanel', *args):
+            while check := self.app.refresh_app():
+                if not self.console.await_choice(
                     thr=Event(),
                     msg=get_photoshop_error_message(check),
                     end="Hit Continue to try again, or Cancel to end the operation.\n"
@@ -58,17 +51,12 @@ class ToolsLayout(BoxLayout):
                     return
 
             # Reset
-            self._app.disable_buttons()
-            self._app.console.clear()
+            self.main.disable_buttons()
+            self.console.clear()
             result = func(self, *args)
-            self._app.enable_buttons()
+            self.main.enable_buttons()
             return result
         return wrapper
-
-    @cached_property
-    def _app(self) -> Any:
-        """Main application object."""
-        return App.get_running_app()
 
     @process_wrapper
     def render_showcases(self, target: bool = False) -> None:
@@ -83,7 +71,7 @@ class ToolsLayout(BoxLayout):
         path.mkdir(mode=777, parents=True, exist_ok=True)
 
         # Targeted or all images?
-        images = self._app.select_art() if target else self.get_images(PATH.OUT)
+        images = self.main.select_art() if target else self.get_images(PATH.OUT)
 
         # No files provided
         if not images and target:
@@ -91,12 +79,12 @@ class ToolsLayout(BoxLayout):
             return
         if not images:
             # No files in 'out' folder
-            self._app.console.update("No card images found!")
+            self.console.update("No card images found!")
             return
 
         # Open the showcase tool
-        APP.load(str(self.PSD.Showcase))
-        docref: Document = APP.activeDocument
+        self.app.load(str(self.PSD.Showcase))
+        docref: Document = self.app.activeDocument
 
         # Open each image and save with border crop
         for img in images:
@@ -109,7 +97,7 @@ class ToolsLayout(BoxLayout):
     def compress_renders(self) -> None:
         """Utility definition for compressing all rendered card images."""
         if not (images := self.get_images(PATH.OUT)):
-            self._app.console.update('No card images found!')
+            self.console.update('No card images found!')
             return
         self.compress_images(images)
 
@@ -117,14 +105,14 @@ class ToolsLayout(BoxLayout):
     def compress_arts(self):
         """Utility definition for compressing all card arts."""
         if not (images := self.get_images(PATH.ART)):
-            self._app.console.update('No art images found!')
+            self.console.update('No art images found!')
             return
         self.compress_images(images)
 
     @process_wrapper
     def compress_target(self):
         """Utility definition for compressing a target selection of images."""
-        if not (images := self._app.select_art()):
+        if not (images := self.main.select_art()):
             return
         self.compress_images(images)
 
@@ -179,12 +167,3 @@ class ToolsLayout(BoxLayout):
 
         # Select all images in folder not prepended with !
         return [Path(path, f) for f in all_files if f.endswith(ext)]
-
-
-class ToolsTab(TabbedPanelItem):
-    """Utility tools tab."""
-    text = 'Tools'
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.add_widget(ToolsLayout())

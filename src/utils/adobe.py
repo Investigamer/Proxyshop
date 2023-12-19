@@ -12,6 +12,7 @@ from photoshop.api._core import Photoshop
 from packaging.version import parse
 
 # Local Imports
+from src._state import AppEnvironment
 from src.utils.properties import auto_prop_cached
 from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 
@@ -20,7 +21,14 @@ from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 """
 
 
-class PhotoshopHandler(Application):
+class ApplicationHandler(Application):
+    """Wrapper for the Photoshop Application class."""
+
+    def __init__(self, env: AppEnvironment):
+        super().__init__(version=env.PS_VERSION)
+
+
+class PhotoshopHandler(ApplicationHandler):
     """Wrapper for a single global Photoshop Application object equipped with soft loading,
     caching mechanisms, environment settings, and more."""
     DIMS_1200 = (3264, 4440)
@@ -40,7 +48,7 @@ class PhotoshopHandler(Application):
         # Use existing Photoshop instance or create new one
         if cls._instance is None:
             try:
-                cls._instance = super().__new__(cls, version=env.PS_VERSION)
+                cls._instance = super().__new__(cls)
             except PS_EXCEPTIONS:
                 cls._instance = super(Photoshop, cls).__new__(cls)
 
@@ -57,7 +65,7 @@ class PhotoshopHandler(Application):
         if not self.is_running():
             try:
                 # Load Photoshop and default preferences
-                super(PhotoshopHandler, self).__init__(version=self.PS_VERSION)
+                super(PhotoshopHandler, self).__init__(env=self._env)
                 self.preferences.rulerUnits = Units.Pixels
                 self.preferences.typeUnits = Units.Points
             except Exception as e:

@@ -327,12 +327,15 @@ class AppPlugin:
         if (self._root / '__init__.py').is_file():
             # Init file in root of the plugin
             return f'plugins.{self._root.stem}'
-        if (self._root / 'src' / '__init__.py').is_file():
-            # Init file in 'src' directory
-            return f'plugins.{self._root.stem}.src'
-        if (self._root / 'src' / 'templates.py').is_file():
-            # 'templates.py' file in root of the plugin
+        if (self._root / 'templates.py').is_file():
+            # Templates.py file in root of the plugin
             return f'plugins.{self._root.stem}.templates'
+        if (self._root / 'py' / '__init__.py').is_file():
+            # Init file in 'py' directory of the plugin
+            return f'plugins.{self._root.stem}.py'
+        if (self._root / 'py' / 'templates.py').is_file():
+            # 'templates.py' file in py directory of the plugin
+            return f'plugins.{self._root.stem}.py.templates'
         raise ModuleNotFoundError(f"Couldn't find a module path for Plugin: '{self.name}'")
 
     @auto_prop_cached
@@ -348,7 +351,7 @@ class AppPlugin:
     @auto_prop_cached
     def path_img(self) -> Path:
         """Path: Path to this plugin's preview image directory."""
-        return Path(self._root, 'config_ini')
+        return Path(self._root, 'img')
 
     @auto_prop_cached
     def path_templates(self) -> Path:
@@ -493,9 +496,10 @@ class AppTemplate:
         plugin: Loaded Proxyshop plugin object representing a given plugin directory from `/plugins/`.
 
     Attributes:
-        plugin (AppPlugin): The `plugin` this template was loaded from, if provided.
         _info (TemplateMetadata): This template's metadata info.
-        _map (TemplateClassMap): Template's display names mapped to classes, mapped to template types.
+        plugin (AppPlugin): The `plugin` this template was loaded from, if provided.
+        map (TemplateTypeMap): Template's types, mapped to names, mapped to details.
+        manifest_map (TemplateClassMap): Template's display names, mapped to classes, mapped to types.
     """
 
     def __init__(
@@ -511,10 +515,11 @@ class AppTemplate:
 
         # Save the template's plugin and class map
         self.plugin: Optional[AppPlugin] = plugin
-        self._map: ManifestTemplateMap = {
+        self.manifest_map: ManifestTemplateMap = {
             name: ({mapped: ['normal']} if isinstance(mapped, str) else {
                 k: ([v] if isinstance(v, str) else v) for k, v in mapped.items()
             }) for name, mapped in data['templates'].items()}
+        self.generate_template_map(self.manifest_map)
 
         # Save the template's metadata
         self._info: TemplateMetadata = data.copy()
@@ -524,16 +529,15 @@ class AppTemplate:
     * Template Mappings
     """
 
-    @auto_prop_cached
-    def map(self) -> TemplateTypeMap:
-        """TemplateTypeMap: The configuration of types mapped to names mapped to a dictionary containing:
+    def generate_template_map(self, _map: ManifestTemplateMap) -> None:
+        """Generates a TemplateTypeMap, the configuration of types mapped to names mapped to details:
             - 'class_name': python class name
             - 'config': ConfigManager object
             - 'object': AppTemplate object
         """
         mapped: TemplateTypeMap = {}
         configs = {}
-        for name, classes in self._map.items():
+        for name, classes in _map.items():
             for class_name, types in classes.items():
                 for t in types:
 
@@ -543,14 +547,15 @@ class AppTemplate:
                             template_class=class_name, template=self)
 
                     # Add to the map
-                    mapped.setdefault(t, {})[name] = {
-                        'name': name,
-                        'class_name': class_name,
-                        'config': configs[class_name],
-                        'object': self}
+                    mapped.setdefault(t, {})
+                    mapped[t][name] = TemplateDetails(
+                        name=name,
+                        class_name=class_name,
+                        config=configs[class_name],
+                        object=self)
 
-        # Return the complete map
-        return mapped
+        # Establish the complete map
+        self.map = mapped
 
     @auto_prop_cached
     def map_config(self) -> dict[str, ConfigManager]:
@@ -688,7 +693,7 @@ class AppTemplate:
     def types_supported(self) -> set[str]:
         """set[str]: A set of all types supported by this template."""
         return {
-            t for class_map in self._map.values()
+            t for class_map in self.manifest_map.values()
             for types in class_map.values()
             for t in types
         }
@@ -696,12 +701,12 @@ class AppTemplate:
     @auto_prop_cached
     def all_names(self) -> set[str]:
         """set[str]: A set of all display names used by this template."""
-        return {name for name in self._map.keys()}
+        return {name for name in self.manifest_map.keys()}
 
     @auto_prop_cached
     def all_classes(self) -> set[str]:
         """set[str]: A set of all python classes used by this template."""
-        return {cls_name for class_map in self._map.values() for cls_name in class_map.keys()}
+        return {cls_name for class_map in self.manifest_map.values() for cls_name in class_map.keys()}
 
     """
     * Template Utils
@@ -733,7 +738,7 @@ class AppTemplate:
         # Use first name on the list and look for types supported for that name
         name = self.all_names[0]
         supported = self.types_supported if len(self.all_names) == 1 else {
-            t for types in self._map[name].values() for t in types}
+            t for types in self.manifest_map[name].values() for t in types}
 
         # When 'normal' type is present, just use the name
         if len(supported) == 1 or 'normal' in supported:
@@ -841,8 +846,8 @@ class AppTemplate:
 
         # Try with type provided, then with just the class name, fallback to "Not Found" image
         path = (root / f'{class_name}[{class_type}]').with_suffix('.jpg')
-        path = path if path.is_dir() else (root / f'{class_name}').with_suffix('.jpg')
-        return path if path.is_dir() else PATH.SRC_IMG_NOTFOUND
+        path = path if path.is_file() else (root / f'{class_name}').with_suffix('.jpg')
+        return path if path.is_file() else PATH.SRC_IMG_NOTFOUND
 
     def get_path_config(self, class_name: str) -> Path:
         """Gets the path to a config definition file for a given template class.
@@ -959,7 +964,7 @@ def get_template_map(templates: list[AppTemplate]) -> dict[str, TemplateCategory
     for template in templates:
         for t, class_map in template.map.items():
             for name, details in class_map.items():
-                cat = layout_map_types[t]
+                cat = str(layout_map_types[t])
 
                 # Ensure name is unique
                 if name in names.get(t, []):
@@ -974,7 +979,7 @@ def get_template_map(templates: list[AppTemplate]) -> dict[str, TemplateCategory
                         name, i = f"{n} ({i})", i + 1
 
                 # Add template to map and tracked names
-                d[cat]['map'][t][name] = details
+                d[cat]['map'].setdefault(t, {})[name] = details
                 if name not in d[cat]['names']:
                     d[cat]['names'].append(name)
                 names.setdefault(t, []).append(name)

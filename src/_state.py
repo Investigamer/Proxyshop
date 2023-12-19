@@ -143,7 +143,7 @@ class AppEnvironment:
         """str: Current app version."""
         if ver := DOTENV.get('VERSION'):
             return ver
-        return get_app_version(Path(__file__).parent.parent.parent / 'pyproject.toml')
+        return get_app_version(PATH.CWD / 'pyproject.toml')
 
     @auto_prop_cached
     def API_GOOGLE(self) -> str:

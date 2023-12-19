@@ -1,16 +1,21 @@
 """
 * GUI Popup: Updater
 """
+# Standard Library Imports
+import os
+
 # Third Party Imports
 import asynckivy as ak
+from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.label import Label
 
 # Local Imports
-from src import CON, TEMPLATES
+from src._state import PATH
 from src._loader import AppTemplate, check_for_updates
+from src.gui._state import GlobalAccess
 from src.utils.strings import msg_success, msg_error, msg_italics
 
 """
@@ -18,9 +23,9 @@ from src.utils.strings import msg_success, msg_error, msg_italics
 """
 
 
-class UpdatePopup(Popup):
+class UpdatePopup(Popup, GlobalAccess):
     """Popup modal for updating templates."""
-    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "updater.kv"))
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "updater.kv"))
     updates: list[AppTemplate] = []
     loading = True
     categories = {}
@@ -32,7 +37,7 @@ class UpdatePopup(Popup):
 
     def check_for_updates(self):
         """Runs the check_for_updates core function and fills the update dictionary."""
-        self.updates: list[AppTemplate] = check_for_updates(TEMPLATES)
+        self.updates: list[AppTemplate] = check_for_updates(self.app.templates)
 
     async def populate_updates(self):
         """Load the list of updates available."""
@@ -97,8 +102,8 @@ class UpdateEntry(BoxLayout):
         """Update template version, remove pending update, and remove the template row."""
 
         # Update version tracker and reset update data
-        CON.versions[self.template.google_drive_id] = self.template.update_version
-        CON.update_version_tracker()
+        self.con.versions[self.template.google_drive_id] = self.template.update_version
+        self.con.update_version_tracker()
         self.template._update = {}
 
         # Remove this widget

@@ -6,26 +6,27 @@ import os
 import time
 import traceback
 from threading import Thread, Event, Lock
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime as dt
 
 # Third Party Imports
-import asynckivy as ak
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.logger import Logger
 
 # Local Imports
 from src._config import AppConfig
 from src._state import AppEnvironment, PATH
-from src.gui.popup.updater import UpdatePopup
+from src.gui._state import get_root_app
 from src.gui.utils import HoverButton
+from src.utils.properties import auto_prop_cached
 
 
 class GUIConsole(BoxLayout):
     """GUI console handler layout."""
-    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "console.kv"))
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "console.kv"))
     max_lines = 250
     running = True
     waiting = False
@@ -46,26 +47,38 @@ class GUIConsole(BoxLayout):
         if not self.env.TEST_MODE:
             self.size_hint = (1, .58)
 
+    @auto_prop_cached
+    def main(self) -> Any:
+        """ProxyshopGUIApp: Get the running application."""
+        return get_root_app()
+
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """list[Button]: Button UI elements toggled when disable_buttons or enable_buttons is called."""
+        return [
+            self.ids.update_btn
+        ]
+
     """
     * Console GUI Objects
     """
 
-    @property
+    @auto_prop_cached
     def output(self) -> 'ConsoleOutput':
         """Label where console output is stored."""
         return self.ids.console_output
 
-    @property
+    @auto_prop_cached
     def continue_btn(self) -> HoverButton:
         """Button that continues to the next render operation."""
         return self.ids.continue_btn
 
-    @property
+    @auto_prop_cached
     def cancel_btn(self) -> HoverButton:
         """Button that cancels the current render operation."""
         return self.ids.cancel_btn
 
-    @property
+    @auto_prop_cached
     def update_btn(self) -> HoverButton:
         """Button that launches the updater popup."""
         return self.ids.update_btn
@@ -348,18 +361,6 @@ class GUIConsole(BoxLayout):
             thr: Thread event to signal the cancellation.
         """
         thr.set()
-
-    """
-    Update Button
-    """
-
-    @staticmethod
-    async def check_for_updates():
-        """Open updater Popup."""
-        Updater = UpdatePopup()
-        Updater.open()
-        await ak.run_in_thread(Updater.check_for_updates, daemon=True)
-        ak.start(Updater.populate_updates())
 
 
 class ConsoleOutput(Label):

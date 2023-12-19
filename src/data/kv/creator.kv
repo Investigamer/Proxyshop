@@ -8,7 +8,8 @@
 #:import ThreeNumInput src.gui.utils.ThreeNumInput
 #:import FourCharInput src.gui.utils.FourCharInput
 
-<CreatorPanels>:
+<CreatorPanel>:
+    id: tab_creator
     do_default_tab: False
     tab_width: dp(120)
     tab_height: dp(30)
@@ -140,7 +141,7 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
             id: render_norm
@@ -276,7 +277,7 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
             id: render_pw
@@ -406,7 +407,7 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
             id: render_saga

@@ -2,47 +2,61 @@
 * GUI Tab: Main Rendering Tab
 """
 # Standard Library Imports
+import os
 from pathlib import Path
 from typing import Union
 
 # Kivy Imports
-from kivy.app import App
+from kivy.lang import Builder
 from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.tabbedpanel import TabbedPanelItem
+from kivy.uix.button import Button
 
 # Local Imports
-from src import CONSOLE, PATH
+from src._loader import TemplateDetails, TemplateCategoryMap
+from src._state import PATH
 from src.enums.mtg import layout_map_category
 from src.gui.popup.settings import SettingsPopup
-from src._loader import TemplateDetails, TemplateCategoryMap
-from src.gui._state import GUI
+from src.gui._state import GUI, GlobalAccess
 from src.gui.utils import (
     DynamicTabPanel,
     DynamicTabItem,
     HoverButton)
 from src.utils.files import remove_config_file
-
+from src.utils.properties import auto_prop_cached
 
 """
 * Template Modules
 """
 
 
-class TemplateModule(DynamicTabPanel):
+class MainPanel(BoxLayout, GlobalAccess):
+    """Main panel to the 'Render Cards' tab."""
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "main.kv"))
+
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        return [
+            self.ids.rend_targ_btn,
+            self.ids.rend_all_btn,
+            self.ids.app_settings_btn
+        ]
+
+
+class TemplateModule(DynamicTabPanel, GlobalAccess):
     """Module that loads template tabs."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._tab_layout.padding = '0dp', '10dp', '0dp', '0dp'
-        tabs = []
+        self.tabs = []
 
         # Create a scroll box with listed templates for each category
         for cat, _ in layout_map_category.items():
 
             # Get the template map for this category
-            templates: TemplateCategoryMap = App.get_running_app().templates[cat]
+            templates: TemplateCategoryMap = self.main.template_map[cat]
 
             # If less than 2 templates exist for this category, skip it
             if len(templates['names']) < 2:
@@ -53,10 +67,10 @@ class TemplateModule(DynamicTabPanel):
             tab.content = self.get_template_container(
                 category=cat,
                 templates=templates)
-            tabs.append(tab)
+            self.tabs.append(tab)
 
         # Only add tabs when all are generated
-        [self.add_widget(t) for t in tabs]
+        [self.add_widget(t) for t in self.tabs]
 
     @staticmethod
     def get_template_container(
@@ -121,12 +135,13 @@ class TemplateList(BoxLayout):
                 t: self.templates['map'][t].get(name) for t in self.types}
 
             # Is template installed?
-            if not all([n['object'].is_installed() for _, n in templates.items() if n]):
+            if not all([n['object'].is_installed for _, n in templates.items() if n]):
                 missing.append(templates)
                 continue
 
             # Add installed template
             widget = TemplateRow(
+                category=self.category,
                 template_map=templates,
                 preview=self.preview)
             self.add_widget(widget)
@@ -136,6 +151,7 @@ class TemplateList(BoxLayout):
         uninstalled = []
         for m in missing:
             row = TemplateRow(
+                category=self.category,
                 template_map=m,
                 preview=self.preview)
             row.disabled = True
@@ -160,13 +176,14 @@ class TemplateList(BoxLayout):
 class TemplateRow(BoxLayout):
     """Row containing template selector and governing buttons."""
 
-    def __init__(self, template_map: dict[str, TemplateDetails], preview: Image, **kwargs):
+    def __init__(self, category: str, template_map: dict[str, TemplateDetails], preview: Image, **kwargs):
         super().__init__(**kwargs)
 
         # Key attributes
         self.image = preview
         self.template_map = template_map
         self.types = list(template_map.keys())
+        self.category = category
 
         # Establish the name and previews
         name, config, previews = '', None, [PATH.SRC_IMG_NOTFOUND] * len(self.types)
@@ -197,10 +214,9 @@ class TemplateRow(BoxLayout):
         self.default_settings_button_check()
 
         # Add to GUI Dict
-        for t in self.types:
-            GUI.template_row[t][self.name] = self
-            GUI.template_btn[t][self.name] = self.ids.toggle_button
-            GUI.template_btn_cfg[t][self.name] = self.ids.settings_button
+        GUI.template_row.setdefault(category, {})[self.name] = self
+        GUI.template_btn.setdefault(category, {})[self.name] = self.ids.toggle_button
+        GUI.template_btn_cfg.setdefault(category, {})[self.name] = self.ids.settings_button
 
     def default_settings_button_check(self) -> None:
         """Checks for a template's config file and enables/disables the reset settings button."""
@@ -216,7 +232,7 @@ class TemplateRow(BoxLayout):
 
     def set_preview_image(self) -> None:
         """Sets the preview image in the parent container to the main preview face of this template."""
-        self.image.controller = self
+        self.image.manager = self
         self.image.source = str(self.preview[0])
         self.preview_face = 0
 
@@ -231,19 +247,11 @@ class TemplateSettingsButton(HoverButton):
         self.parent.default_settings_button_check()
 
 
-class TemplateResetDefaultButton(HoverButton):
+class TemplateResetDefaultButton(HoverButton, GlobalAccess):
     """Deletes the ini config file for a given template (resets its settings to default)."""
 
     async def reset_default(self) -> None:
         """Removes the INI config file containing customized settings for a specific template class."""
         if remove_config_file(self.parent.config.template_path_ini):
-            CONSOLE.update(f"Reset template '{self.parent.name}' to global settings!")
+            self.console.update(f"Reset template '{self.parent.name}' to global settings!")
         self.disabled = True
-
-
-class MainTab(TabbedPanelItem):
-    """Main rendering tab."""
-    text = 'Render Cards'
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)

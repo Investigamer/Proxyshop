@@ -21,34 +21,36 @@ from PIL import Image as PImage
 from photoshop.api._document import Document
 from photoshop.api import SaveOptions, DialogModes
 
-# Load Global Environment
-from src import (
-    APP, CFG, CON, CONSOLE, ENV, PATH,
-    PLUGINS, TEMPLATE_MAP, TEMPLATE_DEFAULTS
-)
-
 # Kivy Imports
+from kivy.lang import Builder
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.uix.button import Button
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.tabbedpanel import TabbedPanel
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+import asynckivy as ak
 
 # Local Imports
+from src._state import AppConstants, AppEnvironment, PATH
+from src._config import AppConfig
 from src.api.hexproof import update_hexproof_cache, get_api_key
 from src.enums.mtg import layout_map_types
-from src.gui.console import GUIConsole
+from src.gui.console import GUIConsole, ConsoleOutput
 from src.gui.popup.settings import SettingsPopup
 from src._loader import (
     AppPlugin,
     TemplateDetails,
     TemplateSelectedMap,
     TemplateCategoryMap,
-    get_template_map_selected)
+    get_template_map_selected,
+    AppTemplate)
 from src.gui._state import GUI
-from src.gui.tabs.main import TemplateRow
+from src.gui.popup.updater import UpdatePopup
+from src.gui.tabs.creator import CreatorPanel
+from src.gui.tabs.main import TemplateRow, MainPanel
+from src.gui.tabs.tools import ToolsPanel
 from src.gui.test import TestApp
 from src.layouts import (
     CardLayout,
@@ -56,7 +58,8 @@ from src.layouts import (
     assign_layout,
     join_dual_card_layouts)
 from src.templates import BaseTemplate
-from src.utils.properties import auto_prop, auto_prop_cached
+from src.utils.adobe import PhotoshopHandler
+from src.utils.properties import auto_prop_cached
 from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
 from src.utils.files import load_data_file
 from src.utils.fonts import check_app_fonts
@@ -67,7 +70,6 @@ from src.utils.strings import (
     msg_warn,
     msg_info, msg_bold)
 
-
 """
 * App Tab Containers
 """
@@ -76,6 +78,20 @@ from src.utils.strings import (
 class AppContainer(BoxLayout):
     """Container for overall app."""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.add_widget(AppTabs())
+
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """list[Button]: Button UI elements toggled when disable_buttons or enable_buttons is called."""
+        return [
+            *self.ids.tab_main.toggle_buttons,
+            *self.ids.tab_creator.toggle_buttons,
+            *self.ids.tab_tools.toggle_buttons,
+            *self.ids.console.toggle_buttons
+        ]
+
 
 class AppTabs(TabbedPanel):
     """Container for both render and creator tabs."""
@@ -83,6 +99,36 @@ class AppTabs(TabbedPanel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._tab_layout.padding = '0dp', '0dp', '0dp', '0dp'
+        self.add_widget(MainTab())
+        self.add_widget(CreatorTab())
+        self.add_widget(ToolsTab())
+
+
+class MainTab(TabbedPanelItem):
+    """Main rendering tab."""
+    text = 'Render Cards'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.content = MainPanel()
+
+
+class CreatorTab(TabbedPanelItem):
+    """Custom card creator tab."""
+    text = 'Creator'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.content = CreatorPanel()
+
+
+class ToolsTab(TabbedPanelItem):
+    """Utility tools tab."""
+    text = 'Tools'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.content = ToolsPanel()
 
 
 """
@@ -92,28 +138,46 @@ class AppTabs(TabbedPanel):
 
 class ProxyshopGUIApp(App):
     """Proxyshop's main Kivy App class that initiates render procedures and manages user settings."""
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "app.kv"))
 
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            app: PhotoshopHandler,
+            con: AppConstants,
+            cfg: AppConfig,
+            env: AppEnvironment,
+            console: GUIConsole,
+            plugins: dict[str, AppPlugin],
+            templates: list[AppTemplate],
+            template_map: dict[str, TemplateCategoryMap],
+            templates_default: dict[str, TemplateDetails],
+            **kwargs
+    ):
+        # Call super
+        super().__init__(**kwargs)
 
         # Data
-        self._plugins = PLUGINS
-        self._templates = TEMPLATE_MAP
-        self._templates_default = TEMPLATE_DEFAULTS
+        self._app = app
+        self._cfg = cfg
+        self._con = con
+        self._env = env
+        self._console = console
+        self._plugins = plugins
+        self._templates = templates
+        self._template_map = template_map
+        self._templates_default = templates_default
         self._templates_selected = {}
         self._current_render = None
         self._result = False
 
-        # Call super
-        super().__init__(**kwargs)
-
     """
-    * App Properties
+    * Kivy Window Properties
     """
 
     @property
     def title(self) -> str:
         """str: App name displayed at the top of the application window."""
-        return f"Proxyshop v{ENV.VERSION}"
+        return f"Proxyshop v{self.env.VERSION}"
 
     @property
     def icon(self) -> str:
@@ -125,10 +189,34 @@ class ProxyshopGUIApp(App):
         """float: Padding for the main app container."""
         return dp(10)
 
+    """
+    * Global Objects
+    """
+
+    @property
+    def app(self) -> PhotoshopHandler:
+        """PhotoshopHandler: Global Photoshop application object."""
+        return self._app
+
+    @property
+    def cfg(self) -> AppConfig:
+        """AppConfig: Global settings object."""
+        return self._cfg
+
+    @property
+    def con(self) -> AppConstants:
+        """AppConstants: Global constants object."""
+        return self._con
+
+    @property
+    def env(self) -> AppEnvironment:
+        """AppEnvironment: Global environment object."""
+        return self._env
+
     @property
     def console(self) -> GUIConsole:
-        """type[console]: Console output object."""
-        return CONSOLE
+        """GUIConsole: Console output object."""
+        return self._console
 
     """
     * Rendering Properties
@@ -144,26 +232,32 @@ class ProxyshopGUIApp(App):
         """list[Path]: Tracks files dragged and dropped onto the app window."""
         return []
 
-    @auto_prop
+    @auto_prop_cached
     def plugins(self) -> dict[str, AppPlugin]:
         """dict[str, AppPlugin]: Tracks all plugins loaded by the app currently."""
         return self._plugins
 
-    @auto_prop
-    def templates(self) -> dict[str, TemplateCategoryMap]:
-        """dict[str, TemplateCategoryMap]: All templates available to the app."""
+    @auto_prop_cached
+    def templates(self) -> list[AppTemplate]:
+        """list[AppTemplate]: List of all templates available to the app."""
         return self._templates
 
-    @auto_prop
+    @auto_prop_cached
+    def template_map(self) -> dict[str, TemplateCategoryMap]:
+        """dict[str, TemplateCategoryMap]: Dictionary of category mapped templates available to the app."""
+        return self._template_map
+
+    @auto_prop_cached
     def templates_selected(self) -> TemplateSelectedMap:
         """TemplateSelectedMap: Tracks the templates currently selected for each type by the user."""
         return self._templates_selected
 
-    @auto_prop
+    @auto_prop_cached
     def templates_default(self) -> TemplateSelectedMap:
         """TemplateSelectedMap: Tracks the default template selections for every template type."""
+        return self._templates_default
 
-    @auto_prop
+    @auto_prop_cached
     def current_render(self) -> BaseTemplate:
         """BaseTemplate: Tracks the current template class being used for rendering."""
         return self._current_render
@@ -192,17 +286,9 @@ class ProxyshopGUIApp(App):
     """
 
     @auto_prop_cached
-    def toggled_buttons(self) -> list[Button]:
+    def toggle_buttons(self) -> list[Button]:
         """list[Button]: UI buttons to toggle when disable_buttons or enable_buttons is called."""
-        buttons = [
-            self.root.ids.test_all,
-            self.root.ids.test_target,
-            self.root.ids.test_all_deep
-        ] if ENV.TEST_MODE else [
-            self.root.ids.rend_all_btn,
-            self.root.ids.rend_targ_btn,
-            self.root.ids.app_settings_btn]
-        return [*buttons, self.console.ids.update_btn]
+        return self.root.toggle_buttons
 
     """
     * Wrappers
@@ -218,13 +304,14 @@ class ProxyshopGUIApp(App):
         Returns:
             The result of the wrapped function.
         """
+
         def wrapper(self, *args):
             with self._render_lock:
-                while check := APP.refresh_app():
+                while check := self.app.refresh_app():
                     if not self.console.await_choice(
-                        thr=Event(),
-                        msg=get_photoshop_error_message(check),
-                        end="Hit Continue to try again, or Cancel to end the operation.\n"
+                            thr=Event(),
+                            msg=get_photoshop_error_message(check),
+                            end="Hit Continue to try again, or Cancel to end the operation.\n"
                     ):
                         # Cancel this operation
                         return
@@ -236,6 +323,7 @@ class ProxyshopGUIApp(App):
                 # Enable buttons / close document on exit
                 self.reset(enable_buttons=True, close_document=True)
                 return result
+
         return wrapper
 
     """
@@ -262,7 +350,7 @@ class ProxyshopGUIApp(App):
         files_webp = [Path(folder, f) for f in all_files if f.endswith('.webp') and not f.startswith('!')]
 
         # Check if Photoshop version supports webp
-        if files_webp and not APP.supports_webp:
+        if files_webp and not self.app.supports_webp:
             self.console.update(msg_warn('Skipped WEBP image, WEBP requires Photoshop ^23.2.0'))
         elif files_webp:
             files.extend(files_webp)
@@ -277,18 +365,18 @@ class ProxyshopGUIApp(App):
         while True:
             try:
                 # Open a file select dialog in Photoshop
-                if files := APP.openDialog():
+                if files := self.app.openDialog():
                     return [Path(f) for f in files]
             except PS_EXCEPTIONS as e:
                 # Photoshop is busy or unresponsive, try again?
                 if not self.console.await_choice(
-                    Event(), get_photoshop_error_message(e),
-                    end="Hit Continue to try again, or Cancel to end the operation.\n"
+                        Event(), get_photoshop_error_message(e),
+                        end="Hit Continue to try again, or Cancel to end the operation.\n"
                 ):
                     # Cancel the operation
                     break
                 # Refresh Photoshop, try again
-                APP.refresh_app()
+                self.app.refresh_app()
         # No files selected
         return []
 
@@ -301,9 +389,9 @@ class ProxyshopGUIApp(App):
         try:
             # Close and set null
             if self.docref and isinstance(self.docref, Document):
-                APP.displayDialogs = DialogModes.DisplayNoDialogs
+                self.app.displayDialogs = DialogModes.DisplayNoDialogs
                 self.docref.close(SaveOptions.DoNotSaveChanges)
-                APP.displayDialogs = DialogModes.DisplayErrorDialogs
+                self.app.displayDialogs = DialogModes.DisplayErrorDialogs
                 self.current_render = None
         except Exception as e:
             # Document wasn't available
@@ -394,14 +482,14 @@ class ProxyshopGUIApp(App):
                         f"for template '{temps[layout]['name']}'!\n"
                     ) + msg_bold("The following cards have been cancelled:")
                     if not self.console.error(
-                        msg=f'{message}{failed_cards}',
-                        end=msg_bold("\nShould I continue with the remaining cards?\n")
+                            msg=f'{message}{failed_cards}',
+                            end=msg_bold("\nShould I continue with the remaining cards?\n")
                     ):
                         return
 
                 # Load constants and config for this template
-                CFG.load(temps[layout]['config'])
-                CON.reload()
+                self.cfg.load(temps[layout]['config'])
+                self.con.reload()
 
                 # Render each card with this PSD and class
                 for c in cards:
@@ -445,7 +533,6 @@ class ProxyshopGUIApp(App):
 
         # Ensure template is installed
         if not template['object'].is_installed:
-
             # Template is not installed
             self.console.update(
                 'Custom card failed!\n'
@@ -455,7 +542,6 @@ class ProxyshopGUIApp(App):
         # Initialize a python class for the template
         loaded_class = template['object'].get_template_class(template['class_name'])
         if not loaded_class:
-
             # Failed to load module or python class
             self.console.update(
                 'Custom card failed!\n'
@@ -476,7 +562,7 @@ class ProxyshopGUIApp(App):
         """
         # Load data file and loop through test case sections
         for card_type, cards in load_data_file(
-            (PATH.SRC_DATA_TESTS / 'template_renders').with_suffix('.toml')
+                (PATH.SRC_DATA_TESTS / 'template_renders').with_suffix('.toml')
         ).items():
 
             # If not a deep test, only use first entry
@@ -484,7 +570,7 @@ class ProxyshopGUIApp(App):
             self.console.update(msg_success(f"\n---- {card_type.upper()} ----"))
 
             # Loop through templates to test
-            for name, template in self.templates[layout_map_types[card_type]]['map'][card_type].items():
+            for name, template in self.template_map[layout_map_types[card_type]]['map'][card_type].items():
                 self.console.update(f"{template['class_name']} ... ", end="")
 
                 # Is this template installed?
@@ -499,8 +585,8 @@ class ProxyshopGUIApp(App):
                     continue
 
                 # Load constants and config for this template
-                CFG.load(template=template['config'])
-                CON.reload()
+                self.cfg.load(config=template['config'])
+                self.con.reload()
 
                 # Loop through cards to test
                 failures: list[tuple[str, str, str]] = []
@@ -594,14 +680,14 @@ class ProxyshopGUIApp(App):
             True if render queue should continue, False if the remaining renders have been cancelled.
         """
         # Notify the user
-        if not ENV.TEST_MODE:
+        if not self.env.TEST_MODE:
             self.console.update(msg_success(f"---- {card.display_name} ----"))
 
         # Reload config and/or constants
         if reload_config:
-            CFG.load(template=template['config'])
+            self.cfg.load(config=template['config'])
         if reload_constants:
-            CON.reload()
+            self.con.reload()
 
         # Track execution time
         start_time = self.timer
@@ -621,7 +707,7 @@ class ProxyshopGUIApp(App):
             result = self.current_render.execute()
 
             # Report this results
-            if result and not ENV.TEST_MODE:
+            if result and not self.env.TEST_MODE:
                 self.console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
             return result
 
@@ -663,8 +749,8 @@ class ProxyshopGUIApp(App):
                     self.templates_selected[t] = obj.template_map[t]
 
             # Enable all other buttons in this template list
-            for cat, button in GUI.template_btn[btn.text].items():
-                if cat != btn.text:
+            for name, button in GUI.template_btn[btn.parent.category].items():
+                if name != btn.text:
                     button.disabled = False
                     button.state = "normal"
 
@@ -689,9 +775,9 @@ class ProxyshopGUIApp(App):
         """
         # Reset current render thread
         if reload_config:
-            CFG.load()
+            self.cfg.load()
         if reload_constants:
-            CON.reload()
+            self.con.reload()
         if close_document:
             self.close_document()
         if enable_buttons:
@@ -703,12 +789,12 @@ class ProxyshopGUIApp(App):
 
     def disable_buttons(self) -> None:
         """Disable buttons while render process running."""
-        for b in self.toggled_buttons:
+        for b in self.toggle_buttons:
             b.disabled = True
 
     def enable_buttons(self) -> None:
         """Enable buttons after render process completes."""
-        for b in self.toggled_buttons:
+        for b in self.toggle_buttons:
             b.disabled = False
 
     """
@@ -751,13 +837,13 @@ class ProxyshopGUIApp(App):
         Returns:
             The root app layout.
         """
-        layout = TestApp() if ENV.TEST_MODE else AppContainer()
-        layout.add_widget(self.console)
+        self._app_layout = TestApp() if self.env.TEST_MODE else AppContainer()
         Window.bind(
             # Bind drop files event
             on_drop_file=self.queue_dropped_file,
             on_drop_end=self.render_dropped_files)
-        return layout
+        self.add_console()
+        return self._app_layout
 
     def queue_dropped_file(self, _window, path: bytes, _x, _y) -> None:
         """Queue a dropped in file for rendering."""
@@ -779,6 +865,7 @@ class ProxyshopGUIApp(App):
 
     def on_start(self) -> None:
         """Fired after build is fired. Run a diagnostic check to see what works."""
+
         self.console.update(msg_success("--- STATUS ---"))
 
         # Check if using latest version
@@ -791,27 +878,27 @@ class ProxyshopGUIApp(App):
         # Update set data if needed
         check, error = update_hexproof_cache()
         if check:
-            CON.load_values()
+            self.con.load_values()
         message = msg_error(error) if error else msg_success(
             'Updated was applied!' if check else 'Using latest data!')
         self.console.update(f"Hexproof API Data ... {message}")
 
         # Check if API keys are valid
-        if not ENV.API_GOOGLE:
-            ENV.API_GOOGLE = get_api_key('proxyshop.google.drive')
-        if not ENV.API_AMAZON:
-            ENV.API_AMAZON = get_api_key('proxyshop.amazon.s3')
+        if not self.env.API_GOOGLE:
+            self.env.API_GOOGLE = get_api_key('proxyshop.google.drive')
+        if not self.env.API_AMAZON:
+            self.env.API_AMAZON = get_api_key('proxyshop.amazon.s3')
         keys_missing = [k for k, v in [
-            ('Google Drive', ENV.API_GOOGLE),
-            ('Amazon S3', ENV.API_AMAZON)
+            ('Google Drive', self.env.API_GOOGLE),
+            ('Amazon S3', self.env.API_AMAZON)
         ] if not v]
-        self.console.update(
-            f"Updater API Keys ... " +
-            msg_warn(f"Keys disabled: {', '.join(keys_missing)}")
-            if keys_missing else msg_success('Keys retrieved!'))
+        message = msg_warn(
+            f"Keys disabled: {', '.join(keys_missing)}"
+        ) if keys_missing else msg_success('Keys retrieved!')
+        self.console.update(f"Updater API Keys ... {message}")
 
         # Check Photoshop status
-        result = APP.refresh_app()
+        result = self.app.refresh_app()
         if isinstance(result, OSError):
             # Photoshop test failed
             self.console.log_exception(result)
@@ -823,7 +910,7 @@ class ProxyshopGUIApp(App):
         self.console.update(f"Photoshop ... {msg_success('Connection established!')}")
 
         # Check for missing or outdated fonts
-        missing, outdated = check_app_fonts(APP, [PATH.FONTS])
+        missing, outdated = check_app_fonts(self.app, [PATH.FONTS])
 
         # Font test passed
         if not missing and not outdated:
@@ -840,24 +927,38 @@ class ProxyshopGUIApp(App):
                 get_bullet_points([f"{f['name']} — {msg_info('New Version')}" for f in outdated.values()]), end="")
         self.console.update()
 
+    def add_console(self) -> None:
+        """Adds the console to the app window. Label gets frozen if loaded beforehand."""
+        output = ConsoleOutput()
+        self._app_layout.add_widget(self.console)
+        self.console.ids.output_container.add_widget(output)
+        self.console.output = output
+
     def on_stop(self) -> None:
         """Called when the app is closed."""
         if self.cancel_render and isinstance(self.cancel_render, Event):
             self.cancel_render.set()
 
     """
-    APP UPDATES
+    * App Updates
     """
 
     @staticmethod
-    def check_app_version() -> bool:
+    async def check_for_updates():
+        """Open updater Popup."""
+        Updater = UpdatePopup()
+        Updater.open()
+        await ak.run_in_thread(Updater.check_for_updates, daemon=True)
+        ak.start(Updater.populate_updates())
+
+    def check_app_version(self) -> bool:
         """Check if app is the latest version.
 
         Returns:
             Return True if up to date, otherwise False.
         """
         with suppress(requests.RequestException, json.JSONDecodeError):
-            current = f"v{ENV.VERSION}"
+            current = f"v{self.env.VERSION}"
             response = requests.get(
                 "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
                 timeout=(3, 3))

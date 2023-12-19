@@ -3,10 +3,10 @@
 """
 # Local Imports
 from .console import TerminalConsole
+from ._config import AppConfig
 from ._loader import get_all_plugins, get_all_templates, get_template_map, get_template_map_defaults
 from ._state import AppConstants, AppEnvironment, PATH
 from src.utils.adobe import PhotoshopHandler
-from settings import AppConfig
 
 """
 * Globally Loaded Objects
@@ -32,9 +32,9 @@ else:
 CONSOLE = Console(cfg=CFG, env=ENV)
 
 # Global plugins and templates
-PLUGINS = get_all_plugins(CON)
-TEMPLATES = get_all_templates(CON, PLUGINS)
-TEMPLATE_MAP = get_template_map(TEMPLATES)
+PLUGINS = get_all_plugins(con=CON, env=ENV)
+TEMPLATES = get_all_templates(con=CON, env=ENV, plugins=PLUGINS)
+TEMPLATE_MAP = get_template_map(templates=TEMPLATES)
 TEMPLATE_DEFAULTS = get_template_map_defaults(TEMPLATE_MAP)
 
 # Export objects

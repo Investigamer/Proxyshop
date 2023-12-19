@@ -1,156 +1,27 @@
-#:import ButtonImage src.gui.utils.ButtonImage
-#:import HoverButton src.gui.utils.HoverButton
-#:import get_font src.gui.utils.get_font
 #:import get_color_from_hex kivy.utils.get_color_from_hex
-#:import Thread threading.Thread
-#:import ak asynckivy
-#:import ScrollEffect kivy.effects.scroll.ScrollEffect
-
 
 <AppContainer>:
     orientation: "vertical"
-    AppTabs:
-        do_default_tab: False
-        tab_width: dp(120)
-        tab_height: dp(30)
-        tab_spacing: 0
-        padding: app.cont_padding
-        canvas:
-            Color:
-                rgba: get_color_from_hex('#2e2e2e')
-            Rectangle:
-                size: self.size
-                pos: self.pos
-        MainTab:
-            spacing: 0
-            BoxLayout:
-                id: container
-                orientation: "vertical"
-                padding: dp(5)
-                spacing: 0
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex("#141414")
-                    Rectangle:
-                        size: container.size
-                        pos: container.pos
-                BoxLayout:
-                    orientation: "horizontal"
-                    size_hint: (1, None)
-                    height: dp(40)
-                    HoverButton:
-                        id: rend_targ_btn
-                        text: "Render Target"
-                        options: ["RENDER TARGET"]
-                        font_size: sp(18)
-                        on_press: Thread(target=app.render_all, args=(True,), daemon=True).start()
-                        background_color: get_color_from_hex("#376aa3")
-                    HoverButton:
-                        id: rend_all_btn
-                        text: "Render All"
-                        options: ["RENDER ALL"]
-                        font_size: sp(18)
-                        on_press: Thread(target=app.render_all, daemon=True).start()
-                        background_color: get_color_from_hex("#376aa3")
-                    HoverButton:
-                        id: app_settings_btn
-                        text: "Global Settings"
-                        options: ["GLOBAL SETTINGS"]
-                        font_size: sp(18)
-                        on_press: ak.start(app.open_app_settings())
-                        background_color: get_color_from_hex("#376aa3")
-                TemplateModule:
-                    pos: (0, 0)
-                    tab_pos: "top_mid"
-                    tab_width: None
-                    tab_height: dp(26)
-                    tab_spacing: 0
-                    do_default_tab: False
-                    size_hint: (1, 2)
-        CreatorTab:
-            text: "Custom Creator"
-        ToolsTab:
-            text: "Tools"
 
-<TemplateTabContainer>:
-    orientation: "horizontal"
-    size_hint: (1, 1)
-    pos: 0,0
-    spacing: 0
-    background_color: get_color_from_hex("#303030")
-    BoxLayout:
-        id: template_view_container
-        size_hint: (1, 1)
-        background_color: get_color_from_hex("#303030")
-    BoxLayout:
-        id: preview_container
-        orientation: "vertical"
-        size_hint: (None, 1)
-        width: 0.735294117*preview_image.height if preview_image.height <=612 else 450
-        background_color: get_color_from_hex("#303030")
-        ButtonImage:
-            source: 'src/img/notfound.jpg'
-            id: preview_image
-            mipmap: True
-            fit_mode: "scale-down"
-            nocache: True
-            on_press: self.manager.toggle_preview_image()
-            canvas:
-                Rectangle:
-                    source: "src/img/overlay.png"
-                    size: preview_image.size
-                    pos: preview_image.pos
-        BoxLayout:
-            size_hint: (1, None)
-            height: preview_container.height-612 if preview_container.height-612 >= 0 else 0
-
-
-<TemplateList>:
-    padding: 0
-    spacing: 0
-    size_hint: (1,None)
-    height: self.minimum_height
-    orientation: 'vertical'
-
-<TemplateView>:
-    bar_width: dp(4)
-    always_overscroll: False
-    do_scroll_x: False
-    size_hint: (1,1)
-    scroll_wheel_distance: 40
-    effect_cls: ScrollEffect
+<AppTabs>:
+    do_default_tab: False
+    tab_width: dp(120)
+    tab_height: dp(30)
+    tab_spacing: 0
+    padding: app.cont_padding
     canvas:
         Color:
-            rgba: get_color_from_hex("#111111")
+            rgba: get_color_from_hex('#2e2e2e')
         Rectangle:
             size: self.size
             pos: self.pos
 
-<TemplateRow>:
-    orientation: "horizontal"
-    size_hint: (1, None)
-    height: dp(35)
-    ToggleButton:
-        id: toggle_button
-        on_press: app.select_template(self)
-        size_hint: (1, 1)
-        halign: "left"
-    TemplateSettingsButton:
-        id: settings_button
-        text: "⚙️"
-        options: []
-        font_name: get_font("seguiemj.ttf")
-        background_color: get_color_from_hex("#598cc5")
-        size_hint: (None, 1)
-        width: dp(40)
-        on_press: ak.start(self.open_settings())
-    TemplateResetDefaultButton:
-        id: reset_default_button
-        text: "🧹️"
-        options: []
-        font_name: get_font("seguiemj.ttf")
-        hover_color: "#ede98a"
-        background_color: get_color_from_hex("#c5c059")
-        size_hint: (None, 1)
-        width: dp(40)
-        on_press: ak.start(self.reset_default())
+<MainTab>:
+    text: "Render Cards"
+    spacing: 0
+
+<CreatorTab>:
+    text: "Custom Creator"
+
+<ToolsTab>:
+    text: "Tools"

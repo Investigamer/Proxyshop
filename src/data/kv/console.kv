@@ -1,4 +1,5 @@
 #:import HoverButton src.gui.utils.HoverButton
+#:import get_font src.gui.utils.get_font
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 #:import ScrollView kivy.uix.scrollview.ScrollView
 #:import webbrowser webbrowser
@@ -15,6 +16,7 @@
             size: root.size
             pos: root.pos
     BoxLayout:
+        id: viewport_container
         padding: dp(10),dp(10),dp(10),dp(10)
         size_hint: 4, 1
         canvas:
@@ -29,22 +31,12 @@
             do_scroll_x: False
             size_hint: 1, 1
             GridLayout:
+                id: output_container
                 cols: 1
                 padding: 0
                 spacing: 0
                 size_hint: (1,None)
                 height: self.minimum_height
-                ConsoleOutput:
-                    id: console_output
-                    padding: (0,0)
-                    size_hint: (1,None)
-                    markup: True
-                    font_size: sp(20)
-                    text_size: (self.width, None)
-                    size: self.texture_size
-                    text_autoupdate: True
-                    halign: "left"
-                    valign: "top"
     ConsoleControls:
         id: console_controls
         orientation: "vertical"
@@ -111,7 +103,7 @@
             height: dp(40)
             options: ["UPDATE"]
             hover_color: "#4a5f8a"
-            on_press: ak.start(console.check_for_updates())
+            on_press: ak.start(console.main.check_for_updates())
             disabled: False
             text: "Update"
             font_size: sp(20)
@@ -120,3 +112,15 @@
             background_color: get_color_from_hex("#283c5e")
         Label:
             text: ""
+
+<ConsoleOutput>:
+    id: console_output
+    padding: (0,0)
+    size_hint: (1,None)
+    markup: True
+    font_size: sp(20)
+    text_size: (self.width, None)
+    size: self.texture_size
+    text_autoupdate: True
+    halign: "left"
+    valign: "top"

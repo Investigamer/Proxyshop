@@ -5,20 +5,23 @@
 from dataclasses import dataclass
 from functools import cache
 import os
+from typing import Any
 
 # Third Party Imports
 from kivy.app import App
 from kivy.config import Config
-from kivy.lang import Builder
 from kivy.factory import Factory
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 
 # Local Imports
-from src._state import PATH
+from src._config import AppConfig
+from src._state import PATH, AppConstants, AppEnvironment
 from src.enums.mtg import layout_map_category
 from src.gui.utils import HoverBehavior
+from src.utils.adobe import PhotoshopHandler
+from src.utils.properties import auto_prop_cached
 
 """
 * Enums
@@ -29,9 +32,10 @@ from src.gui.utils import HoverBehavior
 class KivyStyles:
     """Define the `kv` stylesheet files to loaded at initialization."""
     App = os.path.join(PATH.SRC_DATA_KV, 'app.kv')
+    Main = os.path.join(PATH.SRC_DATA_KV, 'main.kv')
     Console = os.path.join(PATH.SRC_DATA_KV, 'console.kv')
     Creator = os.path.join(PATH.SRC_DATA_KV, 'creator.kv')
-    Dev = os.path.join(PATH.SRC_DATA_KV, 'dev.kv')
+    Test = os.path.join(PATH.SRC_DATA_KV, 'test.kv')
     Tools = os.path.join(PATH.SRC_DATA_KV, 'tools.kv')
     Updater = os.path.join(PATH.SRC_DATA_KV, 'updater.kv')
 
@@ -42,9 +46,44 @@ class KivyStyles:
 
 
 @cache
-def get_main_app():
+def get_root_app():
     """Cache and return the running application object."""
     return App.get_running_app()
+
+
+class GlobalAccess:
+    """Utility class giving Kivy GUI elements access to the main app and its
+    global objects."""
+
+    @auto_prop_cached
+    def main(self) -> Any:
+        """ProxyshopGUIApp: Get the running application."""
+        return get_root_app()
+
+    @property
+    def app(self) -> PhotoshopHandler:
+        """PhotoshopHandler: Global Photoshop application object."""
+        return self.main.app
+
+    @property
+    def cfg(self) -> AppConfig:
+        """AppConfig: Global settings object."""
+        return self.main.cfg
+
+    @property
+    def con(self) -> AppConstants:
+        """AppConstants: Global constants object."""
+        return self.main.con
+
+    @property
+    def env(self) -> AppEnvironment:
+        """AppEnvironment: Global environment object."""
+        return self.main.env
+
+    @property
+    def console(self) -> Any:
+        """GUIConsole: Console output object."""
+        return self.main.console
 
 
 """
@@ -67,20 +106,6 @@ def register_kv_classes():
     Factory.register('HoverBehavior', HoverBehavior)
 
 
-def load_kv_files():
-    """Loads app-wide `kv` files into the Kivy Builder."""
-    kv = [
-        KivyStyles.App,
-        KivyStyles.Console,
-        KivyStyles.Creator,
-        KivyStyles.Dev,
-        KivyStyles.Tools,
-        KivyStyles.Updater
-    ]
-    for k in kv:
-        Builder.load_file(k)
-
-
 """
 * Tracked Elements
 """
@@ -88,10 +113,9 @@ def load_kv_files():
 
 class GUIResources:
     def __init__(self):
-        empty = {k: {} for k in layout_map_category}
-        self.template_row: dict[str, dict[str, BoxLayout]] = empty.copy()
-        self.template_btn: dict[str, dict[str, ToggleButton]] = empty.copy()
-        self.template_btn_cfg: dict[str, dict[str, Button]] = empty.copy()
+        self.template_row: dict[str, dict[str, BoxLayout]] = {k: {} for k in layout_map_category}
+        self.template_btn: dict[str, dict[str, ToggleButton]] = {k: {} for k in layout_map_category}
+        self.template_btn_cfg: dict[str, dict[str, Button]] = {k: {} for k in layout_map_category}
 
 
 GUI = GUIResources()

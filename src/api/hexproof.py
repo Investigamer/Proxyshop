@@ -305,8 +305,9 @@ def update_hexproof_cache() -> tuple[bool, Optional[str]]:
             data = process_data_sets(data)
             dump_data_file(data, PATH.SRC_DATA_HEXPROOF_SET)
             updated = True
-        except (RequestException, ValueError, OSError):
-            return False, "'Unable to update 'Set' data from hexproof.io!'"
+        except (RequestException, ValueError, OSError) as e:
+            print(e)
+            return False, "Unable to update 'Set' data from hexproof.io!"
 
     # Check against current symbol data
     if CON.metadata.get('symbols', {}).get('version', '') != meta.get('symbols', {}).get('version', ''):

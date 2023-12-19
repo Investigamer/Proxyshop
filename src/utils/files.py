@@ -88,6 +88,22 @@ supported_data_types = tuple(data_types.keys())
 """
 
 
+def validate_data_type(path: Path) -> None:
+    """Checks if a data file matches a supported data file type.
+
+    Args:
+        path: Path to the data file.
+
+    Raises:
+        ValueError: If data file type not supported.
+    """
+    # Check if data file is a supported data type
+    if path.suffix.lower() not in supported_data_types:
+        raise ValueError("Data file provided does not match a supported data file type.\n"
+                         f"Types supported: {', '.join(supported_data_types)}\n"
+                         f"Type received: {path.suffix}")
+
+
 def validate_data_file(path: Path) -> None:
     """Checks if a data file exists and is a valid data file type. Raises an exception if validation fails.
 
@@ -101,12 +117,7 @@ def validate_data_file(path: Path) -> None:
     # Check if file exists
     if not path.is_file():
         raise FileNotFoundError(f"Data file does not exist:\n{str(path)}")
-
-    # Check if data file is a supported data type
-    if path.suffix.lower() not in supported_data_types:
-        raise ValueError("Data file provided does not match a supported data file type.\n"
-                         f"Types supported: {', '.join(supported_data_types)}\n"
-                         f"Type received: {path.suffix}")
+    validate_data_type(path)
 
 
 def load_data_file(
@@ -159,7 +170,7 @@ def dump_data_file(
         OSError: If dumping to data file fails.
     """
     # Check if data file is valid
-    validate_data_file(path)
+    validate_data_type(path)
 
     # Pull the parser and insert user config into kwargs
     parser: DataFileType = data_types.get(path.suffix.lower(), {}).copy()
@@ -168,6 +179,7 @@ def dump_data_file(
     # Attempt to dump data
     with suppress(Exception), util_file_lock, open(path, 'w', encoding='utf-8') as f:
         parser['dump'](obj, f, **kwargs)
+        return
     raise OSError(f"Unable to dump data from data file:\n{str(path)}")
 
 

@@ -5,7 +5,6 @@
 import os
 
 # Third Party Imports
-from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -13,8 +12,9 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 
 # Local Imports
-from src import CFG, PATH
+from src._state import PATH
 from src._loader import TemplateCategoryMap, TemplateSelectedMap
+from src.gui._state import GlobalAccess
 from src.utils.properties import auto_prop_cached
 from src.utils.strings import msg_bold
 
@@ -23,27 +23,23 @@ from src.utils.strings import msg_bold
 """
 
 
-class CreatorPanels(TabbedPanel):
+class CreatorPanel(TabbedPanel, GlobalAccess):
     """Panel tab the 'Creator' tab which renders custom cards."""
-    # Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._app = App.get_running_app()
 
         # Establish the tab contents
-        self.creator_normal_layout = CreatorNormalLayout(self, "normal")
-        self.creator_pw_layout = CreatorPlaneswalkerLayout(self, "planeswalker")
-        self.creator_saga_layout = CreatorSagaLayout(self, "saga")
+        self.creator_normal_layout = CreatorNormalLayout("Normal")
+        self.creator_pw_layout = CreatorPlaneswalkerLayout("Planeswalker")
+        self.creator_saga_layout = CreatorSagaLayout("Saga")
 
         # Add the widgets
         self.add_widget(CreatorTabItem(self.creator_normal_layout, text="Normal"))
         self.add_widget(CreatorTabItem(self.creator_pw_layout, text="Planeswalker"))
         self.add_widget(CreatorTabItem(self.creator_saga_layout, text="Saga"))
         self._tab_layout.padding = '0dp', '0dp', '0dp', '0dp'
-
-        # Add this panel's buttons to app toggle buttons collection
-        self._app.toggle_buttons.extend(self.toggle_buttons)
 
     @auto_prop_cached
     def toggle_buttons(self) -> list[Button]:
@@ -55,7 +51,7 @@ class CreatorPanels(TabbedPanel):
         ]
 
 
-class CreatorTabItem(TabbedPanelItem):
+class CreatorTabItem(TabbedPanelItem, GlobalAccess):
     """Represents a single tab in the CreatorPanels tabbed panel."""
 
     def __init__(self, widget, **kwargs):
@@ -63,18 +59,17 @@ class CreatorTabItem(TabbedPanelItem):
         self.add_widget(widget)
 
 
-class CreatorLayout(GridLayout):
+class CreatorLayout(GridLayout, GlobalAccess):
     """Represents the content of a specific 'CreatorTabItem' tab."""
 
-    def __init__(self, app, category: str, **kwargs):
+    def __init__(self, category: str, **kwargs):
 
         # Key attributes
-        self._app = app
         self._category = category
-        self._templates: TemplateCategoryMap = self._app.templates[category]
+        self._templates: TemplateCategoryMap = self.main.template_map[category]
         self._template_names: list[str] = self._templates['names']
         self._types: list[str] = list(self._templates['map'].keys())
-        self._templates_selected: TemplateSelectedMap = self._app.templates_default.copy()
+        self._templates_selected: TemplateSelectedMap = self.main.templates_default.copy()
 
         # Call super
         super().__init__(**kwargs)
@@ -95,14 +90,14 @@ class CreatorLayout(GridLayout):
             else:
                 # Notify the user one face type isn't supported
                 face = 'Front' if 'back' in t else 'Back'
-                self._app.console.update(
+                self.console.update(
                     msg_bold(f"NOTE: Template '{spinner.text}' only supports '{face}' face cards."))
 
     def render(self) -> None:
         """Initiate a custom card render operation."""
         scryfall = self.format_scryfall_data(
             self.get_card_data())
-        self._app.render_custom(self._templates_selected, scryfall)
+        self.main.render_custom(self._templates_selected, scryfall)
 
     """
     * Data Utils
@@ -112,8 +107,7 @@ class CreatorLayout(GridLayout):
         """Extend this method to extract card data from UI form fields."""
         return {}
 
-    @staticmethod
-    def format_card_data(data: dict) -> dict:
+    def format_card_data(self, data: dict) -> dict:
         """Post-process card data for layout validation or other cases.
 
         Args:
@@ -124,7 +118,7 @@ class CreatorLayout(GridLayout):
         """
         # Shared data
         data['object'] = 'card'
-        data['lang'] = CFG.lang
+        data['lang'] = self.cfg.lang
 
         # Is this an alternate language card?
         if data['lang'] != 'en':
@@ -214,11 +208,3 @@ class CreatorSagaLayout(CreatorLayout):
             "color_identity": self.ids.color_identity.text.split()
         }
 
-
-class CreatorTab(TabbedPanelItem):
-    """Custom card creator tab."""
-    text = 'Creator'
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.add_widget(CreatorPanels())
