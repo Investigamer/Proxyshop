@@ -1200,11 +1200,12 @@ class BaseTemplate:
         self.docref.info.urgency = Urgency.High
 
         # Reload the symbol color map
-        check = self.run_tasks(
-            funcs=[ft.symbol_map.load],
-            message="Failed to load the symbol color map!")
-        if not all(check):
-            return check[1]
+        if not ft.symbol_map.is_loaded:
+            check = self.run_tasks(
+                funcs=[ft.symbol_map.load],
+                message="Failed to load the symbol color map!")
+            if not all(check):
+                return check[1]
 
         # Load in artwork and frame it
         check = self.run_tasks(

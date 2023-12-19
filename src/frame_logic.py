@@ -1,13 +1,13 @@
 """
 FRAME LOGIC MODULE
 """
-from functools import cached_property
 # Standard Library Imports
+from functools import cached_property
 from typing import Union, Optional
 
-from src.enums.mtg import Rarity
 # Local Imports
-from src.types.cards import FrameDetails
+from src.cards import FrameDetails
+from src.enums.mtg import Rarity
 from src.enums.layers import LAYERS
 
 

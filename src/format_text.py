@@ -19,7 +19,7 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.constants import con
+from src import APP, CON
 from src.enums.mtg import non_italics_abilities
 from src.helpers.bounds import (
     get_dimensions_no_effects,
@@ -31,25 +31,45 @@ from src.helpers.colors import get_color, apply_color
 from src.helpers.layers import select_layer_bounds
 from src.helpers.position import spread_layers_over_reference
 from src.helpers.text import get_text_scale_factor, set_text_size, set_text_leading, get_font_size
-from src.types.cards import CardTextSymbols, CardTextSymbolIndex
 from src.utils.regex import Reg
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID = APP.stringIDToTypeID
+cID = APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
+
+
+"""
+* Types
+"""
+
+
+# (Start index, end index)
+CardItalicString = tuple[int, int]
+
+# (Start index, list of colors for each character)
+CardSymbolString = tuple[int, list[SolidColor]]
+
+
+"""
+* Classes
+"""
 
 
 class SymbolMapper:
     """Maps symbols to their corresponding colors."""
+    # TODO: Stop using SolidColor objects for better execution time
+    is_loaded = False
 
     def load(self, color_map: dict = None) -> None:
+        """Load SolidColor objects using data from the constants object.
+
+        Args:
+            color_map: Optional color map to use in place of the map defined
+                in the constants object.
         """
-        Load SolidColor objects using data from the constants object.
-        @param color_map: Optional color map to use instead of the default in con.
-        """
-        color_map = color_map or con.mana_colors
+        self.is_loaded = True
+        color_map = color_map or CON.mana_colors
 
         # Primary inner color (black default)
         self.primary = get_color(color_map['primary'])
@@ -85,23 +105,23 @@ class SymbolMapper:
         self.hybrid_color_map_inner['B'] = get_color(color_map['bh_i'])
 
 
-def locate_symbols(input_string: str) -> CardTextSymbols:
-    """
-    Locate symbols in the input string, replace them with the proper characters from the NDPMTG font,
+def locate_symbols(input_string: str) -> tuple[str, list[CardSymbolString]]:
+    """Locate symbols in the input string, replace them with the proper characters from the NDPMTG font,
     and determine the colors those characters need to be.
-    @param input_string: String to analyze for symbols.
-    @return: Dict containing the modified string, and a list of dictionaries containing the location and color
-             of each symbol to format.
+
+    Args:
+        input_string: String to analyze for symbols.
+
+    Returns:
+        Tuple containing the modified string, and a list of dictionaries containing the location and color
+            of each symbol to format.
     """
     # Is there a symbol in this text?
     if '{' not in input_string:
-        return {
-            'input_string': input_string,
-            'symbol_indices': []
-        }
+        return input_string, []
 
     # Starting values
-    symbol_indices: list[CardTextSymbolIndex] = []
+    symbol_indices: list[CardSymbolString] = []
     start = input_string.find('{')
     end = input_string.find('}')
     symbol = ""
@@ -109,27 +129,24 @@ def locate_symbols(input_string: str) -> CardTextSymbols:
         while 0 <= start <= end:
             # Replace the symbol and add its index
             symbol = input_string[start:end+1]
-            input_string = input_string.replace(symbol, con.symbols[symbol], 1)
-            symbol_indices.append({
-                'index': start,
-                'colors': determine_symbol_colors(symbol)
-            })
+            input_string = input_string.replace(symbol, CON.symbols[symbol], 1)
+            symbol_indices.append((start, determine_symbol_colors(symbol)))
             start = input_string.find('{')
             end = input_string.find('}')
     except (KeyError, IndexError):
         raise Exception(f"Encountered a symbol I don't recognize: {symbol}")
-    return {
-        'input_string': input_string,
-        'symbol_indices': symbol_indices
-    }
+    return input_string, symbol_indices
 
 
-def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: int]]:
-    """
-    Locate all instances of italic strings in the input string and record their start and end indices.
-    @param input_string: String to search for italics strings.
-    @param italics_strings: List of italics strings to look for.
-    @return: List of italic string indices (start and end).
+def locate_italics(input_string: str, italics_strings: list) -> list[CardItalicString]:
+    """Locate all instances of italic strings in the input string and record their start and end indices.
+
+    Args:
+        input_string: String to search for italics strings.
+        italics_strings: List of italics strings to look for.
+
+    Returns:
+        List of italic string indices (start and end).
     """
     italics_indices = []
     for italics in italics_strings:
@@ -139,9 +156,8 @@ def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: i
             end = italics.find('}')
             while 0 <= start < end:
                 symbol = italics[start:end + 1]
-                italics = italics.replace(symbol, con.symbols[symbol])
-                start = italics.find('{')
-                end = italics.find('}')
+                italics = italics.replace(symbol, CON.symbols[symbol])
+                start, end = italics.find('{'), italics.find('}')
 
         # Locate Italicized text
         end_index = 0
@@ -150,18 +166,18 @@ def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: i
             if start_index < 0:
                 break
             end_index = start_index + len(italics)
-            italics_indices.append({
-                'start_index': start_index,
-                'end_index': end_index,
-            })
+            italics_indices.append((start_index, end_index))
     return italics_indices
 
 
 def determine_symbol_colors(symbol: str) -> list[SolidColor]:
-    """
-    Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
-    @param symbol: Symbol to determine the colors of.
-    @return: List of SolidColor objects to color the symbol's characters.
+    """Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+
+    Args:
+        symbol: Symbol to determine the colors of.
+
+    Returns:
+        List of SolidColor objects to color the symbol's characters.
     """
     # Special Symbols
     if symbol in ("{E}", "{CHAOS}"):
@@ -209,7 +225,7 @@ def determine_symbol_colors(symbol: str) -> list[SolidColor]:
         ]
 
     # Weird situation?
-    if len(con.symbols[symbol]) == 2:
+    if len(CON.symbols[symbol]) == 2:
         return [symbol_map.colorless, symbol_map.primary]
 
     # Nothing matching found!
@@ -220,23 +236,26 @@ def format_symbol(
     action_list: ActionList,
     symbol_index: int,
     symbol_colors: list[SolidColor],
-    font_size: Union[int, float]
+    font_size: Union[int, float],
+    font: Optional[str] = None
 ) -> None:
+    """Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
+
+    Args:
+        action_list: Action list to append these actions to.
+        symbol_index: Index where the symbol begins in the text layer.
+        symbol_colors: List of SolidColors to color this symbol's characters.
+        font_size: Font size to apply to this symbol's characters.
+        font: Font to use for the symbols.
     """
-    Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
-    @param action_list: Action list to append these actions to.
-    @param symbol_index: Index where the symbol begins in the text layer.
-    @param symbol_colors: List of SolidColors to color this symbol's characters.
-    @param font_size: Font size to apply to this symbol's characters.
-    """
+    font = font or CON.font_mana
     for i, color in enumerate(symbol_colors):
         desc1 = ActionDescriptor()
         desc2 = ActionDescriptor()
         idTxtS = sID("textStyle")
         desc1.putInteger(sID("from"), symbol_index + i)
         desc1.putInteger(sID("to"), symbol_index + i + 1)
-        desc2.putString(sID("fontPostScriptName"), con.font_mana)
-        desc2.putString(sID("fontName"), con.font_mana)
+        desc2.putString(sID("fontPostScriptName"), font)
         desc2.putUnitDouble(sID("size"), sID("pointsUnit"), font_size)
         desc2.putBoolean(sID("autoLeading"), False)
         desc2.putUnitDouble(sID("leading"), sID("pointsUnit"), font_size)
@@ -246,10 +265,13 @@ def format_symbol(
 
 
 def generate_italics(card_text: str) -> list[str]:
-    """
-    Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
-    @param card_text: Text to search for strings that need to be italicised.
-    @return: List of italics strings.
+    """Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
+
+    Args:
+        card_text: Text to search for strings that need to be italicised.
+
+    Returns:
+        List of italics strings.
     """
     italic_text = []
 
@@ -285,10 +307,13 @@ def generate_italics(card_text: str) -> list[str]:
 
 
 def strip_reminder_text(text: str) -> str:
-    """
-    Strip out any reminder text from a given oracle text. Reminder text appears in parentheses.
-    @param text: Text that may contain reminder text.
-    @return: Oracle text with no reminder text.
+    """Strip out any reminder text from a given oracle text. Reminder text appears in parentheses.
+
+    Args:
+        text: Text that may contain reminder text.
+
+    Returns:
+        Oracle text with no reminder text.
     """
     # Skip if there's no reminder text present
     if '(' not in text:
@@ -312,14 +337,17 @@ def align_formatted_text(
     end: int,
     alignment: str = "right"
 ):
-    """
-    Align a selection of formatted text to a certain alignment.
-    Align the quote credit of --Name to the right like on some classic cards.
-    @param action_list: Action list to add this action to
-    @param start: Starting index of the quote string
-    @param end: Ending index of the quote string
-    @param alignment: left, right, or center
-    @return: Returns the existing ActionDescriptor with changes applied
+    """Align a selection of formatted text to a certain alignment. Align the quote credit
+    of --Name to the right like on some classic cards.
+
+    Args:
+        action_list: Action list to add this action to
+        start: Starting index of the quote string
+        end: Ending index of the quote string
+        alignment: left, right, or center
+
+    Returns:
+        Returns the existing ActionDescriptor with changes applied
     """
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
@@ -336,40 +364,46 @@ def align_formatted_text(
 
 
 def align_formatted_text_right(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
+    """Quality of life shorthand to call align_formatted_text with correct alignment.
+
+    Args:
+        action_list: Action list to apply the following action to.
+        start: Starting index of the string to apply this action to.
+        end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "right")
 
 
 def align_formatted_text_left(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
+    """Quality of life shorthand to call align_formatted_text with correct alignment.
+
+    Args:
+        action_list: Action list to apply the following action to.
+        start: Starting index of the string to apply this action to.
+        end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "left")
 
 
 def align_formatted_text_center(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
+    """Quality of life shorthand to call align_formatted_text with correct alignment.
+
+    Args:
+        action_list: Action list to apply the following action to.
+        start: Starting index of the string to apply this action to.
+        end: Ending index of the string to apply this action to.
     """
     align_formatted_text(action_list, start, end, "center")
 
 
 def ensure_visible_reference(reference: ArtLayer) -> bool:
-    """
-    Ensures that a layer used for reference has bounds if it is a text layer.
-    @param reference: Reference layer that might be a TextLayer.
-    @return: True if it was empty previously, False if it was always visible.
+    """Ensures that a layer used for reference has bounds if it is a text layer.
+
+    Args:
+        reference: Reference layer that might be a TextLayer.
+
+    Returns:
+        True if it was empty previously, False if it was always visible.
     """
     if isinstance(reference, LayerSet):
         return False
@@ -381,11 +415,12 @@ def ensure_visible_reference(reference: ArtLayer) -> bool:
 
 
 def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
-    """
-    Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 36 px clearance from a reference layer's left bound.
-    @param layer: The text item layer to scale.
-    @param reference: Reference layer we need to avoid.
+    """Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's left bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
     """
     # Ensure a valid and visible reference layer
     if not reference or reference.bounds == [0, 0, 0, 0]:
@@ -397,7 +432,7 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
 
     # Set starting variables
     font_size = old_size = float(layer.textItem.size) * factor
-    ref_left_bound = reference.bounds[0] - app.scale_by_dpi(30)
+    ref_left_bound = reference.bounds[0] - APP.scale_by_dpi(30)
     layer_right_bound = layer.bounds[2]
     step, half_step = 0.4, 0.2
 
@@ -435,11 +470,12 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
 
 
 def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
-    """
-    Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 36 px clearance from a reference layer's left bound.
-    @param layer: The text item layer to scale.
-    @param reference: Reference layer we need to avoid.
+    """Scales a text layer down (in 0.2 pt increments) until its left bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's right bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
     """
     # Ensure a valid and visible reference layer
     if not reference or reference.bounds == [0, 0, 0, 0]:
@@ -451,7 +487,7 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
 
     # Set starting variables
     font_size = old_size = float(layer.textItem.size) * factor
-    ref_right_bound = reference.bounds[2] + app.scale_by_dpi(30)
+    ref_right_bound = reference.bounds[2] + APP.scale_by_dpi(30)
     ref_left_bound = reference.bounds[0]
     layer_left_bound = layer.bounds[0]
     step, half_step = 0.4, 0.2
@@ -490,9 +526,10 @@ def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
 
 
 def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
-    """
-    Check if the text in a TextLayer exceeds its bounding box.
-    @param layer: ArtLayer with "kind" of TextLayer.
+    """Check if the text in a TextLayer exceeds its bounding box.
+
+    Args:
+        layer: ArtLayer with "kind" of TextLayer.
     """
     if layer.kind != LayerKind.TextLayer:
         return
@@ -516,13 +553,14 @@ def scale_text_to_fit_reference(
     height: bool = True,
     step: float = 0.4
 ) -> None:
-    """
-    Resize a given text layer's font size/leading until it fits inside a reference layer.
-    @param layer: Text layer to scale.
-    @param ref: Reference layer the text should fit inside.
-    @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
-    @param height: Fit according to height if true, otherwise fit according to width.
-    @param step: Amount to step font size down by in each check.
+    """Resize a given text layer's font size/leading until it fits inside a reference layer.
+
+    Args:
+        layer: Text layer to scale.
+        ref: Reference layer the text should fit inside.
+        spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
+        height: Fit according to height if true, otherwise fit according to width.
+        step: Amount to step font size down by in each check.
     """
     # Establish the dimension to use
     dim = 'height' if height else 'width'
@@ -533,7 +571,7 @@ def scale_text_to_fit_reference(
         ref_dim = ref
     elif isinstance(ref, ArtLayer):
         # UReference layer dimension
-        ref_dim = get_layer_dimensions(ref)[dim] - (spacing or app.scale_by_dpi(64))
+        ref_dim = get_layer_dimensions(ref)[dim] - (spacing or APP.scale_by_dpi(64))
     else:
         return
 
@@ -567,10 +605,11 @@ def scale_text_to_fit_reference(
 
 
 def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
-    """
-    Scale multiple text layers until they all can fit within the same given height dimension.
-    @param text_layers: List of TextLayers to check.
-    @param ref_height: Height to fit inside.
+    """Scale multiple text layers until they all can fit within the same given height dimension.
+
+    Args:
+        text_layers: List of TextLayers to check.
+        ref_height: Height to fit inside.
     """
     # Heights
     font_size = text_layers[0].textItem.size * get_text_scale_factor(text_layers[0])
@@ -608,10 +647,11 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
 
 
 def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer) -> None:
-    """
-    Centers a given text layer vertically with respect to the bounding box of a reference layer.
-    @param layer: TextLayer to vertically center.
-    @param reference_layer: Reference layer to center within.
+    """Centers a given text layer vertically with respect to the bounding box of a reference layer.
+
+    Args:
+        layer: TextLayer to vertically center.
+        reference_layer: Reference layer to center within.
     """
     ref_height = get_layer_dimensions(reference_layer)['height']
     lay_height = get_text_layer_dimensions(layer)['height']
@@ -625,20 +665,24 @@ def check_for_text_overlap(
     adj_reference: ArtLayer,
     top_reference: ArtLayer
 ) -> Union[int, float]:
+    """Check if text layer overlaps another layer.
+
+    Args:
+        text_layer: Text layer to check.
+        adj_reference: Box marking where the text is overlapping.
+        top_reference: Box marking where the text is cleared.
+
+    Returns:
+        How much the layer must be moved to compensate.
     """
-    Check if text layer overlaps another layer.
-    @param text_layer: Text layer to check.
-    @param adj_reference: Box marking where the text is overlapping.
-    @param top_reference: Box marking where the text is cleared.
-    @return: How much the layer must be moved to compensate.
-    """
+    docref = APP.activeDocument
     layer_copy = text_layer.duplicate()
     layer_copy.rasterize(RasterizeType.TextContents)
-    app.activeDocument.activeLayer = layer_copy
+    docref.activeLayer = layer_copy
     select_layer_bounds(adj_reference)
-    app.activeDocument.selection.invert()
-    app.activeDocument.selection.clear()
-    app.activeDocument.selection.deselect()
+    docref.selection.invert()
+    docref.selection.clear()
+    docref.selection.deselect()
 
     # Determine how much the rules text overlaps loyalty box
     dif = top_reference.bounds[3] - layer_copy.bounds[3]
@@ -648,17 +692,24 @@ def check_for_text_overlap(
 
 def vertically_nudge_creature_text(
     layer: ArtLayer,
-    reference_layer: ArtLayer,
-    top_reference_layer: ArtLayer
+    adj_reference: ArtLayer,
+    top_reference: ArtLayer
 ) -> int:
-    """
-    Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
+    """Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
     determined by the given reference layers.
+
+    Args:
+        layer: Layer to vertically nudge.
+        adj_reference: Box marking where the text is overlapping.
+        top_reference: Box marking where the text is cleared.
+
+    Returns:
+        How much the layer must be moved to compensate.
     """
     # Is the layer even close?
-    if layer.bounds[2] >= reference_layer.bounds[0]:
+    if layer.bounds[2] >= adj_reference.bounds[0]:
         # does the layer overlap?
-        delta = check_for_text_overlap(layer, reference_layer, top_reference_layer)
+        delta = check_for_text_overlap(layer, adj_reference, top_reference)
         if delta < 0:
             layer.translate(0, delta)
 
@@ -675,8 +726,15 @@ def vertically_nudge_pw_text(
     space: Union[int, float],
     uniform_gap: bool = False
 ) -> None:
-    """
-    Shift or resize planeswalker text to prevent overlap with the loyalty shield.
+    """Shift or resize planeswalker text to prevent overlap with the loyalty shield.
+
+    Args:
+        text_layers:
+        ref:
+        adj_reference: Box marking where the text is overlapping.
+        top_reference: Box marking where the text is cleared.
+        space: Minimum space between planeswalker abilities.
+        uniform_gap: Whether the gap between abilities should be the same between each ability.
     """
     # Return if adjustments weren't provided
     if not adj_reference or not top_reference:
@@ -733,14 +791,15 @@ def vertically_nudge_pw_text(
 
 
 """
-PARAGRAPH FORMATTING
+* Paragraph Formatting
 """
 
 
 def space_after_paragraph(space: Union[int, float]) -> None:
-    """
-    Set the space after paragraph value.
-    @param space: Space after paragraph
+    """Set the space after paragraph value.
+
+    Args:
+        space: Space after paragraph
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -751,7 +810,7 @@ def space_after_paragraph(space: Union[int, float]) -> None:
     deesc2.PutInteger(sID("textOverrideFeatureName"),  808464438)
     deesc2.PutUnitDouble(sID("spaceAfter"), sID("pointsUnit"),  space)
     desc1.PutObject(sID("to"), sID("paragraphStyle"),  deesc2)
-    app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
+    APP.executeAction(sID("set"), desc1, NO_DIALOG)
 
 
 symbol_map = SymbolMapper()
