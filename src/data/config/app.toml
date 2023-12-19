@@ -9,18 +9,18 @@ prefix = "APP"
 [FILES]
 title = "File Settings"
 
-[FILES."Output.Filetype"]
-title = "Output Filetype"
+[FILES."Output.File.Type"]
+title = "Output File Type"
 desc = """File extension to use for rendered images."""
 type = "options"
 default = "jpg"
 options = ["jpg", "png", "psd"]
 
-[FILES."Save.Artist.Name"]
-title = "Save Artist Name"
-desc = """Include artist in rendered file name, e.g. Assassinate (Kev Walker).jpg"""
-type = "bool"
-default = 0
+[FILES."Output.File.Name"]
+title = "Output File Name"
+desc = """Choose how the rendered card images are named. See the README for advanced usage."""
+type = "string"
+default = "#name (#frame<, #suffix>) [#set] {#num}"
 
 [FILES."Overwrite.Duplicate"]
 title = "Overwrite Duplicates"
@@ -102,28 +102,20 @@ desc = """When enabled, fullart and extended templates will fill empty space usi
 type = "bool"
 default = 0
 
+[RENDER."Select.Variation"]
+title = "Select Generative Fill Variation"
+desc = """When enabled, render sequence will pause after 'Generative Fill' is applied and allow you to select a variation."""
+type = "bool"
+default = 0
+
+[RENDER."Feathered.Fill"]
+title = 'Feathered Fill Selections'
+desc = """When enabled, Proxyshop will feather (dramatically smooth) selections made for Content Aware Fill and Generative Fill. This usually improves the quality of fill results, especially on Generative Fill, at the cost of potentially replacing more original pixels at the edge of the art image."""
+type = "bool"
+default = 0
+
 [RENDER."Vertical.Fullart"]
-title = "Always use vertical framing on Fullart Templates"
-desc = """When enabled, Fullart templates will frame all art using the vertical 'fullart' frame, even when horizontal art is provided. """
-type = "bool"
-default = 0
-
-###
-# * System Settings
-###
-
-[SYSTEM]
-title = "System Settings"
-
-[SYSTEM."Refresh.Plugins"]
-title = "Hotload Plugin Templates"
-desc = """Enabling this will cause plugin template code to be re-cached at each call.
-Will add minimal execution time but allows creators to live test code changes."""
-type = "bool"
-default = 0
-
-[SYSTEM."Test.Mode"]
-title = "Testing Mode"
-desc = """Enabling this will change the GUI into a simple testing interface."""
+title = "Force Vertical Framing on Fullart Templates"
+desc = """When enabled, Fullart templates will frame all art using the vertical 'fullart' frame, even when horizontal art is provided. As a result, less area will be Content Aware or Generative Filled on horizontal arts, but the art will be 'zoomed in'."""
 type = "bool"
 default = 0
