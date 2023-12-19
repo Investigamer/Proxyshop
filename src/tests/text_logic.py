@@ -1,20 +1,18 @@
 """
-* TESTING UTIL
-* Card Text Logic
+* Tests: Card Text Logic
 """
 # Standard Library Imports
 from pathlib import Path
 from typing import TypedDict
 
 # Local Imports
-from src.constants import con
-from src.console import console as logr
+from src import CONSOLE as logr, PATH
 from src.utils.files import load_data_file
 from src.format_text import generate_italics
 
 
 """
-TEST CASE TYPES
+* Types
 """
 
 
@@ -26,18 +24,18 @@ class TestCaseTextItalic (TypedDict):
 
 
 """
-FUNCS
+* Test Funcs
 """
 
 
 def test_all_cases() -> bool:
     """Test all Text Logic cases."""
-    logr.info(f"Test Utility: Card Text Logic ({con.cwd})")
+    logr.info(f"Test Utility: Card Text Logic ({PATH.CWD})")
 
     # Load our test cases
     SUCCESS = True
     test_cases: dict[str, TestCaseTextItalic] = load_data_file(
-        Path(con.path_tests, 'text_italic.toml'))
+        Path(PATH.SRC_DATA_TESTS, 'text_italic.toml'))
 
     # Check each test case for success
     for name, case in test_cases.items():

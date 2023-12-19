@@ -1,8 +1,8 @@
 """
-* TESTING UTIL
-* Compression
+* Tests: Compression
 """
 # Standard Library Imports
+from pathlib import Path
 from typing import Optional
 from time import perf_counter
 
@@ -11,21 +11,24 @@ import matplotlib.pyplot as plt
 from PIL.Image import Resampling
 
 # Local Imports
-from src.utils.compression import WordSize, DictionarySize, compress_template
+from src import CONSOLE
+from src.utils.compression import WordSize, DictionarySize, compress_7z
 from src.utils.image import downscale_image
-from src.console import console
 
 """
-TEST FUNCTIONS
+* Test Funcs
 """
 
 
-def test_7z_compression(template: str, plugin: Optional[str] = None):
-    """
-    Test all compression settings for a given template.
-    @param template: Template to test.
-    @param plugin: Plugin containing the template, assume a base template if not provided.
-    @return:
+def test_7z_compression(path: Path) -> dict:
+    """Test all compression settings for a given file and generates a plot of time and compression
+    efficiency.
+
+    Args:
+        path: Path to the file to test compression on.
+
+    Returns:
+        Raw data for compression results plot.
     """
     # Establish known Word and Dictionary sizes
     word_sizes = [
@@ -58,8 +61,10 @@ def test_7z_compression(template: str, plugin: Optional[str] = None):
     for ws in word_sizes:
         for ds in dict_sizes:
             current += 1
-            size, time = compress_template(template, plugin, word_size=ws, dict_size=ds)
-            time = round(time, 3)
+            s = perf_counter()
+            path_out = compress_7z(path, word_size=ws, dict_size=ds)
+            size = path_out.stat().st_size
+            time = round(perf_counter()-s, 3)
             x.append(time)
             y.append(size)
             z.append(f"{ws}/{ds}")
@@ -90,7 +95,7 @@ def test_7z_compression(template: str, plugin: Optional[str] = None):
 
 
 def test_jpeg_compression(
-        path: str,
+        path: Path,
         test_dpi=True,
         test_resample=True,
         test_optimize=True,
@@ -112,7 +117,7 @@ def test_jpeg_compression(
     QUALITY, i = test_quality or [95, 90, 85, 80], 0
 
     # Loop through each required test
-    console.info("=" * 50)
+    CONSOLE.info("=" * 50)
     for _W in WIDTH:
         for _R in RESAMPLE:
             for _Q in QUALITY:
@@ -123,7 +128,7 @@ def test_jpeg_compression(
                     CURRENT = (f"{i}. {'800' if _W < 3264 else '1200'} "
                                f"{'lanczos' if _R == Resampling.LANCZOS else 'bicubic'} "
                                f"{_Q} {'optimize_YES' if _O else 'optimize_NO'}")
-                    console.info(f"TESTING: {CURRENT}")
+                    CONSOLE.info(f"TESTING: {CURRENT}")
                     downscale_image(
                         path=path,
                         name=CURRENT,
@@ -133,9 +138,9 @@ def test_jpeg_compression(
                         max_width=_W)
 
                     # Print the time of execution
-                    console.info(f"TIME COMPLETED: {perf_counter() - s} SECONDS")
-                    console.info("=" * 50)
+                    CONSOLE.info(f"TIME COMPLETED: {perf_counter() - s} SECONDS")
+                    CONSOLE.info("=" * 50)
                     i += 1
 
     # Test completed
-    console.info("ALL TESTS COMPLETED!")
+    CONSOLE.info("ALL TESTS COMPLETED!")

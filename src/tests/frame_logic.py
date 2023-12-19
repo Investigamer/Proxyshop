@@ -1,6 +1,5 @@
 """
-* TESTING UTIL
-* Frame Logic
+* Tests: Frame Logic
 * Credit to Chilli: https://tinyurl.com/chilli-frame-logic-tests
 """
 # Standard Library Imports
@@ -19,11 +18,10 @@ from colorama import Fore, Style
 os.environ['HEADLESS'] = "True"
 
 # Local Imports
-from src.constants import con
+from src import CONSOLE as logr, PATH
 from src.utils.files import load_data_file
-from src.console import console as logr
 from src.layouts import layout_map, CardLayout
-from src.utils.scryfall import get_card_data
+from src.cards import get_card_data
 from src.utils.regex import Reg
 
 
@@ -40,14 +38,17 @@ FrameData = list[str, str, str, str, bool, bool]
 
 def get_frame_logic_cases() -> dict[str, dict[str, FrameData]]:
     """Return frame logic test cases from TOML data file."""
-    return load_data_file(Path(con.path_tests, 'frame_data.toml'))
+    return load_data_file(Path(PATH.SRC_DATA_TESTS, 'frame_data.toml'))
 
 
 def format_result(layout: CardLayout) -> FrameData:
-    """
-    Format test result as stringified data.
-    @param layout: Test result card layout data.
-    @return: Stringified frame logic test result data.
+    """Format test result as stringified data.
+
+    Args:
+        layout: Test result card layout data.
+
+    Returns:
+        Stringified frame logic test result data.
     """
     return [
         # String name for frame layout
@@ -68,11 +69,14 @@ def format_result(layout: CardLayout) -> FrameData:
 
 
 def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, FrameData, FrameData]]:
-    """
-    Test frame logic for a target test case.
-    @param card_name: Card name for test case.
-    @param card_data: Card data for test case.
-    @return: Tuple containing (card name, actual data, correct data) if the test failed, otherwise None.
+    """Test frame logic for a target test case.
+
+    Args:
+        card_name: Card name for test case.
+        card_data: Card data for test case.
+
+    Returns:
+        Tuple containing (card name, actual data, correct data) if the test failed, otherwise None.
     """
     try:
         # Check if a set code was provided
@@ -82,7 +86,13 @@ def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, Frame
             card_name = card_name.replace(f'[{set_code}]', '').strip()
 
         # Pull Scryfall data
-        scryfall = get_card_data(card_name, set_code)
+        scryfall = get_card_data({
+            'name': card_name,
+            'set': set_code,
+            'number': None,
+            'creator': None,
+            'file': '',
+            'artist': None})
     except Exception as e:
         # Exception occurred during Scryfall lookup
         return logr.failed(f"Scryfall error occurred at card: '{card_name}'", exc_info=e)
@@ -108,10 +118,13 @@ def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, Frame
 
 
 def test_target_case(cards: dict[str, FrameData]) -> None:
-    """
-    Test a known Frame Logic test case.
-    @param cards: Individual card frame cases to test.
-    @return: True if tests succeeded, otherwise False.
+    """Test a known Frame Logic test case.
+
+    Args:
+        cards: Individual card frame cases to test.
+
+    Returns:
+        True if tests succeeded, otherwise False.
     """
     # Submit tests to a pool
     with Pool(max_workers=cpu_count()) as executor:
