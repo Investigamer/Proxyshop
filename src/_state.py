@@ -114,6 +114,7 @@ class PATH(DefinedPaths):
     LOGS_SCAN = (LOGS / 'scan').with_suffix('.jpg')
     LOGS_ERROR = (LOGS / 'error').with_suffix('.txt')
     LOGS_FAILED = (LOGS / 'failed').with_suffix('.txt')
+    LOGS_COOKIES = (LOGS / 'cookies').with_suffix('.json')
 
     # Generated user data files
     SRC_DATA_USER = SRC_DATA / 'user.yml'

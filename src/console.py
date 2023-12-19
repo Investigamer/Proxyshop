@@ -5,18 +5,15 @@
 import logging
 import os
 import time
-import traceback
-from pathlib import Path
 from threading import Lock, Event, Thread
 from datetime import datetime as dt
 from functools import cached_property
 from typing import Optional, Type
 
 # Local Imports
-from src.settings import cfg
-from src.constants import con
-from src.utils.env import ENV
-from src.utils.objects import Singleton
+from src._config import AppConfig
+from src._state import AppEnvironment, PATH
+from src.utils.properties import Singleton
 from src.utils.strings import StrEnum
 
 
@@ -88,7 +85,17 @@ class TerminalConsole:
     running = True
     waiting = False
 
-    def __init__(self, log_format: Optional[str] = None, date_format: Optional[str] = None):
+    def __init__(
+        self,
+        cfg: AppConfig,
+        env: AppEnvironment,
+        log_format: Optional[str] = None,
+        date_format: Optional[str] = None
+    ):
+        # Establish global objects
+        self.cfg: AppConfig = cfg
+        self.env: AppEnvironment = env
+
         # Establish logging format
         self._log_format = log_format or self._default_log_format
         self._date_format = date_format or self._default_date_format
@@ -102,20 +109,27 @@ class TerminalConsole:
         """Logger interface handling console output."""
         console_logger = logging.getLogger('console')
         console_logger.setLevel(logging.DEBUG)
-        console_logger.addHandler(self.log_handler)
+        console_logger.addHandler(self._log_stream_handler)
         return console_logger
 
     @cached_property
-    def log_formatter(self) -> LogFormatter:
+    def _log_formatter(self) -> LogFormatter:
         """Logging Formatter interface handling color formatting in console output."""
         return LogFormatter(self._log_format, self._date_format)
 
     @cached_property
-    def log_handler(self) -> logging.Handler:
+    def _log_stream_handler(self) -> logging.StreamHandler:
         """Logging stream handler."""
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)
-        handler.setFormatter(self.log_formatter)
+        handler.setFormatter(self._log_formatter)
+        return handler
+
+    @cached_property
+    def _log_file_handler(self) -> logging.FileHandler:
+        """Logging file handler."""
+        handler = logging.FileHandler(PATH.LOGS_ERROR)
+        handler.setLevel(logging.DEBUG)
         return handler
 
     @property
@@ -163,55 +177,42 @@ class TerminalConsole:
 
     @property
     def message_cancel(self) -> str:
-        """
-        Boilerplate message for canceling the render process.
-        """
+        """Boilerplate message for canceling the render process."""
         return "Understood! Canceling render operation.\n"
 
     @property
     def message_waiting(self) -> str:
-        """
-        Boilerplate message for awaiting a user response.
-        """
+        """Boilerplate message for awaiting a user response."""
         return "Manual editing enabled!\nClick continue to proceed..."
 
     @property
     def message_skipping(self):
-        """
-        Boilerplate message for skipping a render process!
-        """
+        """Boilerplate message for skipping a render process."""
         return "Skipping this card!"
 
     @property
     def time(self) -> str:
-        """
-        Current date and time in human-readable format.
-        """
+        """Current date and time in human-readable format."""
         return dt.now().strftime(DateFormats.DATE_TIME)
 
     """
     Utility Methods
     """
 
-    def log_exception(self, error: Exception, log_file: str = "error.txt") -> None:
-        """
-        Log python exception.
-        @param error: Exception object to log.
-        @param log_file: Text file to log the exception to.
-        """
-        # Is this a proper Exception object?
-        if not hasattr(error, '__traceback__'):
-            return
+    def log_exception(self, error: Exception, *_) -> None:
+        """Log python exception.
 
-        # Print the error for dev testing
-        self.logger.exception(error)
-
-        # Add to log file
-        with open(Path(con.path_logs, log_file), "a", encoding="utf-8") as log:
-            log.write("============================================================================\n")
-            log.write(f"> {self.time}\n")
-            log.write("============================================================================\n")
-            traceback.print_exception(error, file=log)
+        Args:
+            error: Exception object to log.
+        """
+        div_main = "=" * 100
+        self.logger.removeHandler(self._log_stream_handler)
+        self.logger.exception(
+            f'The following exception occurred:\n'
+            f'{div_main}',
+            exc_info=error)
+        self.critical(div_main)
+        self.logger.addHandler(self._log_stream_handler)
 
     @staticmethod
     def clear() -> None:
@@ -255,16 +256,16 @@ class TerminalConsole:
         @param msg: Message to add to the console output.
         @param exception: Exception to log in /logs/error.txt.
         """
-        with open(Path(con.path_logs, "failed.txt"), "a", encoding="utf-8") as log:
+        with open(PATH.LOGS_FAILED, 'a', encoding='utf-8') as log:
             log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
         return self.error(thr=thr, msg=msg, exception=exception)
 
     def error(
         self,
         thr: Optional[Event] = None,
-        msg: str = "Encountered a general error!",
+        msg: str = 'Encountered a general error!',
         exception: Optional[Exception] = None,
-        end: str = " Continue to next card?\n"
+        end: str = ' Continue to next card?\n'
     ) -> bool:
         """
         Display error, wait for user to cancel or continue.
@@ -281,11 +282,11 @@ class TerminalConsole:
             self.log_exception(exception)
 
         # Skip the prompts for Dev Mode
-        if cfg.test_mode:
+        if self.env.TEST_MODE:
             return False
 
         # Notify the user, then wait for a continue signal if needed
-        if cfg.skip_failed:
+        if self.cfg.skip_failed:
             self.update(f"{msg}\n{self.message_skipping}")
             return True
         # Previous error already handled
@@ -402,12 +403,3 @@ class TerminalConsole:
         @param thr: Thread event to signal the cancellation.
         """
         thr.set()
-
-
-# Conditionally import the GUI console
-if not ENV.HEADLESS:
-    from src.gui.console import GUIConsole as Console
-else:
-    Console = TerminalConsole
-
-console = Console()
