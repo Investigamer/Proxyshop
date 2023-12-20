@@ -43,7 +43,8 @@ def get_temporary_file(path: Path, ext: str = '.drive') -> tuple[Path, int]:
 
     # Create a new temporary file
     with NamedTemporaryFile(prefix=temp.name, dir=temp.parent, delete=False) as f:
-        return f, 0
+        file = f.name
+    return Path(file), 0
 
 
 def download_file(
