@@ -14,18 +14,24 @@ from kivy.metrics import dp, sp
 
 # Local Imports
 from src._state import PATH
-from src._loader import TemplateDetails, TemplateCategoryMap
+from src._loader import TemplateDetails
 from src.gui._state import GlobalAccess
 from src.gui.utils import HoverButton
 
 
 class TestApp(BoxLayout, GlobalAccess):
     """Template Tester."""
-    #Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "test.kv"))
+    Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "test.kv"))
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.selector = TemplateSelector(self)
+    def on_load(self, *args) -> None:
+        """Add selector and toggle buttons."""
+        self.selector = TemplateSelector(
+            self, size_hint=(.8, .8))
+        self.main.toggle_buttons.extend([
+            self.ids.test_all,
+            self.ids.test_target,
+            self.ids.test_all_deep
+        ])
 
     def select_template(self):
         """Select a target template to test."""
@@ -33,36 +39,40 @@ class TestApp(BoxLayout, GlobalAccess):
 
 
 class TemplateSelector(Popup, GlobalAccess):
+    """Popup selector for selecting a template to call 'Test Target' on."""
+
     def __init__(self, root: TestApp, **kwargs):
         self.test_app = root
-        super().__init__(
-            size_hint=(.8, .8),
-            **kwargs)
+        super().__init__(**kwargs)
 
-        # Templates by type
-        template_map: TemplateCategoryMap = self.main.templates
-        self.templates = {
-            card_type: templates for category, mapped in template_map.items()
-            for card_type, templates in mapped['map'].items()}
+    def on_load(self, *args) -> None:
+        """Add template buttons to template selector."""
+        for card_type, templates in {
+            t: temps for cat, cat_map in
+            self.main.template_map.items() for
+            t, temps in cat_map['map'].items()
+        }.items():
 
-        # Add template buttons
-        for card_type, templates in self.templates.items():
-            self.ids.content.add_widget(Label(
-                text=card_type.replace("_", " ").title(),
-                size_hint=(1, None),
-                font_size=sp(25),
-                height=dp(45)
-            ))
-            for name, template in templates.items():
-                self.ids.content.add_widget(SelectorButton(
-                    self.test_app,
-                    template=template,
-                    card_type=card_type,
-                    text=template['name']
-                ))
+            # Add title label
+            self.ids.content.add_widget(
+                Label(
+                    text=card_type.replace("_", " ").title(),
+                    size_hint=(1, None),
+                    font_size=sp(25),
+                    height=dp(45)))
+
+            # Add buttons
+            [self.ids.content.add_widget(SelectorButton(
+                self.test_app,
+                template=template,
+                card_type=card_type,
+                text=template['name']
+            )) for name, template in templates.items()]
 
 
 class SelectorButton(HoverButton, GlobalAccess):
+    """Button which calls 'Test Target' on a given template."""
+
     def __init__(self, root: TestApp, template: TemplateDetails, card_type: str, **kwargs):
         super().__init__(**kwargs)
         self.test_app = root
@@ -78,3 +88,4 @@ class SelectorButton(HoverButton, GlobalAccess):
             target=self.main.test_target,
             args=(self.card_type, self.template), daemon=True
         ).start()
+        self.test_app.selector.dismiss()
