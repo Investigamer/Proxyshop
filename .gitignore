@@ -163,7 +163,7 @@ cython_debug/
 # User custom data files
 /src/data/user.yml
 # User specific version tracker
-/src/data/version_tracker.json
+/src/data/versions.yml
 # Generated new release
 /release
 # Environmental variables
