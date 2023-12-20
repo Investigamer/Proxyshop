@@ -126,7 +126,7 @@ class PATH(DefinedPaths):
 """
 
 # Load environment variables
-DOTENV = dotenv_values('.env')
+DOTENV = dotenv_values(Path(PATH.CWD, '.env'))
 
 # KIVY Environment
 environ.setdefault('KIVY_LOG_MODE', 'PYTHON')
@@ -141,7 +141,7 @@ class AppEnvironment:
     @auto_prop_cached
     def VERSION(self) -> str:
         """str: Current app version."""
-        if ver := DOTENV.get('VERSION'):
+        if ver := environ.get('VERSION'):
             return ver
         return get_app_version(PATH.CWD / 'pyproject.toml')
 
@@ -158,23 +158,17 @@ class AppEnvironment:
     @auto_prop_cached
     def DEV_MODE(self) -> bool:
         """bool: Whether the app is running in developer mode."""
-        if environ.get('DEV_MODE'):
-            return str_to_bool_safe(environ['DEV_MODE'])
-        return bool(not hasattr(sys, '_MEIPASS'))
+        return str_to_bool_safe(environ.get('DEV_MODE', DOTENV.get('DEV_MODE', str(not hasattr(sys, '_MEIPASS')))))
 
     @auto_prop_cached
     def TEST_MODE(self) -> bool:
         """bool: Whether the app is running in testing mode."""
-        if environ.get('TEST_MODE'):
-            return str_to_bool_safe(environ['TEST_MODE'])
-        return False
+        return str_to_bool_safe(environ.get('TEST_MODE', DOTENV.get('TEST_MODE', '0')))
 
     @auto_prop_cached
     def FORCE_RELOAD(self) -> bool:
         """bool: Whether the for plugin template modules to be reloaded on each new render sequence."""
-        if environ.get('FORCE_RELOAD'):
-            return str_to_bool_safe(environ['FORCE_RELOAD'])
-        return False
+        return str_to_bool_safe(environ.get('FORCE_RELOAD', DOTENV.get('FORCE_RELOAD', '0')))
 
     @auto_prop_cached
     def HEADLESS(self) -> bool:
