@@ -46,7 +46,7 @@ from src._loader import (
     TemplateCategoryMap,
     get_template_map_selected,
     AppTemplate)
-from src.gui._state import GUI
+from src.gui._state import GUI, GlobalAccess
 from src.gui.popup.updater import UpdatePopup
 from src.gui.tabs.creator import CreatorPanel
 from src.gui.tabs.main import TemplateRow, MainPanel
@@ -75,59 +75,50 @@ from src.utils.strings import (
 """
 
 
-class AppContainer(BoxLayout):
+class AppContainer(BoxLayout, GlobalAccess):
     """Container for overall app."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def on_load(self, *args) -> None:
+        """Add tab panel."""
         self.add_widget(AppTabs())
 
-    @auto_prop_cached
-    def toggle_buttons(self) -> list[Button]:
-        """list[Button]: Button UI elements toggled when disable_buttons or enable_buttons is called."""
-        return [
-            *self.ids.tab_main.toggle_buttons,
-            *self.ids.tab_creator.toggle_buttons,
-            *self.ids.tab_tools.toggle_buttons,
-            *self.ids.console.toggle_buttons
-        ]
 
-
-class AppTabs(TabbedPanel):
+class AppTabs(TabbedPanel, GlobalAccess):
     """Container for both render and creator tabs."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._tab_layout.padding = '0dp', '0dp', '0dp', '0dp'
+        self._tab_layout.padding = (
+            '0dp', '0dp', '0dp', '0dp')
+
+    def on_load(self, *args) -> None:
+        """Add tabs."""
         self.add_widget(MainTab())
         self.add_widget(CreatorTab())
         self.add_widget(ToolsTab())
 
 
-class MainTab(TabbedPanelItem):
+class MainTab(TabbedPanelItem, GlobalAccess):
     """Main rendering tab."""
-    text = 'Render Cards'
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def on_load(self, *args) -> None:
+        """Add content."""
         self.content = MainPanel()
 
 
-class CreatorTab(TabbedPanelItem):
+class CreatorTab(TabbedPanelItem, GlobalAccess):
     """Custom card creator tab."""
-    text = 'Creator'
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def on_load(self, *args) -> None:
+        """Add content."""
         self.content = CreatorPanel()
 
 
-class ToolsTab(TabbedPanelItem):
+class ToolsTab(TabbedPanelItem, GlobalAccess):
     """Utility tools tab."""
-    text = 'Tools'
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def on_load(self, *args) -> None:
+        """Add content."""
         self.content = ToolsPanel()
 
 
@@ -288,7 +279,7 @@ class ProxyshopGUIApp(App):
     @auto_prop_cached
     def toggle_buttons(self) -> list[Button]:
         """list[Button]: UI buttons to toggle when disable_buttons or enable_buttons is called."""
-        return self.root.toggle_buttons
+        return [self.console.update_btn]
 
     """
     * Wrappers
@@ -367,6 +358,7 @@ class ProxyshopGUIApp(App):
                 # Open a file select dialog in Photoshop
                 if files := self.app.openDialog():
                     return [Path(f) for f in files]
+                return []
             except PS_EXCEPTIONS as e:
                 # Photoshop is busy or unresponsive, try again?
                 if not self.console.await_choice(
@@ -404,17 +396,19 @@ class ProxyshopGUIApp(App):
     """
 
     @render_process_wrapper
-    def render_all(self, target: bool = False) -> None:
+    def render_all(self, target: bool = False, files: Optional[list[Path]] = None) -> None:
         """Render cards using all images located in the art folder.
 
         Args:
             target: Whether to do a targeted render operation.
+            files: A lit of files to render instead of target or 'art' folder, if provided.
         """
         # Get our templates
         temps = get_template_map_selected(self.templates_selected, self.templates_default)
 
         # Get our art files
-        files = self.select_art() if target else self.get_art_files()
+        if not files:
+            files = self.select_art() if target else self.get_art_files()
 
         # No files provided
         if not files and target:
@@ -433,17 +427,17 @@ class ProxyshopGUIApp(App):
         failed: list[str] = []
         for c in cards:
 
+            # Add failed card
+            if isinstance(c, str):
+                failed.append(c)
+                continue
+
             # Assign card as failure if template isn't installed
             if not temps[c.card_class]['object'].is_installed:
                 c = msg_error(
                     msg=c.display_name,
                     reason=f"Template '{temps[c.card_class]['name']}' with type "
                            f"'{c.card_class}' is not installed!")
-
-            # Add failed card
-            if isinstance(c, str):
-                failed.append(c)
-                continue
 
             # Map card to its template path and layout type
             layouts.setdefault(
@@ -808,7 +802,8 @@ class ProxyshopGUIApp(App):
 
     def screenshot_window(self) -> None:
         """Take a screenshot of the Kivy window."""
-        path = (PATH.OUT / "screenshots" / dt.now().strftime("%m-%d-%Y, %H%M%S")).with_suffix('.jpg')
+        path = (PATH.OUT / "screenshots" / dt.now().strftime(
+            "%m-%d-%Y_")).with_suffix('.jpg')
         path.parent.mkdir(mode=711, parents=True, exist_ok=True)
         img_path = self.root_window.screenshot(name=str(path))
 
@@ -861,11 +856,10 @@ class ProxyshopGUIApp(App):
         del self._dropped_files
 
         # Set up render job in separate thread
-        Thread(target=self.render_all, args=(files,), daemon=True).start()
+        Thread(target=self.render_all, args=(False, files), daemon=True).start()
 
     def on_start(self) -> None:
         """Fired after build is fired. Run a diagnostic check to see what works."""
-
         self.console.update(msg_success("--- STATUS ---"))
 
         # Check if using latest version
