@@ -40,13 +40,16 @@ from src.utils.strings import (
 
 
 def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
-    """
-    Assign layout object to a card.
-    @param filename: Path to the art file, filename supports optional tags:
+    """Assign layout object to a card.
+
+    Args:
+        filename: Path to the art file, filename supports optional tags:
         - (artist name)
         - [set code]
         - {collector number}
-    @return: Layout object for this card.
+
+    Returns:
+        Layout object for this card.
     """
     # Get basic card information
     card = parse_card_info(filename)
@@ -74,10 +77,13 @@ def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
 
 
 def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
-    """
-    Join any layout objects that are dual sides of the same card, i.e. Split cards.
-    @param layouts: List of layout objects (or strings which are skipped).
-    @return: List of layouts, with split layouts joined.
+    """Join any layout objects that are dual sides of the same card, i.e. Split cards.
+
+    Args:
+        layouts: List of layout objects (or strings which are skipped).
+
+    Returns:
+        List of layouts, with split layouts joined.
     """
     # Check if we have any split cards
     normal: list[Union[str, CardLayout]] = [
@@ -110,7 +116,7 @@ def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
 
 
 """
-LAYOUT CLASSES
+* Layout Classes
 """
 
 
@@ -155,7 +161,7 @@ class NormalLayout:
     @auto_prop_cached
     def set_data(self) -> dict:
         """Set data from the current hexproof.io data file."""
-        return CON.set_data.get(self.set.lower(), {})
+        return CON.set_data.get(self.scryfall.get('set', 'mtg'), {})
 
     @auto_prop_cached
     def template_file(self) -> Path:
@@ -1204,7 +1210,7 @@ class SplitLayout(NormalLayout):
         for wm in self.watermark_svg:
             if not wm:
                 watermarks.append(None)
-            if wm.stem.upper() == 'WM':
+            elif wm.stem.upper() == 'WM':
                 watermarks.append(wm.parent.stem.lower())
             else:
                 watermarks.append(wm.stem.lower())
@@ -1384,7 +1390,7 @@ class TokenLayout(NormalLayout):
     @auto_prop_cached
     def set(self) -> str:
         """str: Use parent set code if provided."""
-        return self.set_data.get('code_parent', super().set)
+        return self.set_data.get('code_parent', super().set).upper()
 
     @auto_prop_cached
     def card_count(self) -> Optional[int]:
