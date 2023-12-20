@@ -24,7 +24,6 @@ from src.gui.utils import (
     DynamicTabItem,
     HoverButton)
 from src.utils.files import remove_config_file
-from src.utils.properties import auto_prop_cached
 
 """
 * Template Modules
@@ -35,13 +34,13 @@ class MainPanel(BoxLayout, GlobalAccess):
     """Main panel to the 'Render Cards' tab."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "main.kv"))
 
-    @auto_prop_cached
-    def toggle_buttons(self) -> list[Button]:
-        return [
+    def on_load(self, *args) -> None:
+        """Add toggle buttons."""
+        self.main.toggle_buttons.extend([
             self.ids.rend_targ_btn,
             self.ids.rend_all_btn,
             self.ids.app_settings_btn
-        ]
+        ])
 
 
 class TemplateModule(DynamicTabPanel, GlobalAccess):
@@ -112,7 +111,7 @@ class TemplateView(ScrollView):
     """Scrollable viewport for template list."""
 
 
-class TemplateList(BoxLayout):
+class TemplateList(BoxLayout, GlobalAccess):
     """Builds a list of templates from a certain template type."""
 
     def __init__(self, category: str, templates: TemplateCategoryMap, preview: Image, **kwargs):
@@ -173,7 +172,7 @@ class TemplateList(BoxLayout):
         self.add_template_rows()
 
 
-class TemplateRow(BoxLayout):
+class TemplateRow(BoxLayout, GlobalAccess):
     """Row containing template selector and governing buttons."""
 
     def __init__(self, category: str, template_map: dict[str, TemplateDetails], preview: Image, **kwargs):
@@ -201,7 +200,8 @@ class TemplateRow(BoxLayout):
 
                 # Set the chosen config object
                 if not config:
-                    config = obj.get('config')
+                    config = obj['config']
+                    config.gui_elements.append(self)
 
         # Set name, config, and previews
         self.config = config
@@ -216,7 +216,25 @@ class TemplateRow(BoxLayout):
         # Add to GUI Dict
         GUI.template_row.setdefault(category, {})[self.name] = self
         GUI.template_btn.setdefault(category, {})[self.name] = self.ids.toggle_button
-        GUI.template_btn_cfg.setdefault(category, {})[self.name] = self.ids.settings_button
+        GUI.template_btn_cfg.setdefault(category, {})[self.name] = self.settings_button
+
+    """
+    * GUI Elements
+    """
+
+    @property
+    def settings_button(self) -> Button:
+        """Button: Click to load template specific settings."""
+        return self.ids.settings_button
+
+    @property
+    def reset_button(self) -> Button:
+        """Button: Click to reset template specific settings to default (global)."""
+        return self.ids.reset_default_button
+
+    """
+    * Utility Methods
+    """
 
     def default_settings_button_check(self) -> None:
         """Checks for a template's config file and enables/disables the reset settings button."""
@@ -237,14 +255,16 @@ class TemplateRow(BoxLayout):
         self.preview_face = 0
 
 
-class TemplateSettingsButton(HoverButton):
+class TemplateSettingsButton(HoverButton, GlobalAccess):
     """Opens the settings panel for a given template."""
 
     async def open_settings(self) -> None:
         """Opens a settings panel to customize the settings of a specific template class."""
-        cfg_panel = SettingsPopup(self.parent.template)
+        obj = self.parent
+        cfg_panel = SettingsPopup(obj.template_map[obj.types[0]])
         cfg_panel.open()
-        self.parent.default_settings_button_check()
+        for row in obj.config.gui_elements:
+            row.default_settings_button_check()
 
 
 class TemplateResetDefaultButton(HoverButton, GlobalAccess):
@@ -254,4 +274,5 @@ class TemplateResetDefaultButton(HoverButton, GlobalAccess):
         """Removes the INI config file containing customized settings for a specific template class."""
         if remove_config_file(self.parent.config.template_path_ini):
             self.console.update(f"Reset template '{self.parent.name}' to global settings!")
-        self.disabled = True
+        for row in self.parent.config.gui_elements:
+            row.default_settings_button_check()
