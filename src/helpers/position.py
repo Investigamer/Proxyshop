@@ -57,7 +57,7 @@ def align(
     ) if not reference else (
         # Dimensions provided or get dimensions from reference
         reference if (
-            isinstance(reference, LayerDimensions)
+            isinstance(reference, dict)
         ) else get_layer_dimensions(reference))
 
     # Single axis provided
@@ -245,7 +245,7 @@ def frame_layer(
     # Get layer and reference dimensions
     layer_dim = get_layer_dimensions(layer)
     ref_dim = reference if isinstance(
-        reference, LayerDimensions
+        reference, dict
     ) else get_layer_dimensions(reference)
 
     # Scale the layer to fit either the largest, or the smallest dimension
@@ -274,7 +274,7 @@ def frame_layer_by_height(
     # Get layer and reference dimensions
     layer_dim = get_layer_dimensions(layer)
     ref_dim = reference if isinstance(
-        reference, LayerDimensions
+        reference, dict
     ) else get_layer_dimensions(reference)
 
     # Scale the layer to fit the height of the reference
@@ -302,7 +302,7 @@ def frame_layer_by_width(
     # Get layer and reference dimensions
     layer_dim = get_layer_dimensions(layer)
     ref_dim = reference if isinstance(
-        reference, LayerDimensions
+        reference, dict
     ) else get_layer_dimensions(reference)
 
     # Scale the layer to fit the height of the reference
