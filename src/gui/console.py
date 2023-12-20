@@ -12,7 +12,6 @@ from datetime import datetime as dt
 # Third Party Imports
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.logger import Logger
 
@@ -39,11 +38,11 @@ class GUIConsole(BoxLayout):
         **kwargs
     ):
         # Establish global objects
+        super().__init__(**kwargs)
         self.cfg = cfg
         self.env = env
 
         # Test mode uses larger console
-        super().__init__(**kwargs)
         if not self.env.TEST_MODE:
             self.size_hint = (1, .58)
 
@@ -51,13 +50,6 @@ class GUIConsole(BoxLayout):
     def main(self) -> Any:
         """ProxyshopGUIApp: Get the running application."""
         return get_root_app()
-
-    @auto_prop_cached
-    def toggle_buttons(self) -> list[Button]:
-        """list[Button]: Button UI elements toggled when disable_buttons or enable_buttons is called."""
-        return [
-            self.ids.update_btn
-        ]
 
     """
     * Console GUI Objects

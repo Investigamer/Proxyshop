@@ -9,7 +9,7 @@
 #:import FourCharInput src.gui.utils.FourCharInput
 
 <CreatorPanel>:
-    id: tab_creator
+    id: panel_creator
     do_default_tab: False
     tab_width: dp(120)
     tab_height: dp(30)
@@ -144,7 +144,7 @@
             values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_norm
+            id: render_custom
             text: "Render Custom"
             font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
@@ -280,7 +280,7 @@
             values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_pw
+            id: render_custom
             size_hint_x: 1.2
             text: "Render Custom"
             font_size: sp(16)
@@ -410,7 +410,7 @@
             values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_saga
+            id: render_custom
             size_hint_x: 1.2
             text: "Render Custom"
             font_size: sp(16)

@@ -7,12 +7,16 @@ import sys
 from pprint import pprint
 from traceback import format_exception
 
-# Third Party Imports
-from kivy.resources import resource_add_path
-
 # Local Imports
+from src import (
+    APP, CFG, CON, CONSOLE, ENV,
+    PLUGINS, TEMPLATES, TEMPLATE_MAP, TEMPLATE_DEFAULTS
+)
 from src.gui._state import register_kv_classes, load_kv_config
 from src.gui.app import ProxyshopGUIApp
+
+# Kivy Imported Last
+from kivy.resources import resource_add_path
 
 
 if __name__ == '__main__':
@@ -26,10 +30,6 @@ if __name__ == '__main__':
     load_kv_config()
     register_kv_classes()
     try:
-        from src import (
-            APP, CFG, CON, CONSOLE, ENV,
-            PLUGINS, TEMPLATES, TEMPLATE_MAP, TEMPLATE_DEFAULTS
-        )
         ProxyshopGUIApp(
             app=APP,
             con=CON,

@@ -2,7 +2,7 @@
 #:import Range100NumInput src.gui.utils.Range100NumInput
 
 <ToolsPanel>:
-    id: tab_tools
+    id: panel_tools
     orientation: "vertical"
     spacing: dp(8)
     padding: dp(5)
@@ -13,6 +13,7 @@
             size: self.size
             pos: self.pos
     BoxLayout:
+        id: tools_showcase
         orientation: "horizontal"
         size_hint: (1, None)
         height: dp(40)
@@ -33,6 +34,7 @@
             font_name: get_font("Beleren Small Caps.ttf")
             on_press: Thread(target=root.render_showcases, args=(True,), daemon=True).start()
     BoxLayout:
+        id: tools_compress
         size_hint: (1, None)
         height: dp(40)
         orientation: "horizontal"

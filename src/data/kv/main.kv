@@ -8,7 +8,7 @@
 
 
 <MainPanel>:
-    id: tab_main
+    id: panel_main
     orientation: "vertical"
     padding: dp(5)
     spacing: 0
@@ -16,8 +16,8 @@
         Color:
             rgba: get_color_from_hex("#141414")
         Rectangle:
-            size: tab_main.size
-            pos: tab_main.pos
+            size: panel_main.size
+            pos: panel_main.pos
     BoxLayout:
         orientation: "horizontal"
         size_hint: (1, None)
@@ -27,7 +27,7 @@
             text: "Render Target"
             options: ["RENDER TARGET"]
             font_size: sp(18)
-            on_press: Thread(target=app.render_all, args=(True,), daemon=True).start()
+            on_press: Thread(target=app.render_all, args=(True, []), daemon=True).start()
             background_color: get_color_from_hex("#376aa3")
         HoverButton:
             id: rend_all_btn

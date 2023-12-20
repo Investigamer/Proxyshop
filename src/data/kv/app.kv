@@ -1,9 +1,11 @@
 #:import get_color_from_hex kivy.utils.get_color_from_hex
 
 <AppContainer>:
+    id: app_container
     orientation: "vertical"
 
 <AppTabs>:
+    id: app_tabs
     do_default_tab: False
     tab_width: dp(120)
     tab_height: dp(30)
@@ -17,11 +19,14 @@
             pos: self.pos
 
 <MainTab>:
+    id: tab_main
     text: "Render Cards"
     spacing: 0
 
 <CreatorTab>:
+    id: tab_creator
     text: "Custom Creator"
 
 <ToolsTab>:
+    id: tab_tools
     text: "Tools"
