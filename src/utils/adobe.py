@@ -25,7 +25,24 @@ class ApplicationHandler(Application):
     """Wrapper for the Photoshop Application class."""
 
     def __init__(self, env: AppEnvironment):
-        super().__init__(version=env.PS_VERSION)
+        version = env.PS_VERSION if env else None
+        super().__init__(version=version)
+        self._env = env
+
+    """
+    * Handler Properties
+    """
+
+    @auto_prop_cached
+    def _env(self) -> Optional[AppEnvironment]:
+        """AppEnvironment: Global app environment object."""
+        return
+
+    def is_error_dialog_enabled(self) -> bool:
+        """bool: Whether to allow error dialogs, defined in app environment object."""
+        if self._env:
+            return self._env.PS_ERROR_DIALOG
+        return False
 
 
 class PhotoshopHandler(ApplicationHandler):
@@ -53,7 +70,6 @@ class PhotoshopHandler(ApplicationHandler):
                 cls._instance = super(Photoshop, cls).__new__(cls)
 
         # Establish the app environment object
-        cls._instance._env = env
         return cls._instance
 
     """
@@ -72,27 +88,6 @@ class PhotoshopHandler(ApplicationHandler):
                 # Photoshop is either busy or unresponsive
                 return OSError(get_photoshop_error_message(e))
         return
-
-    """
-    * Handler Properties
-    """
-
-    @auto_prop_cached
-    def _env(self) -> Any:
-        """AppEnvironment: Global app environment object."""
-        return
-
-    @auto_prop_cached
-    def ALLOW_ERROR_DIALOGS(self) -> bool:
-        """bool: Whether to allow error dialogs, defined in app environment object."""
-        if self._env:
-            return self._env.PS_ERROR_DIALOG
-        return False
-
-    @auto_prop_cached
-    def PS_VERSION(self) -> Optional[str]:
-        """Optional[str]: Photoshop version to look for in registry."""
-        return self._env.PS_VERSION
 
     """
     * Class Methods
@@ -195,7 +190,7 @@ class PhotoshopHandler(ApplicationHandler):
         Returns:
             Result of the action descriptor execution.
         """
-        if self.ALLOW_ERROR_DIALOGS:
+        if self.is_error_dialog_enabled():
             # Allow error dialogs if enabled in the app environment
             return super().executeAction(event_id, descriptor, DialogModes.DisplayErrorDialogs)
         return super().executeAction(event_id, descriptor, dialogs)
