@@ -349,7 +349,7 @@ def get_uri_object(url: yarl.URL, **kwargs) -> dict:
     Returns:
         A Scryfall object, e.g. Card, Set, etc.
     """
-    res = requests.get(url.with_query(kwargs), headers=scryfall_http_header).json()
+    res = requests.get(url.with_query(kwargs), headers=scryfall_http_header)
     data = res.json()
 
     # Check for error object
