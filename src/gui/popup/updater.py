@@ -37,7 +37,7 @@ class UpdatePopup(Popup, GlobalAccess):
 
     def check_for_updates(self):
         """Runs the check_for_updates core function and fills the update dictionary."""
-        self.updates: list[AppTemplate] = check_for_updates(self.app.templates)
+        self.updates: list[AppTemplate] = check_for_updates(self.main.templates)
 
     async def populate_updates(self):
         """Load the list of updates available."""
@@ -66,7 +66,7 @@ class UpdatePopup(Popup, GlobalAccess):
         ) else msg_italics(" Updates Available")
 
 
-class UpdateEntry(BoxLayout):
+class UpdateEntry(BoxLayout, GlobalAccess):
     def __init__(self, parent: UpdatePopup, template: AppTemplate, bg_color: str, **kwargs):
         self.bg_color = bg_color
         self.name = template.name
@@ -102,17 +102,15 @@ class UpdateEntry(BoxLayout):
         """Update template version, remove pending update, and remove the template row."""
 
         # Update version tracker and reset update data
-        self.con.versions[self.template.google_drive_id] = self.template.update_version
-        self.con.update_version_tracker()
-        self.template._update = {}
+        self.template.mark_updated()
 
         # Remove this widget
         self.root.ids.container.remove_widget(self.root.entries[str(self.template.path_psd)])
         del self.root.entries[str(self.template.path_psd)]
 
 
-class UpdateProgress(ProgressBar):
-    def __init__(self, size, **kwargs):
+class UpdateProgress(ProgressBar, GlobalAccess):
+    def __init__(self, size: int, **kwargs):
         super().__init__(**kwargs)
         self.download_size = int(size)
         self.current = 0
