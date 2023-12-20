@@ -6,7 +6,6 @@ import os
 
 # Third Party Imports
 from kivy.lang import Builder
-from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
@@ -27,52 +26,50 @@ class CreatorPanel(TabbedPanel, GlobalAccess):
     """Panel tab the 'Creator' tab which renders custom cards."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        # Establish the tab contents
-        self.creator_normal_layout = CreatorNormalLayout("Normal")
-        self.creator_pw_layout = CreatorPlaneswalkerLayout("Planeswalker")
-        self.creator_saga_layout = CreatorSagaLayout("Saga")
-
-        # Add the widgets
-        self.add_widget(CreatorTabItem(self.creator_normal_layout, text="Normal"))
-        self.add_widget(CreatorTabItem(self.creator_pw_layout, text="Planeswalker"))
-        self.add_widget(CreatorTabItem(self.creator_saga_layout, text="Saga"))
-        self._tab_layout.padding = '0dp', '0dp', '0dp', '0dp'
-
     @auto_prop_cached
-    def toggle_buttons(self) -> list[Button]:
-        """list[Button]: Button UI elements toggled when disable_buttons or enable_buttons is called."""
+    def creator_tabs(self) -> list[type['CreatorLayout']]:
+        """Defined creator tabs."""
         return [
-            self.creator_normal_layout.ids.render_norm,
-            self.creator_pw_layout.ids.render_pw,
-            self.creator_saga_layout.ids.render_saga
+            CreatorNormalLayout,
+            CreatorPlaneswalkerLayout,
+            CreatorSagaLayout
         ]
+
+    def on_load(self, *args) -> None:
+        """Add creator tabs."""
+        for tab in self.creator_tabs:
+            self.add_widget(CreatorTabItem(tab))
+        self._tab_layout.padding = (
+            '0dp', '0dp', '0dp', '0dp')
 
 
 class CreatorTabItem(TabbedPanelItem, GlobalAccess):
     """Represents a single tab in the CreatorPanels tabbed panel."""
 
-    def __init__(self, widget, **kwargs):
-        super().__init__(**kwargs)
-        self.add_widget(widget)
+    def __init__(self, widget: type['CreatorLayout'], **kwargs):
+        super().__init__(text=widget._category, **kwargs)
+        self.add_widget(widget())
 
 
 class CreatorLayout(GridLayout, GlobalAccess):
     """Represents the content of a specific 'CreatorTabItem' tab."""
+    _category = ''
 
-    def __init__(self, category: str, **kwargs):
+    def __init__(self, **kwargs):
 
         # Key attributes
-        self._category = category
-        self._templates: TemplateCategoryMap = self.main.template_map[category]
+        self._templates: TemplateCategoryMap = self.main.template_map[self._category]
         self._template_names: list[str] = self._templates['names']
         self._types: list[str] = list(self._templates['map'].keys())
         self._templates_selected: TemplateSelectedMap = self.main.templates_default.copy()
 
         # Call super
         super().__init__(**kwargs)
+
+    def on_load(self, *args) -> None:
+        """Add render button to toggle buttons."""
+        self.main.toggle_buttons.append(
+            self.ids.render_custom)
 
     """
     * Template Utils
@@ -129,6 +126,8 @@ class CreatorLayout(GridLayout, GlobalAccess):
 
 
 class CreatorNormalLayout(CreatorLayout):
+    _category = 'Normal'
+
     def get_card_data(self) -> dict:
         oracle_text = self.ids.oracle_text.text.replace("~", self.ids.name.text)
         flavor_text = self.ids.flavor_text.text.replace("~", self.ids.name.text)
@@ -152,6 +151,8 @@ class CreatorNormalLayout(CreatorLayout):
 
 
 class CreatorPlaneswalkerLayout(CreatorLayout):
+    _category = 'Planeswalker'
+
     def get_card_data(self) -> dict:
         rules_text = "\n".join(n for n in [
             self.ids.line_1.text.replace("~", self.ids.name.text),
@@ -177,6 +178,8 @@ class CreatorPlaneswalkerLayout(CreatorLayout):
 
 
 class CreatorSagaLayout(CreatorLayout):
+    _category = 'Saga'
+
     def get_card_data(self) -> dict:
         text_arr, num_lines = [], 'I'
         if self.ids.line_1.text != "":
@@ -207,4 +210,3 @@ class CreatorSagaLayout(CreatorLayout):
             "collector_number": self.ids.collector_number.text,
             "color_identity": self.ids.color_identity.text.split()
         }
-
