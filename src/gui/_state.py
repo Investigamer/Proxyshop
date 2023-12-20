@@ -12,6 +12,7 @@ from kivy.app import App
 from kivy.config import Config
 from kivy.factory import Factory
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.layout import Layout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
 
@@ -51,9 +52,25 @@ def get_root_app():
     return App.get_running_app()
 
 
-class GlobalAccess:
+class GlobalAccess(Layout):
     """Utility class giving Kivy GUI elements access to the main app and its
     global objects."""
+
+    def __init__(self, *args, **kwargs):
+        self.bind(on_kv_post=self.on_load)
+        super().__init__(**kwargs)
+
+    """
+    * Layout Methods
+    """
+
+    def on_load(self, *args) -> None:
+        """Fired when object is loaded into the GUI."""
+        pass
+
+    """
+    * Global Object Properties
+    """
 
     @auto_prop_cached
     def main(self) -> Any:
