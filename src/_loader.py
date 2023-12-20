@@ -17,7 +17,12 @@ import yarl
 from src._state import AppConstants, AppEnvironment, PATH
 from src.api.amazon import download_cloudfront
 from src.api.google import get_google_drive_metadata, download_google_drive
-from src.enums.mtg import layout_map_types_display, layout_map_category, layout_map_types
+from src.enums.mtg import (
+    layout_map_types_display,
+    layout_map_category,
+    layout_map_types,
+    layout_map_display_condition_dual,
+    layout_map_display_condition)
 from src.utils.files import (
     load_data_file,
     get_kivy_config_from_schema,
@@ -107,6 +112,7 @@ class ConfigManager:
         template_class: Name of the template class, if provided.
         template: AppTemplate object corresponding to the template class, if provided.
     """
+    gui_elements = []
 
     def __init__(
         self, template_class: Optional[str] = None,
@@ -187,8 +193,7 @@ class ConfigManager:
     def template_path_ini(self) -> Optional[Path]:
         """Template specific config INI."""
         if self._template:
-            path = self._template.get_path_ini(self._template_class)
-            return path if path.is_file() else None
+            return self._template.get_path_ini(self._template_class)
         return
 
     @property
@@ -295,12 +300,14 @@ class AppPlugin:
         # Find a valid manifest
         self._manifest = Path(path, 'manifest.yml')
         if not self._manifest.is_file():
+            self._manifest = Path(path, 'manifest.yaml')
+        if not self._manifest.is_file():
             self._manifest = Path(path, 'manifest.json')
         if not self._manifest.is_file():
             raise FileNotFoundError(f"Couldn't locate manifest file for plugin at path: {str(path)}")
 
         # Load the manifest data
-        self.load_manifest() if self._manifest.suffix.lower() == '.yml' else self.load_manifest_json()
+        self.load_manifest() if self._manifest.suffix.lower() != '.json' else self.load_manifest_json()
 
         # Ensure plugin has a valid module path
         _ = self.py_module
@@ -456,7 +463,7 @@ class AppPlugin:
                     })
                 # Add Google Drive ID
                 if details.get('id'):
-                    self._templates[file_name].setdefault('id', details['id'])
+                    self._templates[file_name]['id'] = details['id']
                 # Existing name
                 if name in self._templates[file_name]['templates']:
                     # Existing class name
@@ -466,7 +473,7 @@ class AppPlugin:
                     # Add new class
                     self._templates[file_name]['templates'][name][class_name] = [t]
                 # Add new template
-                self._templates[file_name]['templates'][name] = {name: {class_name: [t]}}
+                self._templates[file_name]['templates'][name] = {class_name: [t]}
 
     def load_templates(self) -> None:
         """Load the dictionary of AppTemplate's pulled from this plugin's manifest file.
@@ -630,7 +637,7 @@ class AppTemplate:
     * Boolean Properties
     """
 
-    @auto_prop_cached
+    @property
     def is_installed(self) -> bool:
         """bool: Whether PSD/PSB file for this template is installed."""
         return self.path_psd.is_file()
@@ -690,23 +697,23 @@ class AppTemplate:
     """
 
     @auto_prop_cached
-    def types_supported(self) -> set[str]:
+    def types_supported(self) -> list[str]:
         """set[str]: A set of all types supported by this template."""
-        return {
+        return list({
             t for class_map in self.manifest_map.values()
             for types in class_map.values()
             for t in types
-        }
+        })
 
     @auto_prop_cached
-    def all_names(self) -> set[str]:
+    def all_names(self) -> list[str]:
         """set[str]: A set of all display names used by this template."""
-        return {name for name in self.manifest_map.keys()}
+        return list({name for name in self.manifest_map.keys()})
 
     @auto_prop_cached
-    def all_classes(self) -> set[str]:
+    def all_classes(self) -> list[str]:
         """set[str]: A set of all python classes used by this template."""
-        return {cls_name for class_map in self.manifest_map.values() for cls_name in class_map.keys()}
+        return list({cls_name for class_map in self.manifest_map.values() for cls_name in class_map.keys()})
 
     """
     * Template Utils
@@ -737,18 +744,32 @@ class AppTemplate:
 
         # Use first name on the list and look for types supported for that name
         name = self.all_names[0]
-        supported = self.types_supported if len(self.all_names) == 1 else {
+        supported = self.types_supported.copy() if len(self.all_names) == 1 else {
             t for types in self.manifest_map[name].values() for t in types}
+        if 'normal' in supported:
+            supported.remove('normal')
 
         # When 'normal' type is present, just use the name
-        if len(supported) == 1 or 'normal' in supported:
+        if not supported:
             return self.all_names[0]
 
-        # When other types are present, build a type list
-        type_line = ', '.join([
-            layout_map_types_display[t] for t in supported
-            if t in layout_map_types_display])
-        return f'{self.all_names[0]} ({type_line})'
+        # Format types into display names
+        cats = set()
+        for cat, types in layout_map_display_condition_dual.items():
+            # Add both face types
+            if all([n in supported for n in types]):
+                [supported.remove(n) for n in types]
+                cats.add(cat)
+        for cat, t in layout_map_display_condition.items():
+            # Add single face type
+            if t in supported:
+                supported.remove(t)
+                cats.add(cat)
+        # Add remaining display names
+        [cats.add(layout_map_types_display[t]) for t in supported]
+
+        # Build the name with categories supported
+        return f"{self.all_names[0]} ({', '.join(cats)})"
 
     """
     * Update Utils
@@ -826,6 +847,13 @@ class AppTemplate:
 
         # Return result status
         return result
+
+    def mark_updated(self) -> None:
+        """Update the version tracker with the currently logged update version and clear the update data."""
+        if self.google_drive_id and self.update_version:
+            self.con.versions[self.google_drive_id] = self.update_version
+            self.con.update_version_tracker()
+            self._update = {}
 
     """
     * Pathing Utils
