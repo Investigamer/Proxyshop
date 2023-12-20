@@ -1,0 +1,56 @@
+###
+# * Plugin Details
+###
+
+PLUGIN:
+  name: 'Investigamer'
+  author: 'Investigamer'
+  desc: "Investigamer's official Proxyshop plugin."
+  license: 'MPL-2.0'
+  requires: '^1.13.0'
+  version: '1.0.0'
+
+###
+# * Templates
+###
+
+sketch.psd:
+  name: 'Sketch Showcase'
+  id: '1uFfDl5VUYiu77ct6rsDPBRJK0-9ap8Zb'
+  desc: 'Based on the Sketch showcase frame introduced in Modern Horizons.'
+  templates: { Sketch: SketchTemplate }
+
+kaldheim.psd:
+  name: 'Kaldheim Showcase'
+  id: '16XtBeZT_teePRDvythLu8JvHKjSND5TW'
+  desc: 'Based on the Legendary Viking showcase frame introduced in Kaldheim.'
+  templates: { Kaldheim: KaldheimTemplate }
+
+phyrexian.psd:
+  name: 'Phyrexian Showcase'
+  id: '1mEb4BXZI1v0dqwGOwgmrHFOaytVoJlkQ'
+  desc: 'Based on the Phyrexian showcase Secret Lair.'
+  templates: { Phyrexian: PhyrexianTemplate }
+
+colorshifted.psd:
+  name: 'Colorshifted'
+  id: '14-DkMK2PEoU4aNHWPxsoau_t_xAKhgb7'
+  desc: 'Based on the Colorshifted frame introduced in Planar Chaos.'
+  templates: { Colorshifted: ColorshiftedTemplate }
+
+double-feature.psd:
+  name: 'Innistrad: Double Feature Showcase'
+  id: '1D88pzyudnGnUglWL7H-K5AlWjLPcaHfE'
+  desc: 'Based on the showcase frame used for the "Double Feature" promo set.'
+  templates: { Double Feature: DoubleFeatureTemplate }
+
+crimson-fang.psd:
+  name: 'Crimson Vow Showcase'
+  id: '1scPZCVzKezjrjfvGso3IejJgFBYDMvfn'
+  desc: 'Based on the Crimson Fang showcase frame introduced in Crimson Vow.'
+  templates:
+    Crimson Fang:
+      CrimsonFangTemplate:
+      - transform_front
+      - transform_back
+      - normal

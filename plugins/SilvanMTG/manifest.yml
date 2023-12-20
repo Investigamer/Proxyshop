@@ -1,0 +1,36 @@
+
+PLUGIN:
+  name: 'SilvanMTG'
+  author: 'SilvanMTG'
+  desc: "A plugin for SilvanMTG's legendary extended templates."
+  license: 'MPL-2.0'
+  requires: '^1.13.0'
+  version: '1.0.0'
+
+###
+# * Templates
+###
+
+extended.psd:
+  name: 'Silvan Extended'
+  id: '1RloUNFCkOJE1QUwJ0YDtfysCDBYlY9kn'
+  desc: "Silvan's original Extended template."
+  templates: { Silvan Extended: SilvanExtendedTemplate }
+
+extended-mdfc-front.psd:
+  name: 'Silvan Extended (MDFC Front)'
+  id: '17ONVdUMGAv-lj0od_iNjgWT7mmW9725M'
+  desc: "Silvan's original Extended template, in MDFC (Front) treatment."
+  templates:
+    Silvan Extended:
+      SilvanMDFCTemplate:
+      - mdfc_front
+
+extended-mdfc-back.psd:
+  name: 'Silvan Extended (MDFC Back)'
+  id: '10sx3CLO7det1oQl3gfuBoD016bHkPQEa'
+  desc: "Silvan's original Extended template, in MDFC (Back) treatment."
+  templates:
+    Silvan Extended:
+      SilvanMDFCTemplate:
+      - mdfc_back
