@@ -71,14 +71,14 @@ def get_card_data(card: CardDetails) -> Optional[dict]:
 
     # Establish Scryfall fetch action
     action = scryfall.get_card_unique if number else scryfall.get_card_search
-    params = [code, number] if number else [name, code, kwargs]
+    params = [code, number] if number else [name, code]
 
     # Is this an alternate language request?
     if CFG.lang != "en":
 
         # Pull the alternate language card
         with suppress(Exception):
-            data = action(*params, lang=CFG.lang)
+            data = action(*params, lang=CFG.lang, **kwargs)
             return data
         # Language couldn't be found
         if not ENV.TEST_MODE:
@@ -160,8 +160,8 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
 
         # Figure out if card is a front or a back
         faces = [front[0], back] if (
-            name_normalized == normalize_str(back['name'], True) or
-            name_normalized == normalize_str(front[0]['name'], True)
+            name_normalized == normalize_str(back.get('name', ''), True) or
+            name_normalized == normalize_str(front[0].get('name', ''), True)
         ) else [front[1], back]
 
         # Pull JSON data for each face and set object to card_face
@@ -179,11 +179,11 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
     if 'card_faces' in data:
         # Select the corresponding face
         card = data['card_faces'][0] if (
-            normalize_str(data['card_faces'][0]['name'], True) == name_normalized
+            normalize_str(data['card_faces'][0].get('name', ''), True) == name_normalized
         ) else data['card_faces'][1]
         # Transform / MDFC Planeswalker layout
-        if 'Planeswalker' in card['type_line']:
-            data['layout'] = 'planeswalker_tf' if data['layout'] == 'transform' else 'planeswalker_mdfc'
+        if 'Planeswalker' in card.get('type_line', ''):
+            data['layout'] = 'planeswalker_tf' if data.get('layout') == 'transform' else 'planeswalker_mdfc'
         # Transform Saga layout
         if 'Saga' in card['type_line']:
             data['layout'] = 'saga'
