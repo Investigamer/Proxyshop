@@ -116,6 +116,36 @@ layout_map_types = {
 }
 
 
+"""Maps display formatted layout types to a singular layout type.."""
+layout_map_display_condition = {
+    f'{LayoutCategory.Transform} Front': LayoutType.TransformFront,
+    f'{LayoutCategory.Transform} Back': LayoutType.TransformBack,
+    f'{LayoutCategory.MDFC} Front': LayoutType.MDFCFront,
+    f'{LayoutCategory.MDFC} Back': LayoutType.MDFCBack,
+    f'{LayoutCategory.PlaneswalkerTransform} Front': LayoutType.PlaneswalkerTransformFront,
+    f'{LayoutCategory.PlaneswalkerTransform} Back': LayoutType.PlaneswalkerTransformBack,
+    f'{LayoutCategory.PlaneswalkerMDFC} Front': LayoutType.PlaneswalkerMDFCFront,
+    f'{LayoutCategory.PlaneswalkerMDFC} Back': LayoutType.PlaneswalkerMDFCBack
+}
+
+
+"""Maps display formatted layout types to a combined group of two layout types."""
+layout_map_display_condition_dual = {
+    LayoutCategory.Transform: [
+        LayoutType.TransformFront,
+        LayoutType.TransformBack],
+    LayoutCategory.MDFC: [
+        LayoutType.MDFCFront,
+        LayoutType.MDFCBack],
+    LayoutCategory.PlaneswalkerTransform: [
+        LayoutType.PlaneswalkerTransformFront,
+        LayoutType.PlaneswalkerTransformBack],
+    LayoutCategory.PlaneswalkerMDFC: [
+        LayoutType.PlaneswalkerMDFCFront,
+        LayoutType.PlaneswalkerMDFCBack],
+}
+
+
 """Maps Layout types to a display formatted Layout category (with Back or Front)."""
 layout_map_types_display = {
     raw: (
