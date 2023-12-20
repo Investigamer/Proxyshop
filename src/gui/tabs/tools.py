@@ -12,12 +12,10 @@ from concurrent.futures import ThreadPoolExecutor as Pool, as_completed
 from photoshop.api._document import Document
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
 
 # Local Imports
 from src._state import PATH
 from src.gui._state import GlobalAccess
-from src.utils.properties import auto_prop_cached
 from src.utils.image import downscale_image
 from src.utils.exceptions import get_photoshop_error_message
 from src.helpers import import_art, reset_document, save_document_jpeg, close_document
@@ -29,6 +27,16 @@ class ToolsPanel(BoxLayout, GlobalAccess):
     class PSD:
         """PSD tool paths."""
         Showcase: Path = PATH.TEMPLATES / 'tools' / 'showcase.psd'
+
+    def on_load(self, *args) -> None:
+        """Add toggle buttons."""
+        self.main.toggle_buttons.extend([
+            self.ids.generate_showcases_target,
+            self.ids.generate_showcases,
+            self.ids.compress_renders,
+            self.ids.compress_renders_target,
+            self.ids.compress_arts
+        ])
 
     @staticmethod
     def process_wrapper(func) -> Callable:
@@ -88,8 +96,9 @@ class ToolsPanel(BoxLayout, GlobalAccess):
 
         # Open each image and save with border crop
         for img in images:
+            img_path = path / img.name
             import_art(docref.activeLayer, img)
-            save_document_jpeg((path / img).with_suffix('.jpg'))
+            save_document_jpeg(img_path)
             reset_document()
         close_document()
 
@@ -131,21 +140,6 @@ class ToolsPanel(BoxLayout, GlobalAccess):
                     'max_width': 2176 if self.ids.compress_dpi.active else 3264
                 }) for img in images]
             [n.result() for n in as_completed(tasks)]
-
-    """
-    * UI Properties
-    """
-
-    @auto_prop_cached
-    def toggle_buttons(self) -> list[Button]:
-        """list[Button]: Buttons toggled when enable_buttons or disable_buttons is called."""
-        return [
-            self.ids.generate_showcases_target,
-            self.ids.generate_showcases,
-            self.ids.compress_renders,
-            self.ids.compress_target,
-            self.ids.compress_arts
-        ]
 
     """
     * File Utils
