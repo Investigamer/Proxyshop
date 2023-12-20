@@ -101,6 +101,7 @@ class BaseTemplate:
     @auto_prop_cached
     def pre_render_methods(self) -> list[Callable]:
         """Additional methods to call before any rendering methods are executed."""
+        return []
 
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
@@ -1310,7 +1311,7 @@ class BaseTemplate:
 
         # Reset document, return success
         if not ENV.TEST_MODE:
-            self.console.update(f"[b]{self.output_file_name.name}[/b] rendered successfully!")
+            self.console.update(f"[b]{self.output_file_name.stem}[/b] rendered successfully!")
         self.reset()
         return True
 
