@@ -1,14 +1,19 @@
 """
-EXCEPTION UTILITIES
+* Utils: Exceptions
 """
 # Standard Library Imports
 from _ctypes import COMError, ArgumentError
+from contextlib import suppress
 from ctypes import c_uint32
-from typing import Optional
+from typing import Optional, Any, Callable
 
 # Third Party Imports
 from photoshop.api import PhotoshopPythonAPIError
 from win32api import FormatMessage
+
+"""
+* Enums
+"""
 
 PS_EXCEPTIONS = (
     PhotoshopPythonAPIError,
@@ -54,49 +59,63 @@ PS_ERROR_CODES: dict[int: str] = {
     -2147213404: "Tried to delete a layer that doesn't exist."
 }
 
+"""
+* Utility Decorators
+"""
+
+
+def log_on_exception(logr: Any = None) -> Callable:
+    """Decorator to log any exception that occurs.
+
+    Args:
+        logr: Logger object to output any exception messages.
+
+    Returns:
+        Wrapped function.
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Final exception catch
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logr.log_exception(e)
+                raise e
+        return wrapper
+    return decorator
+
+
+def return_on_exception(response: Optional[Any] = None) -> Callable:
+    """Decorator to handle any exception and return appropriate failure value.
+
+    Args:
+        response: Value to return if an exception occurs.
+
+    Returns:
+        Wrapped function.
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            with suppress(Exception):
+                return func(*args, **kwargs)
+            return response
+        return wrapper
+    return decorator
+
 
 """
-EXCEPTION CLASSES
-"""
-
-
-class ScryfallError(Exception):
-    """Exception representing a failure to retrieve Scryfall data."""
-
-    def __init__(
-        self,
-        url: Optional[str] = None,
-        name: Optional[str] = '',
-        code: Optional[str] = '',
-        number: Optional[str] = '',
-        lang: Optional[str] = '',
-
-    ):
-        # Establish string patterns
-        name = f"{name} " if name else ''
-        code = f"[{code}] " if code else ''
-        number = f"{{{number}}} " if number else ''
-        lang = f"<{lang}>" if lang else ''
-
-        # Pass the correct message
-        super().__init__(
-            f"Scryfall request failed"
-        ) if not any([url, name, code, number, lang]) else (
-            f"Couldn't find card: {name}{code}{number}{lang}\n"
-            f"Scryfall: {url or 'Request Rejected'}"
-        )
-
-
-"""
-UTILITY FUNCTIONS
+* Utility Funcs
 """
 
 
 def get_photoshop_error_message(err: Exception) -> str:
-    """
-    Gets a user-facing error message based on a given Photoshop access exception.
-    @param err: Exception object containing the reason an action failed.
-    @return: Proper user response for this exception.
+    """Gets a user-facing error message based on a given Photoshop access exception.
+
+    Args:
+        err: Exception object containing the reason an action failed.
+
+    Returns:
+        Proper user response for this exception.
     """
     return (
         "Photoshop is currently busy, close any dialogs and stop any actions.\n"
@@ -108,17 +127,20 @@ def get_photoshop_error_message(err: Exception) -> str:
 
 
 def get_com_error(signed_int: int) -> str:
-    """
-    Check for an error message for both the signed and unsigned version of a COMError code (HRESULT).
-    @param signed_int: Signed integer representing a COMError exception.
-    @return: The string error message associated with this COMError code.
+    """Check for an error message for both the signed and unsigned version of a COMError code (HRESULT).
+
+    Args:
+        signed_int: Signed integer representing a COMError exception.
+
+    Returns:
+        The string error message associated with this COMError code.
     """
     try:
         err = FormatMessage(signed_int)
-    except BaseException as e:
+    except Exception as e:
         try:
             unsigned_int = c_uint32(signed_int).value
-            err = FormatMessage(unsigned_int)
-        except BaseException as e:
+            err = FormatMessage(unsigned_int) or e.args[2]
+        except Exception as e:
             err = e.args[2]
     return err
