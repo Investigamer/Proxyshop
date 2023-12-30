@@ -8,7 +8,9 @@ from typing import Optional, Callable
 from photoshop.api.application import ArtLayer
 
 # Local Imports
+from src import CFG
 from src.enums.layers import LAYERS
+import src.format_text as ft
 import src.helpers as psd
 from src.layouts import MutateLayout
 from src.templates._core import NormalTemplate
@@ -60,6 +62,13 @@ class MutateMod (NormalTemplate):
     METHODS
     """
 
+    def process_layout_data(self) -> None:
+        """Remove reminder text for mutate text if required."""
+        if CFG.remove_reminder:
+            self.layout.mutate_text = ft.strip_reminder_text(
+                self.layout.mutate_text)
+        super().process_layout_data()
+
     def text_layers_mutate(self):
         """Add text layers required by Mutate cards."""
 
@@ -68,7 +77,6 @@ class MutateMod (NormalTemplate):
             text_classes.FormattedTextArea(
                 layer = self.text_layer_mutate,
                 contents = self.layout.mutate_text,
-                flavor = self.layout.flavor_text,
                 reference = self.mutate_reference))
 
 
