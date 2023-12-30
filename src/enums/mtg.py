@@ -1,7 +1,12 @@
 """
 * Enums: MTG Related Data
 """
+# Standard Library Imports
+from typing import Union
+
+from src.utils.regex import Reg
 # Local Imports
+from src.utils.schema import DictSchema, Schema
 from src.utils.strings import StrEnum
 
 """
@@ -82,6 +87,7 @@ class LayoutScryfall(StrEnum):
     ReversibleCard = 'reversible_card'
 
     # Definitions added to Scryfall data in postprocessing
+    Planeswalker = 'planeswalker'
     PlaneswalkerMDFC = 'planeswalker_mdfc'
     PlaneswalkerTransform = 'planeswalker_tf'
 
@@ -257,21 +263,6 @@ class TransformIcons(StrEnum):
     MELD = "meld"
 
 
-# Basic land dictionary
-BASIC_LANDS = {
-    "plains": "Basic Land — Plains",
-    "island": "Basic Land — Island",
-    "swamp": "Basic Land — Swamp",
-    "mountain": "Basic Land — Mountain",
-    "forest": "Basic Land — Forest",
-    "wastes": "Basic Land",
-    "snowcoveredplains": "Basic Snow Land — Plains",
-    "snowcoveredisland": "Basic Snow Land — Island",
-    "snowcoveredswamp": "Basic Snow Land — Swamp",
-    "snowcoveredmountain": "Basic Snow Land — Mountain",
-    "snowcoveredforest": "Basic Snow Land — Forest"
-}
-
 """
 * Text Formatting Cases
 """
@@ -292,108 +283,48 @@ planeswalkers_tall = [
 ]
 
 """
-* Color & Gradient Maps
+* Colors & Gradient Maps
 """
 
-rarity_gradient_map = {
-    'c': [],
-    'u': [
-        {
-            "color": [98, 110, 119],
-            "location": 0,
-            "midpoint": 50
-        },
-        {
-            "color": [199, 225, 241],
-            "location": 2048,
-            "midpoint": 50
-        },
-        {
-            "color": [98, 110, 119],
-            "location": 4096,
-            "midpoint": 50
-        }
-    ],
-    'r': [
-        {
-            "color": [146, 116, 67],
-            "location": 0,
-            "midpoint": 50
-        },
-        {
-            "color": [213, 180, 109],
-            "location": 2048,
-            "midpoint": 50
-        },
-        {
-            "color": [146, 116, 67],
-            "location": 4096,
-            "midpoint": 50
-        }
-    ],
-    'm': [
-        {
-            "color": [192, 55, 38],
-            "location": 0,
-            "midpoint": 50
-        },
-        {
-            "color": [245, 149, 29],
-            "location": 2048,
-            "midpoint": 50
-        },
-        {
-            "color": [192, 55, 38],
-            "location": 4096,
-            "midpoint": 50
-        }
-    ],
-    't': [
-        {
-            "color": [98, 45, 118],
-            "location": 0,
-            "midpoint": 50
-        },
-        {
-            "color": [191, 153, 195],
-            "location": 2048,
-            "midpoint": 50
-        },
-        {
-            "color": [98, 45, 118],
-            "location": 4096,
-            "midpoint": 50
-        }
-    ]
-}
+# Represents a color mapped to a symbol
+SymbolColor = Union[str, list[int]]
 
-main_color_map = {
-    # Named colors
-    'black': [0, 0, 0],
-    'white': [255, 255, 255],
-    'silver': [167, 177, 186],
-    'gold': [166, 135, 75]
-}
 
-mana_color_map = {
-    # Default mana symbol colors
-    'primary': [0, 0, 0],
-    'secondary': [255, 255, 255],
-    'c': [204, 194, 193],
-    'w': [255, 251, 214],
-    'u': [170, 224, 250],
-    'b': [204, 194, 193],
-    'r': [249, 169, 143],
-    'g': [154, 211, 175],
-    'bh': [159, 146, 143],
-    'c_i': [0, 0, 0],
-    'w_i': [0, 0, 0],
-    'u_i': [0, 0, 0],
-    'b_i': [0, 0, 0],
-    'r_i': [0, 0, 0],
-    'g_i': [0, 0, 0],
-    'bh_i': [0, 0, 0]
-}
+class ManaColors(DictSchema):
+    """Defines the mana colors for a specific symbol map (inner, outer, hybrid)."""
+    C: SymbolColor = [204, 194, 193]
+    W: SymbolColor = [255, 251, 214]
+    U: SymbolColor = [170, 224, 250]
+    B: SymbolColor = [204, 194, 193]
+    R: SymbolColor = [249, 169, 143]
+    G: SymbolColor = [154, 211, 175]
+
+    def __new__(cls, **data):
+        d = super().__new__(cls, **data)
+        d['2'] = d.pop('C', [0, 0, 0])
+        return d
+
+
+class ManaColorsInner(ManaColors):
+    """Default mana colors."""
+    C: SymbolColor = [0, 0, 0]
+    W: SymbolColor = [0, 0, 0]
+    U: SymbolColor = [0, 0, 0]
+    B: SymbolColor = [0, 0, 0]
+    R: SymbolColor = [0, 0, 0]
+    G: SymbolColor = [0, 0, 0]
+
+
+class SymbolColorMap(Schema):
+    """Color map schema."""
+    primary: SymbolColor = [0, 0, 0]
+    secondary: SymbolColor = [255, 255, 255]
+    colorless: SymbolColor = [204, 194, 193]
+    colors: dict[str, SymbolColor] = ManaColors()
+    hybrid: dict[str, SymbolColor] = ManaColors(B=[159, 146, 143])
+    colors_inner: dict[str, SymbolColor] = ManaColorsInner()
+    hybrid_inner: dict[str, SymbolColor] = ManaColorsInner()
+
 
 watermark_color_map = {
     # Default watermark colors
@@ -483,6 +414,78 @@ saga_stripe_color_map = {
     'Dual': [42, 42, 42]
 }
 
+rarity_gradient_map = {
+    'c': [],
+    'u': [
+        {
+            "color": [98, 110, 119],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [199, 225, 241],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [98, 110, 119],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    'r': [
+        {
+            "color": [146, 116, 67],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [213, 180, 109],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [146, 116, 67],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    'm': [
+        {
+            "color": [192, 55, 38],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [245, 149, 29],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [192, 55, 38],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    't': [
+        {
+            "color": [98, 45, 118],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [191, 153, 195],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [98, 45, 118],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ]
+}
+
 """
 * Fonts & Characters
 """
@@ -510,3 +513,73 @@ class MagicIcons:
     PAINTBRUSH_CLASSIC = "ýþ"
     # Gotham-Medium font
     COLLECTOR_STAR = "¬"
+
+
+"""
+* Utility Funcs
+"""
+
+
+def get_symbol_colors(symbol: str, chars: str, color_map: SymbolColorMap) -> list[SymbolColor]:
+    """Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+
+    Args:
+        symbol: Symbol to determine the colors of.
+        chars: Character representation of the symbol.
+        color_map: Maps colors to symbol strings.
+
+    Returns:
+        List of SolidColor objects to color the symbol's characters.
+    """
+
+    # Special Symbols
+    if symbol in ("{E}", "{CHAOS}"):
+        # Energy or chaos symbols
+        return [color_map.primary]
+    elif symbol == "{S}":
+        # Snow symbol
+        return [color_map.colorless, color_map.primary, color_map.secondary]
+    elif symbol == "{Q}":
+        # Untap symbol
+        return [color_map.primary, color_map.secondary]
+
+    # Normal mana symbol
+    if normal_symbol_match := Reg.MANA_NORMAL.match(symbol):
+        return [
+            color_map.colors[normal_symbol_match[1]],
+            color_map.colors_inner[normal_symbol_match[1]]
+        ]
+
+    # Hybrid
+    if hybrid_match := Reg.MANA_HYBRID.match(symbol):
+        # Use the darker color for black's symbols for 2/B hybrid symbols
+        colors = color_map.hybrid if hybrid_match[1] == "2" else color_map.colors
+        return [
+            colors[hybrid_match[2]],
+            colors[hybrid_match[1]],
+            color_map.colors_inner[hybrid_match[1]],
+            color_map.colors_inner[hybrid_match[2]]
+        ]
+
+    # Phyrexian
+    if phyrexian_match := Reg.MANA_PHYREXIAN.match(symbol):
+        return [
+            color_map.hybrid[phyrexian_match[1]],
+            color_map.hybrid_inner[phyrexian_match[1]]
+        ]
+
+    # Phyrexian hybrid
+    if phyrexian_hybrid_match := Reg.MANA_PHYREXIAN_HYBRID.match(symbol):
+        return [
+            color_map.colors[phyrexian_hybrid_match[2]],
+            color_map.colors[phyrexian_hybrid_match[1]],
+            color_map.colors_inner[phyrexian_hybrid_match[1]],
+            color_map.colors_inner[phyrexian_hybrid_match[2]]
+        ]
+
+    # Weird situation?
+    if len(chars) == 2:
+        return [color_map.colorless, color_map.primary]
+
+    # Nothing matching found!
+    raise Exception(f"Encountered a symbol that I don't know how to color: {symbol}")

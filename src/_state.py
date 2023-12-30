@@ -1,14 +1,15 @@
 """
 * Manage Global State (non-GUI)
-* Only local imports should be `utils`.
+* Only local imports should be `enums` and `utils`.
 """
 # Standard Library Imports
 import os
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 import sys
 from threading import Lock
-from typing import Optional
+from typing import Optional, Union
 
 # Third Party Imports
 from dotenv import dotenv_values
@@ -16,14 +17,14 @@ from dotenv import dotenv_values
 # Local Imports
 from src.enums.layers import LAYERS
 from src.enums.mtg import (
-    mana_color_map,
     mana_symbol_map,
-    rarity_gradient_map,
-    main_color_map,
-    CardFonts)
+    CardFonts,
+    SymbolColorMap,
+    SymbolColor,
+    get_symbol_colors)
 from src.utils.exceptions import return_on_exception
 from src.utils.files import dump_data_file, load_data_file, get_app_version
-from src.utils.properties import auto_prop_cached, Singleton
+from src.utils.properties import auto_prop_cached, Singleton, tracked_prop
 from src.utils.strings import str_to_bool_safe
 
 
@@ -194,6 +195,7 @@ class AppEnvironment:
 class AppConstants:
     """Stores global constants that control app behavior."""
     __metaclass__ = Singleton
+    _changes = set()
 
     # Thread locking handlers
     lock_decompress = Lock()
@@ -207,37 +209,20 @@ class AppConstants:
 
     def __init__(self):
         """Load initial values."""
-        self.load_values()
+        self.load_defaults()
 
-    def load_values(self):
+    """
+    * Loading Default Values
+    """
+
+    def load_defaults(self):
         """Loads default values. Called at launch and between renders to remove any changes made by templates."""
 
-        # Define blending layer mask map
-        self.masks = {
-            2: [LAYERS.HALF],
-            3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
-            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
-        }
-
-        # Define named colors
-        self.colors = main_color_map.copy()
-
-        # Define mana colors map
-        self.mana_colors = mana_color_map.copy()
-
-        # Define rarity gradient map
-        self.rarity_gradients = rarity_gradient_map.copy()
-
-        # Define rarity gradient location map
-        self.gradient_locations = {
-            2: [.40, .60],
-            3: [.26, .36, .64, .74],
-            4: [.20, .30, .45, .55, .70, .80],
-            5: [.20, .25, .35, .45, .55, .65, .75, .80]
-        }
-
-        # Define card symbol dictionary
-        self.symbols = mana_symbol_map.copy()
+        # Define text layer formatting
+        self.modal_indent = 5.7
+        self.line_break_lead = 2.4
+        self.flavor_text_lead = 4.4
+        self.flavor_text_lead_divider = 7
 
         # Define currently selected fonts as defaults
         self.font_rules_text_italic = CardFonts.RULES_ITALIC
@@ -249,28 +234,139 @@ class AppConstants:
         self.font_pt = CardFonts.TITLES
         self.font_mana = CardFonts.MANA
 
-        # Define text layer formatting
-        self.modal_indent = 5.7
-        self.line_break_lead = 2.4
-        self.flavor_text_lead = 4.4
-        self.flavor_text_lead_divider = 7
-
-        # Import Hexproof.io Cached Data
-        self.set_data = self.get_set_data()
-        self.metadata = self.get_meta_data()
-
-        # Import watermark library
-        self.watermarks = self.get_watermarks()
-
-        # Import user version tracker
-        self.versions = self.get_version_tracker()
-
-        # Import user custom definitions
-        self.get_user_data()
+        # Load changed values
+        if self._changes:
+            for attr in self._changes:
+                delattr(self, attr)
+            self._changes.clear()
+            self.get_user_data()
 
     def reload(self) -> None:
         """Reloads default attribute values."""
-        self.load_values()
+        self.load_defaults()
+
+    """
+    * Tracked Properties: Symbols
+    """
+
+    @tracked_prop
+    def mana_symbols(self) -> dict[str, str]:
+        """dict[str, str]: Maps Scryfall symbol strings to their font character representation."""
+        return mana_symbol_map.copy()
+
+    """
+    * Tracked Properties: Watermarks
+    """
+
+    @tracked_prop
+    def watermarks(self) -> dict[str, dict]:
+        """dict[str, dict]: Maps watermark names to defined formatting rules."""
+        with suppress():
+            # Ensure file exists
+            if not PATH.SRC_DATA_WATERMARKS.is_file():
+                dump_data_file({}, PATH.SRC_DATA_WATERMARKS)
+            return load_data_file(PATH.SRC_DATA_WATERMARKS)
+        return {}
+
+    """
+    * Tracked Properties: Colors
+    """
+
+    @tracked_prop
+    def colors(self) -> dict[str, list[int]]:
+        """dict[str, list[int]]: Named reusable colors."""
+        return {
+            'black': [0, 0, 0],
+            'white': [255, 255, 255],
+            'silver': [167, 177, 186],
+            'gold': [166, 135, 75]
+        }
+
+    @tracked_prop
+    def mana_colors(self) -> SymbolColorMap:
+        """SymbolColorMap: Defined mana symbol colors."""
+        return SymbolColorMap()
+
+    @tracked_prop
+    def symbol_map(self) -> dict[str, tuple[str, list[SymbolColor]]]:
+        """dict[str, tuple[str, list[SymbolColor]]]: Uses the symbol map and mana_colors to map
+            symbol character strings and colors to their Scryfall symbol string."""
+        return {sym: (n, get_symbol_colors(sym, n, self.mana_colors)) for sym, n in self.mana_symbols.items()}
+
+    def build_symbol_map(self, colors: Optional[SymbolColorMap], symbols: Optional[dict[str, str]]) -> None:
+        """Establishes a new `symbol_color_map` using a provided color map and symbol map.
+
+        Args:
+            colors: A `SymbolColorMap`, uses default if not provided.
+            symbols: A dictionary mapping font characters to their Scryfall symbol string. Uses default
+                if not provided.
+        """
+        if colors:
+            self.mana_colors = colors
+        if symbols:
+            self.mana_symbols = symbols
+        self.symbol_map = {
+            n: (sym, get_symbol_colors(sym, n, self.mana_colors))
+            for n, sym in self.mana_symbols.items()}
+
+    """
+    * Tracked Properties: Masks and Gradients
+    """
+
+    @tracked_prop
+    def masks(self) -> dict[int, list[str]]:
+        """dict[int, list[str]]: Maps mask layer names to a number representing the number of color splits."""
+        return {
+            2: [LAYERS.HALF],
+            3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
+            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
+        }
+
+    @tracked_prop
+    def gradient_locations(self) -> dict[int, list[Union[int, float]]]:
+        """dict[int, list[Union[int, float]]: Maps gradient locations to a number representing the number
+            of color splits."""
+        return {
+            2: [.40, .60],
+            3: [.26, .36, .64, .74],
+            4: [.20, .30, .45, .55, .70, .80],
+            5: [.20, .25, .35, .45, .55, .65, .75, .80]
+        }
+
+    """
+    * Tracked Properties: Template Versions
+    """
+
+    @tracked_prop
+    def versions(self) -> dict:
+        """dict[str, str]: Maps version numbers to template file identifiers."""
+        with suppress():
+            # Ensure file exists
+            if not PATH.SRC_DATA_VERSIONS.is_file():
+                dump_data_file({}, PATH.SRC_DATA_VERSIONS)
+            return load_data_file(PATH.SRC_DATA_VERSIONS)
+        return {}
+
+    def update_version_tracker(self):
+        """Updates the version tracker JSON file with current values."""
+        dump_data_file(self.versions, PATH.SRC_DATA_VERSIONS)
+        if 'versions' in self._changes:
+            self._changes.remove('versions')
+        delattr(self, 'versions')
+
+    """
+    * Tracked Properties: Hexproof.io Data
+    """
+
+    @tracked_prop
+    def set_data(self) -> dict[str, dict]:
+        """dict[str, dict]: Returns set data pulled from Hexproof.io mapped to set codes."""
+        return self.get_set_data()
+
+    @tracked_prop
+    def metadata(self) -> dict[str, dict]:
+        """dict[str, dict]: Returns data pulled from Hexproof.io mapped to resources."""
+        return self.get_meta_data()
 
     """
     * Import: User Custom Definitions
@@ -305,47 +401,11 @@ class AppConstants:
         ] if f.get(name)]
 
     """
-    * Import: User Version Tracker
-    """
-
-    @return_on_exception({})
-    def get_version_tracker(self) -> dict:
-        """Get the current version tracker dict."""
-        # Write a blank version tracker if not found
-        if not PATH.SRC_DATA_VERSIONS.is_file():
-            dump_data_file({}, PATH.SRC_DATA_VERSIONS)
-
-        # Pull the version tracker
-        return load_data_file(PATH.SRC_DATA_VERSIONS)
-
-    def update_version_tracker(self):
-        """Updates the version tracker json with current dict."""
-        dump_data_file(self.versions, PATH.SRC_DATA_VERSIONS)
-
-    """
-    * Import: Watermark Config
-    """
-
-    @return_on_exception({})
-    def get_watermarks(self) -> dict:
-        """Import the watermark configuration map (YAML).
-
-        Returns:
-            Dict containing watermark configuration map.
-        """
-        # Check for a watermark library
-        if not PATH.SRC_DATA_WATERMARKS.is_file():
-            dump_data_file({}, PATH.SRC_DATA_WATERMARKS)
-
-        # Import watermark library
-        return load_data_file(PATH.SRC_DATA_WATERMARKS)
-
-    """
     * Import: Hexproof API Data
     """
 
     @return_on_exception({})
-    def get_set_data(self) -> dict:
+    def get_set_data(self) -> dict[str, dict]:
         """dict: Loaded data from the 'set' data file."""
         if not PATH.SRC_DATA_HEXPROOF_SET.is_file():
             dump_data_file({}, PATH.SRC_DATA_HEXPROOF_SET)
@@ -354,7 +414,7 @@ class AppConstants:
         return load_data_file(PATH.SRC_DATA_HEXPROOF_SET)
 
     @return_on_exception({})
-    def get_meta_data(self) -> dict:
+    def get_meta_data(self) -> dict[str, dict]:
         """dict: Loaded data from the 'meta' data file."""
         if not PATH.SRC_DATA_HEXPROOF_META.is_file():
             dump_data_file({}, PATH.SRC_DATA_HEXPROOF_META)
