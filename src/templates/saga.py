@@ -47,29 +47,37 @@ class SagaMod (NormalTemplate):
         super().__init__(layout, **kwargs)
 
     """
-    DETAILS
+    * Layout Checks
+    """
+
+    def is_layout_saga(self) -> bool:
+        """Checks whether the card matches SagaLayout."""
+        return isinstance(self.layout, SagaLayout)
+
+    """
+    * Mixin Methods
     """
 
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Saga text layers."""
-        funcs = [self.text_layers_saga] if isinstance(self.layout, SagaLayout) else []
+        funcs = [self.text_layers_saga] if self.is_layout_saga else []
         return [*super().text_layer_methods, *funcs]
 
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         """Add Saga text layers."""
-        funcs = [self.frame_layers_saga] if isinstance(self.layout, SagaLayout) else []
+        funcs = [self.frame_layers_saga] if self.is_layout_saga else []
         return [*super().frame_layer_methods, *funcs]
 
     @auto_prop_cached
     def post_text_methods(self) -> list[Callable]:
         """Position Saga abilities, dividers, and icons."""
-        funcs = [self.layer_positioning_saga] if isinstance(self.layout, SagaLayout) else []
+        funcs = [self.layer_positioning_saga] if self.is_layout_saga else []
         return [*super().post_text_methods, *funcs]
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -77,7 +85,7 @@ class SagaMod (NormalTemplate):
         return psd.getLayerSet(LAYERS.SAGA)
 
     """
-    SAGA LAYERS
+    * Saga Layers
     """
 
     @property
@@ -101,7 +109,7 @@ class SagaMod (NormalTemplate):
         return psd.getLayer(LAYERS.DIVIDER, self.saga_group)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
     @auto_prop_cached
@@ -113,7 +121,7 @@ class SagaMod (NormalTemplate):
         return psd.getLayer("Reminder Text", self.saga_group)
 
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
@@ -125,7 +133,7 @@ class SagaMod (NormalTemplate):
         return psd.getLayer("Description Reference", self.saga_group)
 
     """
-    METHODS
+    * Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
@@ -133,7 +141,7 @@ class SagaMod (NormalTemplate):
         pass
 
     """
-    SAGA METHODS
+    * Saga Methods
     """
 
     def frame_layers_saga(self):
@@ -172,19 +180,23 @@ class SagaMod (NormalTemplate):
         spacing = self.app.scale_by_dpi(80)
         spaces = len(self.ability_layers) - 1
         spacing_total = (spaces * 1.5) + 2
-        ref_height = psd.get_layer_dimensions(self.textbox_reference)['height']
+        ref_height = self.textbox_reference.dims['height']
         total_height = ref_height - (((spacing * 1.5) * spaces) + (spacing * 2))
 
         # Resize text items till they fit in the available space
         ft.scale_text_layers_to_fit(self.ability_layers, total_height)
 
         # Get the exact gap between each layer left over
-        layer_heights = sum([psd.get_text_layer_dimensions(lyr)["height"] for lyr in self.ability_layers])
+        layer_heights = sum([psd.get_layer_dimensions(lyr)["height"] for lyr in self.ability_layers])
         gap = (ref_height - layer_heights) * (1 / spacing_total)
         inside_gap = (ref_height - layer_heights) * (1.5 / spacing_total)
 
         # Space Saga lines evenly apart
-        psd.spread_layers_over_reference(self.ability_layers, self.textbox_reference, gap, inside_gap)
+        psd.spread_layers_over_reference(
+            layers=self.ability_layers,
+            ref=self.textbox_reference,
+            gap=gap,
+            inside_gap=inside_gap)
 
         # Align icons to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -204,7 +216,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     """Saga mod for vector based templates."""
 
     """
-    COLOR MAPS
+    * Colors
     """
 
     @auto_prop_cached
@@ -216,10 +228,6 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     def saga_stripe_color_map(self) -> dict:
         """Maps color values for the Saga Stripe."""
         return saga_stripe_color_map
-
-    """
-    COLORS
-    """
 
     @auto_prop_cached
     def saga_banner_colors(self) -> list[SolidColor]:
@@ -236,7 +244,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
         return psd.get_rgb(*self.saga_stripe_color_map.get(self.pinlines, psd.rgb_black()))
 
     """
-    BLENDING MASKS
+    * Blending Masks
     """
 
     @auto_prop_cached
@@ -244,7 +252,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BANNER])]
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -256,7 +264,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
         return psd.getLayerSet(LAYERS.STRIPE, self.saga_group)
 
     """
-    SHAPES
+    * Shape Layers
     """
 
     @auto_prop_cached
@@ -281,7 +289,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
                 self.saga_group)
 
     """
-    SAGA METHODS
+    * Saga Methods
     """
 
     def frame_layers_saga(self):
@@ -310,7 +318,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     """Saga template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
-    BOOL
+    * Bool Properties
     """
 
     @auto_prop_cached
@@ -319,8 +327,13 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         return bool(self.is_transform and self.is_front)
 
     """
-    COLORS
+    * Colors
     """
+
+    @auto_prop_cached
+    def twins_colors(self) -> list[str]:
+        # Use Back face versions for back side Transform
+        return f'{self.twins} {LAYERS.BACK}' if self.is_transform and not self.is_front else self.twins
 
     @auto_prop_cached
     def textbox_colors(self) -> list[str]:
@@ -343,7 +356,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         return psd.get_pinline_gradient(self.pinlines, self.crown_color_map)
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -358,7 +371,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
             return group
 
     """
-    LAYERS
+    * Layers
     """
 
     @auto_prop_cached
@@ -369,15 +382,8 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
             name += f" {LAYERS.TRANSFORM_FRONT}"
         return psd.getLayer(name, LAYERS.BORDER)
 
-    @auto_prop_cached
-    def twins_layer(self) -> Optional[ArtLayer]:
-        # Use Back face versions for back side Transform
-        return psd.getLayer(
-            f"{self.twins} {LAYERS.BACK}" if self.is_transform and not self.is_front else self.twins,
-            self.twins_group)
-
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
@@ -387,11 +393,11 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         if self.is_front and self.is_flipside_creature:
-            return psd.getLayer(f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}", self.saga_group)
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.saga_group)
+            return psd.get_reference_layer(f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}", self.saga_group)
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.saga_group)
 
     """
-    BLENDING MASKS
+    * Blending Masks
     """
 
     @auto_prop_cached
@@ -403,7 +409,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BACKGROUND])]
 
     """
-    SHAPES
+    * Shape Layers
     """
 
     @auto_prop_cached
@@ -458,7 +464,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         ]
 
     """
-    BLENDING MASKS
+    * Blending Masks
     """
 
     @auto_prop_cached
@@ -477,7 +483,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         return [self.pinlines_mask]
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_crown(self) -> None:
@@ -493,7 +499,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         )
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def enable_transform_layers(self):
@@ -515,7 +521,7 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
     template_suffix = 'Universes Beyond'
 
     """
-    COLORS
+    * Colors
     """
 
     @auto_prop_cached
@@ -547,7 +553,7 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
         return f"{self.twins} Beyond"
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -562,7 +568,7 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
             return group
 
     """
-    TRANSFORM METHODS
+    * Transform Methods
     """
 
     def enable_transform_layers(self):
