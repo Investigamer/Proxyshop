@@ -154,7 +154,8 @@ class LAYERS (StrEnum):
     TEXTBOX_REFERENCE = "Textbox Reference"
     TEXTBOX_REFERENCE_LAND = "Textbox Reference Land"
     MUTATE_REFERENCE = "Mutate Reference"
-    PT_REFERENCE = "PT Adjustment Reference"
+    PT_REFERENCE = 'PT Reference'
+    PT_ADJUSTMENT_REFERENCE = "PT Adjustment Reference"
     PT_TOP_REFERENCE = "PT Top Reference"
     EXPANSION_REFERENCE = "Expansion Reference"
     NAME_REFERENCE_NON_LEGENDARY = "Name Reference Non-Legendary"
