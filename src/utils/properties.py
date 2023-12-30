@@ -60,6 +60,74 @@ def auto_prop_cached(func: Callable) -> property:
 """
 
 
+class tracked_prop:
+    """A decorator for creating a cached property which tracks changes in the parent object."""
+
+    def __init__(self, getter):
+        """Initializes the property.
+
+        Args:
+            getter: Decorated method which acts as a getter for the property's default value.
+        """
+        self.getter = getter
+        self._value = None
+        self._name = None
+
+    def __get__(self, instance, owner):
+        """Either sets and returns the default value or returns the cached value.
+
+        Args:
+            instance: Instance of the parent object for the decorated getter.
+            owner: Class of the parent object.
+
+        Returns:
+            Cached or default value.
+        """
+        if self._value is None:
+            self._value = self.getter(instance)
+        return self._value
+
+    def __set__(self, instance, value) -> None:
+        """Sets a new cached value for the decorated property and adds it to changes.
+
+        Args:
+            instance: Instance of the parent object.
+            value: Value to set for the cached property.
+        """
+        self._value = value
+        instance._changes.add(self._name)
+        return
+
+    def __call__(self, func):
+        """Called when decorator is used aas a function.
+
+        Args:
+            func: Function to be decorated.
+
+        Returns:
+            An instance of this decorator class.
+        """
+        self.getter = func
+        return self
+
+    def __set_name__(self, owner, name) -> None:
+        """Sets the name of the decorated property.
+
+        Args:
+            owner: Class of the parent object.
+            name: Name of the decorated property.
+        """
+        self._name = name
+
+    def __delete__(self, owner):
+        """Clears the cached value of the decorated property.
+
+        Args:
+            owner: Class of the parent object.
+        """
+        self._value = None
+
+
 class enum_class_prop:
     """A decorator for creating a static property for Enum classes."""
 
