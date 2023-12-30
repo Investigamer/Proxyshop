@@ -287,10 +287,10 @@ BASIC LAND TEMPLATES
 
 
 class BasicLandDarkMode (ExtendedMod, NormalTemplate):
-    """
-    Basic land Dark Mode
-    Credit to Vittorio Masia (Sid)
-    @todo: Update for Normal
+    """Basic land Dark Mode. Credit to Vittorio Masia (Sid)
+
+    Todo:
+        Transition to 'Normal' type.
     """
     template_suffix = "Dark Mode"
 

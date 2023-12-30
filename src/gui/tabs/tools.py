@@ -97,10 +97,17 @@ class ToolsPanel(BoxLayout, GlobalAccess):
         # Open each image and save with border crop
         for img in images:
             img_path = path / img.name
-            import_art(docref.activeLayer, img)
-            save_document_jpeg(img_path)
-            reset_document()
-        close_document()
+            import_art(
+                layer=docref.activeLayer,
+                path=img,
+                docref=docref)
+            save_document_jpeg(
+                path=img_path,
+                docref=docref)
+            reset_document(
+                docref=docref)
+        close_document(
+            docref=docref)
 
     @process_wrapper
     def compress_renders(self) -> None:
