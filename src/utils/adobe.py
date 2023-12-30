@@ -52,6 +52,12 @@ class ApplicationHandler(Application):
         super().__init__(version=version)
         self._env = env
 
+        # Set error dialog state
+        with suppress(Exception):
+            self.displayDialogs = DialogModes.DisplayErrorDialogs if (
+                env.PS_ERROR_DIALOG
+            ) else DialogModes.DisplayNoDialogs
+
     """
     * Handler Properties
     """

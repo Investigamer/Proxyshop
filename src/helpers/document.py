@@ -77,7 +77,7 @@ def get_layer_tree(group: Optional[LayerSet] = None) -> dict[str, Union[ArtLayer
 
 def import_art(
     layer: ArtLayer,
-    file: Union[str, Path],
+    path: Union[str, Path],
     name: str = 'Layer 1',
     docref: Optional[Document] = None
 ) -> ArtLayer:
@@ -85,7 +85,7 @@ def import_art(
 
     Args:
         layer: Layer to make active and receive image.
-        file: Image file to import.
+        path: Image file to import.
         name: Name of the new layer.
         docref: Reference document if provided, otherwise use active.
 
@@ -95,14 +95,14 @@ def import_art(
     desc = ActionDescriptor()
     docref = docref or APP.activeDocument
     docref.activeLayer = layer
-    desc.putPath(sID("target"), str(file))
-    APP.executeAction(sID("placeEvent"), desc)
+    desc.putPath(sID('target'), str(path))
+    APP.executeAction(sID('placeEvent'), desc)
     docref.activeLayer.name = name
     return docref.activeLayer
 
 
 def import_svg(
-    file: Union[str, Path],
+    path: Union[str, Path],
     ref: Union[ArtLayer, LayerSet] = None,
     placement: Optional[ElementPlacement] = None,
     docref: Optional[Document] = None
@@ -110,7 +110,7 @@ def import_svg(
     """Imports an SVG image, then moves it if needed.
 
     Args:
-        file: SVG file to import.
+        path: SVG file to import.
         ref: Reference used to move layer.
         placement: Placement based on the reference.
         docref: Reference document if provided, otherwise use active.
@@ -121,8 +121,8 @@ def import_svg(
     # Import the art
     desc = ActionDescriptor()
     docref = docref or APP.activeDocument
-    desc.putPath(sID("target"), str(file))
-    APP.executeAction(sID("placeEvent"), desc)
+    desc.putPath(sID('target'), str(path))
+    APP.executeAction(sID('placeEvent'), desc)
 
     # Position the layer if needed
     if ref and placement:
@@ -132,7 +132,7 @@ def import_svg(
 
 def paste_file(
     layer: ArtLayer,
-    file: Union[str, Path],
+    path: Union[str, Path],
     action: any = None,
     action_args: dict = None,
     docref: Optional[Document] = None
@@ -141,7 +141,7 @@ def paste_file(
 
     Args:
         layer: Layer object to paste the image into.
-        file: Filepath of the image to open.
+        path: Filepath of the image to open.
         action: Optional action function to call on the image before importing it.
         action_args: Optional arguments to pass to the action function.
         docref: Reference document if provided, otherwise use active.
@@ -152,7 +152,7 @@ def paste_file(
     # Select the correct layer, then load the file
     docref = docref or APP.activeDocument
     docref.activeLayer = layer
-    APP.load(str(file))
+    APP.load(str(path))
 
     # Optionally run action on art before importing it
     if action:
@@ -171,18 +171,30 @@ def paste_file(
     return docref.activeLayer
 
 
-def import_art_into_new_layer(file: Union[str, Path], name: str = "New Layer") -> ArtLayer:
+def import_art_into_new_layer(
+    path: Union[str, Path],
+    name: str = "New Layer",
+    docref: Optional[Document] = None
+) -> ArtLayer:
     """Creates a new layer and imports a given art into that layer.
 
     Args:
-        file: Image file to import, must have a valid image extension.
+        path: Image file to import, must have a valid image extension.
         name: Chosen name of the new layer.
+        docref: Reference document if provided, otherwise use active.
+
+    Returns:
+        New ArtLayer with imported art.
     """
-    return import_art(create_new_layer(name), file, name)
+    return import_art(
+        layer=create_new_layer(name),
+        path=path,
+        name=name,
+        docref=docref)
 
 
 """
-HISTORY STATE
+* Document History State
 """
 
 
@@ -195,12 +207,12 @@ def jump_to_history_state(position: int):
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.PutOffset(sID("historyState"),  position)
-    desc1.PutReference(sID("target"),  ref1)
-    APP.executeAction(sID("select"), desc1,  NO_DIALOG)
+    ref1.PutOffset(sID('historyState'),  position)
+    desc1.PutReference(sID('target'),  ref1)
+    APP.executeAction(sID('select'), desc1,  NO_DIALOG)
 
 
-def toggle_history_state(direction: str = "previous") -> None:
+def toggle_history_state(direction: str = 'previous') -> None:
     """Alter the history state.
 
     Args:
@@ -208,35 +220,36 @@ def toggle_history_state(direction: str = "previous") -> None:
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.PutEnumerated(sID("historyState"), sID("ordinal"), sID(direction))
-    desc1.PutReference(sID("target"), ref1)
-    APP.executeAction(sID("select"), desc1, NO_DIALOG)
+    ref1.PutEnumerated(sID('historyState'), sID('ordinal'), sID(direction))
+    desc1.PutReference(sID('target'), ref1)
+    APP.executeAction(sID('select'), desc1, NO_DIALOG)
 
 
 def undo_action() -> None:
     """Undo the last action in the history state."""
-    toggle_history_state("previous")
+    toggle_history_state('previous')
 
 
 def redo_action() -> None:
     """Redo the last action undone in the history state."""
-    toggle_history_state("next")
+    toggle_history_state('next')
 
 
-def reset_document() -> None:
-    """Reset to the history state to when document was first opened."""
-    idslct = cID("slct")
-    desc9 = ActionDescriptor()
-    idnull = sID("target")
-    ref1 = ActionReference()
-    idSnpS = cID("SnpS")
-    ref1.putName(idSnpS, APP.activeDocument.name)
-    desc9.putReference(idnull, ref1)
-    APP.executeAction(idslct, desc9, NO_DIALOG)
+def reset_document(docref: Optional[Document] = Document) -> None:
+    """Reset to the history state to when document was first opened.
+
+    Args:
+        docref: Reference document to reset state in, use active if not provided.
+    """
+    docref = docref or APP.activeDocument
+    d1, r1 = ActionDescriptor(), ActionReference()
+    r1.putName(sID('snapshotClass'), docref.name)
+    d1.putReference(sID('target'), r1)
+    APP.executeAction(sID('select'), d1, NO_DIALOG)
 
 
 """
-OTHER UTILITIES
+* Conversion Utilities
 """
 
 
@@ -262,6 +275,11 @@ def pixels_to_points(number: Union[int, float]) -> float:
         Float representing the given value in point units.
     """
     return number / (APP.activeDocument.resolution / 72)
+
+
+"""
+* Active Document Utils
+"""
 
 
 def check_active_document() -> bool:
@@ -305,12 +323,12 @@ def get_document(name: str) -> Optional[Document]:
 def trim_transparent_pixels() -> None:
     """Trim transparent pixels from Photoshop document."""
     desc258 = ActionDescriptor()
-    desc258.putEnumerated(sID("trimBasedOn"), sID("trimBasedOn"), sID("transparency"))
-    desc258.putBoolean(sID("top"), True)
-    desc258.putBoolean(sID("bottom"), True)
-    desc258.putBoolean(sID("left"), True)
-    desc258.putBoolean(sID("right"), True)
-    APP.executeAction(sID("trim"), desc258, NO_DIALOG)
+    desc258.putEnumerated(sID('trimBasedOn'), sID('trimBasedOn'), sID('transparency'))
+    desc258.putBoolean(sID('top'), True)
+    desc258.putBoolean(sID('bottom'), True)
+    desc258.putBoolean(sID('left'), True)
+    desc258.putBoolean(sID('right'), True)
+    APP.executeAction(sID('trim'), desc258, NO_DIALOG)
 
 
 """
@@ -385,12 +403,13 @@ def save_document_psd(path: Path, docref: Optional[Document] = None) -> None:
     )
 
 
-def save_document_psb(path: Path, *_) -> None:
+def save_document_psb(path: Path, *_args, **_kwargs) -> None:
     """Save the current document as a PSB.
 
     Args:
         path: Path to save the PSB file.
-        *_: Ignored args used by similar methods but not here.
+        _args: Ignored args used by similar methods but not here.
+        _kwargs: Ignored kwargs used by similar methods but not here.
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
@@ -410,7 +429,7 @@ def close_document(save: bool = False, docref: Optional[Document] = None) -> Non
     """
     docref = docref or APP.activeDocument
     save_options = SaveOptions.SaveChanges if save else SaveOptions.DoNotSaveChanges
-    docref.close(save_options)
+    docref.close(saving=save_options)
 
 
 """
@@ -426,10 +445,10 @@ def rotate_document(angle: int) -> None:
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.PutEnumerated(sID("document"), sID("ordinal"), sID("first"))
-    desc1.PutReference(sID("target"), ref1)
-    desc1.PutUnitDouble(sID("angle"), sID("angleUnit"), angle)
-    APP.executeaction(sID("rotateEventEnum"), desc1, NO_DIALOG)
+    ref1.PutEnumerated(sID('document'), sID('ordinal'), sID('first'))
+    desc1.PutReference(sID('target'), ref1)
+    desc1.PutUnitDouble(sID('angle'), sID('angleUnit'), angle)
+    APP.executeaction(sID('rotateEventEnum'), desc1, NO_DIALOG)
 
 
 def rotate_counter_clockwise() -> None:

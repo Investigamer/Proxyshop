@@ -2,7 +2,7 @@ normal.psd:
   id: '1t0vFPIKctuGmLMvWd3UG8k_mC-_W8LYe'
   desc: 'Normal M15-style frame, with additional support for Fullart and Stargazing treatments.'
   templates:
-    Normal: NormalTemplate
+    Normal: M15Template
     Fullart: FullartTemplate
     Stargazing: StargazingTemplate
 

@@ -377,19 +377,15 @@ class ProxyshopGUIApp(App):
     """
 
     def close_document(self) -> None:
-        """Close Photoshop document if open."""
-        try:
-            # Close and set null
-            if self.docref and isinstance(self.docref, Document):
-                self.app.displayDialogs = DialogModes.DisplayNoDialogs
+        """Close Photoshop document if current document reference exists.."""
+        if isinstance(self.docref, Document):
+            try:
                 self.docref.close(SaveOptions.DoNotSaveChanges)
-                self.app.displayDialogs = DialogModes.DisplayErrorDialogs
-                self.current_render = None
-        except Exception as e:
-            # Document wasn't available
-            print("Couldn't close corresponding document!")
-            self.console.log_exception(e)
-            self.current_render = None
+            except Exception as e:
+                # Document wasn't available
+                print("Couldn't close corresponding document!")
+                self.console.log_exception(e)
+        self.current_render = None
 
     """
     * Render Methods
@@ -655,11 +651,11 @@ class ProxyshopGUIApp(App):
             self.console.update(msg_success("SUCCESS") if result else msg_error("Failed to render"))
 
     def start_render(
-            self, card: CardLayout,
-            template: TemplateDetails,
-            loaded_class: type[BaseTemplate],
-            reload_config: bool = False,
-            reload_constants: bool = False
+        self, card: CardLayout,
+        template: TemplateDetails,
+        loaded_class: type[BaseTemplate],
+        reload_config: bool = False,
+        reload_constants: bool = False
     ) -> bool:
         """Execute a render job using a given card layout, template, and template class.
 
@@ -749,13 +745,13 @@ class ProxyshopGUIApp(App):
                     button.state = "normal"
 
     def reset(
-            self,
-            reload_config: bool = True,
-            reload_constants: bool = True,
-            close_document: bool = False,
-            enable_buttons: bool = False,
-            disable_buttons: bool = False,
-            clear_console: bool = False
+        self,
+        reload_config: bool = True,
+        reload_constants: bool = True,
+        close_document: bool = False,
+        enable_buttons: bool = False,
+        disable_buttons: bool = False,
+        clear_console: bool = False
     ) -> None:
         """Reset app config state to default.
 
