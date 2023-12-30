@@ -188,11 +188,9 @@ class NormalLayout:
         for i, face in enumerate(self.scryfall.get('card_faces', [])):
             # Card with multiple faces, first index is always front side
             if normalize_str(face['name']) == normalize_str(self.input_name):
-                face['front'] = bool(not i)
                 return face
 
         # Treat single face cards as front
-        self.scryfall['front'] = True
         return self.scryfall
 
     @auto_prop_cached
@@ -448,7 +446,7 @@ class NormalLayout:
                     self.first_print.get('set', self.set) if wm == 'set' else self.set)
 
             # Look for normal watermark
-            get_watermark_svg(wm)
+            return get_watermark_svg(wm)
 
         # WatermarkMode: Disabled, Forced
         if CFG.watermark_mode == WatermarkMode.Disabled:
@@ -463,6 +461,24 @@ class NormalLayout:
 
         # WatermarkMode: Fallback
         return _find_watermark_svg(CFG.watermark_default)
+
+    @auto_prop_cached
+    def watermark_basic(self) -> Optional[Path]:
+        """Optional[Path]: Path to basic land watermark, if card is a Basic Land."""
+        if not self.is_basic_land:
+            return
+
+        # Map pinlines to basic land type
+        _map = {
+            'W': 'plains',
+            'U': 'island',
+            'B': 'swamp',
+            'R': 'mountain',
+            'G': 'forest',
+            'Land': 'wastes'}
+        if basic_type := _map.get(self.pinlines):
+            return (PATH.SRC_IMG_SYMBOLS / 'watermark' / basic_type).with_suffix('.svg')
+        return
 
     """
     * Bool Properties
@@ -516,7 +532,7 @@ class NormalLayout:
     @auto_prop_cached
     def is_front(self) -> bool:
         """True if card is front face."""
-        return bool(self.card.get('front', True))
+        return bool(self.scryfall.get('front', True))
 
     @auto_prop_cached
     def is_alt_lang(self) -> bool:
@@ -677,9 +693,14 @@ class MutateLayout(NormalLayout):
     """
 
     @auto_prop_cached
+    def oracle_text_unprocessed(self) -> str:
+        """str: Unaltered text to split between oracle and mutate."""
+        return self.card.get('printed_text', self.oracle_text_raw) if self.is_alt_lang else self.oracle_text_raw
+
+    @auto_prop_cached
     def oracle_text(self) -> str:
-        """Remove the mutate ability text."""
-        return strip_lines(super().oracle_text, 1)
+        """str: Remove the mutate ability text."""
+        return strip_lines(self.oracle_text_unprocessed, 1)
 
     """
     * Mutate Properties
@@ -687,8 +708,8 @@ class MutateLayout(NormalLayout):
 
     @auto_prop_cached
     def mutate_text(self) -> str:
-        """Correctly formatted mutate ability text."""
-        return get_line(super().oracle_text, 0)
+        """str: Isolated mutate ability text."""
+        return get_line(self.oracle_text_unprocessed, 0)
 
 
 class PrototypeLayout(NormalLayout):
@@ -1247,7 +1268,7 @@ class SplitLayout(NormalLayout):
                     self.first_print.get('set', self.set) if wm == 'set' else self.set)
 
             # Look for normal watermark
-            get_watermark_svg(wm)
+            return get_watermark_svg(wm)
 
         # Find a watermark SVG for each face
         watermarks = []
@@ -1460,6 +1481,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     LayoutScryfall.ReversibleCard: TransformLayout,
 
     # Definitions added to Scryfall data in postprocessing
+    LayoutScryfall.Planeswalker: PlaneswalkerLayout,
     LayoutScryfall.PlaneswalkerMDFC: PlaneswalkerMDFCLayout,
     LayoutScryfall.PlaneswalkerTransform: PlaneswalkerTransformLayout
 }
