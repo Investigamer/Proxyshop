@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from PIL import Image as PImage
 from photoshop.api._document import Document
-from photoshop.api import SaveOptions, DialogModes
+from photoshop.api import SaveOptions, PurgeTarget
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -381,6 +381,7 @@ class ProxyshopGUIApp(App):
         if isinstance(self.docref, Document):
             try:
                 self.docref.close(SaveOptions.DoNotSaveChanges)
+                self.app.purge(PurgeTarget.AllCaches)
             except Exception as e:
                 # Document wasn't available
                 print("Couldn't close corresponding document!")

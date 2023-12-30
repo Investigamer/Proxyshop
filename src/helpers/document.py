@@ -11,6 +11,7 @@ from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     SaveOptions,
+    PurgeTarget,
     PNGSaveOptions,
     JPEGSaveOptions,
     PhotoshopSaveOptions,
@@ -235,7 +236,7 @@ def redo_action() -> None:
     toggle_history_state('next')
 
 
-def reset_document(docref: Optional[Document] = Document) -> None:
+def reset_document(docref: Optional[Document] = None) -> None:
     """Reset to the history state to when document was first opened.
 
     Args:
@@ -253,28 +254,32 @@ def reset_document(docref: Optional[Document] = Document) -> None:
 """
 
 
-def points_to_pixels(number: Union[int, float]) -> float:
+def points_to_pixels(number: Union[int, float], docref: Optional[Document] = None) -> float:
     """Converts a given number in point units to pixel units.
 
     Args:
         number: Number represented in point units.
+        docref: Document to reference, use active if not provided.
 
     Returns:
         Float representing the given value in pixel units.
     """
-    return (APP.activeDocument.resolution / 72) * number
+    docref = docref or APP.activeDocument
+    return (docref.resolution / 72) * number
 
 
-def pixels_to_points(number: Union[int, float]) -> float:
+def pixels_to_points(number: Union[int, float], docref: Optional[Document] = None) -> float:
     """Converts a given number in pixel units to point units.
 
     Args:
         number: Number represented in pixel units.
+        docref: Document to reference, use active if not provided.
 
     Returns:
         Float representing the given value in point units.
     """
-    return number / (APP.activeDocument.resolution / 72)
+    docref = docref or APP.activeDocument
+    return number / (docref.resolution / 72)
 
 
 """
@@ -399,8 +404,7 @@ def save_document_psd(path: Path, docref: Optional[Document] = None) -> None:
     docref.saveAs(
         file_path=str(path.with_suffix('.psd')),
         options=PhotoshopSaveOptions(),
-        asCopy=True
-    )
+        asCopy=True)
 
 
 def save_document_psb(path: Path, *_args, **_kwargs) -> None:
@@ -417,19 +421,22 @@ def save_document_psb(path: Path, *_args, **_kwargs) -> None:
     d1.putObject(sID('as'), sID('largeDocumentFormat'), d2)
     d1.putPath(sID('in'), str(path.with_suffix('.psb')))
     d1.putBoolean(sID('lowerCase'), True)
-    APP.executeAction(sID('save'), d1, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID('save'), d1, NO_DIALOG)
 
 
-def close_document(save: bool = False, docref: Optional[Document] = None) -> None:
+def close_document(save: bool = False, docref: Optional[Document] = None, purge: bool = True) -> None:
     """Close the active document.
 
     Args:
         save: Whether to save changes to the document before closing.
         docref: Open Photoshop document. Use active if not provided.
+        purge: Whether to purge all caches.
     """
     docref = docref or APP.activeDocument
     save_options = SaveOptions.SaveChanges if save else SaveOptions.DoNotSaveChanges
     docref.close(saving=save_options)
+    if purge:
+        APP.purge(PurgeTarget.AllCaches)
 
 
 """
