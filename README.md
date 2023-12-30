@@ -240,6 +240,17 @@ your Proxyshop directory, so we can help find the cause :)
 </details>
 <details markdown="1">
 <summary style="font-size: large;">
+  Mana Cost, Rules, or other text is huge and not scaling down?
+</summary>
+
+- In Photoshop go to **Edit** > **Preferences** > **Units & Rulers**.
+- Set **Rulers** to **Pixels**
+- Set **Type** to **Points**
+- The issue should be fixed.
+
+</details>
+<details markdown="1">
+<summary style="font-size: large;">
   Photoshop is busy!
 </summary>
 
