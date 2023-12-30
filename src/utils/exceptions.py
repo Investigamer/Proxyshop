@@ -103,6 +103,24 @@ def return_on_exception(response: Optional[Any] = None) -> Callable:
     return decorator
 
 
+def try_photoshop(func) -> Callable:
+    """Decorator to handle trying to run a Photoshop action but allowing exceptions to fail silently.
+
+    Args:
+        func: Function being wrapped.
+
+    Returns:
+        The wrapped function.
+    """
+    def wrapper(self, *args, **kwargs):
+        try:
+            result = func(self, *args, **kwargs)
+            return result
+        except PS_EXCEPTIONS:
+            return
+    return wrapper
+
+
 """
 * Utility Funcs
 """
