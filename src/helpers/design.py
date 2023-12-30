@@ -21,8 +21,9 @@ from photoshop.api._document import Document
 
 # Local Imports
 from src import APP, CONSOLE
-from src.helpers.layers import select_layer_pixels, select_layers, smart_layer, edit_smart_layer
+from src.helpers.layers import select_layers, smart_layer, edit_smart_layer
 from src.helpers.colors import rgb_black, fill_layer_primary
+from src.helpers.selection import select_layer_pixels
 from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
@@ -36,46 +37,51 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 def fill_empty_area(reference: ArtLayer, color: Optional[SolidColor] = None) -> ArtLayer:
-    """ Fills empty gaps on an art layer, such as an expansion symbol, with a solid color.
+    """Fills empty gaps on an art layer, such as a symbol, with a solid color.
 
     Args:
         reference: Reference layer to put the new fill layer underneath
         color: Color of the background fill
     """
     # Magic Wand contiguous outside symbol
+    docref = APP.activeDocument
+    docsel = docref.selection
     coords = ActionDescriptor()
     click1 = ActionDescriptor()
     ref1 = ActionReference()
-    coords.putUnitDouble(cID("Hrzn"), cID("#Pxl"), 5)
-    coords.putUnitDouble(cID("Vrtc"), cID("#Pxl"), 5)
-    ref1.putProperty(cID("Chnl"), cID("fsel"))
-    click1.putReference(sID("target"), ref1)
-    click1.putObject(cID("T   "), cID("Pnt "), coords)
-    click1.putInteger(cID("Tlrn"), 12)
-    click1.putBoolean(cID("AntA"), True)
-    APP.executeAction(cID("setd"), click1)
+    idPaint = sID('paint')
+    idPixel = sID('pixelsUnit')
+    idTolerance = sID('tolerance')
+    coords.putUnitDouble(sID('horizontal'), idPixel, 5)
+    coords.putUnitDouble(sID('vertical'), idPixel, 5)
+    ref1.putProperty(sID('channel'), sID('selection'))
+    click1.putReference(sID('target'), ref1)
+    click1.putObject(sID('to'), idPaint, coords)
+    click1.putInteger(idTolerance, 12)
+    click1.putBoolean(sID('antiAlias'), True)
+    APP.executeAction(sID('set'), click1)
 
     # Invert selection
-    APP.activeDocument.selection.invert()
-    APP.activeDocument.selection.contract(1)
+    docsel.invert()
+    docsel.contract(1)
 
     # Make a new layer
-    layer = APP.activeDocument.artLayers.add()
-    layer.name = "Expansion Mask"
+    layer = docref.artLayers.add()
+    layer.name = 'Expansion Mask'
     layer.blendMode = BlendMode.NormalBlend
     layer.moveAfter(reference)
 
     # Fill selection with stroke color
     APP.foregroundColor = color or rgb_black()
     click3 = ActionDescriptor()
-    click3.putObject(cID("From"), cID("Pnt "), coords)
-    click3.putInteger(cID("Tlrn"), 0)
-    click3.putEnumerated(cID("Usng"), cID("FlCn"), cID("FrgC"))
-    click3.putBoolean(cID("Cntg"), False)
-    APP.executeAction(cID("Fl  "), click3)
+    click3.putObject(sID('from'), idPaint, coords)
+    click3.putInteger(idTolerance, 0)
+    click3.putEnumerated(sID('using'), sID('fillContents'), sID('foregroundColor'))
+    click3.putBoolean(sID('contiguous'), False)
+    APP.executeAction(sID('fill'), click3)
 
     # Clear Selection
-    APP.activeDocument.selection.deselect()
+    docsel.deselect()
     return layer
 
 
@@ -118,7 +124,10 @@ def content_aware_fill_edges(layer: Optional[ArtLayer] = None, feather: bool = F
 
 
 def generative_fill_edges(
-        layer: Optional[ArtLayer] = None, feather: bool = False, close_doc: bool = True
+    layer: Optional[ArtLayer] = None,
+    feather: bool = False,
+    close_doc: bool = True,
+    docref: Optional[Document] = None
 ) -> Optional[Document]:
     """Fills pixels outside an art layer using AI powered generative fill.
 
@@ -126,12 +135,13 @@ def generative_fill_edges(
         layer: Layer to use for the generative fill. Uses active if not provided.
         feather: Whether to feather the selection before performing the fill operation.
         close_doc: Whether to close the smart layer document after the fill operation.
+        docref: Reference document, use active if not provided.
 
     Returns:
         Smart layer document if Generative Fill operation succeeded, otherwise None.
     """
     # Set docref and use active layer if not provided
-    docref: Document = APP.activeDocument
+    docref = docref or APP.activeDocument
     if not layer:
         layer = docref.activeLayer
     docref.activeLayer = layer
@@ -144,8 +154,8 @@ def generative_fill_edges(
 
     # Create a smart layer document and enter it
     select_layers([layer, fill_layer])
-    smart = smart_layer()
-    edit_smart_layer(smart)
+    smart_layer()
+    edit_smart_layer()
 
     # Select pixels of active layer and invert
     docref = APP.activeDocument
