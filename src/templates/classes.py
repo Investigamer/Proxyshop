@@ -164,7 +164,7 @@ class ClassMod (NormalTemplate):
         spacing = self.app.scale_by_dpi(80)
         spaces = len(self.line_layers) - 1
         divider_height = psd.get_layer_dimensions(self.stage_layers[0])['height']
-        ref_height = psd.get_layer_dimensions(self.textbox_reference)['height']
+        ref_height = self.textbox_reference.dims['height']
         spacing_total = (spaces * (spacing + divider_height)) + (spacing * 2)
         total_height = ref_height - spacing_total
 
@@ -172,12 +172,16 @@ class ClassMod (NormalTemplate):
         ft.scale_text_layers_to_fit(self.line_layers, total_height)
 
         # Get the exact gap between each layer left over
-        layer_heights = sum([psd.get_text_layer_dimensions(lyr)["height"] for lyr in self.line_layers])
+        layer_heights = sum([psd.get_layer_dimensions(lyr)["height"] for lyr in self.line_layers])
         gap = (ref_height - layer_heights) * (spacing / spacing_total)
         inside_gap = (ref_height - layer_heights) * ((spacing + divider_height) / spacing_total)
 
         # Space Class lines evenly apart
-        psd.spread_layers_over_reference(self.line_layers, self.textbox_reference, gap, inside_gap)
+        psd.spread_layers_over_reference(
+            layers=self.line_layers,
+            ref=self.textbox_reference,
+            gap=gap,
+            inside_gap=inside_gap)
 
         # Position a class stage between each ability line
         psd.position_dividers(self.stage_layers, self.line_layers)
@@ -262,8 +266,8 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         if self.is_front and self.is_flipside_creature:
-            return psd.getLayer(f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}", self.class_group)
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.class_group)
+            return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}', self.class_group)
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.class_group)
 
     @auto_prop_cached
     def textbox_position_reference(self) -> Optional[ArtLayer]:
