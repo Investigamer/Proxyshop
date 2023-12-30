@@ -126,12 +126,12 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
     return color
 
 
-def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
+def get_color(color: Union[SolidColor, list[int], str]) -> SolidColor:
     """Automatically get either cmyk or rgb color given a range of possible input notations.
 
     Args:
-        color: List of 3 (RGB) or 4 (CMYK) numbers between 0 and 255, or the name of a known color, or dictionary
-            color notation, e.g. {r: num, g: num, b: num}
+        color: List of 3 (RGB) or 4 (CMYK) numbers between 0 and 255, the hex of a color, the name of
+            a known color, or a SolidColor object.
 
     Returns:
         SolidColor object.
@@ -140,20 +140,6 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
         if isinstance(color, SolidColor):
             # Solid color given
             return color
-        if isinstance(color, dict):
-            # Color dictionary
-            if 'r' in color.keys():
-                # RGB
-                return get_rgb(color['r'], color['g'], color['b'])
-            elif 'c' in color.keys():
-                # CMYK
-                return get_cmyk(color['c'], color['m'], color['y'], color['k'])
-        if isinstance(color, str):
-            # Named color
-            if color in CON.colors:
-                return get_color(CON.colors[color])
-            # Hexadecimal
-            return get_rgb_from_hex(color)
         if isinstance(color, list):
             # List notation
             if len(color) == 3:
@@ -162,6 +148,12 @@ def get_color(color: Union[SolidColor, list[int], str, dict]) -> SolidColor:
             elif len(color) == 4:
                 # CMYK
                 return get_cmyk(*color)
+        if isinstance(color, str):
+            # Named color
+            if color in CON.colors:
+                return get_color(CON.colors[color])
+            # Hexadecimal
+            return get_rgb_from_hex(color)
     except (ValueError, TypeError):
         raise ValueError(f"Invalid color notation given: {color}")
     raise ValueError(f"Unrecognized color notation given: {color}")
@@ -256,7 +248,7 @@ def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], c
 
     Args:
         action: ActionDescriptor object.
-        color: RGB/CMYK SolidColor object, or list of RGB/CMYK values.
+        color: RGB/CMYK SolidColor object, list of RGB/CMYK values, a hex string, or a named color.
         color_type: Color action descriptor type, defaults to 'color'.
     """
     if isinstance(color, list):
@@ -264,12 +256,17 @@ def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], c
         return apply_rgb_from_list(action, color, color_type) if (
             len(color) < 4
         ) else apply_cmyk_from_list(action, color, color_type)
-    if color.model == ColorModel.RGBModel:
-        # RGB SolidColor object
-        return apply_rgb(action, color, color_type)
-    if color.model == ColorModel.CMYKModel:
-        # CMYK SolidColor object
-        return apply_cmyk(action, color, color_type)
+    if isinstance(color, SolidColor):
+        if color.model == ColorModel.RGBModel:
+            # RGB SolidColor object
+            return apply_rgb(action, color, color_type)
+        if color.model == ColorModel.CMYKModel:
+            # CMYK SolidColor object
+            return apply_cmyk(action, color, color_type)
+    if isinstance(color, str):
+        # Named color or hexcode
+        color = get_color(color)
+        apply_color(action, color, color_type)
     raise ValueError(f"Received unsupported color object: {color}")
 
 
