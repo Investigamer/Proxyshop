@@ -5,7 +5,7 @@
 from typing import Union, Optional
 
 # Third Party Imports
-from photoshop.api import ElementPlacement, SolidColor, AnchorPosition, BlendMode
+from photoshop.api import ElementPlacement, SolidColor, BlendMode
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -17,7 +17,7 @@ import src.helpers as psd
 from src.helpers import LayerEffects
 from src.layouts import SplitLayout
 from src.templates import BaseTemplate
-import src.text_layers as text_classes
+from src.text_layers import FormattedTextField, FormattedTextArea, ScaledTextField
 from src.utils.properties import auto_prop_cached
 from src.utils.strings import normalize_str
 
@@ -37,8 +37,17 @@ class SplitTemplate (BaseTemplate):
     is_vehicle = False
     is_artifact = False
 
-    def __init__(self, layout: SplitLayout):
-        super().__init__(layout)
+    def __init__(self, layout: SplitLayout, **kwargs):
+        super().__init__(layout, **kwargs)
+
+    """
+    * Mixin Methods
+    """
+
+    @property
+    def post_text_methods(self):
+        """Rotate card sideways."""
+        return [*super().post_text_methods, psd.rotate_counter_clockwise]
 
     """
     * Bool Properties
@@ -180,10 +189,11 @@ class SplitTemplate (BaseTemplate):
     @auto_prop_cached
     def textbox_reference(self) -> list[ArtLayer]:
         """Textbox positioning reference for each side."""
-        return [psd.getLayer(
-            LAYERS.TEXTBOX_REFERENCE + ' Fuse' if self.is_fuse else LAYERS.TEXTBOX_REFERENCE,
-            [group, LAYERS.TEXT_AND_ICONS]) for group in self.card_groups
-        ]
+        return [
+            psd.get_reference_layer(
+                LAYERS.TEXTBOX_REFERENCE + ' Fuse' if self.is_fuse else LAYERS.TEXTBOX_REFERENCE,
+                psd.getLayerSet(LAYERS.TEXT_AND_ICONS, group)
+            ) for group in self.card_groups]
 
     @auto_prop_cached
     def twins_reference(self) -> list[ArtLayer]:
@@ -347,18 +357,20 @@ class SplitTemplate (BaseTemplate):
             # Get watermark custom settings if available
             wm_details = CON.watermarks.get(self.layout.watermark[i], {})
 
-            # Generate the watermark
-            wm = psd.import_svg(str(self.layout.watermark_svg[i]))
-            psd.frame_layer(wm, self.textbox_reference[i], smallest=True)
-            wm.resize(
-                wm_details.get('scale', 80),
-                wm_details.get('scale', 80),
-                AnchorPosition.MiddleCenter)
-            wm.move(self.textbox_reference[i], ElementPlacement.PlaceAfter)
-            wm.blendMode = BlendMode.ColorBurn
-            wm.opacity = wm_details.get('opacity', CFG.watermark_opacity)
+            # Import and frame the watermark
+            wm = psd.import_svg(
+                path=self.layout.watermark_svg[i],
+                ref=self.textbox_reference[i],
+                placement=ElementPlacement.PlaceAfter,
+                docref=self.docref)
+            psd.frame_layer_by_height(
+                layer=wm,
+                ref=self.textbox_reference[i],
+                scale=wm_details.get('scale', 80))
 
-            # Add the colors
+            # Apply opacity, blending, and effects
+            wm.opacity = wm_details.get('opacity', CFG.watermark_opacity)
+            wm.blendMode = BlendMode.ColorBurn
             psd.apply_fx(wm, self.watermark_fx[i])
 
     """
@@ -432,9 +444,17 @@ class SplitTemplate (BaseTemplate):
             # Import the file into the art layer
             self.active_layer = self.art_layer[i]
             if self.art_action:
-                psd.paste_file(self.art_layer[i], self.layout.art_file[i], self.art_action, self.art_action_args)
+                psd.paste_file(
+                    layer=self.art_layer[i],
+                    path=self.layout.art_file[i],
+                    action=self.art_action,
+                    action_args=self.art_action_args,
+                    docref=self.docref)
             else:
-                psd.import_art(self.art_layer[i], self.layout.art_file[i])
+                psd.import_art(
+                    layer=self.art_layer[i],
+                    path=self.layout.art_file[i],
+                    docref=self.docref)
 
             # Frame the artwork
             psd.frame_layer(self.active_layer, ref)
@@ -448,16 +468,16 @@ class SplitTemplate (BaseTemplate):
         """Add basic text layers for each side."""
         for i in range(2):
             self.text.extend([
-                text_classes.FormattedTextField(
+                FormattedTextField(
                     layer = self.text_layer_mana[i],
                     contents = self.layout.mana_cost[i]
                 ),
-                text_classes.ScaledTextField(
+                ScaledTextField(
                     layer = self.text_layer_name[i],
                     contents = self.layout.name[i],
                     reference = self.text_layer_mana[i]
                 ),
-                text_classes.ScaledTextField(
+                ScaledTextField(
                     layer = self.text_layer_type[i],
                     contents = self.layout.type_line[i],
                     reference = self.expansion_symbols[i] or self.expansion_reference[i]
@@ -468,7 +488,7 @@ class SplitTemplate (BaseTemplate):
         """Add rules and P/T text for each face."""
         for i in range(2):
             self.text.append(
-                text_classes.FormattedTextArea(
+                FormattedTextArea(
                     layer = self.text_layer_rules[i],
                     contents = self.layout.oracle_text[i],
                     flavor = self.layout.flavor_text[i],
@@ -499,12 +519,12 @@ class SplitTemplate (BaseTemplate):
             textbox = self.textbox_layer[i].duplicate(self.textbox_groups[i], ElementPlacement.PlaceInside)
             textbox.visible = True
             self.active_layer = textbox
-            psd.select_layer_bounds(self.textbox_reference[i])
-            psd.align_horizontal(textbox)
+            psd.align_horizontal(textbox, self.textbox_reference[i].dims)
             if self.is_fuse:
-                self.docref.selection.invert()
-                self.docref.selection.clear()
-            self.docref.selection.deselect()
+                psd.select_bounds(self.textbox_reference[i], self.doc_selection)
+                self.doc_selection.invert()
+                self.doc_selection.clear()
+            self.doc_selection.deselect()
 
             # Apply pinlines
             self.pinlines_action[i](self.pinlines_colors[i], layer=self.pinlines_groups[i])
@@ -519,7 +539,3 @@ class SplitTemplate (BaseTemplate):
             self.create_blended_layer(
                 group=self.fuse_textbox_group,
                 colors=self.fuse_textbox_colors)
-
-    def post_text_layers(self) -> None:
-        """Rotate image to make it vertical."""
-        psd.rotate_counter_clockwise()
