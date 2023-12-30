@@ -24,12 +24,14 @@ from src.utils.properties import auto_prop_cached
 
 
 class AdventureMod (NormalTemplate):
-    """
-    * A modifier for adding steps required for Adventure type cards introduced in Throne of Eldraine.
+    """A modifier class which adds functionality required by Adventure cards, introduced in Throne of Eldraine.
 
     Adds:
         * Adventure side text layers (Mana cost, name, typeline, and oracle text) and textbox reference.
     """
+
+    def __init__(self, layout: AdventureLayout, **kwargs):
+        super().__init__(layout, **kwargs)
 
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
@@ -38,7 +40,7 @@ class AdventureMod (NormalTemplate):
         return [*super().text_layer_methods, *funcs]
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
     @auto_prop_cached
@@ -72,7 +74,7 @@ class AdventureMod (NormalTemplate):
 
     @auto_prop_cached
     def textbox_reference_adventure(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
 
     """
     ADVENTURE METHODS
@@ -95,7 +97,8 @@ class AdventureMod (NormalTemplate):
                 layer = self.text_layer_rules_adventure,
                 contents = self.layout.oracle_text_adventure,
                 reference = self.textbox_reference_adventure,
-                flavor = "", centered = False
+                flavor = self.layout.flavor_text_adventure,
+                centered = False
             ),
             text_classes.TextField(
                 layer = self.text_layer_type_adventure,
