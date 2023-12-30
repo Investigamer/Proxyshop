@@ -11,7 +11,8 @@ from photoshop.api._selection import Selection
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
-    DialogModes)
+    DialogModes,
+    LayerKind)
 
 # Local Imports
 from src import APP
@@ -72,6 +73,51 @@ def select_overlapping(layer: ArtLayer) -> None:
         ref2.putProperty(idChannel, sID("selection"))
         desc1.putReference(sID("with"), ref2)
         APP.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
+
+
+"""
+* Layer Based Selections
+"""
+
+
+def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
+    """Select pixels of the active layer, or a target layer.
+
+    Args:
+        layer: Layer to select. Uses active layer if not provided.
+    """
+    if layer and layer.kind == LayerKind.SolidFillLayer:
+        return select_vector_layer_pixels(layer)
+    des1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref1.putProperty(sID("channel"), sID("selection"))
+    des1.putReference(sID("target"), ref1)
+    ref2.putEnumerated(sID("channel"), sID("channel"), sID("transparencyEnum"))
+    if layer:
+        ref2.putIdentifier(sID("layer"), layer.id)
+    des1.putReference(sID("to"), ref2)
+    APP.executeAction(sID("set"), des1, NO_DIALOG)
+
+
+def select_vector_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
+    """Select pixels of the active vector layer, or a target layer.
+
+    Args:
+        layer: Layer to select. Uses active layer if not provided.
+    """
+    desc1 = ActionDescriptor()
+    ref1 = ActionReference()
+    ref2 = ActionReference()
+    ref1.putProperty(sID("channel"), sID("selection"))
+    desc1.putReference(sID("target"), ref1)
+    ref2.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
+    if layer:
+        ref2.putIdentifier(sID("layer"), layer.id)
+    desc1.putReference(sID("to"), ref2)
+    desc1.putInteger(sID("version"), 1)
+    desc1.putBoolean(sID("vectorMaskParams"), True)
+    APP.executeAction(sID("set"), desc1, NO_DIALOG)
 
 
 """

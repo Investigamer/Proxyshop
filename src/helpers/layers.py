@@ -252,7 +252,7 @@ def group_layers(
     desc1.putInteger(sID("layerSectionStart"), 0)
     desc1.putInteger(sID("layerSectionEnd"), 1)
     desc1.putString(cID('Nm  '), name)
-    APP.executeAction(cID('Mk  '), desc1, DialogModes.DisplayNoDialogs)
+    APP.executeAction(cID('Mk  '), desc1, NO_DIALOG)
     return APP.activeDocument.activeLayer
 
 
@@ -271,7 +271,7 @@ def duplicate_group(name: str) -> Union[LayerSet]:
     desc241.putReference(sID("target"),  ref4)
     desc241.putString(sID("name"), name)
     desc241.putInteger(sID("version"),  5)
-    APP.executeAction(sID("duplicate"), desc241, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("duplicate"), desc241, NO_DIALOG)
     return APP.activeDocument.activeLayer
 
 
@@ -291,38 +291,43 @@ def merge_group(group: Optional[LayerSet] = None) -> None:
 """
 
 
-def smart_layer(layer: Union[ArtLayer, LayerSet] = None) -> ArtLayer:
-    """Makes the active layer or layer set a smart layer.
-    Optionally make a given layer active first.
+def smart_layer(layer: Union[ArtLayer, LayerSet] = None, docref: Optional[Document] = None) -> ArtLayer:
+    """Makes a given layer, or the currently selected layer(s) into a smart layer.
 
     Args:
-        layer: Layer to make active if provided.
-
-    Returns:
-        Newly created smart layer.
+        layer: Layer to turn into smart layer, use active layer(s) if not provided.
+        docref: Document reference, use active if not provided.
     """
+    docref = docref or APP.activeDocument
     if layer:
-        APP.activeDocument.activeLayer = layer
-    APP.executeAction(sID("newPlacedLayer"), None, DialogModes.DisplayNoDialogs)
-    return APP.activeDocument.activeLayer
+        docref.activeLayer = layer
+    APP.executeAction(sID("newPlacedLayer"), None, NO_DIALOG)
+    return docref.activeLayer
 
 
-def edit_smart_layer(layer: ArtLayer) -> None:
+def edit_smart_layer(layer: Optional[ArtLayer] = None, docref: Optional[Document] = None) -> None:
     """Opens the contents of a given smart layer (as a separate document) for editing.
 
     Args:
-        layer: Smart layer to open for editing.
+        layer: Smart layer to open for editing, use active if not provided.
+        docref: Document reference, use active if not provided.
     """
-    desc1 = ActionDescriptor()
-    desc1.putInteger(sID("documentID"), APP.activeDocument.id)
-    desc1.putInteger(sID("layerID"), layer.id)
-    APP.executeAction(sID("placedLayerEditContents"), desc1, NO_DIALOG)
-
-
-def unpack_smart_layer(layer: Optional[ArtLayer] = None) -> None:
-    """Converts a smart layer back into its separate components."""
     if layer:
-        APP.activeDocument.activeLayer = layer
+        docref = docref or APP.activeDocument
+        docref.activeLayer = layer
+    APP.executeAction(sID("placedLayerEditContents"), None, NO_DIALOG)
+
+
+def unpack_smart_layer(layer: Optional[ArtLayer] = None, docref: Optional[Document] = None) -> None:
+    """Converts a smart layer back into its separate components.
+
+    Args:
+        layer: Smart layer to unpack into regular layers, use active if not provided.
+        docref: Document reference, use active if not provided.
+    """
+    if layer:
+        docref = docref or APP.activeDocument
+        docref.activeLayer = layer
     APP.executeAction(sID("placedLayerConvertToLayers"), None, NO_DIALOG)
 
 
@@ -359,37 +364,45 @@ def unlock_layer(layer: Union[ArtLayer, LayerSet]) -> None:
 
 
 """
-* Layer Selections
+* Selecting Layers
 """
 
 
-def select_layer(
-    layer: Union[ArtLayer, LayerSet],
-    add: bool = False,
-    make_visible: bool = False
-) -> None:
-    """Select a layer (make active) and optionally force it to be visible.
+def select_layer(layer: Union[ArtLayer, LayerSet], make_visible: bool = False) -> None:
+    """Select a layer and optionally make it visible.
 
     Args:
         layer: Layer to select.
-        add: Add to existing selection.
-        make_visible: Make the layer visible if not currently visible?
-            Doesn't work with adding layers to selection.
+        make_visible: Whether to force the layer to be visible.
+    """
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.putIdentifier(sID('layer'), layer.id)
+    d1.putReference(sID('target'), r1)
+    d1.putBoolean(sID('makeVisible'), make_visible)
+    APP.executeAction(sID('select'), d1, NO_DIALOG)
+
+
+def select_layer_add(
+    layer: Union[ArtLayer, LayerSet],
+    make_visible: bool = False
+) -> None:
+    """Add layer to currently selected and optionally force it to be visible.
+
+    Args:
+        layer: Layer to select.
+        make_visible: Make the layer visible if not currently visible.
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     ref1.putIdentifier(sID("layer"), layer.id)
     desc1.putReference(sID("target"), ref1)
-    # Add to currently selected layers?
-    if add:
-        desc1.putEnumerated(
-            sID('selectionModifier'),
-            sID('selectionModifierType'),
-            sID('addToSelection')
-        )
-    # Force visible?
+    desc1.putEnumerated(
+        sID('selectionModifier'),
+        sID('selectionModifierType'),
+        sID('addToSelection'))
     desc1.putBoolean(sID("makeVisible"), make_visible)
-    APP.executeAction(sID('select'), desc1, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID('select'), desc1, NO_DIALOG)
 
 
 def select_layers(layers: list[ArtLayer, LayerSet]) -> None:
@@ -398,56 +411,37 @@ def select_layers(layers: list[ArtLayer, LayerSet]) -> None:
     Args:
         layers: List of layers or layer sets.
     """
-    # Select none, then add all layers to selection
+    # Select no layers
+    if not layers:
+        return
     select_no_layers()
+
+    # ID's and descriptors
+    idLayer = sID('layer')
+    idSelect = sID('select')
+    idTarget = sID('target')
+    idAddToSel = sID('addToSelection')
+    idSelMod = sID('selectionModifier')
+    idSelModType = sID('selectionModifierType')
+    d1, r1 = ActionDescriptor(), ActionReference()
+
+    # Select initial layer
+    r1.putIdentifier(idLayer, layers.pop().id)
+    d1.putReference(idTarget, r1)
+    d1.putEnumerated(idSelMod, idSelModType, idAddToSel)
+    d1.putBoolean(sID('makeVisible'), False)
+    APP.executeAction(idSelect, d1, NO_DIALOG)
+
+    # Select each additional layer
     for lay in layers:
-        select_layer(lay, add=True)
+        r1.putIdentifier(idLayer, lay.id)
+        d1.putReference(idTarget, r1)
+        APP.executeAction(idSelect, d1, NO_DIALOG)
 
 
 def select_no_layers() -> None:
     """Deselect all layers."""
-    selectNone = ActionDescriptor()
-    ref = ActionReference()
-    ref.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
-    selectNone.putReference(sID("target"), ref)
-    APP.executeAction(sID("selectNoLayers"), selectNone, NO_DIALOG)
-
-
-def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
-    """Select pixels of the active layer, or a target layer.
-
-    Args:
-        layer: Layer to select. Uses active layer if not provided.
-    """
-    if layer and layer.kind == LayerKind.SolidFillLayer:
-        return select_vector_layer_pixels(layer)
-    des1 = ActionDescriptor()
-    ref1 = ActionReference()
-    ref2 = ActionReference()
-    ref1.putProperty(sID("channel"), sID("selection"))
-    des1.putReference(sID("target"), ref1)
-    ref2.putEnumerated(sID("channel"), sID("channel"), sID("transparencyEnum"))
-    if layer:
-        ref2.putIdentifier(sID("layer"), layer.id)
-    des1.putReference(sID("to"), ref2)
-    APP.executeAction(sID("set"), des1, NO_DIALOG)
-
-
-def select_vector_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
-    """Select pixels of the active vector layer, or a target layer.
-
-    Args:
-        layer: Layer to select. Uses active layer if not provided.
-    """
-    desc1 = ActionDescriptor()
-    ref1 = ActionReference()
-    ref2 = ActionReference()
-    ref1.putProperty(sID("channel"), sID("selection"))
-    desc1.putReference(sID("target"), ref1)
-    ref2.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
-    if layer:
-        ref2.putIdentifier(sID("layer"), layer.id)
-    desc1.putReference(sID("to"), ref2)
-    desc1.putInteger(sID("version"), 1)
-    desc1.putBoolean(sID("vectorMaskParams"), True)
-    APP.executeAction(sID("set"), desc1, NO_DIALOG)
+    d1, r1 = ActionDescriptor(), ActionReference()
+    r1.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
+    d1.putReference(sID("target"), r1)
+    APP.executeAction(sID("selectNoLayers"), d1, NO_DIALOG)
