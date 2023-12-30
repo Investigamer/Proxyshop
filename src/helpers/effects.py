@@ -260,7 +260,7 @@ def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> N
 
     # Apply all fx actions
     main_action.putObject(sID("to"), sID("layerEffects"), fx_action)
-    APP.executeAction(sID("set"), main_action, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("set"), main_action, NO_DIALOG)
 
 
 def apply_fx_stroke(action: ActionDescriptor, fx: EffectStroke) -> None:

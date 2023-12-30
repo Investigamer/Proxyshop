@@ -7,10 +7,11 @@ from typing import Union, Optional, Any
 # Third Party Imports
 from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
 
 # Local Imports
 from src import APP
-from src.helpers.position import get_layer_dimensions
+from src.helpers.bounds import get_layer_height
 from src.helpers.document import pixels_to_points
 from src.utils.exceptions import PS_EXCEPTIONS
 
@@ -56,19 +57,24 @@ def apply_text_key(text_layer, text_key) -> None:
     ref.putIdentifier(sID("layer"), text_layer.id)
     action.putReference(sID("target"), ref)
     action.putObject(sID("to"), sID("textLayer"), text_key)
-    APP.executeAction(sID("set"), action, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("set"), action, NO_DIALOG)
 
 
-def get_line_count(layer: Optional[ArtLayer] = None) -> int:
+def get_line_count(layer: Optional[ArtLayer] = None, docref: Optional[Document] = None) -> int:
     """Get the number of lines in a paragraph text layer.
 
     Args:
         layer: Text layer that contains a paragraph TextItem.
+        docref: Reference document, use active if not provided.
 
     Returns:
         Number of lines in the TextItem.
     """
-    return round(pixels_to_points(get_layer_dimensions(layer)['height']) / layer.textItem.leading)
+    docref = docref or APP.activeDocument
+    return round(pixels_to_points(
+        number=get_layer_height(layer),
+        docref=docref
+    ) / layer.textItem.leading)
 
 
 """
@@ -133,18 +139,25 @@ def replace_text(layer: ArtLayer, find: str, replace: str) -> None:
     apply_text_key(layer, text_key)
 
 
-def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_replace: bool = True) -> None:
+def replace_text_legacy(
+    find: str,
+    replace: str,
+    layer: Optional[ArtLayer] = None,
+    targeted_replace: bool = True
+) -> None:
     """Replace all instances of `replace_this` in the specified layer with `replace_with`, using Photoshop's
-    built-in search and replace feature. Slower than `replace_text`, but can handle multi-style strings.
+    built-in search and replace feature. Slower than `replace_text`, but can handle strings broken into
+    multiple textStyle ranges.
 
     Args:
-        layer: Layer object to search through.
         find: Text string to search for.
         replace: Text string to replace matches with.
+        layer: Layer object to search through, use active if not provided.
         targeted_replace: Disables layer targeting if False, if True may cause a crash on older PS versions.
     """
     # Set the active layer
-    APP.activeDocument.activeLayer = layer
+    if layer:
+        APP.activeDocument.activeLayer = layer
 
     # Find and replace
     idFindReplace = sID("findReplace")
@@ -168,7 +181,11 @@ def replace_text_robust(layer: ArtLayer, find: str, replace: str, targeted_repla
     try:
         APP.executeAction(idFindReplace, desc31, NO_DIALOG)
     except PS_EXCEPTIONS:
-        replace_text_robust(layer, find, replace, False)
+        replace_text_legacy(
+            find=find,
+            replace=replace,
+            layer=layer,
+            targeted_replace=False)
 
 
 def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
@@ -184,7 +201,6 @@ def remove_trailing_text(layer: ArtLayer, idx: int) -> None:
     idTo = sID("to")
 
     # Establish our text key and descriptor ID's
-    APP.activeDocument.activeLayer = layer
     key: ActionDescriptor = get_text_key(layer)
     current_text = key.getString(idTextKey)
     new_text = current_text[0:idx - 1]
@@ -232,7 +248,6 @@ def remove_leading_text(layer: ArtLayer, idx: int) -> None:
     idTo = sID("to")
 
     # Establish our text key and descriptor ID's
-    APP.activeDocument.activeLayer = layer
     key: ActionDescriptor = get_text_key(layer)
     current_text = key.getString(idTextKey)
     new_text = current_text[idx + 1:]
@@ -476,7 +491,11 @@ def set_composer_every_line(layer: ArtLayer) -> None:
 
 
 def set_font(layer: ArtLayer, font_name: str) -> None:
-    """Set the font of a given TextItem layer using a given name.
+    """Set the font of a given TextItem layer using a font's ordinary name.
+
+    Note:
+        Setting font using the 'postScriptName' is faster. For example:
+            layer.textItem.font = 'Beleren-Bold'
 
     Args:
         layer: ArtLayer containing TextItem.

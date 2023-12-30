@@ -142,7 +142,7 @@ def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
         layer: ArtLayer or LayerSet object, use active layer if not provided.
     """
     if layer:
-        select_layer(layer)
+        APP.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     ref1.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
