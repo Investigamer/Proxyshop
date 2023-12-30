@@ -2,6 +2,7 @@
 * Helpers: Layers and Layer Groups
 """
 # Standard Library Imports
+from contextlib import suppress
 from typing import Optional, Union
 
 # Third Party Imports
@@ -14,6 +15,7 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src import APP
 from src.enums.adobe import LayerContainer
+from src.utils.adobe import ReferenceLayer
 from src.utils.exceptions import PS_EXCEPTIONS
 
 # QOL Definitions
@@ -130,6 +132,36 @@ def getLayerSet(
         elif group and isinstance(group, str):
             print(f"LayerSet reference used: {group}")
     return
+
+
+def get_reference_layer(name: str, group: Union[None, str, LayerSet] = None) -> Optional[ReferenceLayer]:
+    """Get an ArtLayer that is a static reference layer.
+
+    Args:
+        name: Name of the reference layer.
+        group: Name of a LayerSet or LayerSet object which contains the reference layer, if provided.
+
+    Notes:
+        ReferenceLayer is a subclass of ArtLayer which includes
+            supplemental features for caching and improving execution
+            time on bounds and dimensions handling.
+    """
+
+    # Select the proper group if str or None provided
+    if not group:
+        group = APP.activeDocument
+    if isinstance(group, str):
+        try:
+            group = APP.activeDocument.layerSets[group]
+        except PS_EXCEPTIONS:
+            group = APP.activeDocument
+
+    # Select the reference layer
+    with suppress(Exception):
+        return ReferenceLayer(
+            parent=group.artLayers.app[name],
+            app=APP)
+    return None
 
 
 """
@@ -306,15 +338,15 @@ def lock_layer(layer: Union[ArtLayer, LayerSet], protection: str = "protectAll")
         layer: The layer to lock.
         protection: protectAll to lock, protectNone to unlock
     """
-    desc819 = ActionDescriptor()
-    ref378 = ActionReference()
-    ref378.putIdentifier(cID("Lyr "), layer.id)
-    desc819.putReference(sID("target"), ref378)
-    desc820 = ActionDescriptor()
-    desc820.putBoolean(sID(protection), True)
+    d1 = ActionDescriptor()
+    d2 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.putIdentifier(sID("layer"), layer.id)
+    d1.putReference(sID("target"), r1)
+    d2.putBoolean(sID(protection), True)
     idlayerLocking = sID("layerLocking")
-    desc819.putObject(idlayerLocking, idlayerLocking, desc820)
-    APP.executeAction(sID("applyLocking"), desc819, NO_DIALOG)
+    d1.putObject(idlayerLocking, idlayerLocking, d2)
+    APP.executeAction(sID("applyLocking"), d1, NO_DIALOG)
 
 
 def unlock_layer(layer: Union[ArtLayer, LayerSet]) -> None:
@@ -329,21 +361,6 @@ def unlock_layer(layer: Union[ArtLayer, LayerSet]) -> None:
 """
 * Layer Selections
 """
-
-
-def select_bounds(bounds: list[Union[int, float]]) -> None:
-    """Create a selection using a list of bound values.
-
-    Args:
-        bounds: List of bound values (left, top, right, bottom).
-    """
-    left, top, right, bottom = bounds
-    APP.activeDocument.selection.select([
-        [left, top],
-        [right, top],
-        [right, bottom],
-        [left, bottom]
-    ])
 
 
 def select_layer(
@@ -394,17 +411,6 @@ def select_no_layers() -> None:
     ref.putEnumerated(sID("layer"), sID("ordinal"), sID("targetEnum"))
     selectNone.putReference(sID("target"), ref)
     APP.executeAction(sID("selectNoLayers"), selectNone, NO_DIALOG)
-
-
-def select_layer_bounds(layer: ArtLayer = None) -> None:
-    """Select the bounding box of a given layer.
-
-    Args:
-        layer: Layer to select the pixels of. Uses active layer if not provided.
-    """
-    if not layer:
-        layer = APP.activeDocument.activeLayer
-    select_bounds(layer.bounds)
 
 
 def select_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
