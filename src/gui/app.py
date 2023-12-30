@@ -872,7 +872,7 @@ class ProxyshopGUIApp(App):
         # Update set data if needed
         check, error = update_hexproof_cache()
         if check:
-            self.con.load_values()
+            self.con.reload()
         message = msg_error(error) if error else msg_success(
             'Updated was applied!' if check else 'Using latest data!')
         self.console.update(f"Hexproof API Data ... {message}")

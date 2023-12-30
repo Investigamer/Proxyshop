@@ -157,27 +157,27 @@ pw.psd:
 pw-extended.psd:
   id: '1MjIF48qTyAzax7LRdtGAvZLcWTZBIzCB'
   templates:
-    Extended: { PlaneswalkerExtendedTemplate: planeswalker }
+    Borderless: { PlaneswalkerBorderlessTemplate: planeswalker }
 
 pw-tf-front.psd:
   id: '1fwhWb4BHRRjs2KoGZhLMGtQ3ngmeeQ-o'
   templates:
-    Normal: { PlaneswalkerTransformTemplate: pw_tf_front }
+    Normal: { PlaneswalkerTFTemplate: pw_tf_front }
 
 pw-tf-front-extended.psd:
   id: '1TtHwTkDhWl5jJi3b_OiMa-E4izhfcTK7'
   templates:
-    Extended: { PlaneswalkerTransformExtendedTemplate: pw_tf_front }
+    Borderless: { PlaneswalkerTFBorderlessTemplate: pw_tf_front }
 
 pw-tf-back.psd:
   id: '10_rHVPO7iIbmSlGAxgK0zMz7_lhJeaMf'
   templates:
-    Normal: { PlaneswalkerTransformTemplate: pw_tf_back }
+    Normal: { PlaneswalkerTFTemplate: pw_tf_back }
 
 pw-tf-back-extended.psd:
   id: '1H1chKvKFiFYDrnN226zshNo0wQNDIQIX'
   templates:
-    Extended: { PlaneswalkerTransformExtendedTemplate: pw_tf_back }
+    Borderless: { PlaneswalkerTFBorderlessTemplate: pw_tf_back }
 
 pw-mdfc-front.psd:
   id: '1hQBlgYaGIWIgCf4hkZRjcvMN9VJCkbVe'
@@ -187,7 +187,7 @@ pw-mdfc-front.psd:
 pw-mdfc-front-extended.psd:
   id: '1ddzLx-ookhyrjjJnOGp8pzW29FHVSbYQ'
   templates:
-    Extended: { PlaneswalkerMDFCExtendedTemplate: pw_mdfc_front }
+    Borderless: { PlaneswalkerMDFCBorderlessTemplate: pw_mdfc_front }
 
 pw-mdfc-back.psd:
   id: '1J_giOHB_07SK0LPpxH4n9Me6CyJqslvj'
@@ -197,7 +197,7 @@ pw-mdfc-back.psd:
 pw-mdfc-back-extended.psd:
   id: '1BwX6vwoH-HNnAjz8408_PujankJceFox'
   templates:
-    Extended: { PlaneswalkerMDFCExtendedTemplate: pw_mdfc_back }
+    Borderless: { PlaneswalkerMDFCBorderlessTemplate: pw_mdfc_back }
 
 token.psd:
   id: '1oWzk6MSv5wQMVJJE3VossKWs1BylBvKP'

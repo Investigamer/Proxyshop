@@ -88,9 +88,10 @@ def get_card_data(card: CardDetails) -> Optional[dict]:
     with suppress(Exception):
         data = action(*params, **kwargs)
         return data
-    if not number and CFG.scry_extras:
+    if not number and not CFG.scry_extras:
+        # Retry with extras included, case: Planar cards
         with suppress(Exception):
-            kwargs['include_extras'] = 'False'
+            kwargs['include_extras'] = 'True'
             data = action(*params, **kwargs)
             return data
     return
@@ -178,9 +179,11 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
     # Check for alternate MDFC / Transform layouts
     if 'card_faces' in data:
         # Select the corresponding face
-        card = data['card_faces'][0] if (
+        card, i = (data['card_faces'][0], 0) if (
             normalize_str(data['card_faces'][0].get('name', ''), True) == name_normalized
-        ) else data['card_faces'][1]
+        ) else (data['card_faces'][1], 1)
+        # Decide if this is a front face
+        data['front'] = True if i == 0 else False
         # Transform / MDFC Planeswalker layout
         if 'Planeswalker' in card.get('type_line', ''):
             data['layout'] = 'planeswalker_tf' if data.get('layout') == 'transform' else 'planeswalker_mdfc'
