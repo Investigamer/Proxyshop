@@ -34,14 +34,36 @@ class BattleMod (BaseTemplate):
         * Might add support for Transform icon in the future, if other symbols are used.
     """
 
+    def __init__(self, layout: BattleLayout, **kwargs):
+        super().__init__(layout, **kwargs)
+
+    """
+    * Layout Check
+    """
+
+    @auto_prop_cached
+    def is_layout_battle(self) -> bool:
+        """bool: Checks if this card matches BattleLayout."""
+        return isinstance(self.layout, BattleLayout)
+
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
-        funcs = [self.text_layers_battle] if isinstance(self.layout, BattleLayout) else []
+        funcs = [self.text_layers_battle] if self.is_layout_battle else []
         return [*super().text_layer_methods, *funcs]
 
+    @auto_prop_cached
+    def post_text_methods(self) -> list[Callable]:
+        """Rotate card sideways."""
+        funcs = [psd.rotate_counter_clockwise] if self.is_layout_battle else []
+        return [*super().post_text_methods, *funcs]
+
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
     @auto_prop_cached
@@ -67,7 +89,7 @@ class BattleMod (BaseTemplate):
         return psd.getLayer(LAYERS.DEFENSE, self.text_group)
 
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
@@ -81,18 +103,18 @@ class BattleMod (BaseTemplate):
     def pt_adjustment_reference(self) -> Optional[ArtLayer]:
         """Reference used to get the location of the PT box."""
         return psd.getLayer(
-            f"{LAYERS.PT_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.PT_REFERENCE,
+            f"{LAYERS.PT_ADJUSTMENT_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.PT_REFERENCE,
             self.text_group)
 
     """
-    METHODS
+    * Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
         """Overwrite rules text to enforce vertical text nudge with defense shield collision."""
 
         # Call super instead if not a Battle type card
-        if not isinstance(self.layout, BattleLayout):
+        if not self.is_layout_battle:
             return super().rules_text_and_pt_layers()
 
         # Rules Text and Power / Toughness
@@ -113,16 +135,8 @@ class BattleMod (BaseTemplate):
             ) if self.is_creature else None
         ])
 
-    def post_text_layers(self) -> None:
-        """Rotate document 90 degrees counter-clockwise before saving."""
-
-        # Call super instead if not a Battle type card
-        if not isinstance(self.layout, BattleLayout):
-            return super().post_text_layers()
-        psd.rotate_counter_clockwise()
-
     """
-    BATTLE METHODS
+    * Battle Methods
     """
 
     def text_layers_battle(self) -> None:
@@ -153,7 +167,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
     """Battle template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
-    BOOLS
+    * Bool Properties
     """
 
     @property
@@ -161,7 +175,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
         return False
 
     """
-    GROUPS
+    * Groups
     """
 
     @property
@@ -169,7 +183,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
         return
 
     """
-    COLORS
+    * Colors
     """
 
     @auto_prop_cached
@@ -182,7 +196,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
         )
 
     """
-    SHAPES
+    * Shape Layers
     """
 
     @auto_prop_cached
@@ -198,7 +212,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     """Universes Beyond version of BattleTemplate."""
 
     """
-    COLORS
+    * Colors
     """
 
     @auto_prop_cached
@@ -222,7 +236,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
         return f"{self.twins} Beyond"
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -231,7 +245,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
         return psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond")
 
     """
-    SHAPES
+    * Shape Layers
     """
 
     @auto_prop_cached
