@@ -75,26 +75,37 @@ def get_layer_tree(group: Optional[LayerSet] = None) -> dict[str, Union[ArtLayer
 """
 
 
-def import_art(layer: ArtLayer, file: Union[str, Path], name: str = "Layer 1") -> ArtLayer:
+def import_art(
+    layer: ArtLayer,
+    file: Union[str, Path],
+    name: str = 'Layer 1',
+    docref: Optional[Document] = None
+) -> ArtLayer:
     """Imports an art file into the active layer.
 
     Args:
         layer: Layer to make active and receive image.
         file: Image file to import.
         name: Name of the new layer.
+        docref: Reference document if provided, otherwise use active.
+
+    Returns:
+        Imported art layer.
     """
     desc = ActionDescriptor()
-    APP.activeDocument.activeLayer = layer
+    docref = docref or APP.activeDocument
+    docref.activeLayer = layer
     desc.putPath(sID("target"), str(file))
     APP.executeAction(sID("placeEvent"), desc)
-    APP.activeDocument.activeLayer.name = name
-    return APP.activeDocument.activeLayer
+    docref.activeLayer.name = name
+    return docref.activeLayer
 
 
 def import_svg(
     file: Union[str, Path],
     ref: Union[ArtLayer, LayerSet] = None,
-    placement: Optional[ElementPlacement] = None
+    placement: Optional[ElementPlacement] = None,
+    docref: Optional[Document] = None
 ) -> ArtLayer:
     """Imports an SVG image, then moves it if needed.
 
@@ -102,37 +113,45 @@ def import_svg(
         file: SVG file to import.
         ref: Reference used to move layer.
         placement: Placement based on the reference.
+        docref: Reference document if provided, otherwise use active.
 
     Returns:
-        New layer containing SVG.
+        Imported SVG layer.
     """
     # Import the art
     desc = ActionDescriptor()
+    docref = docref or APP.activeDocument
     desc.putPath(sID("target"), str(file))
     APP.executeAction(sID("placeEvent"), desc)
 
     # Position the layer if needed
     if ref and placement:
-        APP.activeDocument.activeLayer.move(ref, placement)
-    return APP.activeDocument.activeLayer
+        docref.activeLayer.move(ref, placement)
+    return docref.activeLayer
 
 
 def paste_file(
     layer: ArtLayer,
     file: Union[str, Path],
     action: any = None,
-    action_args: dict = None
-) -> None:
+    action_args: dict = None,
+    docref: Optional[Document] = None
+) -> ArtLayer:
     """Pastes the given file into the specified layer.
 
     Args:
         layer: Layer object to paste the image into.
         file: Filepath of the image to open.
         action: Optional action function to call on the image before importing it.
-        action_args: Optional arguments to pass to the action function
+        action_args: Optional arguments to pass to the action function.
+        docref: Reference document if provided, otherwise use active.
+
+    Returns:
+        Active layer where art was pasted.
     """
     # Select the correct layer, then load the file
-    APP.activeDocument.activeLayer = layer
+    docref = docref or APP.activeDocument
+    docref.activeLayer = layer
     APP.load(str(file))
 
     # Optionally run action on art before importing it
@@ -140,12 +159,16 @@ def paste_file(
         action(**action_args) if action_args else action()
 
     # Select the entire image, copy it, and close the file
-    APP.activeDocument.selection.selectAll()
-    APP.activeDocument.selection.copy()
-    APP.activeDocument.close(SaveOptions.DoNotSaveChanges)
+    newdoc = APP.activeDocument
+    docsel = newdoc.selection
+    docsel.selectAll()
+    docsel.copy()
+    newdoc.close(
+        SaveOptions.DoNotSaveChanges)
 
     # Paste the image into the specific layer
-    APP.activeDocument.paste()
+    docref.paste()
+    return docref.activeLayer
 
 
 def import_art_into_new_layer(file: Union[str, Path], name: str = "New Layer") -> ArtLayer:
@@ -295,63 +318,79 @@ def trim_transparent_pixels() -> None:
 """
 
 
-def save_document_png(path: Path) -> None:
+def save_document_png(path: Path, docref: Optional[Document] = None) -> None:
     """Save the current document as a PNG.
 
     Args:
         path: Path to save the PNG file.
+        docref: Current active document. Use active if not provided.
     """
+    docref = docref or APP.activeDocument
     png_options = PNGSaveOptions()
     png_options.compression = 3
     png_options.interlaced = False
-    APP.activeDocument.saveAs(
+    docref.saveAs(
         file_path=str(path.with_suffix('.png')),
         options=png_options,
         asCopy=True)
 
 
-def save_document_jpeg(path: Path, optimize: bool = True) -> None:
+def save_document_jpeg(path: Path, optimize: bool = True, docref: Optional[Document] = None) -> None:
     """Save the current document as a JPEG.
 
     Args:
         path: Path to save the JPEG file.
         optimize: Whether to save with "Optimize Baseline". Reduces file size, but
             may cause an error on older versions of Photoshop.
+        docref: Current active document. Use active if not provided.
     """
+
+    # Set up the save options
+    docref = docref or APP.activeDocument
+    options = JPEGSaveOptions(quality=12)
     try:
-        jpeg_options = JPEGSaveOptions(quality=12)
+
+        # Reduces filesize, unsupported by older Photoshop versions
         if optimize:
-            # Reduces filesize, might cause an error on older Photoshop versions
-            jpeg_options.formatOptions = FormatOptionsType.OptimizedBaseline
-        APP.activeDocument.saveAs(
+            options.formatOptions = FormatOptionsType.OptimizedBaseline
+
+        # Save the document
+        docref.saveAs(
             file_path=str(path.with_suffix('.jpg')),
-            options=jpeg_options,
+            options=options,
             asCopy=True)
+
+    # Retry without Optimize Baseline
     except PS_EXCEPTIONS as e:
-        # Retry without Optimize Baseline
         if optimize:
-            return save_document_jpeg(path, False)
+            return save_document_jpeg(
+                path=path,
+                optimize=False,
+                docref=docref)
         raise OSError from e
 
 
-def save_document_psd(path: Path) -> None:
+def save_document_psd(path: Path, docref: Optional[Document] = None) -> None:
     """Save the current document as a PSD.
 
     Args:
         path: Path to save the PSD file.
+        docref: Open Photoshop document. Use active if not provided.
     """
-    APP.activeDocument.saveAs(
+    docref = docref or APP.activeDocument
+    docref.saveAs(
         file_path=str(path.with_suffix('.psd')),
         options=PhotoshopSaveOptions(),
         asCopy=True
     )
 
 
-def save_document_psb(path: Path) -> None:
+def save_document_psb(path: Path, *_) -> None:
     """Save the current document as a PSB.
 
     Args:
         path: Path to save the PSB file.
+        *_: Ignored args used by similar methods but not here.
     """
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
@@ -362,14 +401,16 @@ def save_document_psb(path: Path) -> None:
     APP.executeAction(sID('save'), d1, DialogModes.DisplayNoDialogs)
 
 
-def close_document(save: bool = False) -> None:
+def close_document(save: bool = False, docref: Optional[Document] = None) -> None:
     """Close the active document.
 
     Args:
         save: Whether to save changes to the document before closing.
+        docref: Open Photoshop document. Use active if not provided.
     """
+    docref = docref or APP.activeDocument
     save_options = SaveOptions.SaveChanges if save else SaveOptions.DoNotSaveChanges
-    APP.activeDocument.close(save_options)
+    docref.close(save_options)
 
 
 """
