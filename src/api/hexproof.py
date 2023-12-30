@@ -379,7 +379,7 @@ def get_watermark_svg_from_set(code: str) -> Optional[Path]:
 
 
 def get_watermark_svg(wm: str) -> Optional[Path]:
-    """Look for a watermark SVG in the watermark symbol catalog.
+    """Look for a watermark SVG in the watermark symbol catalog. If not found, look for a 'set' watermark.
 
     Args:
         wm: Watermark name to look for.
@@ -388,8 +388,4 @@ def get_watermark_svg(wm: str) -> Optional[Path]:
         Path to a watermark SVG file if found, otherwise None.
     """
     p = (PATH.SRC_IMG_SYMBOLS / 'watermark' / wm.lower()).with_suffix('.svg')
-    if p.is_file():
-        return p
-
-    # Fallback on 'Set' based watermark
-    return get_watermark_svg_from_set(wm)
+    return p if p.is_file() else get_watermark_svg_from_set(wm)
