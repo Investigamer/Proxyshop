@@ -100,15 +100,15 @@ class LevelerMod (NormalTemplate):
 
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Level Text", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
 
     @auto_prop_cached
     def textbox_reference_x_y(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Level X-Y", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level X-Y', self.leveler_group)
 
     @auto_prop_cached
     def textbox_reference_z(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Levels Z+", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Levels Z+', self.leveler_group)
 
     """
     LEVELER METHODS
