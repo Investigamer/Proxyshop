@@ -14,6 +14,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src import CFG, CON
+from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
 from src.enums.mtg import pinline_color_map
 from src.enums.adobe import Dimensions
@@ -23,7 +24,7 @@ from src.enums.settings import (
     ModernClassicCrown
 )
 from src.frame_logic import contains_frame_colors
-from src.helpers import get_line_count
+from src.helpers import get_line_count, LayerEffects
 from src.layouts import TokenLayout
 from src.templates._core import (
     StarterTemplate,
@@ -38,16 +39,21 @@ from src.text_layers import (
     ScaledTextField,
     FormattedTextField,
     FormattedTextArea,
-    ScaledWidthTextField
+    ScaledWidthTextField, CreatureFormattedTextArea
 )
 from src.enums.layers import LAYERS
 import src.helpers as psd
 
 
 class M15Template (NyxMod, CompanionMod, NormalTemplate):
-    """
-    * Standard M15 Template
-    * Adds support for Nyx, Companion, and Snow features.
+    """Standard M15 Template
+
+    Adds:
+        * Support for Nyx background and hollow crown layers.
+        * Support for Companion hollow crown layers.
+
+    Todo:
+        * Support for snow layers?
     """
 
 
@@ -238,6 +244,35 @@ class InventionTemplate (FullartMod, NormalTemplate):
     def background(self) -> str:
         return self.twins
 
+    """
+    * Text Layer Methods
+    """
+
+    def rules_text_and_pt_layers(self) -> None:
+        """Add rules and power/toughness text."""
+        self.text.extend([
+            CreatureFormattedTextArea(
+                layer = self.text_layer_rules,
+                contents = self.layout.oracle_text,
+                flavor = self.layout.flavor_text,
+                reference = self.textbox_reference,
+                divider = self.divider_layer,
+                pt_reference = self.pt_reference,
+                centered = self.is_centered
+            ) if self.is_creature else FormattedTextArea(
+                layer = self.text_layer_rules,
+                contents = self.layout.oracle_text,
+                flavor = self.layout.flavor_text,
+                reference = self.textbox_reference,
+                divider = self.divider_layer,
+                centered = self.is_centered
+            ),
+            TextField(
+                layer = self.text_layer_pt,
+                contents = f"{self.layout.power}/{self.layout.toughness}"
+            ) if self.is_creature else None
+        ])
+
 
 class ExpeditionTemplate (FullartMod, NormalTemplate):
     """
@@ -384,7 +419,7 @@ class ClassicTemplate (StarterTemplate):
 
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
-        return psd.getLayer(
+        return psd.get_reference_layer(
             LAYERS.TEXTBOX_REFERENCE_LAND if self.is_land
             else LAYERS.TEXTBOX_REFERENCE,
             self.text_group
@@ -449,18 +484,14 @@ class ClassicTemplate (StarterTemplate):
                 flavor = self.layout.flavor_text,
                 centered = self.is_centered,
                 reference = self.textbox_reference,
-                divider = psd.getLayer(LAYERS.DIVIDER, self.text_group)
-            )
-        )
+                divider = self.divider_layer))
 
         # Add Power / Toughness
         if self.is_creature:
             self.text.append(
                 TextField(
                     layer = self.text_layer_pt,
-                    contents = f"{self.layout.power}/{self.layout.toughness}"
-                )
-            )
+                    contents = f"{self.layout.power}/{self.layout.toughness}"))
 
     def enable_frame_layers(self):
 
@@ -506,6 +537,14 @@ class EtchedTemplate (VectorTemplate):
     """
     template_suffix = 'Etched'
 
+    # Color Maps
+    pinlines_color_map = {
+        **pinline_color_map.copy(),
+        'W': [252, 254, 255],
+        'Land': [136, 120, 98],
+        'Artifact': [194, 210, 221],
+        'Colorless': [194, 210, 221]}
+
     """
     * Groups
     """
@@ -518,17 +557,6 @@ class EtchedTemplate (VectorTemplate):
     """
     * Colors
     """
-
-    @auto_prop_cached
-    def pinlines_color_map(self) -> dict:
-        # Update some colors
-        return {
-            **pinline_color_map.copy(),
-            'W': [252, 254, 255],
-            'Land': [136, 120, 98],
-            'Artifact': [194, 210, 221],
-            'Colorless': [194, 210, 221]
-        }
 
     @auto_prop_cached
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
@@ -770,24 +798,22 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
         return psd.getLayer(
             f"Flipside {LAYERS.PT_TOP_REFERENCE}" if (
                 self.is_transform and self.is_front and self.is_flipside_creature
-            ) else LAYERS.PT_TOP_REFERENCE, self.text_group
-        )
+            ) else LAYERS.PT_TOP_REFERENCE, self.text_group)
 
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         """Use smaller Textbox Reference if Pinlines are added."""
-        return psd.getLayer(
-            f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.PINLINES}" if self.pinlines_colors else LAYERS.TEXTBOX_REFERENCE,
-            self.text_group
-        )
+        return psd.get_reference_layer(
+            f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.PINLINES}"
+            if self.pinlines_colors else LAYERS.TEXTBOX_REFERENCE,
+            self.text_group)
 
     """
     HOOKS
     """
 
     def hook_large_mana(self) -> None:
-
-        # Adjust mana cost position for large symbols
+        """Adjust mana cost position for large symbols."""
         if not self.is_legendary:
             self.text_layer_mana.translate(0, -10)
 
@@ -796,8 +822,7 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
     """
 
     def enable_hollow_crown(self, **kwargs) -> None:
-
-        # No hollow crown
+        """No hollow crown."""
         pass
 
     """
@@ -805,13 +830,11 @@ class ClassicRemasteredTemplate (VectorTransformMod, VectorTemplate):
     """
 
     def enable_transform_layers(self) -> None:
-
-        # No transform layers
+        """No Transform layers."""
         pass
 
     def text_layers_transform_back(self) -> None:
-
-        # No back side text changes
+        """No back-side text changes."""
         pass
 
 
@@ -825,24 +848,22 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
     """
     template_suffix = 'Universes Beyond'
 
+    # Color Maps
+    pinline_color_map = {
+        **pinline_color_map.copy(),
+        'W': [246, 247, 241],
+        'U': [0, 131, 193],
+        'B': [44, 40, 33],
+        'R': [237, 66, 31],
+        'G': [5, 129, 64],
+        'Gold': [239, 209, 107],
+        'Land': [165, 150, 132],
+        'Artifact': [227, 228, 230],
+        'Colorless': [227, 228, 230]}
+
     """
     * Colors
     """
-
-    @auto_prop_cached
-    def pinline_color_map(self) -> dict:
-        return {
-            **pinline_color_map.copy(),
-            'W': [246, 247, 241],
-            'U': [0, 131, 193],
-            'B': [44, 40, 33],
-            'R': [237, 66, 31],
-            'G': [5, 129, 64],
-            'Gold': [239, 209, 107],
-            'Land': [165, 150, 132],
-            'Artifact': [227, 228, 230],
-            'Colorless': [227, 228, 230]
-        }
 
     @auto_prop_cached
     def crown_colors(self) -> Union[SolidColor, list[dict]]:
@@ -939,39 +960,30 @@ class LOTRTemplate (VectorTemplate):
     """
     template_suffix = 'Lord of the Rings'
 
-    """
-    * Color Maps
-    """
-
-    @auto_prop_cached
-    def pinline_color_map(self) -> dict:
-        return {
-            **pinline_color_map.copy(),
-            'W': [230, 220, 185],
-            'U': [72, 142, 191],
-            'B': [126, 128, 127],
-            'R': [217, 94, 76],
-            'G': [97, 143, 102],
-            'Gold': [246, 213, 125],
-            'Land': [181, 162, 149],
-            'Artifact': [210, 219, 227],
-            'Colorless': [210, 219, 227]
-        }
-
-    @auto_prop_cached
-    def dark_color_map(self) -> dict:
-        return {
-            'W': [134, 123, 105],
-            'U': [44, 51, 103],
-            'B': [44, 43, 39],
-            'R': [118, 34, 34],
-            'G': [13, 68, 45],
-            'Gold': [158, 124, 78],
-            'Land': [103, 90, 74],
-            'Artifact': [61, 88, 109],
-            'Colorless': [78, 91, 101],
-            'Vehicle': "4c3314"
-        }
+    # Color Maps
+    pinline_color_map = {
+        **pinline_color_map.copy(),
+        'W': [230, 220, 185],
+        'U': [72, 142, 191],
+        'B': [126, 128, 127],
+        'R': [217, 94, 76],
+        'G': [97, 143, 102],
+        'Gold': [246, 213, 125],
+        'Land': [181, 162, 149],
+        'Artifact': [210, 219, 227],
+        'Colorless': [210, 219, 227]}
+    dark_color_map = {
+        **pinline_color_map.copy(),
+        'W': [134, 123, 105],
+        'U': [44, 51, 103],
+        'B': [44, 43, 39],
+        'R': [118, 34, 34],
+        'G': [13, 68, 45],
+        'Gold': [158, 124, 78],
+        'Land': [103, 90, 74],
+        'Artifact': [61, 88, 109],
+        'Colorless': [78, 91, 101],
+        'Vehicle': "4c3314"}
 
     """
     * Colors
@@ -1068,10 +1080,48 @@ class LOTRTemplate (VectorTemplate):
 class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransformMod, VectorTemplate):
     """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
 
+    # Color Maps
+    light_color_map = {
+        'W': "faf8f2",
+        'U': "d2edfa",
+        'B': "c9c2be",
+        'R': "f8c7b0",
+        'G': "dbfadc",
+        'Gold': "f5e5a4",
+        'Land': "f0ddce",
+        'Hybrid': "f0ddce",
+        'Artifact': "cde0e9",
+        'Colorless': "e2d8d4",
+        'Vehicle': "4c3314"}
+    crown_color_map = {
+        'W': "f8f4f0",
+        'U': "006dae",
+        'B': "393431",
+        'R': "de3c23",
+        'G': "006d42",
+        'Gold': "efd16b",
+        'Land': "a59684",
+        'Artifact': "b5c5cd",
+        'Colorless': "d6d6dc"}
+    gradient_location_map = {
+        2: [.40, .60],
+        3: [.29, .40, .60, .71],
+        4: [.20, .30, .45, .55, .70, .80],
+        5: [.20, .25, .35, .45, .55, .65, .75, .80]}
+
     def __init__(self, layout, **kwargs):
         if not CFG.exit_early:
             CFG.exit_early = self.is_nickname
         super().__init__(layout, **kwargs)
+
+    """
+    * Mixin Methods
+    """
+
+    @property
+    def post_text_methods(self):
+        """Add post-text adjustments method."""
+        return [*super().post_text_methods, self.text_adjustments]
 
     """
     * Settings
@@ -1080,6 +1130,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     @auto_prop_cached
     def size(self) -> str:
         """Layer name associated with the size of the textbox."""
+
         # Check for textless
         if self.is_textless:
             return BorderlessTextbox.Textless
@@ -1324,45 +1375,6 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             'Vehicle': "4c3314"
         }
 
-    @auto_prop_cached
-    def light_color_map(self) -> dict:
-        return {
-            'W': "faf8f2",
-            'U': "d2edfa",
-            'B': "c9c2be",
-            'R': "f8c7b0",
-            'G': "dbfadc",
-            'Gold': "f5e5a4",
-            'Land': "f0ddce",
-            'Hybrid': "f0ddce",
-            'Artifact': "cde0e9",
-            'Colorless': "e2d8d4",
-            'Vehicle': "4c3314"
-        }
-
-    @auto_prop_cached
-    def crown_color_map(self) -> dict:
-        return {
-            'W': "f8f4f0",
-            'U': "006dae",
-            'B': "393431",
-            'R': "de3c23",
-            'G': "006d42",
-            'Gold': "efd16b",
-            'Land': "a59684",
-            'Artifact': "b5c5cd",
-            'Colorless': "d6d6dc"
-        }
-
-    @auto_prop_cached
-    def gradient_location_map(self) -> dict:
-        return {
-            2: [.40, .60],
-            3: [.29, .40, .60, .71],
-            4: [.20, .30, .45, .55, .70, .80],
-            5: [.20, .25, .35, .45, .55, .65, .75, .80]
-        }
-
     """
     * Colors
     """
@@ -1530,9 +1542,15 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     """
 
     @auto_prop_cached
-    def textbox_reference(self) -> Optional[ArtLayer]:
+    def textbox_reference(self) -> Optional[ReferenceLayer]:
         """Use size appropriate textbox reference."""
-        return psd.getLayer(self.size, [self.text_group, LAYERS.TEXTBOX_REFERENCE])
+        ref = psd.get_reference_layer(self.size, psd.getLayerSet(LAYERS.TEXTBOX_REFERENCE, self.text_group))
+        if self.is_mdfc:
+            psd.copy_layer_mask(
+                layer_from=psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
+                layer_to=ref)
+            psd.apply_mask(ref)
+        return ref
 
     """
     * Shapes
@@ -1649,19 +1667,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         return {
             'mask': self.pinlines_mask['mask'],
             'layer': self.crown_group.parent,
-            'funcs': [psd.apply_mask_to_layer_fx]
-        }
-
-    @auto_prop_cached
-    def textbox_reference_mask(self) -> Optional[dict]:
-        """Mask used to resize the textbox reference."""
-        if not self.is_mdfc:
-            return
-        return {
-            'mask': psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
-            'layer': self.textbox_reference,
-            'funcs': [psd.apply_mask]
-        }
+            'funcs': [psd.apply_mask_to_layer_fx]}
 
     @auto_prop_cached
     def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
@@ -1670,9 +1676,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             self.crown_mask,
             self.border_mask,
             self.pinlines_mask,
-            self.pinlines_vector_mask,
-            self.textbox_reference_mask
-        ]
+            self.pinlines_vector_mask]
 
     """
     * Effects
@@ -1680,10 +1684,34 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
 
     @auto_prop_cached
     def nickname_fx(self) -> ArtLayer:
+        """ArtLayer: Layer containing nickname effects."""
         return psd.getLayer(LAYERS.NICKNAME, LAYERS.EFFECTS)
 
     """
-    * Methods
+    * Watermarks
+    """
+
+    @auto_prop_cached
+    def basic_watermark_fx(self) -> list[LayerEffects]:
+        """Defines the layer effects used on the Basic Land Watermark."""
+        sizes = {
+            # Bevel thickness based on textbox size
+            BorderlessTextbox.Short: 20,
+            BorderlessTextbox.Medium: 22,
+            BorderlessTextbox.Normal: 25,
+            BorderlessTextbox.Tall: 28}
+        return [
+            {'type': 'color-overlay', 'opacity': 100, 'color': self.basic_watermark_color},
+            {
+                'size': sizes.get(self.size),
+                'type': 'bevel', 'softness': 14, 'depth': 100,
+                'shadow_opacity': 72, 'highlight_opacity': 70,
+                'rotation': 45, 'altitude': 22
+            }
+        ]
+
+    """
+    * Frame Layer Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -1733,6 +1761,10 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if self.is_legendary:
             self.enable_crown()
 
+    """
+    * Text Layer Methods
+    """
+
     def basic_text_layers(self) -> None:
 
         # Establish whether this is a textless creature render with no symbol
@@ -1766,8 +1798,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             ))
 
     def rules_text_and_pt_layers(self) -> None:
-
-        # Call super if not a Textless render
+        """Call to super if card isn't a 'Textless' render."""
         if not self.is_textless:
             return super().rules_text_and_pt_layers()
 
@@ -1781,16 +1812,20 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             psd.align_all(self.text_layer_pt, self.pt_group)
             self.text.append(
                 TextField(
-                    layer = self.text_layer_pt,
-                    contents = f"{self.layout.power}/{self.layout.toughness}"
-                ))
+                    layer=self.text_layer_pt,
+                    contents=f"{self.layout.power}/{self.layout.toughness}"))
             return
 
         # Otherwise just shift the symbol over
         if self.expansion_symbol_layer:
             self.expansion_symbol_layer.translate(10, 0)
 
+    """
+    * Frame Layer Methods
+    """
+
     def enable_crown(self) -> None:
+        """Allows toggling of crown layer textures and adopting 'Nickname' effects on Nickname cards."""
 
         # Enable Legendary Crown group and layers
         self.crown_group.visible = True
@@ -1805,7 +1840,8 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if self.is_nickname:
             psd.copy_layer_fx(self.nickname_fx, self.crown_group.parent)
 
-    def post_text_layers(self) -> None:
+    def text_adjustments(self) -> None:
+        """Handles all specialized text adjustments for a variety of render settings."""
 
         # Align typeline, symbol, and indicator
         if self.size != BorderlessTextbox.Tall:
@@ -1857,6 +1893,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     """
 
     def text_layers_transform_front(self) -> None:
+        """Switch font colors on 'Authentic' front face cards."""
         super().text_layers_transform_front()
 
         # Use black text
@@ -1868,8 +1905,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             self.text_layer_flipside_pt.textItem.color = psd.get_rgb(*[186, 186, 186])
 
     def text_layers_transform_back(self):
-
-        # No back side changes
+        """No back-side Transform changes."""
         pass
 
     """
@@ -1877,8 +1913,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     """
 
     def text_layers_mdfc_front(self) -> None:
-
-        # Switch to black text
+        """Switch font colors on 'Authentic' front face cards."""
         if self.is_authentic_front:
             self.swap_font_color()
 
@@ -1887,9 +1922,10 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     """
 
     def swap_font_color(self, color: SolidColor = None) -> None:
-        """
-        Switch the font color of each key text layer.
-        @param color: SolidColor object, will use black if not provided.
+        """Switch the font color of each key text layer.
+
+        Args:
+            color: SolidColor object, will use black if not provided.
         """
 
         # Ensure a color is chosen
@@ -1910,6 +1946,9 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
 
 class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
     """A modern frame version of iDerp's 'Classic Remastered' template."""
+
+    # Color Maps
+    pinline_color_map = {**pinline_color_map.copy(), "Land": "#604a33"}
 
     """
     * Bool
@@ -1940,16 +1979,19 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         return CFG.get_option("FRAME", "Crown.Mode", ModernClassicCrown)
 
     """
-    * Color Maps
+    * References
     """
 
     @auto_prop_cached
-    def pinline_color_map(self) -> dict:
-        """Maps color values for the Pinlines."""
-        return {
-            **pinline_color_map.copy(),
-            "Land": "#604a33"
-        }
+    def textbox_reference(self) -> Optional[ArtLayer]:
+        """Use a mask to reduce reference size for MDFC cards."""
+        ref = super().textbox_reference
+        if self.is_mdfc:
+            psd.copy_layer_mask(
+                layer_from=psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
+                layer_to=ref)
+            psd.apply_mask(ref)
+        return ref
 
     """
     * Colors
@@ -2079,28 +2121,16 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
         }]
 
     @auto_prop_cached
-    def textbox_reference_mask(self) -> Optional[dict]:
-        """Mask used to resize the textbox reference."""
-        if not self.is_mdfc:
-            return
-        return {
-            'mask': psd.getLayer(LAYERS.MDFC, [self.mask_group, LAYERS.TEXTBOX_REFERENCE]),
-            'layer': self.textbox_reference,
-            'funcs': [psd.apply_mask]
-        }
-
-    @auto_prop_cached
     def enabled_masks(self) -> list[Union[list, dict]]:
         return [
             self.border_mask,
             self.background_mask,
             *self.pinlines_mask,
-            *self.twins_mask,
-            self.textbox_reference_mask
+            *self.twins_mask
         ]
 
     """
-    * Util Methods
+    * Frame Layer Methods
     """
 
     def enable_frame_layers(self) -> None:
