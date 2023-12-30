@@ -4,7 +4,7 @@
 # Standard Library Imports
 from contextlib import suppress
 from functools import cached_property
-from typing import Optional, Union, Callable
+from typing import Optional, Union
 
 # Third Party Imports
 from photoshop.api import (
@@ -16,8 +16,7 @@ from photoshop.api import (
     SolidColor,
     Language,
     Justification,
-    RasterizeType
-)
+    RasterizeType)
 from photoshop.api._document import Document
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
@@ -25,14 +24,17 @@ from photoshop.api.text_item import TextItem
 
 # Local Imports
 from src import APP, CFG, CON
-from src.enums.mtg import CardFonts
+from src.enums.mtg import CardFonts, SymbolColor
 from src import format_text as ft
 from src.format_text import CardSymbolString, CardItalicString
-from src.helpers.bounds import get_layer_dimensions
+from src.helpers import select_layer
+from src.helpers.bounds import get_layer_dimensions, LayerDimensions, get_layer_width
 from src.helpers.colors import apply_color, get_text_item_color
-from src.helpers.layers import select_layer_bounds
-from src.helpers.position import position_between_layers, align_horizontal
+from src.helpers.position import position_between_layers, clear_reference_vertical
+from src.helpers.selection import select_layer_bounds
 from src.helpers.text import get_text_scale_factor, remove_trailing_text
+from src.utils.adobe import ReferenceLayer
+from src.utils.properties import auto_prop_cached
 
 # QOL Definitions
 sID = APP.stringIDToTypeID
@@ -45,27 +47,30 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 class TextField:
-    """
-    A generic TextField, which allows you to set a text layer's contents and text color.
-    @param layer: TextItem layer to insert contents.
-    @param contents: Text contents to be inserted.
-    @param color: Font color to use for this TextItem.
-    @param kwargs: Optional keyword parameters.
-    """
     FONT = CardFonts.TITLES
     FONT_ITALIC = CardFonts.RULES_ITALIC
     FONT_BOLD = CardFonts.RULES_BOLD
 
     def __init__(self, layer: ArtLayer, contents: str = "", **kwargs):
-        # Mandatory attributes
+        """A generic TextField, which allows you to set a text layer's contents and text color.
+
+        Args:
+            layer: TextItem layer to insert contents.
+            contents: Text contents to be inserted.
+            color: Font color to use for this TextItem.
+
+        Keyword Args:
+            color: Color to apply to the text item.
+            font: Font postScriptName to apply to the text item.
+            font_mana: Font postScriptName to apply to mana symbol text.
+            font_italic: Font postScriptName to apply to italicized text.
+            font_bold: Font postScriptName to apply to bold text.
+            reference: Reference layer to used for scaling operations.
+        """
         self._kwargs = kwargs
         self._layer = layer
-        self.layer.visible = True
-        self.contents = contents.replace("\n", "\r")
-
-        # Change to English formatting if needed
-        if self.is_text_layer and CFG.force_english_formatting:
-            self.TI.language = Language.EnglishUSA
+        self.contents = contents.replace(
+            "\n", "\r")
 
     """
     * Keyword Arguments
@@ -101,6 +106,11 @@ class TextField:
         """Font to apply to any bold text in the TextItem."""
         return self.kwargs.get('font_bold')
 
+    @cached_property
+    def kw_symbol_map(self) -> dict[str, tuple[str, list[SymbolColor]]]:
+        """Symbol map to use for formatting mana symbols."""
+        return self.kwargs.get('symbol_map', CON.symbol_map)
+
     """
     * Checks
     """
@@ -134,6 +144,15 @@ class TextField:
         """A reference layer, typically used for scaling the TextItem."""
         return self.kwargs.get('reference', None)
 
+    @cached_property
+    def reference_dims(self) -> Optional[type[LayerDimensions]]:
+        """Optional[type[LayerDimensions]]: Dimensions of the scaling reference layer."""
+        if isinstance(self.reference, ReferenceLayer):
+            return self.reference.dims
+        if self.reference:
+            return get_layer_dimensions(self.reference)
+        return None
+
     @property
     def input(self) -> str:
         """Raw contents provided to fill the TextItem."""
@@ -155,16 +174,21 @@ class TextField:
 
     def validate(self):
         """Ensure the Text Layer provided is valid."""
-        if self.is_text_layer:
+        if self.layer and self.is_text_layer:
+            # Layer is valid, select and show it
+            select_layer(self.layer, True)
             return True
         with suppress(Exception):
-            print(self.__class__.__name__)
-            print(f'Invalid layer provided: {self.layer}')
+            # Layer provided doesn't exist or isn't a text layer
+            name = self.layer.name if self.layer else '[Non-Layer]'
+            print(f'Text Field class: {self.__class__.__name__}\n'
+                  f'Invalid layer provided: {name}')
             self.layer.visible = False
         return False
 
     def execute(self):
         """Executes all text actions."""
+
         # Update TextItem contents
         self.TI.contents = self.input
 
@@ -176,55 +200,72 @@ class TextField:
         if self.font != self.FONT:
             self.TI.font = self.font
 
+        # Change to English formatting if needed
+        if CFG.force_english_formatting:
+            self.TI.language = Language.EnglishUSA
+
 
 class ScaledTextField (TextField):
-    """
-    A TextField which automatically scales down its font size until the right bound
-    no longer overlaps with a reference layer's left bound.
-    """
-    @cached_property
-    def flip_scale(self) -> bool:
-        return self.kwargs.get('flip_scale', False)
-
-    @cached_property
-    def scale_action(self) -> Callable:
-        if self.flip_scale:
-            return ft.scale_text_left_overlap
-        return ft.scale_text_right_overlap
+    """A TextField which automatically scales down its font size until the right bound
+        no longer overlaps with the `reference` layer's left bound."""
 
     def execute(self):
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            self.scale_action(self.layer, self.reference)
+            ft.scale_text_right_overlap(self.layer, self.reference)
+
+
+class ScaledTextFieldLeft (TextField):
+    """A TextField which automatically scales down its font size until the left bound
+        no longer overlaps with the `reference` layer's right bound."""
+
+    def execute(self):
+        super().execute()
+
+        # Scale down the text layer until it doesn't overlap with a reference layer
+        if self.reference:
+            ft.scale_text_left_overlap(self.layer, self.reference)
 
 
 class ScaledWidthTextField (TextField):
-    """
-    A TextField which automatically scales down its font size until the width of the
-    layer is within the horizontal bound of a reference layer.
-    """
+    """A TextField which automatically scales down its font size until the width of the
+        layer is within the horizontal bound of a reference layer."""
     FONT = CardFonts.RULES
 
     @cached_property
     def font(self) -> str:
-        """Font provided, or fallback on global constant."""
+        """str: Font provided, or fallback on global constant."""
         return self.kw_font or CON.font_rules_text
+
+    @cached_property
+    def reference_width(self) -> Union[float, int]:
+        """Union[float, int]: Width of the reference layer provided."""
+        return get_layer_width(self.reference)
 
     def execute(self):
         super().execute()
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            ft.scale_text_to_fit_reference(self.layer, self.reference, height=False)
+            ft.scale_text_to_width(self.layer, width=self.reference_width)
 
 
 class FormattedTextField (TextField):
-    """
-    A utility class for packing in the required infrastructure to format text with action descriptors.
+    """A utility class containing the required infrastructure to format text with action descriptors.
+
+    * Formats any recognized mana symbols contained in the text.
+    * Formats any modal/bullet point sections in the text.
+    * Formats any italicized or bolded text, as well as line breaks.
     """
     FONT = CardFonts.RULES
+
+    def __init__(self, layer: ArtLayer, contents: str = "", **kwargs):
+        super().__init__(layer, contents, **kwargs)
+
+        # Pre-cache text details
+        _ = self.text_details
 
     """
     * Core Text Details
@@ -237,38 +278,38 @@ class FormattedTextField (TextField):
         italic_text = ft.generate_italics(self.contents) if self.contents else []
 
         # Add flavor text to italics array
-        flavor = self.flavor_text
         if self.flavor_text.count("*") >= 2:
             # Don't italicize text between asterisk
             flavor_text_split = self.flavor_text.split("*")
             italic_text.extend([v for i, v in enumerate(flavor_text_split) if not i % 2 and not v == ''])
-            flavor = ''.join(flavor_text_split)
+            self.flavor_text = ''.join(flavor_text_split)
         elif self.flavor_text:
             # Regular flavor text
             italic_text.append(self.flavor_text)
 
         # Locate symbols and update the rules string
-        rules, symbols = ft.locate_symbols(self.contents)
+        rules, symbols = ft.locate_symbols(self.contents, self.kw_symbol_map)
 
         # Create the new input string
-        input_str = f'{rules}\r{flavor}' if rules and flavor else (
-            rules if rules else flavor)
+        input_str = f'{rules}\r{self.flavor_text}' if rules and self.flavor_text else (
+            rules if rules else self.flavor_text)
 
         # Locate italics text indices
-        italicized = ft.locate_italics(input_str, italic_text)
+        italicized = ft.locate_italics(input_str, italic_text, self.kw_symbol_map)
 
         return {
-            'symbol_indices': symbols, 'italics_indices': italicized,
-            'rules_text': rules, 'flavor_text': flavor,
-            'input_string': input_str
+            'rules_text': rules,
+            'input_string': input_str,
+            'symbol_indices': symbols,
+            'italics_indices': italicized,
         }
 
     @cached_property
-    def italics_indices(self) -> CardItalicString:
+    def italics_indices(self) -> list[CardItalicString]:
         return self.text_details['italics_indices']
 
     @cached_property
-    def symbol_indices(self) -> CardSymbolString:
+    def symbol_indices(self) -> list[CardSymbolString]:
         return self.text_details['symbol_indices']
 
     @cached_property
@@ -285,45 +326,41 @@ class FormattedTextField (TextField):
     """
 
     @cached_property
-    def rules_text_updated(self) -> str:
+    def rules_text(self) -> str:
         return self.text_details['rules_text']
 
     @cached_property
-    def rules_text_range(self) -> Optional[tuple[int, int]]:
-        if not self.rules_text_updated:
+    def rules_range(self) -> Optional[tuple[int, int]]:
+        if not self.rules_text:
             return
-        return 0, len(self.rules_text_updated)
+        return 0, len(self.rules_text)
 
     @cached_property
     def rules_start(self) -> int:
-        if self.rules_text_range:
-            return self.rules_text_range[0]
+        if self.rules_range:
+            return self.rules_range[0]
         return -1
 
     @cached_property
     def rules_end(self) -> int:
-        if self.rules_text_range:
-            return self.rules_text_range[1]
+        if self.rules_range:
+            return self.rules_range[1]
         return -1
 
     """
     * Flavor Text and Indexes
     """
 
-    @cached_property
+    @auto_prop_cached
     def flavor_text(self) -> str:
         return self.kwargs.get('flavor', '').replace('\n', '\r')
 
     @cached_property
-    def flavor_text_updated(self) -> str:
-        return self.text_details['flavor_text']
-
-    @cached_property
     def flavor_text_range(self) -> Optional[tuple[int, int]]:
-        if not self.flavor_text_updated:
+        if not self.flavor_text:
             return
         total = len(self.input)
-        return total - len(self.flavor_text_updated), total
+        return total - len(self.flavor_text), total
 
     @cached_property
     def flavor_start(self) -> int:
@@ -422,6 +459,22 @@ class FormattedTextField (TextField):
         return self.TI.size * get_text_scale_factor(self.layer)
 
     """
+    * Formatting Checks
+    """
+
+    @cached_property
+    def is_flavor_text(self) -> bool:
+        return bool(self.flavor_start >= 0)
+
+    @cached_property
+    def is_quote_text(self) -> bool:
+        return bool(self.quote_index >= 0)
+
+    @cached_property
+    def is_modal(self) -> bool:
+        return bool('\u2022' in self.input)
+
+    """
     * Methods
     """
 
@@ -429,198 +482,187 @@ class FormattedTextField (TextField):
         """Inserts rules and flavor text and formats it based on the defined mana
         symbols, italics text indices, and other predefined properties."""
 
-        # Set up main descriptors and lists
-        main_descriptor = ActionDescriptor()
+        # Descriptors
+        para_style = ActionDescriptor()
+        para_range = ActionDescriptor()
+        main_style = ActionDescriptor()
+        main_range = ActionDescriptor()
+        main_target = ActionDescriptor()
+        main_desc = ActionDescriptor()
+
+        # References
+        main_ref = ActionReference()
+
+        # Lists
         style_list = ActionList()
         main_list = ActionList()
 
         # Descriptor ID's
-        idTo = sID("to")
-        size = sID("size")
-        idFrom = sID("from")
-        leading = sID("leading")
-        textStyle = sID("textStyle")
-        pointsUnit = sID("pointsUnit")
-        spaceAfter = sID("spaceAfter")
-        autoLeading = sID("autoLeading")
-        startIndent = sID("startIndent")
-        spaceBefore = sID("spaceBefore")
-        leadingType = sID("leadingType")
-        styleRange = sID("textStyleRange")
-        paragraphStyle = sID("paragraphStyle")
-        firstLineIndent = sID("firstLineIndent")
-        fontPostScriptName = sID("fontPostScriptName")
-        paragraphStyleRange = sID("paragraphStyleRange")
+        idTo = sID('to')
+        size = sID('size')
+        idFrom = sID('from')
+        textLayer = sID('textLayer')
+        textStyle = sID('textStyle')
+        ptUnit = sID('pointsUnit')
+        spaceAfter = sID('spaceAfter')
+        autoLeading = sID('autoLeading')
+        startIndent = sID('startIndent')
+        spaceBefore = sID('spaceBefore')
+        leadingType = sID('leadingType')
+        styleRange = sID('textStyleRange')
+        paragraphStyle = sID('paragraphStyle')
+        firstLineIndent = sID('firstLineIndent')
+        fontPostScriptName = sID('fontPostScriptName')
+        paragraphStyleRange = sID('paragraphStyleRange')
 
         # Spin up the text insertion action
-        main_style = ActionDescriptor()
-        main_range = ActionDescriptor()
-        main_descriptor.putString(sID("textKey"), self.input)
+        main_desc.putString(sID('textKey'), self.input)
         main_range.putInteger(idFrom, 0)
         main_range.putInteger(idTo, len(self.input))
-        main_style.putString(fontPostScriptName, self.font)
-        main_style.putUnitDouble(size, pointsUnit, self.font_size)
         apply_color(main_style, self.color)
         main_style.putBoolean(autoLeading, False)
-        main_style.putUnitDouble(leading, pointsUnit, self.font_size)
+        main_style.putUnitDouble(size, ptUnit, self.font_size)
+        main_style.putUnitDouble(sID('leading'), ptUnit, self.font_size)
+        main_style.putString(fontPostScriptName, self.font)
         main_range.putObject(textStyle, textStyle, main_style)
         main_list.putObject(styleRange, main_range)
 
         # Bold the contents if necessary
-        if self.rules_text_updated and self.bold_rules_text:
-            bold_range = ActionDescriptor()
-            bold_style = ActionDescriptor()
-            bold_range.putInteger(idFrom, self.rules_start)  # bold start index
-            bold_range.putInteger(idTo, self.rules_end)  # bold end index
-            bold_style.putString(fontPostScriptName, self.font_bold)
-            bold_style.putUnitDouble(size, pointsUnit, self.font_size)
-            apply_color(bold_style, self.color)
-            bold_style.putBoolean(autoLeading, False)
-            bold_style.putUnitDouble(leading, pointsUnit, self.font_size)
-            bold_range.putObject(textStyle, textStyle, bold_style)
-            main_list.putObject(styleRange, bold_range)
+        if self.rules_text and self.bold_rules_text:
+            main_range.putInteger(idFrom, self.rules_start)
+            main_range.putInteger(idTo, self.rules_end)
+            main_style.putString(fontPostScriptName, self.font_bold)
+            main_range.putObject(textStyle, textStyle, main_style)
+            main_list.putObject(styleRange, main_range)
 
         # Italicize text from our italics indices
-        for start, end in self.italics_indices:
-            italic_range = ActionDescriptor()
-            italic_style = ActionDescriptor()
-            italic_range.putInteger(idFrom, start)  # italics start index
-            italic_range.putInteger(idTo, end)  # italics end index
-            italic_style.putString(fontPostScriptName, self.font_italic)
-            italic_style.putUnitDouble(size, pointsUnit, self.font_size)
-            apply_color(italic_style, self.color)
-            italic_style.putBoolean(autoLeading, False)
-            italic_style.putUnitDouble(leading, pointsUnit, self.font_size)
-            italic_range.putObject(textStyle, textStyle, italic_style)
-            main_list.putObject(styleRange, italic_range)
+        if self.italics_indices:
+            for start, end in self.italics_indices:
+                main_range.putInteger(idFrom, start)
+                main_range.putInteger(idTo, end)
+                main_style.putString(fontPostScriptName, self.font_italic)
+                main_range.putObject(textStyle, textStyle, main_style)
+                main_list.putObject(styleRange, main_range)
 
-        # Format each symbol correctly
-        for index, colors in self.symbol_indices:
-            ft.format_symbol(
-                action_list=main_list,
-                symbol_index=index,
-                symbol_colors=colors,
-                font_size=self.font_size,
-            )
-
-        # Insert actions for bold, italics, and symbol formatting
-        main_descriptor.putList(styleRange, main_list)
+        # Format each mana symbol
+        if self.symbol_indices:
+            for index, colors in self.symbol_indices:
+                for i, color in enumerate(colors):
+                    main_range.putInteger(idFrom, index + i)
+                    main_range.putInteger(idTo, index + i + 1)
+                    apply_color(main_style, color)
+                    main_style.putString(fontPostScriptName, self.font_mana)
+                    main_range.putObject(textStyle, textStyle, main_style)
+                    main_list.putObject(styleRange, main_range)
 
         # Paragraph formatting
-        desc141 = ActionDescriptor()
-        desc142 = ActionDescriptor()
-        desc141.putInteger(idFrom, 0)
-        desc141.putInteger(idTo, len(self.input))  # input string length
-        desc142.putUnitDouble(firstLineIndent, pointsUnit, 0)
-        desc142.putUnitDouble(startIndent, pointsUnit, 0)
-        desc142.putUnitDouble(sID("endIndent"), pointsUnit, 0)
-        desc142.putUnitDouble(spaceBefore, pointsUnit, self.line_break_lead)
-        desc142.putUnitDouble(spaceAfter, pointsUnit, 0)
-        desc142.putInteger(sID("dropCapMultiplier"), 1)
-        desc142.putEnumerated(leadingType, leadingType, sID("leadingBelow"))
+        if self.is_modal or self.is_flavor_text:
+            para_range.putInteger(idFrom, 0)
+            para_range.putInteger(idTo, len(self.input))
+            para_style.putUnitDouble(firstLineIndent, ptUnit, 0)
+            para_style.putUnitDouble(startIndent, ptUnit, 0)
+            para_style.putUnitDouble(sID("endIndent"), ptUnit, 0)
+            para_style.putUnitDouble(spaceBefore, ptUnit, self.line_break_lead)
+            para_style.putUnitDouble(spaceAfter, ptUnit, 0)
+            para_style.putInteger(sID("dropCapMultiplier"), 1)
+            para_style.putEnumerated(leadingType, leadingType, sID("leadingBelow"))
 
-        # Adjust formatting for modal card with bullet points
-        if "\u2022" in self.input:
-            desc143 = ActionDescriptor()
-            startIndexBullet = self.input.find("\u2022")
-            endIndexBullet = self.input.rindex("\u2022")
-            desc141.putInteger(idFrom, startIndexBullet)
-            desc141.putInteger(idTo, endIndexBullet + 1)
-            desc142.putUnitDouble(firstLineIndent, pointsUnit, -CON.modal_indent)  # negative modal indent
-            desc142.putUnitDouble(startIndent, pointsUnit, CON.modal_indent)  # modal indent
-            desc142.putUnitDouble(spaceBefore, pointsUnit, 1)
-            desc142.putUnitDouble(spaceAfter, pointsUnit, 0)
-            desc143.putString(fontPostScriptName, self.font_mana)  # NDPMTG default
-            desc143.putUnitDouble(size, pointsUnit, 12)
-            desc143.putBoolean(autoLeading, False)
-            desc142.putObject(sID("defaultStyle"), textStyle, desc143)
-            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
-            style_list.putObject(paragraphStyleRange, desc141)
-            main_descriptor.putList(paragraphStyleRange, style_list)
+        # Adjust paragraph formatting for modal card with bullet points
+        if self.is_modal:
+            default_style = ActionDescriptor()
+            para_range.putInteger(idFrom, self.input.find("\u2022"))
+            para_range.putInteger(idTo, self.input.rindex("\u2022") + 1)
+            para_style.putUnitDouble(firstLineIndent, ptUnit, -CON.modal_indent)
+            para_style.putUnitDouble(startIndent, ptUnit, CON.modal_indent)
+            para_style.putUnitDouble(spaceBefore, ptUnit, 1)
+            default_style.putString(fontPostScriptName, self.font_mana)
+            default_style.putUnitDouble(size, ptUnit, 12)
+            default_style.putBoolean(autoLeading, False)
+            para_style.putObject(sID("defaultStyle"), textStyle, default_style)
+            para_range.putObject(paragraphStyle, paragraphStyle, para_style)
+            style_list.putObject(paragraphStyleRange, para_range)
 
         # Flavor text actions
-        if self.flavor_start >= 0:
+        if self.is_flavor_text:
+
             # Add linebreak spacing between rules and flavor text
-            desc141.putInteger(idFrom, self.flavor_start + 3)
-            desc141.putInteger(idTo, self.flavor_start + 4)
-            [desc142.putUnitDouble(n, pointsUnit, 0) for n in [
-                firstLineIndent, sID("impliedFirstLineIndent"), startIndent, sID("impliedStartIndent")]]
-            desc142.putUnitDouble(spaceBefore, pointsUnit, self.flavor_text_lead)
-            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
-            style_list.putObject(paragraphStyleRange, desc141)
-            main_descriptor.putList(paragraphStyleRange, style_list)
+            para_range.putInteger(idFrom, self.flavor_start + 3)
+            para_range.putInteger(idTo, self.flavor_start + 4)
+            para_style.putUnitDouble(startIndent, ptUnit, 0)
+            para_style.putUnitDouble(firstLineIndent, ptUnit, 0)
+            para_style.putUnitDouble(sID("impliedStartIndent"), ptUnit, 0)
+            para_style.putUnitDouble(sID("impliedFirstLineIndent"), ptUnit, 0)
+            para_style.putUnitDouble(spaceBefore, ptUnit, self.flavor_text_lead)
+            para_range.putObject(paragraphStyle, paragraphStyle, para_style)
+            style_list.putObject(paragraphStyleRange, para_range)
 
             # Adjust flavor text color
             if self.flavor_color:
-                colored_range = ActionList()
-                colored_style = ActionDescriptor()
-                desc145 = ActionDescriptor()
-                colored_style.PutInteger(idFrom, self.flavor_start)
-                colored_style.PutInteger(idTo, self.flavor_end)
-                desc145.putString(fontPostScriptName, self.font_italic)  # MPlantin italic default
-                desc145.putUnitDouble(size, pointsUnit, self.font_size)
-                desc145.putBoolean(autoLeading, False)
-                desc145.putUnitDouble(leading, pointsUnit, self.font_size)
-                apply_color(desc145, self.flavor_color)
-                colored_style.PutObject(textStyle, textStyle, desc145)
-                colored_range.PutObject(styleRange, colored_style)
-                main_descriptor.putList(styleRange, colored_range)
+                main_range.PutInteger(idFrom, self.flavor_start)
+                main_range.PutInteger(idTo, self.flavor_end)
+                apply_color(main_style, self.flavor_color)
+                main_style.putString(fontPostScriptName, self.font_italic)
+                main_range.PutObject(textStyle, textStyle, main_style)
+                main_list.putObject(styleRange, main_range)
 
-        # Quote actions flavor text
-        if self.quote_index >= 0:
-            # Adjust line break spacing if there's a line break in the flavor text
-            desc141.putInteger(idFrom, self.quote_index + 3)
-            desc141.putInteger(idTo, len(self.input))
-            desc142.putUnitDouble(spaceBefore, pointsUnit, 0)
-            desc141.putObject(paragraphStyle, paragraphStyle, desc142)
-            style_list.putObject(paragraphStyleRange, desc141)
+            # Quote actions flavor text
+            if self.is_quote_text:
 
-            # Optional, align quote credit to right
-            if self.right_align_quote and '"\r—' in self.flavor_text_updated:
-                ft.align_formatted_text_right(
-                    action_list=style_list,
-                    start=self.input.find('"\r—') + 2,
-                    end=self.flavor_end)
+                # Adjust line break spacing if there's a line break in the flavor text
+                para_range.putInteger(idFrom, self.quote_index + 3)
+                para_range.putInteger(idTo, len(self.input))
+                para_style.putUnitDouble(spaceBefore, ptUnit, 0)
+                para_range.putObject(paragraphStyle, paragraphStyle, para_style)
+                style_list.putObject(paragraphStyleRange, para_range)
 
-            # Add quote actions to primary action
-            main_descriptor.putList(paragraphStyleRange, style_list)
+                # Optional, align quote credit to right
+                if self.right_align_quote and '"\r—' in self.flavor_text:
+                    para_range.putInteger(idFrom, self.input.find('"\r—') + 2)
+                    para_range.putInteger(idTo, self.flavor_end)
+                    para_style.putBoolean(sID('styleSheetHasParent'), True)
+                    para_range.putEnumerated(sID('align'), sID('alignmentType'), sID('right'))
+                    para_range.putObject(paragraphStyle, paragraphStyle, para_style)
+                    style_list.putObject(paragraphStyleRange, para_range)
+
+        # Apply action lists
+        main_desc.putList(paragraphStyleRange, style_list)
+        main_desc.putList(styleRange, main_list)
 
         # Push changes to text layer
-        textLayer = sID("textLayer")
-        ref101 = ActionReference()
-        desc119 = ActionDescriptor()
-        ref101.putEnumerated(textLayer, sID("ordinal"), sID("targetEnum"))
-        desc119.putReference(sID("target"), ref101)
-        desc119.putObject(idTo, textLayer, main_descriptor)
-        APP.executeAction(sID("set"), desc119, NO_DIALOG)
-
-        # Disable hyphenation and set text composer
-        self.docref.activeLayer.textItem.hyphenation = False
+        main_ref.putEnumerated(textLayer, sID("ordinal"), sID("targetEnum"))
+        main_target.putReference(sID("target"), main_ref)
+        main_target.putObject(idTo, textLayer, main_desc)
+        APP.executeAction(sID("set"), main_target, NO_DIALOG)
 
     def execute(self):
         super().execute()
 
         # Format text
-        self.docref.activeLayer = self.layer
         self.format_text()
+
+        # Justify center if required
         if self.contents_centered:
             self.TI.justification = Justification.Center
 
+        # Ensure hyphenation disabled
+        self.TI.hyphenation = False
+
 
 class FormattedTextArea (FormattedTextField):
-    """
-    A FormattedTextField where the text is required to fit within a given area.
-    An instance of this class will step down the font size until the text fits
-    within the reference layer's bounds, then rasterize the text layer, and
-    center it vertically with respect to the reference layer's selection area.
+    """A FormattedTextField where the text is required to fit within a given area.
+
+    * Reduces font size until the text fits within the reference layer's bounds.
+    * Properly separates and formats flavor text with respect to an optional divider layer.
+    * Centers the formatted text vertically with respect to the reference layer's bounds.
     """
 
     """
-    PROPERTIES
+    * Properties
     """
 
     @cached_property
     def divider(self) -> Optional[Union[ArtLayer, LayerSet]]:
+        """Divider layer, if provided and flavor text exists."""
         if (divider := self.kwargs.get('divider')) and all([self.flavor_text, self.contents, CFG.flavor_divider]):
             divider.visible = True
             return divider
@@ -628,28 +670,28 @@ class FormattedTextArea (FormattedTextField):
 
     @cached_property
     def scale_height(self) -> bool:
-        # Scale text to fit reference height (Default: True)
+        """Scale text to fit reference height (Default: True)."""
         if scale_height := self.kwargs.get('scale_height'):
             return scale_height
         return True
 
     @cached_property
     def scale_width(self) -> bool:
-        # Scale text to fit reference width (Default: False)
+        """Scale text to fit reference width (Default: False)."""
         if scale_width := self.kwargs.get('scale_width'):
             return scale_width
         return False
 
     @cached_property
     def fix_overflow_width(self) -> bool:
-        # Scale text to fit bounding box width (Default: False)
+        """Scale text to fit bounding box width (Default: False)."""
         if fix_overflow_width := self.kwargs.get('fix_overflow_width'):
             return fix_overflow_width
         return True
 
     @cached_property
     def fix_overflow_height(self) -> bool:
-        # Scale text to fit bounding box height (Default: If overflow the bounds)
+        """Scale text to fit bounding box height (Default: If it overflows the bounds)."""
         if len(self.contents + self.flavor_text) > 280:
             return True
         if fix_overflow_height := self.kwargs.get('fix_overflow_height'):
@@ -657,67 +699,94 @@ class FormattedTextArea (FormattedTextField):
         return False
 
     """
-    METHODS
+    * Methods
     """
 
     def insert_divider(self):
-        """
-        Inserts and correctly positions flavor text divider.
-        """
+        """Inserts and correctly positions flavor text divider."""
+
         # Create a reference layer with no effects
+        docsel = self.docref.selection
         flavor = self.layer.duplicate()
         rules = flavor.duplicate()
         flavor.rasterize(RasterizeType.EntireLayer)
         remove_trailing_text(rules, self.flavor_start)
-        select_layer_bounds(rules)
+        select_layer_bounds(rules, docsel)
         self.docref.activeLayer = flavor
-        self.docref.selection.expand(2)
-        self.docref.selection.clear()
+        docsel.expand(2)
+        docsel.clear()
 
         # Move flavor text to bottom, then position divider
         flavor.translate(0, self.layer.bounds[3] - flavor.bounds[3])
         position_between_layers(self.divider, rules, flavor)
-        self.docref.selection.deselect()
+        docsel.deselect()
         flavor.remove()
         rules.remove()
+
+    def pre_scale_to_fit(self) -> Optional[float]:
+        """Fix height overflow before formatting text."""
+        contents = self.contents if not self.flavor_text else str(
+            self.contents + "\r" + self.flavor_text)
+        self.TI.contents = contents
+        return ft.scale_text_to_height(
+            layer=self.layer,
+            height=int(self.reference_dims['height']*1.1))
+
+    def scale_to_fit(self, font_size: Optional[float] = None) -> None:
+        """Scale font size to fit within any references."""
+
+        # Scale layer to reference
+        if self.reference_dims:
+
+            # Resize the text until it fits the reference vertically
+            if self.scale_height:
+                font_size = ft.scale_text_to_height(
+                    layer=self.layer,
+                    height=self.reference_dims['height'])
+
+            # Resize the text until it fits the reference horizontally
+            if self.scale_width:
+                font_size = ft.scale_text_to_width(
+                    layer=self.layer,
+                    width=self.reference_dims['width'],
+                    step=0.2, font_size=font_size)
+
+        # Resize the text until it fits the TextLayer bounding box
+        if self.fix_overflow_width:
+            ft.scale_text_to_width_textbox(
+                layer=self.layer, font_size=font_size)
+
+    def position_within_reference(self):
+        """Positions the layer with respect to the reference, if required."""
+
+        # Ensure the layer is centered vertically
+        dims = get_layer_dimensions(self.layer)
+        self.layer.translate(0, self.reference_dims['center_y'] - dims['center_y'])
+
+        # Ensure the layer is centered horizontally if needed
+        if self.contents_centered and self.flavor_centered:
+            self.layer.translate(0, self.reference_dims['center_x'] - dims['center_x'])
 
     def execute(self):
 
         # Skip if both are empty
         if not any([self.contents, self.flavor_text]):
-            self.layer.visible = False
             return
+        font_size = None
 
-        # Fix height overflow before formatting text
-        if self.fix_overflow_height and self.reference:
-            contents = self.contents if not self.flavor_text else str(
-                self.contents + "\r" + self.flavor_text)
-            self.TI.contents = contents
-            ft.scale_text_to_fit_reference(
-                self.layer, int(get_layer_dimensions(self.reference)['height']*1.01)
-            )
+        # Pre-scaling to prevent text overflow errors
+        if self.fix_overflow_height and self.reference_dims:
+            font_size = self.pre_scale_to_fit()
 
         # Execute text formatting
         super().execute()
 
-        # Resize the text until it fits the reference vertically
-        if self.scale_height:
-            ft.scale_text_to_fit_reference(self.layer, self.reference)
+        # Scale layer to fit reference
+        self.scale_to_fit(font_size)
 
-        # Resize the text until it fits the reference horizontally
-        if self.scale_width:
-            ft.scale_text_to_fit_reference(self.layer, self.reference, height=False, step=0.2)
-
-        # Resize the text until it fits the TextLayer bounding box
-        if self.fix_overflow_width:
-            ft.scale_text_to_fit_textbox(self.layer)
-
-        # Ensure the layer is centered vertically
-        ft.vertically_align_text(self.layer, self.reference)
-
-        # Ensure the layer is centered horizontally if needed
-        if self.contents_centered and self.flavor_centered:
-            align_horizontal(self.layer, self.reference)
+        # Position the layer properly
+        if self.reference_dims:
+            self.position_within_reference()
 
         # Insert flavor divider if needed
         if self.divider:
@@ -725,15 +794,14 @@ class FormattedTextArea (FormattedTextField):
 
 
 class CreatureFormattedTextArea (FormattedTextArea):
-    """
-    FormattedTextArea which also respects the bounds of creature card's power/toughness boxes.
-    If the rasterized and centered text layer overlaps with another specified reference layer
-    (which should represent the bounds of the power/toughness box), the layer will be shifted
-    vertically to ensure that it doesn't overlap.
+    """FormattedTextArea which also respects the bounds of creature card's power/toughness boxes.
+
+    * Moves the combined text upward to allow it to clear any Power/Toughness boxes indicated by the
+    provided P/T reference layer(s).
     """
 
     """
-    PROPERTIES
+    * Properties
     """
 
     @cached_property
@@ -745,47 +813,24 @@ class CreatureFormattedTextArea (FormattedTextArea):
         return self.kwargs.get('pt_top_reference', None)
 
     """
-    METHODS
+    * Methods
     """
 
     def execute(self):
         super().execute()
 
         # Shift vertically if the text overlaps the PT box
-        if self.pt_reference and self.pt_top_reference:
-            delta = ft.vertically_nudge_creature_text(self.layer, self.pt_reference, self.pt_top_reference)
-            # Shift the divider as well
+        if self.pt_reference:
+
+            # Use newer methodology if top reference not provided
+            delta = ft.vertically_nudge_creature_text(
+                self.layer, self.pt_reference, self.pt_top_reference
+            ) if self.pt_top_reference else clear_reference_vertical(
+                self.layer, self.pt_reference)
+
+            # Shift the divider if layer was moved
             if delta < 0 and self.divider:
                 self.divider.translate(0, delta)
-
-
-"""
-* Named Utility Child Classes
-"""
-
-
-class CardName(TextItem):
-    FONT = CardFonts.TITLES
-
-
-class CardManaCost(FormattedTextField):
-    FONT = CardFonts.MANA
-
-
-class CardTypeLine(ScaledTextField):
-    FONT = CardFonts.TITLES
-
-
-class CardRules(FormattedTextArea):
-    FONT = CardFonts.RULES
-
-
-class CardRulesCreature(CreatureFormattedTextArea):
-    FONT = CardFonts.RULES
-
-
-class CardPowerToughness(TextField):
-    FONT = CardFonts.PT
 
 
 """
