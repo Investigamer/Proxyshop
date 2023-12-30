@@ -10,16 +10,14 @@ from typing import Optional, Callable, Any, Union, Iterable
 # Third Party Imports
 from pathvalidate import sanitize_filename
 from photoshop.api.application import ArtLayer
-from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
+from photoshop.api._layerSet import LayerSet
+from photoshop.api._selection import Selection
 from photoshop.api import (
     ElementPlacement,
-    AnchorPosition,
     SaveOptions,
-    PurgeTarget,
     SolidColor,
-    BlendMode,
-    Urgency
+    BlendMode
 )
 from PIL import Image
 
@@ -51,9 +49,9 @@ from src.enums.settings import (
 )
 from src.enums.adobe import LayerContainer
 from src.helpers.effects import LayerEffects
-from src.utils.adobe import PhotoshopHandler
+from src.utils.adobe import PhotoshopHandler, ReferenceLayer
 from src.utils.properties import auto_prop_cached
-from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
+from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message, try_photoshop
 from src.utils.files import get_unique_filename
 from src.utils.regex import Reg
 from src.api.scryfall import get_card_scan
@@ -61,11 +59,11 @@ from src.utils.strings import msg_warn, msg_error
 
 
 class BaseTemplate:
-    """
-    * Master Template for Proxyshop
-    * Contains all the core architecture that is required for any template to function in Proxyshop, as well as
-    a ton of optional built-in utility properties and methods for building templates.
-    * All template classes should extend to this class at bare minimum.
+    """Master Template for Proxyshop all others should extend to.
+
+    Notes:
+        - Contains all the core architecture that is required for any template to function in Proxyshop,
+            as well as a ton of optional built-in utility properties and methods for building templates.
     """
     frame_suffix = 'Normal'
     template_suffix = ''
@@ -76,47 +74,71 @@ class BaseTemplate:
         self.layout = layout
         self._text = []
 
-    @staticmethod
-    def try_photoshop(func) -> Callable:
-        """Decorator to handle trying to run a Photoshop action but allowing exceptions to fail silently.
-
-        Args:
-            func: Function being wrapped.
-
-        Returns:
-            The wrapped function.
-        """
-        def wrapper(self, *args):
-            try:
-                result = func(self, *args)
-                return result
-            except PS_EXCEPTIONS:
-                return
-        return wrapper
-
     """
-    * Mixin Methods
+    * Enabled Method Lists
     """
 
-    @auto_prop_cached
+    @property
     def pre_render_methods(self) -> list[Callable]:
-        """Additional methods to call before any rendering methods are executed."""
-        return []
+        """list[Callable]: Methods called before rendering begins.
 
-    @auto_prop_cached
+        Methods:
+            `process_layout_data`: Processes layout data before it is used to generate the card.
+        """
+        return [self.process_layout_data]
+
+    @property
     def frame_layer_methods(self) -> list[Callable]:
-        """Additional frame layer methods to call. Executed after enable_frame_layers."""
-        return []
+        """list[Callable]: Methods called to insert and enable frame layers.
 
-    @auto_prop_cached
+        Methods:
+            `color_border`: Changes the border color if required and supported by the template.
+            `enable_frame_layers`:
+        """
+        return [self.color_border, self.enable_frame_layers]
+
+    @property
     def text_layer_methods(self) -> list[Callable]:
-        """Additional text layer methods to call. Executed after basic_text_layers."""
+        """list[Callable]: Methods called to insert and format text layers."""
+        return [
+            self.collector_info,
+            self.basic_text_layers,
+            self.rules_text_and_pt_layers
+        ]
+
+    @property
+    def post_text_methods(self) -> list[Callable]:
+        """list[Callable]: Methods called after text is inserted and formatted."""
         return []
 
-    @auto_prop_cached
-    def post_text_methods(self) -> list[Callable]:
-        """Additional general methods to call. Executed after format_text_layers."""
+    @property
+    def post_save_methods(self) -> list[Callable]:
+        """list[Callable]: Methods called after the rendered image is saved."""
         return []
+
+    """
+    * Hook Method List
+    """
+
+    @property
+    def hooks(self) -> list[Callable]:
+        """list[Callable]: List of methods that will be called during the hooks execution step"""
+        hooks = []
+        if self.is_creature:
+            # Creature hook
+            hooks.append(self.hook_creature)
+        if 'P' in self.layout.mana_cost or '/' in self.layout.mana_cost:
+            # Large mana symbol hook
+            hooks.append(self.hook_large_mana)
+        return hooks
+
+    def hook_creature(self) -> None:
+        """Run this if card is a creature."""
+        pass
+
+    def hook_large_mana(self) -> None:
+        """Run this if card has a large mana symbol."""
+        pass
 
     """
     * App Properties
@@ -124,34 +146,43 @@ class BaseTemplate:
 
     @auto_prop_cached
     def event(self) -> Event:
-        """Threading Event used to signal thread cancellation."""
+        """Event: Threading Event used to signal thread cancellation."""
         return Event()
 
     @auto_prop_cached
     def console(self) -> type[CONSOLE]:
-        """Console output object used to communicate with the user."""
+        """type[CONSOLE]: Console output object used to communicate with the user."""
         return CONSOLE
 
     @property
     def app(self) -> PhotoshopHandler:
-        """Photoshop Application object used to communicate with Photoshop."""
+        """PhotoshopHandler: Photoshop Application object used to communicate with Photoshop."""
         return APP
 
     @auto_prop_cached
     def docref(self) -> Optional[Document]:
-        """This template's document open in Photoshop."""
+        """Optional[Document]: This template's document open in Photoshop."""
         if doc := psd.get_document(osp.basename(self.layout.template_file)):
             return doc
         return
 
+    @auto_prop_cached
+    def doc_selection(self) -> Selection:
+        """Selection: Active document selection object."""
+        return self.docref.selection
+
     @property
     def active_layer(self) -> Union[ArtLayer, LayerSet]:
-        """Get the currently active layer in the Photoshop document."""
+        """Union[ArtLayer, LayerSet]: Get the currently active layer in the Photoshop document."""
         return self.docref.activeLayer
 
     @active_layer.setter
     def active_layer(self, value: Union[ArtLayer, LayerSet]):
-        """Set the currently active layer in the Photoshop document."""
+        """Set the currently active layer in the Photoshop document.
+
+        Args:
+            value: An ArtLayer or LayerSet to make active.
+        """
         self.docref.activeLayer = value
 
     """
@@ -160,10 +191,12 @@ class BaseTemplate:
 
     @auto_prop_cached
     def RGB_BLACK(self) -> SolidColor:
+        """SolidColor: A solid color object with RGB [0, 0, 0]."""
         return psd.rgb_black()
 
     @auto_prop_cached
     def RGB_WHITE(self) -> SolidColor:
+        """SolidColor: A solid color object with RGB [255, 255, 255]."""
         return psd.rgb_white()
 
     """
@@ -171,17 +204,17 @@ class BaseTemplate:
     """
 
     @auto_prop_cached
-    def save_modes(self) -> dict:
-        """Functions representing file saving modes."""
-        return {
-            OutputFileType.PNG: psd.save_document_png,
-            OutputFileType.PSD: psd.save_document_psd,
-            OutputFileType.JPG: psd.save_document_jpeg
-        }
+    def save_mode(self) -> Callable:
+        """Callable: Function called to save the rendered image."""
+        if CFG.output_file_type == OutputFileType.PNG:
+            return psd.save_document_png
+        if CFG.output_file_type == OutputFileType.PSD:
+            return psd.save_document_psd
+        return psd.save_document_jpeg
 
     @auto_prop_cached
     def output_directory(self) -> Path:
-        """Directory to save the rendered image."""
+        """PathL Directory to save the rendered image."""
         if ENV.TEST_MODE:
             path = PATH.OUT / self.__class__.__name__
             path.mkdir(mode=777, parents=True, exist_ok=True)
@@ -190,7 +223,7 @@ class BaseTemplate:
 
     @auto_prop_cached
     def output_file_name(self) -> Path:
-        """The formatted filename for the rendered image."""
+        """Path: The formatted filename for the rendered image."""
         name, tag_map = CFG.output_file_name, {
             '#name': self.layout.name_raw,
             '#artist': self.layout.artist,
@@ -235,82 +268,82 @@ class BaseTemplate:
 
     @property
     def is_creature(self) -> bool:
-        """Governs whether to add PT box and use Creature rules text."""
+        """bool: Governs whether to add PT box and use Creature rules text."""
         return self.layout.is_creature
 
     @property
     def is_legendary(self) -> bool:
-        """Enables the legendary crown step."""
+        """bool: Enables the legendary crown step."""
         return self.layout.is_legendary
 
     @property
     def is_land(self) -> bool:
-        """Governs whether to use normal or land pinlines group."""
+        """bool: Governs whether to use normal or land pinlines group."""
         return self.layout.is_land
 
     @property
     def is_artifact(self) -> bool:
-        """Utility definition for custom templates. Returns True if card is an Artifact."""
+        """bool: Utility definition for custom templates. Returns True if card is an Artifact."""
         return self.layout.is_artifact
 
     @property
     def is_vehicle(self) -> bool:
-        """Utility definition for custom templates. Returns True if card is a Vehicle."""
+        """bool: Utility definition for custom templates. Returns True if card is a Vehicle."""
         return self.layout.is_vehicle
 
     @property
     def is_hybrid(self) -> bool:
-        """Utility definition for custom templates. Returns True if card is hybrid color."""
+        """bool: Utility definition for custom templates. Returns True if card is hybrid color."""
         return self.layout.is_hybrid
 
     @property
     def is_colorless(self) -> bool:
-        """Enforces fullart framing for card art on many templates."""
+        """bool: Enforces fullart framing for card art on many templates."""
         return self.layout.is_colorless
 
     @property
     def is_front(self) -> bool:
-        """Governs render behavior on MDFC and Transform cards."""
+        """bool: Governs render behavior on MDFC and Transform cards."""
         return self.layout.is_front
 
     @property
     def is_transform(self) -> bool:
-        """Governs behavior on double faced card varieties."""
+        """bool: Governs behavior on double faced card varieties."""
         return self.layout.is_transform
 
     @property
     def is_mdfc(self) -> bool:
-        """Governs behavior on double faced card varieties."""
+        """bool: Governs behavior on double faced card varieties."""
         return self.layout.is_mdfc
 
     @property
     def is_hollow_crown(self) -> bool:
-        """Governs whether a hollow crown should be rendered."""
+        """bool: Governs whether a hollow crown should be rendered."""
         return False
 
     @property
     def is_fullart(self) -> bool:
-        """Returns True if art must be treated as Fullart."""
+        """bool: Returns True if art must be treated as Fullart."""
         return False
 
     @property
     def is_companion(self) -> bool:
-        """Enables companion cosmetic elements."""
+        """bool: Enables companion cosmetic elements."""
         return self.layout.is_companion
 
     @property
     def is_nyx(self) -> bool:
-        """Enables nyxtouched cosmetic elements."""
+        """bool: Enables nyxtouched cosmetic elements."""
         return self.layout.is_nyx
 
     @property
     def is_snow(self) -> bool:
-        """Enables snow cosmetic elements."""
+        """bool: Enables snow cosmetic elements."""
         return self.layout.is_snow
 
     @property
     def is_miracle(self) -> bool:
-        """Enables miracle cosmetic elements."""
+        """bool: Enables miracle cosmetic elements."""
         return self.layout.is_miracle
 
     """
@@ -320,12 +353,12 @@ class BaseTemplate:
 
     @auto_prop_cached
     def is_basic_land(self) -> bool:
-        """Governs Basic Land watermark and other Basic Land behavior."""
+        """bool: Governs Basic Land watermark and other Basic Land behavior."""
         return self.layout.is_basic_land
 
     @auto_prop_cached
     def is_centered(self) -> bool:
-        """Governs whether rules text is centered."""
+        """bool: Governs whether rules text is centered."""
         return bool(
             len(self.layout.flavor_text) <= 1
             and len(self.layout.oracle_text) <= 70
@@ -334,22 +367,22 @@ class BaseTemplate:
 
     @auto_prop_cached
     def is_name_shifted(self) -> bool:
-        """Governs whether to use the shifted name text layer."""
+        """bool: Governs whether to use the shifted name text layer."""
         return bool(self.is_transform or self.is_mdfc)
 
     @auto_prop_cached
     def is_type_shifted(self) -> bool:
-        """Governs whether to use the shifted typeline text layer."""
+        """bool: Governs whether to use the shifted typeline text layer."""
         return bool(self.layout.color_indicator)
 
     @auto_prop_cached
     def is_flipside_creature(self) -> bool:
-        """Governs double faced cards where opposing side is a creature."""
+        """bool: Governs double faced cards where opposing side is a creature."""
         return bool(self.layout.other_face_power and self.layout.other_face_toughness)
 
     @auto_prop_cached
     def is_art_vertical(self) -> bool:
-        """Returns True if art provided is vertically oriented, False if it is horizontal."""
+        """bool: Returns True if art provided is vertically oriented, False if it is horizontal."""
         with Image.open(self.layout.art_file) as image:
             width, height = image.size
         if height > (width * 1.1):
@@ -360,7 +393,7 @@ class BaseTemplate:
 
     @auto_prop_cached
     def is_content_aware_enabled(self) -> bool:
-        """Governs whether content aware fill should be performed during the art loading step."""
+        """bool: Governs whether content aware fill should be performed during the art loading step."""
         if self.is_fullart and [n not in self.art_reference.name for n in ['Full', 'Borderless']]:
             # By default, fill when we want a fullart image but didn't receive one
             return True
@@ -368,7 +401,7 @@ class BaseTemplate:
 
     @auto_prop_cached
     def is_collector_promo(self) -> bool:
-        """Governs whether to use promo star in collector info."""
+        """bool: Governs whether to use promo star in collector info."""
         if CFG.collector_promo == CollectorPromo.Always:
             return True
         if self.layout.is_promo and CFG.collector_promo == CollectorPromo.Automatic:
@@ -381,39 +414,39 @@ class BaseTemplate:
 
     @property
     def art_frame(self) -> str:
-        """Normal frame to use for positioning the art."""
+        """str: Normal frame to use for positioning the art."""
         return LAYERS.ART_FRAME
 
     @property
     def art_frame_vertical(self) -> str:
-        """Vertical orientation frame to use for positioning the art."""
+        """str: Vertical orientation frame to use for positioning the art."""
         return LAYERS.FULL_ART_FRAME
 
     @auto_prop_cached
     def twins(self) -> str:
-        """Name of the Twins layer, also usually the PT layer."""
+        """str: Name of the Twins layer, also usually the PT layer."""
         return self.layout.twins
 
     @auto_prop_cached
     def pinlines(self) -> str:
-        """Name of the Pinlines layer."""
+        """str: Name of the Pinlines layer."""
         return self.layout.pinlines
 
     @auto_prop_cached
     def identity(self) -> str:
-        """Color identity of the card, e.g. WU."""
+        """str: Color identity of the card, e.g. WU."""
         return self.layout.identity
 
     @auto_prop_cached
     def background(self) -> str:
-        """Name of the Background layer."""
+        """str: Name of the Background layer."""
         if not self.is_vehicle and self.layout.background == LAYERS.VEHICLE:
             return LAYERS.ARTIFACT
         return self.layout.background
 
     @auto_prop_cached
     def face_type(self) -> Optional[str]:
-        """Name of the double face text and icons group."""
+        """Optional[str]: Name of the double face text and icons group."""
         if self.is_mdfc:
             if self.is_front:
                 return LAYERS.MDFC_FRONT
@@ -430,28 +463,28 @@ class BaseTemplate:
 
     @auto_prop_cached
     def legal_group(self) -> Optional[LayerSet]:
-        """Group containing artist credit, collector info, and other legal details."""
+        """Optional[LayerSet]: Group containing artist credit, collector info, and other legal details."""
         return self.docref.layerSets.getByName(LAYERS.LEGAL)
 
     @auto_prop_cached
     def border_group(self) -> Optional[Union[LayerSet, ArtLayer]]:
-        """Group, or sometimes a layer, containing the card border."""
-        if group := psd.getLayerSet(LAYERS.BORDER):
+        """Optional[Union[LayerSet, ArtLayer]]: Group, or sometimes a layer, containing the card border."""
+        if group := psd.getLayerSet(LAYERS.BORDER, self.docref):
             return group
-        if layer := psd.getLayer(LAYERS.BORDER):
+        if layer := psd.getLayer(LAYERS.BORDER, self.docref):
             return layer
         return
 
     @auto_prop_cached
     def text_group(self) -> Optional[LayerSet]:
-        """Text and icon group, contains rules text and necessary symbols."""
+        """Optional[LayerSet]: Text and icon group, contains rules text and necessary symbols."""
         if group := self.docref.layerSets.getByName(LAYERS.TEXT_AND_ICONS):
             return group
         return self.docref
 
     @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
-        """Group containing double face elements."""
+        """Optional[LayerSet]: Group containing double face elements."""
         if self.face_type and self.text_group:
             return psd.getLayerSet(self.face_type, self.text_group)
         return
@@ -462,12 +495,12 @@ class BaseTemplate:
 
     @auto_prop_cached
     def text_layer_creator(self) -> Optional[ArtLayer]:
-        """Proxy creator name text layer."""
+        """Optional[ArtLayer]: Proxy creator name text layer."""
         return psd.getLayer(LAYERS.CREATOR, self.legal_group)
 
     @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
-        """Card name text layer."""
+        """Optional[ArtLayer]: Card name text layer."""
         if self.is_name_shifted:
             psd.getLayer(LAYERS.NAME, self.text_group).visible = False
             name = psd.getLayer(LAYERS.NAME_SHIFT, self.text_group)
@@ -477,12 +510,12 @@ class BaseTemplate:
 
     @auto_prop_cached
     def text_layer_mana(self) -> Optional[ArtLayer]:
-        """Card mana cost text layer."""
+        """Optional[ArtLayer]: Card mana cost text layer."""
         return psd.getLayer(LAYERS.MANA_COST, self.text_group)
 
     @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
-        """Card typeline text layer."""
+        """Optional[ArtLayer]: Card typeline text layer."""
         if self.is_type_shifted:
             psd.getLayer(LAYERS.TYPE_LINE, self.text_group).visible = False
             typeline = psd.getLayer(LAYERS.TYPE_LINE_SHIFT, self.text_group)
@@ -492,19 +525,19 @@ class BaseTemplate:
 
     @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
-        """Card rules text layer."""
+        """Optional[ArtLayer]: Card rules text layer."""
         if self.is_creature:
             return psd.getLayer(LAYERS.RULES_TEXT_CREATURE, self.text_group)
         return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE, self.text_group)
 
     @auto_prop_cached
     def text_layer_pt(self) -> Optional[ArtLayer]:
-        """Card power and toughness text layer."""
+        """Optional[ArtLayer]: Card power and toughness text layer."""
         return psd.getLayer(LAYERS.POWER_TOUGHNESS, self.text_group)
 
     @auto_prop_cached
     def divider_layer(self) -> Optional[ArtLayer]:
-        """Divider layer between rules text and flavor text."""
+        """Optional[ArtLayer]: Divider layer between rules text and flavor text."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
             if TF_DIVIDER := psd.getLayer('Divider TF', self.text_group):
                 return TF_DIVIDER
@@ -516,8 +549,8 @@ class BaseTemplate:
 
     @property
     def art_layer(self) -> ArtLayer:
-        """Layer the art image is imported into."""
-        return psd.getLayer(LAYERS.DEFAULT)
+        """ArtLayer: Layer the art image is imported into."""
+        return psd.getLayer(LAYERS.DEFAULT, self.docref)
 
     @auto_prop_cached
     def twins_layer(self) -> Optional[ArtLayer]:
@@ -574,7 +607,7 @@ class BaseTemplate:
     @auto_prop_cached
     def crown_shadow_layer(self) -> Union[ArtLayer, LayerSet, None]:
         """Legendary crown hollow shadow layer."""
-        return psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW)
+        return psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW, self.docref)
 
     """
     * Reference Layers
@@ -592,9 +625,14 @@ class BaseTemplate:
         return psd.getLayer(self.art_frame) or psd.getLayer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
-    def textbox_reference(self) -> Optional[ArtLayer]:
+    def textbox_reference(self) -> Optional[ReferenceLayer]:
         """Reference frame used to scale and position the rules text layer."""
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
+
+    @auto_prop_cached
+    def pt_reference(self) -> Optional[ArtLayer]:
+        """ArtLayer: Reference used to check rules text overlap with the PT Box."""
+        return psd.getLayer(LAYERS.PT_REFERENCE, self.text_group)
 
     @auto_prop_cached
     def pt_top_reference(self) -> Optional[ArtLayer]:
@@ -604,7 +642,7 @@ class BaseTemplate:
     @auto_prop_cached
     def pt_adjustment_reference(self) -> Optional[ArtLayer]:
         """Reference used to get the location of the PT box."""
-        return psd.getLayer(LAYERS.PT_REFERENCE, self.text_group)
+        return psd.getLayer(LAYERS.PT_ADJUSTMENT_REFERENCE, self.text_group)
 
     """
     * Processing Layout Data
@@ -651,9 +689,17 @@ class BaseTemplate:
         # Paste the file into the art
         self.active_layer = self.art_layer
         if self.art_action:
-            psd.paste_file(self.art_layer, self.layout.art_file, self.art_action, self.art_action_args)
+            psd.paste_file(
+                layer=self.art_layer,
+                path=self.layout.art_file,
+                action=self.art_action,
+                action_args=self.art_action_args,
+                docref=self.docref)
         else:
-            psd.import_art(self.art_layer, self.layout.art_file)
+            psd.import_art(
+                layer=self.art_layer,
+                path=self.layout.art_file,
+                docref=self.docref)
 
         # Frame the artwork
         psd.frame_layer(self.active_layer, self.art_reference)
@@ -663,7 +709,11 @@ class BaseTemplate:
 
             # Perform a generative fill
             if CFG.generative_fill:
-                docref = psd.generative_fill_edges(self.art_layer, CFG.feathered_fill, not CFG.select_variation)
+                docref = psd.generative_fill_edges(
+                    layer=self.art_layer,
+                    feather=CFG.feathered_fill,
+                    close_doc=not CFG.select_variation,
+                    docref=self.docref)
                 if docref:
                     self.console.await_choice(
                         self.event, msg="Select a Generative Fill variation, then click Continue ...")
@@ -692,7 +742,11 @@ class BaseTemplate:
             return
 
         # Paste the scan into a new layer
-        if layer := psd.import_art_into_new_layer(scryfall_scan, "Scryfall Reference"):
+        if layer := psd.import_art_into_new_layer(
+            path=scryfall_scan,
+            name="Scryfall Reference",
+            docref=self.docref
+        ):
             # Rotate the layer if necessary
             if rotate:
                 layer.rotate(90)
@@ -711,6 +765,7 @@ class BaseTemplate:
 
     def collector_info(self) -> None:
         """Format and add the collector info at the bottom."""
+
         # Ignore this step if legal layer not present
         if not self.legal_group:
             return
@@ -721,9 +776,8 @@ class BaseTemplate:
 
         # Use realistic collector information?
         if CFG.collector_mode in [CollectorMode.Default, CollectorMode.Modern] and self.layout.collector_data:
-            self.collector_info_authentic()
-        else:
-            self.collector_info_basic()
+            return self.collector_info_authentic()
+        return self.collector_info_basic()
 
     def collector_info_basic(self) -> None:
         """Called to generate basic collector info."""
@@ -808,21 +862,22 @@ class BaseTemplate:
         if not self.expansion_reference:
             return self.log('Expansion symbol disabled, no reference layer found.')
         if not self.layout.symbol_svg:
-            return self.log("'Expansion symbol disabled, couldn't locate a valid SVG file.")
+            return self.log("Expansion symbol disabled, SVG file not found.")
 
         # Try to import the expansion symbol
         try:
 
             # Import and place the symbol
             svg = psd.import_svg(
-                file=str(self.layout.symbol_svg),
+                path=str(self.layout.symbol_svg),
                 ref=self.expansion_reference,
-                placement=ElementPlacement.PlaceBefore)
+                placement=ElementPlacement.PlaceBefore,
+                docref=self.docref)
 
             # Frame the symbol
             psd.frame_layer_by_height(
                 layer=svg,
-                reference=self.expansion_reference,
+                ref=self.expansion_reference,
                 alignments=self.expansion_symbol_alignments)
 
             # Rename and reset property
@@ -830,7 +885,7 @@ class BaseTemplate:
             self.expansion_symbol_layer = svg
 
         except Exception as e:
-            return self.log("Expansion symbol disabled due to encountering an error!", e)
+            return self.log('Expansion symbol disabled due to an error.', e)
 
     """
     * Watermark
@@ -888,18 +943,20 @@ class BaseTemplate:
         # Get watermark custom settings if available
         wm_details = CON.watermarks.get(self.layout.watermark, {})
 
-        # Generate the watermark
-        wm = psd.import_svg(str(self.layout.watermark_svg))
-        psd.frame_layer(wm, self.textbox_reference, smallest=True)
-        wm.resize(
-            wm_details.get('scale', 80),
-            wm_details.get('scale', 80),
-            AnchorPosition.MiddleCenter)
-        wm.move(self.text_group, ElementPlacement.PlaceAfter)
+        # Import and frame the watermark
+        wm = psd.import_svg(
+            path=self.layout.watermark_svg,
+            ref=self.text_group,
+            placement=ElementPlacement.PlaceAfter,
+            docref=self.docref)
+        psd.frame_layer_by_height(
+            layer=wm,
+            ref=self.textbox_reference.dims,
+            scale=wm_details.get('scale', 80))
+
+        # Apply opacity, blending, and effects
         wm.opacity = wm_details.get('opacity', CFG.watermark_opacity)
         wm.blendMode = self.watermark_blend_mode
-
-        # Add the colors
         psd.apply_fx(wm, self.watermark_fx)
 
     """
@@ -920,9 +977,10 @@ class BaseTemplate:
     def basic_watermark_fx(self) -> list[LayerEffects]:
         """Defines the layer effects used on the Basic Land Watermark."""
         return [
-            {'type': 'color-overlay', 'opacity': 100, 'color': self.basic_watermark_color},
             {
-                'type': 'bevel', 'size': 30, 'softness': 14, 'depth': 100,
+                'type': 'color-overlay', 'opacity': 100, 'color': self.basic_watermark_color},
+            {
+                'type': 'bevel', 'size': 28, 'softness': 14, 'depth': 100,
                 'shadow_opacity': 72, 'highlight_opacity': 70,
                 'rotation': 45, 'altitude': 22
             }
@@ -936,12 +994,15 @@ class BaseTemplate:
         self.layout.flavor_text = ''
 
         # Generate the watermark
-        # TODO: Add watermark SVG to layouts for basics
-        path = (PATH.SRC_IMG_SYMBOLS / 'watermark' / 'basics' / self.layout.pinlines.lower()).with_suffix('.svg')
-        wm = psd.import_svg(path)
-        psd.frame_layer(wm, self.textbox_reference, smallest=True)
-        wm.resize(75, 75, AnchorPosition.MiddleCenter)
-        wm.move(self.text_group, ElementPlacement.PlaceAfter)
+        wm = psd.import_svg(
+            path=self.layout.watermark_basic,
+            ref=self.text_group,
+            placement=ElementPlacement.PlaceAfter,
+            docref=self.docref)
+        psd.frame_layer_by_height(
+            layer=wm,
+            ref=self.textbox_reference.dims,
+            scale=75)
 
         # Add effects
         psd.apply_fx(wm, self.basic_watermark_fx)
@@ -994,8 +1055,9 @@ class BaseTemplate:
 
     def format_text_layers(self) -> None:
         """Validate and execute text layers."""
-        valid_layers = [t for t in self.text if t and t.validate()]
-        [t.execute() for t in valid_layers]
+        for t in self.text:
+            if t and t.validate():
+                t.execute()
 
     """
     * Document Actions
@@ -1021,8 +1083,7 @@ class BaseTemplate:
         """Reset the document, purge the cache, end await."""
         try:
             if self.docref:
-                psd.reset_document()
-                self.app.purge(PurgeTarget.AllCaches)
+                psd.reset_document(self.docref)
         except PS_EXCEPTIONS:
             pass
         self.console.end_await()
@@ -1048,7 +1109,8 @@ class BaseTemplate:
         funcs: list[Callable],
         message: str,
         warning: bool = False,
-        args: Union[Iterable[Any], None] = None
+        args: Union[Iterable[Any], None] = None,
+        kwargs: Optional[dict] = None,
     ) -> tuple[bool, bool]:
         """Run a list of functions, checking for thread cancellation and exceptions on each.
 
@@ -1057,13 +1119,16 @@ class BaseTemplate:
             message: Error message to raise if exception occurs.
             warning: Warn the user if True, otherwise raise error.
             args: Optional arguments to pass to the func. Empty tuple if not provided.
+            kwargs: Optional keyword arguments to pass to the func. Empty dict if not provided.
 
         Returns:
             True if tasks completed, False if exception occurs or thread is cancelled.
         """
-        # No arguments provided?
-        if not args:
-            args = ()
+
+        # Default args and kwargs
+        args = args or ()
+        kwargs = kwargs or {}
+
         # Execute each function
         for func in funcs:
             if self.event.is_set():
@@ -1071,13 +1136,12 @@ class BaseTemplate:
                 return False, False
             try:
                 # Run the task
-                func(*args)
+                func(*args, **kwargs)
             except Exception as e:
-                # Prompt the user for an error
+                # Raise error or warning
                 if not warning:
                     return False, self.raise_error(message=message, error=e)
-                self.console.log_exception(e)
-                self.raise_warning(message)
+                self.raise_warning(message=message, error=e)
         return True, True
 
     def raise_error(self, message: str, error: Optional[Exception] = None) -> bool:
@@ -1106,32 +1170,9 @@ class BaseTemplate:
             error: Exception object.
         """
         if error:
+            self.console.log_exception(error)
             message += "\nCheck [b]/logs/error.txt[/b] for details."
         self.console.update(msg_warn(message), exception=error)
-
-    """
-    * Hooks
-    """
-
-    @auto_prop_cached
-    def hooks(self) -> list[Callable]:
-        """List of methods that will be called during the hooks execution step"""
-        hooks = []
-        if self.is_creature:
-            # Creature hook
-            hooks.append(self.hook_creature)
-        if 'P' in self.layout.mana_cost or '/' in self.layout.mana_cost:
-            # Large mana symbol hook
-            hooks.append(self.hook_large_mana)
-        return hooks
-
-    def hook_creature(self) -> None:
-        """Run this if card is a creature."""
-        pass
-
-    def hook_large_mana(self) -> None:
-        """Run this if card has a large mana symbol."""
-        pass
 
     """
     * Extendable Methods
@@ -1158,22 +1199,18 @@ class BaseTemplate:
         """Set up the card's rules and power/toughness text based on whether the card is a creature."""
         pass
 
-    def post_text_layers(self) -> None:
-        """Write code that will be processed after text layers are executed."""
-        pass
-
-    def post_execute(self) -> None:
-        """Write code that will be processed after execute completes."""
-        pass
-
     """
     * Execution Sequence
     """
 
     def execute(self) -> bool:
-        """Perform actions to render the card using this template. Each action is wrapped in an
-        exception check and a breakpoint to cancel the thread if a cancellation signal was
-        sent by the user. NEVER override this method!"""
+        """Perform actions to render the card using this template.
+
+        Notes:
+            - Each action is wrapped in an exception check and breakpoint to cancel the thread
+                if a cancellation signal was sent by the user.
+            - Never override this method!
+        """
         # Preliminary Photoshop check
         check = self.run_tasks(
             funcs=[self.check_photoshop],
@@ -1184,7 +1221,7 @@ class BaseTemplate:
 
         # Pre-process layout data
         check = self.run_tasks(
-            funcs=[self.process_layout_data, *self.pre_render_methods],
+            funcs=self.pre_render_methods,
             message="Pre-processing layout data failed!")
         if not all(check):
             return check[1]
@@ -1196,17 +1233,6 @@ class BaseTemplate:
             args=[str(self.layout.template_file)])
         if not all(check):
             return check[1]
-
-        # Ensure maximum urgency
-        self.docref.info.urgency = Urgency.High
-
-        # Reload the symbol color map
-        if not ft.symbol_map.is_loaded:
-            check = self.run_tasks(
-                funcs=[ft.symbol_map.load],
-                message="Failed to load the symbol color map!")
-            if not all(check):
-                return check[1]
 
         # Load in artwork and frame it
         check = self.run_tasks(
@@ -1223,13 +1249,6 @@ class BaseTemplate:
                 warning=True)
             if not all(check):
                 return check[1]
-
-        # Add collector info
-        check = self.run_tasks(
-            funcs=[self.collector_info],
-            message="Unable to insert collector info!")
-        if not all(check):
-            return check[1]
 
         # Add expansion symbol
         check = self.run_tasks(
@@ -1255,31 +1274,21 @@ class BaseTemplate:
             if not all(check):
                 return check[1]
 
-        # Select text layers
-        check = self.run_tasks(
-            funcs=[self.basic_text_layers, self.rules_text_and_pt_layers, *self.text_layer_methods],
-            message="Selecting text layers failed!")
-        if not all(check):
-            return check[1]
-
         # Enable layers to build our frame
         check = self.run_tasks(
-            funcs=[self.color_border, self.enable_frame_layers, *self.frame_layer_methods],
+            funcs=self.frame_layer_methods,
             message="Enabling layers failed!")
         if not all(check):
             return check[1]
 
-        # Input and format each text layer
+        # Format text layers
         check = self.run_tasks(
-            funcs=[self.format_text_layers],
-            message="Formatting text failed!")
-        if not all(check):
-            return check[1]
-
-        # Post text layer execution
-        check = self.run_tasks(
-            funcs=[self.post_text_layers, *self.post_text_methods],
-            message="Post text formatting execution failed!")
+            funcs=[
+                *self.text_layer_methods,
+                self.format_text_layers,
+                *self.post_text_methods
+            ],
+            message="Formatting text layers failed!")
         if not all(check):
             return check[1]
 
@@ -1296,16 +1305,16 @@ class BaseTemplate:
 
         # Save the document
         check = self.run_tasks(
-            funcs=[self.save_modes.get(CFG.output_file_type, psd.save_document_jpeg)],
+            funcs=[self.save_mode],
             message="Error during file save process!",
-            args=[self.output_file_name])
+            kwargs={'path': self.output_file_name, 'docref': self.docref})
         if not all(check):
             return check[1]
 
-        # Post execution code
+        # Post save methods
         check = self.run_tasks(
-            funcs=[self.post_execute],
-            message="Image saved, but an error was encountered in the post execution step!")
+            funcs=self.post_save_methods,
+            message="Image saved, but an error was encountered in the post-save step!")
         if not all(check):
             return check[1]
 
@@ -1317,11 +1326,12 @@ class BaseTemplate:
 
 
 class StarterTemplate (BaseTemplate):
-    """
-    * Utility Template between Base and Normal
-    * Adds basic text layers to the render process.
-    * In most cases this is the class you'll extend to when doing more complicated templates which require
-    rewriting large portions of the NormalTemplate functionality.
+    """Utility Template between Base and Normal in complexity.
+
+    Notes:
+        - Adds basic text layers to the render process.
+        - Extend this template when doing more complicated templates which require
+            rewriting large portions of the `NormalTemplate` functionality.
     """
 
     def basic_text_layers(self) -> None:
@@ -1345,23 +1355,23 @@ class StarterTemplate (BaseTemplate):
 
 
 class NormalTemplate (StarterTemplate):
-    """
-    * Utility Template containing the most important "batteries included" functionality.
-    * Adds remaining logic that is required for any normal M15 style card, including Rules and PT text, enabling
-    frame layers, and enabling the legendary crown as well as hollow crown if implemented by modifiers or otherwise.
-    * In most cases this will be the template you want to extend to, unless creating a template for advanced
-    types like planeswalker, saga, etc.
+    """Utility Template containing the most common "batteries included" functionality.
+
+    Notes:
+        - Adds remaining logic that is required for any normal M15 style card, including:
+            - Rules and PT text.
+            - Enabling typical frame layers.
+            - Enabling the legendary crown / hollow crown if supported.
+        - Extend this template for broad support of most typical card functionality.
     """
 
     @auto_prop_cached
     def is_fullart(self) -> bool:
         """Colorless cards use Fullart reference."""
-        if self.is_colorless:
-            return True
-        return False
+        return self.is_colorless
 
     """
-    METHODS
+    * Text Layer Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
@@ -1389,6 +1399,10 @@ class NormalTemplate (StarterTemplate):
                 contents = f"{self.layout.power}/{self.layout.toughness}"
             ) if self.is_creature else None
         ])
+
+    """
+    * Frame Layer Methods
+    """
 
     def enable_frame_layers(self) -> None:
         """Enable layers which make-up the frame of the card."""
