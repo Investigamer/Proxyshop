@@ -1556,7 +1556,7 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         """Card rules text layer, use pre-computed layer name."""
         return psd.getLayer(self.text_layer_rules_name, [self.text_group, self.size])
 
-    @auto_prop
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Card name text layer, allow support for Nickname."""
         if self.is_nickname:
@@ -1568,9 +1568,9 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     @auto_prop_cached
     def text_layer_nickname(self) -> Optional[ArtLayer]:
         """Card nickname text layer, allow support for Nickname."""
-        layer = super().text_layer_name
-        layer.textItem.contents = "ENTER NAME HERE"
         if self.nickname:
+            layer = psd.getLayer(LAYERS.NAME, self.text_group)
+            layer.textItem.contents = "ENTER NAME HERE"
             return layer
         return None
 
