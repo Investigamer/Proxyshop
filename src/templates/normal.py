@@ -1558,15 +1558,23 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         """Card rules text layer, use pre-computed layer name."""
         return psd.getLayer(self.text_layer_rules_name, [self.text_group, self.size])
 
-    @cached_property
+    @property
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Card name text layer, allow support for Nickname."""
         if self.is_nickname:
             layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
-            super().text_layer_name.textItem.contents = self.nickname or "ENTER NAME HERE"
             layer.visible = True
             return layer
         return super().text_layer_name
+
+    @cached_property
+    def text_layer_nickname(self) -> Optional[ArtLayer]:
+        """Card nickname text layer, allow support for Nickname."""
+        layer = super().text_layer_name
+        layer.textItem.contents = "ENTER NAME HERE"
+        if self.nickname:
+            return layer
+        return None
 
     """
     REFERENCES
@@ -1796,17 +1804,29 @@ class BorderlessVectorTemplate (VectorMDFCMod, VectorTransformMod, VectorTemplat
         ])
 
         # Add nickname or regular name
-        self.text.append(
-            ScaledTextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name,
-                reference = self.text_layer_mana
-            ) if not self.is_nickname else
-            ScaledWidthTextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name,
-                reference = self.nickname_shape
-            ))
+        if not self.is_nickname:
+            self.text.append(
+                ScaledTextField(
+                    layer = self.text_layer_name,
+                    contents = self.layout.name,
+                    reference = self.text_layer_mana
+                ))
+        else:
+            self.text.append(
+                    ScaledWidthTextField(
+                    layer = self.text_layer_name,
+                    contents = self.layout.name,
+                    reference = self.nickname_shape
+                ))
+
+            # If nickname is not entered by user add that too
+            if self.text_layer_nickname is not None:
+                self.text.append(
+                    ScaledTextField(
+                        layer = self.text_layer_nickname,
+                        contents = self.nickname,
+                        reference = self.text_layer_mana
+                    ))
 
     def rules_text_and_pt_layers(self) -> None:
 
