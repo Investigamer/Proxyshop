@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 from typing import Optional, Union
+from re import sub
 
 # Third Party Imports
 from photoshop.api import AnchorPosition, SolidColor
@@ -1082,6 +1083,18 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     def __init__(self, layout, **kwargs):
         if not CFG.exit_early:
             CFG.exit_early = self.is_nickname and not self.nickname
+
+        if self.is_nickname_in_oracle:
+            if 'Legendary' in layout.type_line and ',' in layout.name:
+                original_short_name = sub(r"\,.*", "", layout.name).strip()
+                layout.oracle_text = layout.oracle_text.replace(layout.name, original_short_name)
+                
+                nick_short_name = sub(r"\,.*", "", self.nickname).strip()
+                layout.oracle_text = layout.oracle_text.replace(original_short_name, self.nickname, 1)
+                layout.oracle_text = layout.oracle_text.replace(original_short_name, nick_short_name)
+            else:
+                layout.oracle_text = layout.oracle_text.replace(layout.name, self.nickname)
+
         super().__init__(layout, **kwargs)
 
     # Color Maps
@@ -1316,6 +1329,11 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     def is_nickname(self) -> bool:
         """Return True if this a nickname render."""
         return CFG.get_setting(section="TEXT", key="Nickname", default=False) or self.nickname is not None
+
+    @auto_prop_cached
+    def is_nickname_in_oracle(self) -> bool:
+        """Return True if this is a nickname render that should put its nickname into the oracle text."""
+        return self.nickname is not None and CFG.get_setting(section="TEXT", key="Nickname.In.Oracle", default=True)
 
     @auto_prop_cached
     def nickname(self) -> str | None:
