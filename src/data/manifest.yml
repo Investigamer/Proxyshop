@@ -1,0 +1,208 @@
+normal.psd:
+  id: '1t0vFPIKctuGmLMvWd3UG8k_mC-_W8LYe'
+  desc: 'Normal M15-style frame, with additional support for Fullart and Stargazing treatments.'
+  templates:
+    Normal: M15Template
+    Fullart: FullartTemplate
+    Stargazing: StargazingTemplate
+
+normal-classic.psd:
+  id: '1y5_W7Fr-TrRBIVaTdUmpa24Q9p-nPtg0'
+  desc: "Classic frame based on 1997-era MTG cards."
+  templates: { Classic: ClassicTemplate }
+
+classic-remastered.psd:
+  id: '1DYbRMtKRZs5EeRYLl6i5lodzMyhTnIdI'
+  desc: "A remastered take on the classic 1997 frame treatment, assets provided by iDerp."
+  templates:
+    Classic Remastered:
+      ClassicRemasteredTemplate:
+      - normal
+      - transform_front
+      - transform_back
+
+classic-modern.psd:
+  id: '1BgakdZ4pKk48LIReoOBN00DhyKX2PeOd'
+  desc: "A rendition of iDerp's 'Classic Remastered' template using modern frame structure."
+  templates:
+    Classic Modern:
+      ClassicModernTemplate:
+      - normal
+      - transform_front
+      - transform_back
+      - mdfc_front
+      - mdfc_back
+
+normal-extended.psd:
+  id: '1iqMrsHlTOeOxCWPFcPaHlXK8x9yjfJ4d'
+  desc: 'Normal M15-style frame with an extended art border treatment.'
+  templates: { Extended: ExtendedTemplate }
+
+etched.psd:
+  id: '13wJYra-Nx7NIvl78h6N8l7lEbxNj0V0y'
+  desc: "Based on the 'Etched' showcase introduced in Commander Legends."
+  templates: { Etched: EtchedTemplate }
+
+masterpiece.psd:
+  id: '1h15KM_BVNMxAAvqXkCfXksEwTyQPfgIP'
+  desc: "Based on the 'Invention' showcase introduced in Kaladesh."
+  templates: { Invention: InventionTemplate }
+
+znrexp.psd:
+  id: '1b5y4wqNvLuvKeqyQb6QrXDJVxjpuVLHX'
+  desc: "Based on the newer 'Expedition' showcase frame introduced in Zendikar Rising."
+  templates: { Expedition (ZNR): ExpeditionTemplate }
+
+borderless-vector.psd:
+  id: '1mJ7JLD-aayTvhcrY9_Q21S3i3qAWeb7v'
+  desc: "Based on the 'Borderless' box-topper showcase used in most masters sets."
+  templates:
+    Borderless:
+      BorderlessVectorTemplate:
+      - normal
+      - transform_front
+      - transform_back
+      - mdfc_front
+      - mdfc_back
+      - token
+
+miracle.psd:
+  id: '1WXfMLkIk4S75210k1l7Z9B6gpol4RqHj'
+  desc: "A normal M15-style frame for 'Miracle' cards."
+  templates: { Miracle: MiracleTemplate }
+
+snow.psd:
+  id: '1cqpVFgFnpOq9I43iy2OqnozuvullGCez'
+  desc: "A normal M15-style frame for 'Snow' cards."
+  templates: { Snow: SnowTemplate }
+
+universes-beyond.psd:
+  id: '1UufcIernCbNX0-xNxajVlTc2dLqUkqr6'
+  desc: "Based on the 'Universes Beyond' frame treatment used in MTG crossover products."
+  templates:
+    Universes Beyond:
+      UniversesBeyondTemplate:
+      - normal
+      - transform_front
+      - transform_back
+
+lord-of-the-rings.psd:
+  id: '1jFQgCYqev2LpHSFkraaWJIP9q51G8py-'
+  desc: "Based on the 'Lord of the Rings' showcase introduced in Tales of Middle-earth."
+  templates: { Lord of the Rings: LOTRTemplate }
+
+tf-front.psd:
+  id: '13TCpRzvOHfxahpXu568AJ-EZzDDjehi7'
+  templates:
+    Normal: { TransformTemplate: transform_front }
+
+tf-back.psd:
+  id: '1j__OIXyejP-3H7aWm3IyuILgcj3ASq_L'
+  templates:
+    Normal: { TransformTemplate: transform_back }
+
+mdfc-front.psd:
+  id: '1_4sinFiSjIN8ayW8gpsxkwgGAa-FPc6H'
+  templates: { Normal: { MDFCTemplate: mdfc_front } }
+
+mdfc-back.psd:
+  id: '189N6G0uPEPAoGQya6ov8g9ZDG4A6lZUA'
+  templates: { Normal: { MDFCTemplate: mdfc_back } }
+
+ixalan.psd:
+  id: '1e_VX3nJ5c6bZMObMLt5c1jJGiaaw5-4d'
+  templates: { Normal: { IxalanTemplate: ixalan } }
+
+mutate.psd:
+  id: '1A5YNZA9Z9eE_jdDIPFJCqp_AxcEiAcdL'
+  templates: { Normal: { MutateTemplate: mutate } }
+
+normal-vector.psd:
+  id: '16Ll3t_u9VwnNRfbhpvV12CL1iwWbyDG0'
+  templates: { Normal: { AdventureVectorTemplate: adventure } }
+
+leveler.psd:
+  id: '1tLrYbTphadzxxyICtaRSqzRUfpekJckf'
+  templates: { Normal: { LevelerTemplate: leveler } }
+
+vertical-mode.psd:
+  id: '1ytlBqIywu7gyTrgM9-hKj-apKe6v18Ek'
+  desc: "A powerful Vector template that can render both Saga and Class cards in Normal and Universes Beyond treatment."
+  templates:
+    Normal:
+      SagaVectorTemplate: saga
+      ClassVectorTemplate: class
+    Universes Beyond:
+      UniversesBeyondSagaTemplate: saga
+      UniversesBeyondClassTemplate: class
+
+split.psd:
+  id: '1J8CFOqxxiopOMBbEmNjayNJvGsH6uyvn'
+  templates: { Normal: { SplitTemplate: split } }
+
+battle.psd:
+  id: '1_Je_F91VgancyC6EH9JAKc35cwB9HoqJ'
+  templates:
+    Normal: { BattleTemplate: battle }
+    Universes Beyond: { UniversesBeyondBattleTemplate: battle }
+
+prototype.psd:
+  id: '1XwUYcjX18nRUFcWR6OjEyE_H6pHz1uOE'
+  templates: { Normal: { PrototypeTemplate: prototype } }
+
+pw.psd:
+  id: '1hlXvORM3z7bqURPyDG3VYDUeqq94ek81'
+  templates: { Normal: { PlaneswalkerTemplate: planeswalker } }
+
+pw-extended.psd:
+  id: '1MjIF48qTyAzax7LRdtGAvZLcWTZBIzCB'
+  templates:
+    Borderless: { PlaneswalkerBorderlessTemplate: planeswalker }
+
+pw-tf-front.psd:
+  id: '1fwhWb4BHRRjs2KoGZhLMGtQ3ngmeeQ-o'
+  templates:
+    Normal: { PlaneswalkerTFTemplate: pw_tf_front }
+
+pw-tf-front-extended.psd:
+  id: '1TtHwTkDhWl5jJi3b_OiMa-E4izhfcTK7'
+  templates:
+    Borderless: { PlaneswalkerTFBorderlessTemplate: pw_tf_front }
+
+pw-tf-back.psd:
+  id: '10_rHVPO7iIbmSlGAxgK0zMz7_lhJeaMf'
+  templates:
+    Normal: { PlaneswalkerTFTemplate: pw_tf_back }
+
+pw-tf-back-extended.psd:
+  id: '1H1chKvKFiFYDrnN226zshNo0wQNDIQIX'
+  templates:
+    Borderless: { PlaneswalkerTFBorderlessTemplate: pw_tf_back }
+
+pw-mdfc-front.psd:
+  id: '1hQBlgYaGIWIgCf4hkZRjcvMN9VJCkbVe'
+  templates:
+    Normal: { PlaneswalkerMDFCTemplate: pw_mdfc_front }
+
+pw-mdfc-front-extended.psd:
+  id: '1ddzLx-ookhyrjjJnOGp8pzW29FHVSbYQ'
+  templates:
+    Borderless: { PlaneswalkerMDFCBorderlessTemplate: pw_mdfc_front }
+
+pw-mdfc-back.psd:
+  id: '1J_giOHB_07SK0LPpxH4n9Me6CyJqslvj'
+  templates:
+    Normal: { PlaneswalkerMDFCTemplate: pw_mdfc_back }
+
+pw-mdfc-back-extended.psd:
+  id: '1BwX6vwoH-HNnAjz8408_PujankJceFox'
+  templates:
+    Borderless: { PlaneswalkerMDFCBorderlessTemplate: pw_mdfc_back }
+
+token.psd:
+  id: '1oWzk6MSv5wQMVJJE3VossKWs1BylBvKP'
+  templates: { Normal: { TokenTemplate: token } }
+
+planar.psd:
+  id: '1MGSgSkvUGe6M8-TEI8cMby_eU3i1uR_E'
+  templates: { Normal: { PlanarTemplate: planar } }

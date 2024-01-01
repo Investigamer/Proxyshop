@@ -1,86 +1,70 @@
 """
-* BASIC LAND TEMPLATES
+* Basic Land Templates
+* Deprecated in v1.13.0
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
+from src.templates._cosmetic import BorderlessMod, FullartMod
+from src.utils.properties import auto_prop_cached
 from src.templates._core import BaseTemplate
-from src.settings import cfg
 import src.helpers as psd
 
 
-class BasicLandTemplate (BaseTemplate):
+class BasicLandUnstableTemplate (BorderlessMod, BaseTemplate):
+    """Basic land template for the borderless basics from Unstable. Doesn't support expansion symbol.
+
+    Todo:
+        Transition to 'Normal' type.
     """
-    * Basic land template with no text and icons (aside from legal group), just a layer for each of the eleven
-    basic land types.
+    template_suffix = 'Unstable'
+
+    """
+    * Layer Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_group(self) -> Optional[LayerSet]:
         return self.docref
 
-    def enable_frame_layers(self):
-        psd.getLayer(self.layout.name_raw).visible = True
-
-
-class BasicLandClassicTemplate (BasicLandTemplate):
     """
-    * 7th edition classic frame basic land template.
+    * Expansion Symbol
     """
 
-    @cached_property
-    def template_suffix(self) -> str:
-        if self.promo_star:
-            return "Promo Classic"
-        return "Classic"
-
-    @property
-    def promo_star(self) -> str:
-        return cfg.get_setting(
-            section="FRAME",
-            key="Promo.Star",
-            default=False
-        )
-
-    def enable_frame_layers(self):
-        super().enable_frame_layers()
-
-        # Add the promo star
-        if self.promo_star:
-            psd.getLayerSet("Promo Star").visible = True
-
-
-class BasicLandUnstableTemplate (BasicLandTemplate):
-    """
-    * Basic land template for the borderless basics from Unstable.
-    * Doesn't support expansion symbol.
-    """
-    template_suffix = "Unstable"
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    @property
-    def is_content_aware_enabled(self) -> bool:
-        return True
-
-    def expansion_symbol(self):
+    def load_expansion_symbol(self):
         """Does not support expansion symbol."""
         pass
 
-
-class BasicLandTherosTemplate (BasicLandTemplate):
     """
-    * Fullart basic land template introduced in Theros: Beyond Death.
+    * Frame Layer Methods
     """
-    template_suffix = "Theros"
 
-    @property
-    def is_fullart(self) -> bool:
-        return True
+    def enable_frame_layers(self):
+        """Only one layer, named according to basic land name."""
+        psd.getLayer(self.layout.name_raw).visible = True
+
+
+class BasicLandTherosTemplate (FullartMod, BaseTemplate):
+    """Fullart basic land template introduced in Theros: Beyond Death."""
+    template_suffix = 'Theros'
+
+    """
+    * Layer Groups
+    """
+
+    @auto_prop_cached
+    def text_group(self) -> Optional[LayerSet]:
+        """Text layers are in the document root."""
+        return self.docref
+
+    """
+    * Frame Layer Methods
+    """
+
+    def enable_frame_layers(self):
+        """Only one layer, named according to basic land name."""
+        psd.getLayer(self.layout.name_raw).visible = True

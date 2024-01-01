@@ -1,0 +1,132 @@
+copyright: Copyright (c) 2023 Chris McGuire
+markdown_extensions:
+- pymdownx.extra
+- admonition
+- def_list
+- footnotes
+- meta
+- toc
+- pymdownx.arithmatex
+- pymdownx.betterem
+- pymdownx.caret
+- pymdownx.critic
+- pymdownx.details
+- pymdownx.snippets
+- pymdownx.highlight
+- pymdownx.inlinehilite
+- pymdownx.magiclink
+- pymdownx.mark
+- pymdownx.smartsymbols
+- pymdownx.tabbed:
+    alternate_style: true
+- pymdownx.superfences:
+    custom_fences:
+    - class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format ''
+      name: mermaid
+- pymdownx.tasklist:
+    custom_checkbox: true
+- pymdownx.tilde
+- attr_list
+- md_in_html
+nav:
+- Home: index.md
+- Changelog: changelog.md
+- Reference:
+  - Template Classes:
+    - temps/_core.md
+    - temps/_cosmetic.md
+    - temps/_vector.md
+    - temps/adventure.md
+    - temps/basic_land.md
+    - temps/battle.md
+    - temps/classes.md
+    - temps/leveler.md
+    - temps/mdfc.md
+    - temps/mutate.md
+    - temps/normal.md
+    - temps/planar.md
+    - temps/planeswalker.md
+    - temps/prototype.md
+    - temps/saga.md
+    - temps/split.md
+    - temps/token.md
+    - temps/transform.md
+  - Photoshop Helpers:
+    - helpers/actions.md
+    - helpers/adjustments.md
+    - helpers/bounds.md
+    - helpers/colors.md
+    - helpers/design.md
+    - helpers/document.md
+    - helpers/effects.md
+    - helpers/expansion_symbol.md
+    - helpers/expansionsymbol.md
+    - helpers/layers.md
+    - helpers/masks.md
+    - helpers/position.md
+    - helpers/text.md
+  - App Utilities:
+    - utils/api.md
+    - utils/build.md
+    - utils/compression.md
+    - utils/decorators.md
+    - utils/dicts.md
+    - utils/download.md
+    - utils/env.md
+    - utils/exceptions.md
+    - utils/files.md
+    - utils/fonts.md
+    - utils/image.md
+    - utils/modules.md
+    - utils/objects.md
+    - utils/regex.md
+    - utils/scryfall.md
+    - utils/strings.md
+    - utils/testing.md
+  - Text Layer Classes: text_layers.md
+  - Card Layouts: layouts.md
+- License: license.md
+plugins:
+- include-markdown
+- search
+- same-dir
+- autorefs
+- autolinks
+- mkdocstrings:
+    handlers:
+      python:
+        rendering:
+          show_bases: true
+          show_category_heading: true
+          show_docstring_classes: true
+          show_docstring_examples: false
+          show_docstring_functions: true
+          show_docstring_other_parameters: false
+          show_if_no_docstring: false
+          show_inherited_members: false
+          show_object_full_path: false
+          show_root_full_path: false
+          show_root_heading: false
+          show_root_toc_entry: true
+          show_signature: true
+          show_signature_annotations: true
+          show_source: false
+          show_source_summary: true
+        selection:
+          docstring_options:
+            ignore_init_summary: true
+          docstring_style: google
+- minify:
+    htmlmin_opts:
+      remove_comments: true
+    minify_css: true
+    minify_html: true
+    minify_js: true
+- mkdocs_pymdownx_material_extras
+remote_branch: main
+repo_name: Proxyshop
+repo_url: https://github.com/MrTeferi/Proxyshop
+site_author: MrTeferi
+site_name: Proxyshop
+theme: material

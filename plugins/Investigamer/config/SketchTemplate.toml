@@ -1,0 +1,33 @@
+[ACTION]
+title = "Action Settings"
+
+[ACTION."Sketch.Action"]
+title = "Sketch Action"
+desc = """Choose between short, professional looking, or no Sketch action."""
+type = "options"
+default = "Advanced Sketch"
+options = ["Quick Sketch", "Advanced Sketch", "None"]
+
+[ACTION."Rough.Sketch.Lines"]
+title = "Rough Sketch Lines"
+desc = """Only works with advanced action, adds rough lines (and render time)."""
+type = "bool"
+default = 0
+
+[ACTION."Draft.Sketch.Lines"]
+title = "Draft Sketch Lines"
+desc = """Only works with advanced action, adds draft sketch lines (and render time)."""
+type = "bool"
+default = 0
+
+[ACTION."Black.And.White"]
+title = "Black and White"
+desc = """Only works with advanced action, renders sketch image without color."""
+type = "bool"
+default = 0
+
+[ACTION."Sketch.Manual.Editing"]
+title = "Sketch Manual Editing"
+desc = """Pause rendering at the end of the sketch effect for manual intervention."""
+type = "bool"
+default = 0

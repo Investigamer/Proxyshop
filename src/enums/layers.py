@@ -1,13 +1,16 @@
 """
-LAYER NAME ENUMS
+* Enums: Layer Names
 """
 from src.utils.strings import StrEnum
 
+"""
+* Enums
+"""
+
 
 class LAYERS (StrEnum):
-    """
-    Layer Names
-    """
+    """Layer name definitions."""
+
     # Default art layer
     DEFAULT = "Layer 1"
 
@@ -151,7 +154,8 @@ class LAYERS (StrEnum):
     TEXTBOX_REFERENCE = "Textbox Reference"
     TEXTBOX_REFERENCE_LAND = "Textbox Reference Land"
     MUTATE_REFERENCE = "Mutate Reference"
-    PT_REFERENCE = "PT Adjustment Reference"
+    PT_REFERENCE = 'PT Reference'
+    PT_ADJUSTMENT_REFERENCE = "PT Adjustment Reference"
     PT_TOP_REFERENCE = "PT Top Reference"
     EXPANSION_REFERENCE = "Expansion Reference"
     NAME_REFERENCE_NON_LEGENDARY = "Name Reference Non-Legendary"

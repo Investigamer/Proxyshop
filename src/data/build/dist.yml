@@ -1,0 +1,61 @@
+# Define our build strings
+names:
+    zip: 'Proxyshop-v{version}{beta}{console}.zip'
+
+# Define our Spec files
+spec:
+    release: ['src', 'data', 'build', 'Proxyshop.spec']
+    console: ['src', 'data', 'build', 'Proxyshop-console.spec']
+
+# Create required directories
+make:
+    paths:
+    - ['art'],
+    - ['src'],
+    - ['plugins'],
+    - ['templates']
+
+# Copy directories to release folder
+copy:
+
+    # Base directories and files
+    base:
+        paths:
+        - ['src', 'img'],
+        - ['templates', 'tools']
+        files:
+        - ['LICENSE.md'],
+        - ['README.md']
+
+    # Copy data directory
+    data:
+        paths:
+        - ['src', 'data']
+        exclude_ext:
+        - '.ini'
+        exclude_dirs:
+        - 'build'
+        - 'hexproof'
+        - 'scryfall'
+        - 'config_ini'
+        exclude_files:
+        - 'version_tracker.json'
+        - 'user.yml'
+
+    # Copy plugins directory
+    plugins:
+        paths:
+        - ['plugins', 'Investigamer'],
+        - ['plugins', 'SilvanMTG']
+        exclude_ext:
+        - '.psd'
+        - '.psb'
+        - '.ini'
+        exclude_dirs:
+        - "config_ini"
+
+    # Copy fonts directory
+    fonts:
+        paths:
+        - ['fonts']
+        recursive: false

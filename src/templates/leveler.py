@@ -2,7 +2,6 @@
 * LEVELER TEMPLATES
 """
 # Standard Library
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -10,11 +9,16 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import NormalTemplate
-import src.text_layers as text_classes
-from src.layouts import LevelerLayout
 from src.enums.layers import LAYERS
 import src.helpers as psd
+from src.layouts import LevelerLayout
+from src.templates._core import NormalTemplate
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+
+"""
+* Modifier Classes
+"""
 
 
 class LevelerMod (NormalTemplate):
@@ -27,7 +31,7 @@ class LevelerMod (NormalTemplate):
         * Level requirements for second and third stage.
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers."""
         funcs = [self.text_layers_leveler] if isinstance(self.layout, LevelerLayout) else []
@@ -37,7 +41,7 @@ class LevelerMod (NormalTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def leveler_group(self) -> Optional[LayerSet]:
         """Group containing Leveler text layers."""
         return psd.getLayerSet("Leveler Text", self.text_group)
@@ -46,7 +50,7 @@ class LevelerMod (NormalTemplate):
     LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def pt_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.twins, LAYERS.PT_AND_LEVEL_BOXES)
 
@@ -54,11 +58,11 @@ class LevelerMod (NormalTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Level Up", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_pt(self) -> Optional[ArtLayer]:
         return psd.getLayer("Top Power / Toughness", self.leveler_group)
 
@@ -66,27 +70,27 @@ class LevelerMod (NormalTemplate):
     LEVELER TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules_x_y(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Levels X-Y", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules_z(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Levels Z+", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_level_middle(self) -> Optional[ArtLayer]:
         return psd.getLayer("Middle Level", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_level_bottom(self) -> Optional[ArtLayer]:
         return psd.getLayer("Bottom Level", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_pt_middle(self) -> Optional[ArtLayer]:
         return psd.getLayer("Middle Power / Toughness", self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_pt_bottom(self) -> Optional[ArtLayer]:
         return psd.getLayer("Bottom Power / Toughness", self.leveler_group)
 
@@ -94,17 +98,17 @@ class LevelerMod (NormalTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Level Text", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference_x_y(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Level X-Y", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level X-Y', self.leveler_group)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference_z(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE + " - Levels Z+", self.leveler_group)
+        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Levels Z+', self.leveler_group)
 
     """
     LEVELER METHODS

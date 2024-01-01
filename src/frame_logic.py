@@ -1,13 +1,13 @@
 """
 FRAME LOGIC MODULE
 """
-from functools import cached_property
 # Standard Library Imports
+from functools import cached_property
 from typing import Union, Optional
 
-from src.enums.mtg import Rarity
 # Local Imports
-from src.types.cards import FrameDetails
+from src.cards import FrameDetails
+from src.enums.mtg import Rarity
 from src.enums.layers import LAYERS
 
 
@@ -525,6 +525,9 @@ def get_special_rarity(rarity: str, card: dict) -> str:
             return Rarity.T
         # Championship cards
         if 'Champion' in card.get('set_name'):
+            return Rarity.M
+        # Masterpiece
+        if card.get('set_type') == 'masterpiece':
             return Rarity.M
         # Case like Prismatic Piper
         return Rarity.C

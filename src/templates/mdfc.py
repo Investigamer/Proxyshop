@@ -1,5 +1,4 @@
 # Standard Library
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -7,14 +6,14 @@ from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.enums.layers import LAYERS
-from src import helpers as psd
+import src.helpers as psd
 from src.templates._core import BaseTemplate, NormalTemplate
 from src.templates._vector import VectorTemplate
 from src.text_layers import ScaledTextField, FormattedTextField
-
+from src.utils.properties import auto_prop_cached
 
 """
-* MDFC MODIFIER CLASSES
+* Modifier Classes
 """
 
 
@@ -28,13 +27,13 @@ class MDFCMod(BaseTemplate):
         * Top (arrow icon) and bottom (opposing side info) MDFC layer elements
     """
 
-    @cached_property
+    @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         # Add MDFC frame layers step
         parent_funcs = super().frame_layer_methods
         return [*parent_funcs, self.enable_mdfc_layers] if self.is_mdfc else parent_funcs
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         # Add MDFC text layers step
         parent_funcs = super().text_layer_methods
@@ -44,12 +43,12 @@ class MDFCMod(BaseTemplate):
     TEXT LAYERS
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
         """The back face card type."""
         return psd.getLayer(LAYERS.LEFT, self.dfc_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
         """The back face mana cost or land tap ability."""
         return psd.getLayer(LAYERS.RIGHT, self.dfc_group)
@@ -132,7 +131,7 @@ class VectorMDFCMod(MDFCMod, VectorTemplate):
 
 
 """
-* MDFC TEMPLATE CLASSES
+* Template Classes
 """
 
 

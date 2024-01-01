@@ -1,48 +1,55 @@
 """
-* TOKEN TEMPLATES
+* Templates: Token
 """
 # Standard Library Imports
 from typing import Optional
-from functools import cached_property
 
 # Third Party Imports
 from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import StarterTemplate
-from src.utils.strings import is_multiline
-import src.text_layers as text_classes
+from src import CON
 from src.enums.layers import LAYERS
-from src.constants import con
 import src.helpers as psd
+from src.templates._core import StarterTemplate
+from src.templates._cosmetic import FullartMod
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+from src.utils.strings import is_multiline
+
+"""
+* Template Classes
+"""
 
 
-class TokenTemplate(StarterTemplate):
-    """
-    * A template for Token cards.
-    * Allows for three types of oracle text: None, One-Line, and Full size.
+class TokenTemplate(FullartMod, StarterTemplate):
+    """A generic template for Token cards.
 
     Adds:
+        * Support for three modes of oracle text: None, One-Line, and Full size.
         * Multiple textbox groups for different rules text layers and references.
         * A name and typeline reference that allows for scaling based on horizontal dimension.
+
     Modifies:
         * Only supports a singular frame layer which is the Background layer.
     """
+    frame_suffix = 'Token'
 
     """
-    TOGGLE
+    * Mixin Methods
     """
 
     @property
-    def is_fullart(self) -> bool:
-        return True
+    def post_text_methods(self):
+        """Make some text positioning adjustments after text is formatted."""
+        return [*super().post_text_methods, self.text_adjustments]
 
     """
-    LAYERS
+    * Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def background_layer(self) -> Optional[ArtLayer]:
         # Background is based on Legendary toggle as well as Creature toggle
         return psd.getLayer(self.layout.pinlines, [
@@ -52,10 +59,10 @@ class TokenTemplate(StarterTemplate):
         ])
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """A group containing background, text, and reference based upon oracle text requirements."""
         if not self.layout.oracle_text and not self.layout.flavor_text:
@@ -74,25 +81,25 @@ class TokenTemplate(StarterTemplate):
         return group
 
     """
-    REFERENCES
+    * References
     """
 
     @property
     def art_reference(self) -> ArtLayer:
-        # Only one frame for art reference
+        """Only one frame for art reference."""
         return psd.getLayer(LAYERS.ART_FRAME)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
-        # Pull from the textbox group
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE, self.textbox_group)
+        """Pull from the textbox group."""
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def type_line_reference(self) -> ArtLayer:
         """Reference to scale the TypeLine."""
         return psd.getLayer(LAYERS.TYPE_LINE_REFERENCE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def name_reference(self) -> ArtLayer:
         """Reference to scale the Card Name"""
         if self.is_legendary:
@@ -100,17 +107,17 @@ class TokenTemplate(StarterTemplate):
         return psd.getLayer(LAYERS.NAME_REFERENCE_NON_LEGENDARY, self.text_group)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> ArtLayer:
-        # Pull from the textbox group
+        """Pull from the textbox group."""
         return psd.getLayer(LAYERS.TYPE_LINE, self.textbox_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
-        # Full textbox group has both creature and noncreature option
+        """Full textbox group has both creature and noncreature option."""
         if self.textbox_group.name == LAYERS.FULL:
             return psd.getLayer(
                 LAYERS.RULES_TEXT_CREATURE if (
@@ -121,20 +128,20 @@ class TokenTemplate(StarterTemplate):
         return psd.getLayer(LAYERS.RULES_TEXT, self.textbox_group)
 
     """
-    METHODS
+    * Methods
     """
 
     def expansion_symbol(self) -> None:
-        # Does not support expansion symbol
+        """Does not support expansion symbol."""
         pass
 
     def enable_frame_layers(self) -> None:
-        # Only need to enable the background layer
+        """Only need to enable the background layer."""
         if self.background_layer:
             self.background_layer.visible = True
 
     def basic_text_layers(self) -> None:
-        # Don't include the mana cost in basic text layers
+        """Don't include the mana cost in basic text layers."""
         self.text.extend([
             text_classes.ScaledWidthTextField(
                 layer = self.text_layer_name,
@@ -149,8 +156,10 @@ class TokenTemplate(StarterTemplate):
         ])
 
     def rules_text_and_pt_layers(self) -> None:
+        """3 rules text modes: None, One-Line, and Full"""
+
         # Adjust the default linebreak lead
-        con.line_break_lead = 3
+        CON.line_break_lead = 3
 
         # Rules Text
         if self.textbox_group.name == LAYERS.ONE_LINE:
@@ -178,6 +187,7 @@ class TokenTemplate(StarterTemplate):
 
         # PT Layer
         if self.is_creature:
+
             # Enable cutout
             psd.enable_vector_mask(self.textbox_group.parent)
             self.text.append(
@@ -186,14 +196,13 @@ class TokenTemplate(StarterTemplate):
                     contents=f"{self.layout.power}/{self.layout.toughness}"
                 )
             )
-        else:
-            self.text_layer_pt.visible = False
 
-    def post_text_layers(self) -> None:
+    def text_adjustments(self) -> None:
+
         # Vertically center the name after it's been scaled
         psd.align_all(self.text_layer_name, self.name_reference)
 
         # Align the typeline and rules
         psd.align_horizontal(self.text_layer_type, self.type_line_reference)
         if self.textbox_reference and self.text_layer_rules:
-            psd.align_horizontal(self.text_layer_rules, self.textbox_reference)
+            psd.align_horizontal(self.text_layer_rules, self.textbox_reference.dims)

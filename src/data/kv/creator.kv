@@ -8,7 +8,8 @@
 #:import ThreeNumInput src.gui.utils.ThreeNumInput
 #:import FourCharInput src.gui.utils.FourCharInput
 
-<CreatorPanels>:
+<CreatorPanel>:
+    id: panel_creator
     do_default_tab: False
     tab_width: dp(120)
     tab_height: dp(30)
@@ -140,15 +141,15 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_norm
+            id: render_custom
             text: "Render Custom"
             font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
-            on_press: Thread(target=root.render, args=(app,), daemon=True).start()
+            on_press: Thread(target=root.render, daemon=True).start()
 
 <CreatorPlaneswalkerLayout>:
     id: creator_pw
@@ -276,16 +277,16 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_pw
+            id: render_custom
             size_hint_x: 1.2
             text: "Render Custom"
             font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
-            on_press: Thread(target=root.render, args=(app,), daemon=True).start()
+            on_press: Thread(target=root.render, daemon=True).start()
 
 <CreatorSagaLayout>:
     id: creator_saga
@@ -406,13 +407,13 @@
         Spinner:
             id: template
             text: "Normal"
-            values: root.templates
+            values: root._template_names
             on_text: root.select_template(self)
         HoverButton:
-            id: render_saga
+            id: render_custom
             size_hint_x: 1.2
             text: "Render Custom"
             font_size: sp(16)
             background_color: get_color_from_hex("#376aa3")
             font_name: get_font("Beleren Small Caps.ttf")
-            on_press: Thread(target=root.render, args=(app,), daemon=True).start()
+            on_press: Thread(target=root.render, daemon=True).start()

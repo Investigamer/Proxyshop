@@ -220,7 +220,7 @@
 - **templates**: New Template: Borderless Vector, our most advanced template yet
 - **settings**: Added Generative Fill setting that replaces content aware fill when supported, and Vertical Fullart which forces Fullart templates to always use vertical framing
 - **GUI**: Added new "Tools" tab, for various app utilities
-- **templates**: New templates: ClassicRemastered (credit to iDerp), Etched (credit to Warpdandy, Kyle of CC, and myself), Lord of the Rings (credit to Tupinambá). Updated Normal Fullart, Stargazing, and Universes Beyond. Renamed WomensDay -> Borderless, NormalClassic -> Classic, NormalExtended -> Extended, NormalFullart -> Fullart
+- **templates**: New templates: ClassicRemastered (credit to iDerp), Etched (credit to Warpdandy, Kyle of CC, and myself), Lord of the Rings (credit to Tupinambï¿½). Updated Normal Fullart, Stargazing, and Universes Beyond. Renamed WomensDay -> Borderless, NormalClassic -> Classic, NormalExtended -> Extended, NormalFullart -> Fullart
 - **templates**: Separated templates.py into full templates module, delineated by template types. Added new utility template classes: NormalEssentials, NormalVectorTemplate, and DynamicVectorTemplate
 - **setting**: Added new setting: Collector Mode, changes how collector info is rendered. Also added get_option for processing valid multi-choice options
 - **templates**: New templates: Etched and Classic Remastered

@@ -1,0 +1,121 @@
+# CONF — APP
+[__CONFIG__]
+prefix = "APP"
+
+###
+# * File Settings
+###
+
+[FILES]
+title = "File Settings"
+
+[FILES."Output.File.Type"]
+title = "Output File Type"
+desc = """File extension to use for rendered images."""
+type = "options"
+default = "jpg"
+options = ["jpg", "png", "psd"]
+
+[FILES."Output.File.Name"]
+title = "Output File Name"
+desc = """Choose how the rendered card images are named. See the README for advanced usage."""
+type = "string"
+default = "#name (#frame<, #suffix>) [#set] {#num}"
+
+[FILES."Overwrite.Duplicate"]
+title = "Overwrite Duplicates"
+desc = """Overwrite rendered files with identical file names."""
+type = "bool"
+default = 1
+
+###
+# * Scryfall Settings
+###
+
+[DATA]
+title = "Scryfall Settings"
+
+[DATA."Scryfall.Language"]
+title = "Scryfall Language"
+desc = """A scryfall supported language code to look for alternate language text.
+Phyrexian is not supported at this time."""
+type = "options"
+default = "en"
+options = ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"]
+
+[DATA."Scryfall.Sorting"]
+title = "Scryfall Sorting"
+desc = """The method used to sort the Scryfall card lookup results."""
+type = "options"
+default = "released"
+options = ["released", "set", "rarity", "usd", "eur", "edhrec", "artist"]
+
+[DATA."Scryfall.Ascending"]
+title = "Scryfall Search Ascending"
+desc = """When pulling cards from Scryfall, search ascending instead of descending.
+For example, in order of 'released', ascending would be oldest to newest."""
+type = "bool"
+default = 0
+
+[DATA."Scryfall.Extras"]
+title = "Scryfall Include Extras"
+desc = """When pulling cards from Scryfall, allow extras like promo prints, funny sets, etc."""
+type = "bool"
+default = 0
+
+[DATA."Scryfall.Unique"]
+title = "Scryfall Unique"
+desc = """Whether Scryfall should return card data for all unique arts, or all unique prints."""
+type = "options"
+default = "arts"
+options = ["arts", "prints"]
+
+###
+# * Text Settings
+###
+
+[TEXT]
+title = "Text Settings"
+
+[TEXT."Force.English.Formatting"]
+title = "Force English Formatting"
+desc = """Enabling this will force Photoshop text layers to use English formatting."""
+type = "bool"
+default = 0
+
+###
+# * Render Settings
+###
+
+[RENDER]
+title = "Render Settings"
+
+[RENDER."Skip.Failed"]
+title = "Skip Failed Cards"
+desc = """Automatically skip failed cards without asking for confirmation."""
+type = "bool"
+default = 0
+
+[RENDER."Generative.Fill"]
+title = "Enable Generative Fill"
+desc = """When enabled, fullart and extended templates will fill empty space using Generative Fill instead of Content Aware Fill. This feature will not work unless running the Photoshop BETA version."""
+type = "bool"
+default = 0
+
+[RENDER."Select.Variation"]
+title = "Select Generative Fill Variation"
+desc = """When enabled, render sequence will pause after 'Generative Fill' is applied and allow you to select a variation."""
+type = "bool"
+default = 0
+
+[RENDER."Feathered.Fill"]
+title = 'Feathered Fill Selections'
+desc = """When enabled, Proxyshop will feather (dramatically smooth) selections made for Content Aware Fill and Generative Fill. This usually improves the quality of fill results, especially on Generative Fill, at the cost of potentially replacing more original pixels at the edge of the art image."""
+type = "bool"
+default = 0
+
+[RENDER."Vertical.Fullart"]
+title = "Force Vertical Framing on Fullart Templates"
+desc = """When enabled, Fullart templates will frame all art using the vertical 'fullart' frame, even when horizontal art is provided. As a result, less area will be Content Aware or Generative Filled on horizontal arts, but the art will be 'zoomed in'."""
+type = "bool"
+default = 0

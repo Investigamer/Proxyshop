@@ -1,3 +1,6 @@
+"""
+* Helpers: Adjustment Layers
+"""
 # Standard Library
 from typing import Union
 
@@ -7,39 +10,43 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.constants import con
+from src import APP
 from src.helpers.colors import get_color, apply_color, add_color_to_gradient, rgb_black
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
-    """
-    Experimental scoot action to add vibrancy and saturation.
-    @param vibrancy: Vibrancy level integer
-    @param saturation: Saturation level integer
+    """Experimental scoot action to add vibrancy and saturation.
+
+    Args:
+        vibrancy: Vibrancy level integer
+        saturation: Saturation level integer
     """
     # dialogMode (Have dialog popup?)
     desc232 = ActionDescriptor()
     desc232.putInteger(sID("vibrance"), vibrancy)
     desc232.putInteger(sID("saturation"), saturation)
-    app.executeAction(sID("vibrance"), desc232, NO_DIALOG)
+    APP.executeAction(sID("vibrance"), desc232, NO_DIALOG)
 
 
 def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
-    """
-    Create a solid color adjustment layer.
-    @param color: Color to use for the layer.
-    @param layer: ArtLayer or LayerSet to make active.
-    @keyword clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
-    @return: The new solid color adjustment layer.
+    """Create a solid color adjustment layer.
+
+    Args:
+        color: Color to use for the layer.
+        layer: ArtLayer or LayerSet to make active.
+
+    Keyword Args:
+        clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
+
+    Returns:
+        The new solid color adjustment layer.
     """
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     desc2 = ActionDescriptor()
@@ -51,22 +58,27 @@ def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None]
     apply_color(desc3, color)
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
     desc1.putObject(sID("using"), sID("contentLayer"), desc2)
-    app.executeAction(sID("make"), desc1, NO_DIALOG)
-    return app.activeDocument.activeLayer
+    APP.executeAction(sID("make"), desc1, NO_DIALOG)
+    return APP.activeDocument.activeLayer
 
 
 def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
-    """
-    Create a gradient adjustment layer.
-    @param colors: List of gradient color dicts.
-    @param layer: ArtLayer or LayerSet to make active.
-    @keyword clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
-    @keyword rotation (Union[int, float]): Rotation to apply to the gradient, defaults to 90.
-    @keyword scale (Union[int, float]): Scale to apply to the gradient, defaults to 100.
-    @return: The new gradient adjustment layer.
+    """Create a gradient adjustment layer.
+
+    Args:
+        colors: List of gradient color dicts.
+        layer: ArtLayer or LayerSet to make active.
+
+    Keyword Args:
+        clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
+        rotation (Union[int, float]): Rotation to apply to the gradient, defaults to 90.
+        scale (Union[int, float]): Scale to apply to the gradient, defaults to 100.
+
+    Returns:
+        The new gradient adjustment layer.
     """
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     desc2 = ActionDescriptor()
@@ -109,5 +121,5 @@ def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, N
     desc3.putObject(sID("gradient"), sID("gradientClassEvent"),  desc4)
     desc2.putObject(sID("type"), sID("gradientLayer"),  desc3)
     desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
-    app.executeAction(sID("make"), desc1,  NO_DIALOG)
-    return app.activeDocument.activeLayer
+    APP.executeAction(sID("make"), desc1,  NO_DIALOG)
+    return APP.activeDocument.activeLayer

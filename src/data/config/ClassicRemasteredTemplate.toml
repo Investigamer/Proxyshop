@@ -1,0 +1,15 @@
+[FRAME]
+title = "Frame Options"
+
+[FRAME."Max.Colors"]
+title = "Max Frame Colors"
+desc = """How many colors can the frame split by before the card just becomes Gold?"""
+type = "options"
+default = "3"
+options = ["2", "3"]
+
+[FRAME."Gold.PT"]
+title = "Use Gold PT for Multicolor Cards"
+desc = """When enabled, will use Gold PT box for multicolor cards instead of the last color."""
+type = "bool"
+default = 0
