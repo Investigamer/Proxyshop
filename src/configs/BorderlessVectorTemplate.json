@@ -42,6 +42,14 @@
   },
   {
     "type": "bool",
+    "title": "[b]Nickname in Oracle[/b]",
+    "desc": "When enabled, cards that are rendered with a nickname will replace the card name in their oracle text with their nickname.\n(Default: True)[/b]",
+    "section": "TEXT",
+    "key": "Nickname.In.Oracle",
+    "default": 0
+  },
+  {
+    "type": "bool",
     "title": "[b]Text Drop Shadow[/b]",
     "desc": "When enabled, card text will have a drop shadow.\n[b](Default: True)[/b]",
     "section": "TEXT",
