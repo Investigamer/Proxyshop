@@ -12,7 +12,7 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src import CFG, CON
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
+from src.utils.properties import auto_prop, auto_prop_cached
 from src.enums.mtg import pinlines_color_map, MagicIcons
 from src.enums.adobe import Dimensions
 from src.enums.settings import (
@@ -1538,15 +1538,23 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         """Card rules text layer, use pre-computed layer name."""
         return psd.getLayer(self.text_layer_rules_name, [self.text_group, self.size])
 
-    @auto_prop_cached
+    @auto_prop
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Card name text layer, allow support for Nickname."""
         if self.is_nickname:
             layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
-            super().text_layer_name.textItem.contents = self.nickname or "ENTER NAME HERE"
             layer.visible = True
             return layer
         return super().text_layer_name
+
+    @auto_prop_cached
+    def text_layer_nickname(self) -> Optional[ArtLayer]:
+        """Card nickname text layer, allow support for Nickname."""
+        layer = super().text_layer_name
+        layer.textItem.contents = "ENTER NAME HERE"
+        if self.nickname:
+            return layer
+        return None
 
     """
     * References
@@ -1759,17 +1767,29 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         ])
 
         # Add nickname or regular name
-        self.text.append(
-            ScaledTextField(
-                layer=self.text_layer_name,
-                contents=self.layout.name,
-                reference=self.name_reference
-            ) if not self.is_nickname else
-            ScaledWidthTextField(
-                layer=self.text_layer_name,
-                contents=self.layout.name,
-                reference=self.nickname_shape
-            ))
+        if not self.is_nickname:
+            self.text.append(
+                ScaledTextField(
+                    layer=self.text_layer_name,
+                    contents=self.layout.name,
+                    reference=self.text_layer_mana
+                ))
+        else:
+            self.text.append(
+                    ScaledWidthTextField(
+                    layer=self.text_layer_name,
+                    contents=self.layout.name,
+                    reference=self.nickname_shape
+                ))
+
+            # If nickname is not entered by user add that too
+            if self.text_layer_nickname is not None:
+                self.text.append(
+                    ScaledTextField(
+                        layer=self.text_layer_nickname,
+                        contents=self.nickname,
+                        reference=self.text_layer_mana
+                    ))
 
     def rules_text_and_pt_layers(self) -> None:
         """Skip this step for 'Textless' renders."""
