@@ -115,8 +115,9 @@ def content_aware_fill_edges(layer: Optional[ArtLayer] = None, feather: bool = F
         content_aware_fill()
     except PS_EXCEPTIONS:
         # Unable to fill due to invalid selection
-        CONSOLE("Couldn't make a valid selection!\n"
-                "Skipping automated fill.")
+        CONSOLE.update(
+            "Couldn't make a valid selection!\n"
+            "Skipping automated fill.")
 
     # Clear selection
     with suppress(Exception):

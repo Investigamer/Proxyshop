@@ -3,10 +3,11 @@
 """
 # Standard Library Imports
 from contextlib import suppress
-from typing import Optional, Union
+from typing import Optional
 
 # Third Party Imports
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
 from photoshop.api._selection import Selection
 from photoshop.api import (
     ActionDescriptor,
@@ -75,6 +76,22 @@ def select_overlapping(layer: ArtLayer) -> None:
         APP.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
 
 
+def select_canvas(docref: Optional[Document] = None, bleed: int = 0):
+    """Select the entire canvas of a provided or active document.
+
+    Args:
+        docref: Document reference, use active if not provided.
+        bleed: Amount of bleed edge to leave around selection, defaults to 0.
+    """
+    docref = docref or APP.activeDocument
+    docref.selection.select([
+        [0 + bleed, 0 + bleed],
+        [docref.width - bleed, 0 + bleed],
+        [docref.width - bleed, docref.height - bleed],
+        [0 + bleed, docref.height - bleed]
+    ])
+
+
 """
 * Layer Based Selections
 """
@@ -121,11 +138,11 @@ def select_vector_layer_pixels(layer: Optional[ArtLayer] = None) -> None:
 
 
 """
-* Selection Bounds
+* Selection Checks
 """
 
 
-def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[int, float]]:
+def check_selection_bounds(selection: Optional[Selection] = None) -> Optional[tuple[int, int, int, int]]:
     """Verifies if a selection has valid bounds.
 
     Args:
@@ -138,4 +155,4 @@ def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[
     with suppress(PS_EXCEPTIONS):
         if selection.bounds != (0, 0, 0, 0):
             return selection.bounds
-    return []
+    return
