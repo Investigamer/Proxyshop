@@ -56,7 +56,7 @@ def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
     name_failed = osp.basename(str(card.get('file', 'None')))
 
     # Get scryfall data for the card
-    scryfall = get_card_data(card)
+    scryfall = get_card_data(card, cfg=CFG, logger=CONSOLE)
     if not scryfall:
         return msg_error(name_failed, reason="Scryfall search failed")
     scryfall = process_card_data(scryfall, card)
@@ -347,19 +347,19 @@ class NormalLayout:
 
     @auto_prop_cached
     def collector_number(self) -> int:
-        """Card number assigned within release set. Non-digit characters are ignored, falls back to 0."""
+        """int: Card number assigned within release set. Non-digit characters are ignored, falls back to 0."""
         if self.collector_number_raw:
             return int(''.join(char for char in self.collector_number_raw if char.isdigit()))
         return 0
 
     @auto_prop_cached
     def collector_number_raw(self) -> Optional[str]:
-        """Card number assigned within release set. Raw string representation, allows non-digits."""
+        """str | None: Card number assigned within release set. Raw string representation, allows non-digits."""
         return self.scryfall.get('collector_number')
 
     @auto_prop_cached
     def card_count(self) -> Optional[int]:
-        """Number of cards within the card's release set. Only required in 'Normal' Collector Mode."""
+        """int | None: Number of cards within the card's release set. Only required in 'Normal' Collector Mode."""
 
         # Skip if collector mode doesn't require it or if collector number is bad
         if CFG.collector_mode != CollectorMode.Normal or not self.collector_number_raw:
@@ -375,7 +375,7 @@ class NormalLayout:
 
     @auto_prop_cached
     def collector_data(self) -> str:
-        """Formatted collector info line, e.g. 050/230 M."""
+        """str: Formatted collector info line, e.g. 050/230 M."""
         if self.card_count:
             return f"{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} {self.rarity_letter}"
         if self.collector_number_raw:
@@ -384,7 +384,7 @@ class NormalLayout:
 
     @auto_prop_cached
     def creator(self) -> str:
-        """Optional creator string provided by user in art file name."""
+        """str: Optional creator string provided by user in art file name."""
         return self.file.get('creator', '')
 
     """
@@ -1189,7 +1189,7 @@ class SplitLayout(NormalLayout):
     @auto_prop_cached
     def color_indicator(self) -> str:
         """Color indicator is shared by both halves, use raw Scryfall instead of 'card' data."""
-        return get_ordered_colors(self.scryfall.get('color_indicator'))
+        return get_ordered_colors(self.scryfall.get('color_indicator', []))
 
     """
     * Images
@@ -1401,11 +1401,11 @@ class TokenLayout(NormalLayout):
 
     @auto_prop_cached
     def collector_data(self) -> str:
-        """str: Formatted collector info line, e.g. 050/230 M."""
+        """str: Formatted collector info line, rarity letter is always T, e.g. 050/230 T."""
         if self.card_count:
-            return f"{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} T"
+            return f'{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} T'
         if self.collector_number_raw:
-            return f"T {str(self.collector_number).zfill(4)}"
+            return f'T {str(self.collector_number).zfill(4)}'
         return ''
 
     @auto_prop_cached

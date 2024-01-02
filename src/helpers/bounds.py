@@ -25,7 +25,7 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 """
 
 # Layer bounds: left, top, right, bottom
-LayerBounds = list[int, int, int, int]
+LayerBounds = tuple[int, int, int, int]
 
 
 class LayerDimensions(TypedDict):
@@ -51,7 +51,7 @@ class TextboxDimensions(TypedDict):
 """
 
 
-def get_dimensions_from_bounds(bounds: list) -> type[LayerDimensions]:
+def get_dimensions_from_bounds(bounds: LayerBounds) -> type[LayerDimensions]:
     """Compute width and height based on a set of bounds given.
 
     Args:
@@ -131,11 +131,11 @@ def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> LayerBounds:
         except PS_EXCEPTIONS:
             # Try getting bounds
             bounds = d.getObjectValue(sID('bounds'))
-        return [
+        return (
             bounds.getInteger(sID('left')),
             bounds.getInteger(sID('top')),
             bounds.getInteger(sID('right')),
-            bounds.getInteger(sID('bottom'))]
+            bounds.getInteger(sID('bottom')))
     # Fallback to layer object bounds property
     return layer.bounds
 
@@ -224,12 +224,12 @@ def get_textbox_bounds(layer: ArtLayer) -> LayerBounds:
     """
     d = get_layer_action_ref(layer)
     bounds = d.getObjectValue(sID('boundingBox'))
-    return [
+    return (
         bounds.getInteger(sID('left')),
         bounds.getInteger(sID('top')),
         bounds.getInteger(sID('right')),
         bounds.getInteger(sID('bottom'))
-    ]
+    )
 
 
 def get_textbox_dimensions(layer: ArtLayer) -> type[TextboxDimensions]:

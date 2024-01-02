@@ -24,7 +24,7 @@ from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message
 
 
 # Layer bounds: left, top, right, bottom
-LayerBounds = list[int, int, int, int]
+LayerBounds = tuple[int, int, int, int]
 
 
 class LayerDimensions(TypedDict):
@@ -396,11 +396,11 @@ class ReferenceLayer(ArtLayer):
             except PS_EXCEPTIONS:
                 # Try getting bounds
                 bounds = d.getObjectValue(self.sID('bounds'))
-            return [
+            return (
                 bounds.getInteger(self.sID('left')),
                 bounds.getInteger(self.sID('top')),
                 bounds.getInteger(self.sID('right')),
-                bounds.getInteger(self.sID('bottom'))]
+                bounds.getInteger(self.sID('bottom')))
         # Fallback to layer object bounds property
         return self.bounds
 

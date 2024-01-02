@@ -93,7 +93,7 @@ class WatermarkMode (StrEnum):
 
 
 """
-* Template Settings
+* Template: Borderless
 """
 
 
@@ -121,6 +121,11 @@ class BorderlessTextbox (StrEnum):
     @enum_class_prop
     def Default(self) -> str:
         return self.Automatic
+
+
+"""
+* Template: Modern Classic
+"""
 
 
 class ModernClassicCrown (StrEnum):
