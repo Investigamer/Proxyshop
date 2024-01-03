@@ -15,6 +15,7 @@ import src.helpers as psd
 from src.templates._core import StarterTemplate
 from src.templates._cosmetic import FullartMod
 import src.text_layers as text_classes
+from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
 from src.utils.strings import is_multiline
 
@@ -33,6 +34,9 @@ class TokenTemplate(FullartMod, StarterTemplate):
 
     Modifies:
         * Only supports a singular frame layer which is the Background layer.
+
+    Todo:
+        * Merge into 'Normal' category and give it a new name.
     """
     frame_suffix = 'Token'
 
@@ -90,21 +94,21 @@ class TokenTemplate(FullartMod, StarterTemplate):
         return psd.getLayer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
-    def textbox_reference(self) -> Optional[ArtLayer]:
+    def textbox_reference(self) -> ReferenceLayer:
         """Pull from the textbox group."""
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.textbox_group)
 
     @auto_prop_cached
-    def type_line_reference(self) -> ArtLayer:
+    def type_line_reference(self) -> ReferenceLayer:
         """Reference to scale the TypeLine."""
-        return psd.getLayer(LAYERS.TYPE_LINE_REFERENCE, self.textbox_group)
+        return psd.get_reference_layer(LAYERS.TYPE_LINE_REFERENCE, self.textbox_group)
 
     @auto_prop_cached
-    def name_reference(self) -> ArtLayer:
+    def name_reference(self) -> ReferenceLayer:
         """Reference to scale the Card Name"""
         if self.is_legendary:
-            return psd.getLayer(LAYERS.NAME_REFERENCE_LEGENDARY, self.text_group)
-        return psd.getLayer(LAYERS.NAME_REFERENCE_NON_LEGENDARY, self.text_group)
+            return psd.get_reference_layer(LAYERS.NAME_REFERENCE_LEGENDARY, self.text_group)
+        return psd.get_reference_layer(LAYERS.NAME_REFERENCE_NON_LEGENDARY, self.text_group)
 
     """
     * Text Layers
