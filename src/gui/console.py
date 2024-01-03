@@ -101,7 +101,7 @@ class GUIConsole(BoxLayout):
 
     @property
     def current_output(self) -> str:
-        """GText currently contained in the console output label. Remove lines from
+        """str: Text currently contained in the console output label. Remove lines from
         the top when the total linebreaks exceed 250."""
         output = self.output.text
         line_count = output.count('\n') + 1
@@ -179,8 +179,8 @@ class GUIConsole(BoxLayout):
         thr: Event,
         card: str,
         template: Optional[str] = None,
-        msg: str = "Encountered a general error!",
-        exception: Optional[Exception] = None
+        msg: str = 'Encountered a general error!',
+        e: Optional[Exception] = None
     ) -> bool:
         """Log failed card and exception if provided, then prompt user to make a decision.
 
@@ -189,21 +189,21 @@ class GUIConsole(BoxLayout):
             card: Card to log in /logs/failed.txt.
             template: Template to log in /logs/failed.txt.
             msg: Message to add to the console output.
-            exception: Exception to log in /logs/error.txt.
+            e: Exception to log in /logs/error.txt.
 
         Returns:
             True if user wishes to continue, otherwise False.
         """
         with open(PATH.LOGS_FAILED, "a", encoding="utf-8") as log:
             log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
-        return self.error(thr=thr, msg=msg, exception=exception)
+        return self.error(thr=thr, msg=msg, exception=e)
 
     def error(
         self,
         thr: Optional[Event] = None,
-        msg: str = "Encountered a general error!",
+        msg: str = 'Encountered a general error!',
         exception: Optional[Exception] = None,
-        end: str = " Continue to next card?\n"
+        end: str = ' Continue to next card?\n'
     ) -> bool:
         """Display error, wait for user to cancel or continue.
 
@@ -332,7 +332,7 @@ class GUIConsole(BoxLayout):
         self.disable_buttons()
 
     """
-    Thread Management
+    * Thread Management
     """
 
     def cancel_thread(self, thr: Event) -> None:
@@ -342,17 +342,8 @@ class GUIConsole(BoxLayout):
             thr: Thread event to signal the cancellation.
         """
         # Kill the thread and notify
-        self.kill_thread(thr)
-        self.update(self.message_cancel)
-
-    @staticmethod
-    def kill_thread(thr: Event) -> None:
-        """Kill a given thread.
-
-        Args:
-            thr: Thread event to signal the cancellation.
-        """
         thr.set()
+        self.update(self.message_cancel)
 
 
 class ConsoleOutput(Label):
