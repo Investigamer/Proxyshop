@@ -155,7 +155,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
             text_classes.ScaledWidthTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.type_line_reference
+                reference = self.type_reference
             )
         ])
 
