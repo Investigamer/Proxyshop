@@ -40,21 +40,76 @@ class VectorTemplate (NormalTemplate):
     """Next generation template using vector shape layers, automatic pinlines, and blended multicolor textures."""
 
     """
-    DETAILS
+    * Frame Details
     """
 
     @auto_prop_cached
     def color_limit(self) -> int:
-        """The maximum allowed colors that should be blended plus 1."""
+        """int: The maximum allowed colors that should be blended plus 1."""
         return 3
 
+    """
+    * Logical Tests
+    """
+
     @auto_prop_cached
-    def pinlines_action(self) -> Union[psd.create_color_layer, psd.create_gradient_layer]:
-        """Function to call to generate pinline colors. Usually to generate a solid color or gradient layer."""
-        return psd.create_color_layer if isinstance(self.pinlines_colors, SolidColor) else psd.create_gradient_layer
+    def is_within_color_limit(self) -> bool:
+        """bool: Whether the color identity of this card is within the bounds of `self.color_limit`."""
+        return bool(1 < len(self.identity) < self.color_limit)
 
     """
-    COLOR MAPS
+    * Layer Groups
+    """
+
+    @auto_prop_cached
+    def pinlines_group(self) -> Optional[LayerSet]:
+        """Group containing pinlines colors, textures, or other groups."""
+        return psd.getLayerSet(LAYERS.PINLINES, self.docref)
+
+    @auto_prop_cached
+    def pinlines_groups(self) -> list[LayerSet]:
+        """Groups where pinline colors will be generated."""
+        return [self.pinlines_group]
+
+    @auto_prop_cached
+    def twins_group(self) -> Optional[LayerSet]:
+        """Group containing twins texture layers."""
+        return psd.getLayerSet(LAYERS.TWINS, self.docref)
+
+    @auto_prop_cached
+    def textbox_group(self) -> Optional[LayerSet]:
+        """Group containing textbox texture layers."""
+        return psd.getLayerSet(LAYERS.TEXTBOX, self.docref)
+
+    @auto_prop_cached
+    def background_group(self) -> Optional[LayerSet]:
+        """Group containing background texture layers."""
+        return psd.getLayerSet(LAYERS.BACKGROUND, self.docref)
+
+    @auto_prop_cached
+    def crown_group(self) -> Optional[LayerSet]:
+        """Group containing Legendary Crown texture layers."""
+        return psd.getLayerSet(LAYERS.LEGENDARY_CROWN, self.docref)
+
+    @auto_prop_cached
+    def pt_group(self) -> Optional[LayerSet]:
+        """Group containing PT Box texture layers."""
+        return psd.getLayerSet(LAYERS.PT_BOX, self.docref)
+
+    @auto_prop_cached
+    def indicator_group(self) -> Optional[LayerSet]:
+        """Group where Color Indicator colors will be generated."""
+        if group := psd.getLayerSet(LAYERS.SHAPE, [self.docref, LAYERS.COLOR_INDICATOR]):
+            group.parent.visible = True
+        return group
+
+    @auto_prop_cached
+    def mask_group(self) -> Optional[LayerSet]:
+        """Group containing masks used to blend and adjust various layers."""
+        return psd.getLayerSet(LAYERS.MASKS, self.docref)
+
+    """
+    * Color Maps
     """
 
     @auto_prop_cached
@@ -73,11 +128,11 @@ class VectorTemplate (NormalTemplate):
         return indicator_color_map.copy()
 
     """
-    COLORS
+    * Colors
     """
 
     @auto_prop_cached
-    def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
+    def pinlines_colors(self) -> Union[list[int], list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
             self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
@@ -85,99 +140,44 @@ class VectorTemplate (NormalTemplate):
         )
 
     @auto_prop_cached
-    def indicator_colors(self) -> list[SolidColor]:
+    def indicator_colors(self) -> list[list[int]]:
         """Must be returned as list of SolidColor objects."""
         return [
-            psd.get_rgb(*self.indicator_color_map.get(c, [0, 0, 0]))
+            self.indicator_color_map.get(c, [0, 0, 0])
             for c in self.layout.color_indicator[::-1]
-        ] if self.is_type_shifted else []
+        ] if self.layout.color_indicator else []
 
     @auto_prop_cached
-    def textbox_colors(self) -> Optional[str]:
+    def textbox_colors(self) -> str:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
     @auto_prop_cached
-    def crown_colors(self) -> Optional[str]:
+    def crown_colors(self) -> str:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines
 
     @auto_prop_cached
-    def twins_colors(self) -> Optional[str]:
+    def twins_colors(self) -> str:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.twins
 
     @auto_prop_cached
-    def background_colors(self) -> Optional[str]:
+    def background_colors(self) -> str:
         """Must be returned as color combination or layer name, e.g. WU or Artifact."""
         return self.background
 
-    """
-    GROUPS
-    """
-
     @auto_prop_cached
-    def pinlines_group(self) -> Optional[LayerSet]:
-        """Group containing pinlines colors, textures, or other groups."""
-        return psd.getLayerSet(LAYERS.PINLINES)
-
-    @auto_prop_cached
-    def pinlines_groups(self) -> list[LayerSet]:
-        """Groups where pinline colors will be generated."""
-        return [self.pinlines_group]
-
-    @auto_prop_cached
-    def twins_group(self) -> Optional[LayerSet]:
-        """Group containing twins texture layers."""
-        return psd.getLayerSet(LAYERS.TWINS)
-
-    @auto_prop_cached
-    def textbox_group(self) -> Optional[LayerSet]:
-        """Group containing textbox texture layers."""
-        return psd.getLayerSet(LAYERS.TEXTBOX)
-
-    @auto_prop_cached
-    def background_group(self) -> Optional[LayerSet]:
-        """Group containing background texture layers."""
-        return psd.getLayerSet(LAYERS.BACKGROUND)
-
-    @auto_prop_cached
-    def crown_group(self) -> Optional[LayerSet]:
-        """Group containing Legendary Crown texture layers."""
-        return psd.getLayerSet(LAYERS.LEGENDARY_CROWN)
-
-    @auto_prop_cached
-    def pt_group(self) -> Optional[LayerSet]:
-        """Group containing PT Box texture layers."""
-        return psd.getLayerSet(LAYERS.PT_BOX)
-
-    @auto_prop_cached
-    def indicator_group(self) -> Optional[LayerSet]:
-        """Group where Color Indicator colors will be generated."""
-        if group := psd.getLayerSet(LAYERS.SHAPE, LAYERS.COLOR_INDICATOR):
-            group.parent.visible = True
-        return group
-
-    @auto_prop_cached
-    def mask_group(self) -> Optional[LayerSet]:
-        """Group containing masks used to blend and adjust various layers."""
-        return psd.getLayerSet(LAYERS.MASKS)
-
-    @auto_prop_cached
-    def dfc_group(self) -> Optional[LayerSet]:
-        # MDFC Text Group
-        if self.is_mdfc:
-            return psd.getLayerSet(
-                LAYERS.MODAL_FRONT if self.is_front else LAYERS.MODAL_BACK,
-                self.text_group
-            )
-        return psd.getLayerSet(
-            LAYERS.TF_FRONT if self.is_front else LAYERS.TF_BACK,
-            self.text_group
-        )
+    def pt_colors(self) -> str:
+        """Optional[str]: returned as a color combination or layer name, e.g. WU or Artifact."""
+        if self.is_vehicle and self.background == LAYERS.VEHICLE:
+            # Typically use white text for Vehicle PT
+            self.text_layer_pt.textItem.color = self.RGB_WHITE
+            return LAYERS.VEHICLE
+        return self.twins
 
     """
-    VECTOR SHAPES
+    * Vector Shapes
     """
 
     @auto_prop_cached
@@ -218,7 +218,7 @@ class VectorTemplate (NormalTemplate):
         ]
 
     """
-    BLENDING MASKS
+    * Blending Masks
     """
 
     @auto_prop_cached
@@ -243,27 +243,37 @@ class VectorTemplate (NormalTemplate):
         return []
 
     @auto_prop_cached
+    def pinlines_masks(self) -> list[ArtLayer]:
+        """List of layers containing masks used to blend Pinlines layers. Default: `mask_layers`."""
+        return self.mask_layers
+
+    @auto_prop_cached
     def crown_masks(self) -> list[ArtLayer]:
-        """List of layers containing masks used to blend legendary crown layers. Defaults to mask_layers."""
+        """List of layers containing masks used to blend legendary crown layers. Default: `mask_layers`."""
         return self.mask_layers
 
     @auto_prop_cached
     def textbox_masks(self) -> list[ArtLayer]:
-        """List of layers containing masks used to blend textbox layers. Defaults to mask_layers."""
+        """List of layers containing masks used to blend textbox layers. Default: `mask_layers`."""
         return self.mask_layers
 
     @auto_prop_cached
     def background_masks(self) -> list[ArtLayer]:
-        """List of layers containing masks used to blend background layers. Defaults to mask_layers."""
+        """List of layers containing masks used to blend background layers. Default: `mask_layers`."""
         return self.mask_layers
 
     @auto_prop_cached
     def twins_masks(self) -> list[ArtLayer]:
-        """List of layers containing masks used to blend background layers. Defaults to mask_layers."""
+        """List of layers containing masks used to blend background layers. Default: `mask_layers`."""
+        return self.mask_layers
+
+    @auto_prop_cached
+    def pt_masks(self) -> list[ArtLayer]:
+        """List of layers containing masks used to blend PT box layers. Default: `mask_layers`."""
         return self.mask_layers
 
     """
-    MASKS
+    * Masks to Enable
     """
 
     @auto_prop_cached
@@ -271,7 +281,7 @@ class VectorTemplate (NormalTemplate):
         """
         Masks that should be copied or enabled during the `enable_layer_masks` step. Not utilized by default.
 
-        @return:
+        Returns:
             - dict: Advanced mask notation, contains "from" and "to" layers and other optional parameters.
             - list: Contains layer to copy from, layer to copy to.
             - ArtLayer | LayerSet: Layer object to enable a mask on.
@@ -280,7 +290,7 @@ class VectorTemplate (NormalTemplate):
         return []
 
     """
-    UTILITY METHODS
+    * Utility Methods
     """
 
     def create_blended_layer(
@@ -289,11 +299,12 @@ class VectorTemplate (NormalTemplate):
         colors: Union[None, str, list[str]] = None,
         masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
     ):
-        """
-        Either enable a single frame layer or create a multicolor layer using a gradient mask.
-        @param group: Group to look for the color layers within.
-        @param colors: Color layers to look for.
-        @param masks: Masks to use for blending the layers.
+        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
+
+        Args:
+            group: Group to look for the color layers within.
+            colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
         """
         # Establish our masks
         if not masks:
@@ -307,10 +318,21 @@ class VectorTemplate (NormalTemplate):
         elif len(colors) >= self.color_limit:
             # Received too big a color combination, revert to pinlines
             colors = [self.pinlines]
+        elif isinstance(colors, str):
+            # Convert string of colors to list
+            colors = list(colors)
+
+        # Single layer
+        if len(colors) == 1:
+            layer = psd.getLayer(colors[0], group)
+            layer.visible = True
+            return
 
         # Enable each layer color
         layers: list[ArtLayer] = []
         for i, color in enumerate(colors):
+
+            # Make layer visible
             layer = psd.getLayer(color, group)
             layer.visible = True
 
@@ -322,21 +344,21 @@ class VectorTemplate (NormalTemplate):
             # Add to the layer list
             layers.append(layer)
 
+    @staticmethod
     def create_blended_solid_color(
-        self,
         group: LayerSet,
         colors: list[SolidColor],
         masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
-    ):
+    ) -> None:
+        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
+
+        Args:
+            group: Group to look for the color layers within.
+            colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
         """
-        Either enable a single frame layer or create a multicolor layer using a gradient mask.
-        @param group: Group to look for the color layers within.
-        @param colors: Color layers to look for.
-        @param masks: Masks to use for blending the layers.
-        """
-        # Establish our masks
-        if masks is None:
-            masks = self.mask_layers
+        # Ensure masks is a list
+        masks = masks or []
 
         # Enable each layer color
         layers: list[ArtLayer] = []
@@ -347,16 +369,85 @@ class VectorTemplate (NormalTemplate):
             if layers and len(masks) >= i:
                 layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
                 psd.copy_layer_mask(masks[i - 1], layers[i - 1])
-
-            # Add to the layer list
             layers.append(layer)
 
+    def generate_layer(
+        self, group: Union[ArtLayer, LayerSet],
+        colors: Union[list[list[int]], list[int], list[dict], list[str], str],
+        masks: Optional[list[ArtLayer]] = None
+    ) -> Optional[ArtLayer]:
+        """Takes information about a frame layer group and routes it to the correct
+        generation function which blends rasterized layers, blends solid color layers, or
+        generates a solid color/gradient adjustment layer.
+
+        Notes:
+            The result for a given 'colors' schema:
+            - str: Enable a single texture layer.
+            - list[str]: Blend multiple texture layers.
+            - list[int]: Create a solid color adjustment layer.
+            - list[dict]: Create a gradient adjustment layer.
+            - list[list[int]]: Blend multiple solid color adjustment layers.
+
+        Args:
+            group: Layer or group containing layers.
+            colors: Color definition for this frame layer generation.
+            masks: Masks used to blend this generated layer.
+        """
+        # Assign a generator task based on colors value
+        if isinstance(colors, str):
+            # Hex color
+            if colors.startswith('#'):
+                return psd.create_color_layer(
+                    color=colors,
+                    layer=group,
+                    docref=self.docref)
+            # Blended texture layers
+            return self.create_blended_layer(
+                group=group,
+                colors=colors,
+                masks=masks)
+        if isinstance(colors, list):
+            if all(isinstance(c, str) for c in colors):
+                # Hex colors
+                if colors[0].startswith('#'):
+                    return psd.create_color_layer(
+                        color=colors,
+                        layer=group,
+                        docref=self.docref)
+                # Blended texture layers
+                return self.create_blended_layer(
+                    group=group,
+                    colors=colors,
+                    masks=masks)
+            if all(isinstance(c, int) for c in colors):
+                # RGB/CMYK adjustment layer
+                return psd.create_color_layer(
+                    color=colors,
+                    layer=group,
+                    docref=self.docref)
+            if all(isinstance(c, dict) for c in colors):
+                # Gradient adjustment layer
+                return psd.create_gradient_layer(
+                    colors=colors,
+                    layer=group,
+                    docref=self.docref)
+            if all(isinstance(c, list) for c in colors):
+                # Blended RGB/CMYK adjustment layers
+                return self.create_blended_solid_color(
+                    group=group,
+                    colors=colors,
+                    masks=masks)
+
+        # Failed to match a recognized color notation
+        if group:
+            self.log(f"Couldn't generate frame element: '{group.name}'")
+
     """
-    RENDER CHAIN
+    * Frame Layer Methods
     """
 
     def enable_frame_layers(self) -> None:
-        """Build the card frame by enabling and/or creating various layer."""
+        """Build the card frame by enabling and/or generating various layer."""
 
         # Enable vector shapes
         self.enable_shape_layers()
@@ -365,12 +456,16 @@ class VectorTemplate (NormalTemplate):
         self.enable_layer_masks()
 
         # PT Box -> Single static layer
-        if self.is_creature and self.pt_layer:
-            self.pt_layer.visible = True
+        if self.is_creature and self.pt_group:
+            self.pt_group.visible = True
+            self.generate_layer(
+                group=self.pt_group,
+                colors=self.pt_colors,
+                masks=self.pt_masks)
 
         # Color Indicator -> Blended solid color layers
         if self.is_type_shifted and self.indicator_group:
-            self.create_blended_solid_color(
+            self.generate_layer(
                 group=self.indicator_group,
                 colors=self.indicator_colors,
                 masks=self.indicator_masks)
@@ -378,25 +473,28 @@ class VectorTemplate (NormalTemplate):
         # Pinlines -> Solid color or gradient layers
         for group in [g for g in self.pinlines_groups if g]:
             group.visible = True
-            self.pinlines_action(self.pinlines_colors, layer=group)
+            self.generate_layer(
+                group=group,
+                colors=self.pinlines_colors,
+                masks=self.pinlines_masks)
 
         # Twins -> Blended texture layers
         if self.twins_group:
-            self.create_blended_layer(
+            self.generate_layer(
                 group=self.twins_group,
                 colors=self.twins_colors,
                 masks=self.twins_masks)
 
         # Textbox -> Blended texture layers
         if self.textbox_group:
-            self.create_blended_layer(
+            self.generate_layer(
                 group=self.textbox_group,
                 colors=self.textbox_colors,
                 masks=self.textbox_masks)
 
         # Background layer -> Blended texture layers
         if self.background_group:
-            self.create_blended_layer(
+            self.generate_layer(
                 group=self.background_group,
                 colors=self.background_colors,
                 masks=self.background_masks)
@@ -406,7 +504,7 @@ class VectorTemplate (NormalTemplate):
             self.enable_crown()
 
     def enable_shape_layers(self) -> None:
-        """Enable required vector shape layers."""
+        """Enable required vector shape layers provided by `enabled_shapes`."""
 
         # Enable each shape
         for shape in self.enabled_shapes:
@@ -414,12 +512,14 @@ class VectorTemplate (NormalTemplate):
                 shape.visible = True
 
     def enable_layer_masks(self) -> None:
-        """Enable or copy required layer masks."""
+        """Enable or copy required layer masks provided by `enabled_masks`."""
 
         # For each mask enabled, apply it based on given notation
         for mask in [m for m in self.enabled_masks if m]:
+
             # Dict notation, complex mask behavior
             if isinstance(mask, dict):
+
                 # Copy to a layer?
                 if layer := mask.get('layer'):
                     # Copy normal or vector mask to layer
@@ -433,9 +533,11 @@ class VectorTemplate (NormalTemplate):
 
                 # Apply extra functions
                 [f(layer) for f in mask.get('funcs', [])]
+
             # List notation, copy from one layer to another
             elif isinstance(mask, list):
                 psd.copy_layer_mask(*mask)
+
             # Single layer to enable mask on
             elif isinstance(mask, LayerObject):
                 psd.enable_mask(mask)
@@ -445,7 +547,7 @@ class VectorTemplate (NormalTemplate):
 
         # Enable Legendary Crown group and layers
         self.crown_group.visible = True
-        self.create_blended_layer(
+        self.generate_layer(
             group=self.crown_group,
             colors=self.crown_colors,
             masks=self.crown_masks)
@@ -454,25 +556,23 @@ class VectorTemplate (NormalTemplate):
         if self.is_hollow_crown:
             self.enable_hollow_crown(
                 masks=[self.crown_group],
-                vector_masks=[self.pinlines_group]
-            )
+                vector_masks=[self.pinlines_group])
 
     def enable_hollow_crown(self, **kwargs) -> None:
-        """
-        Enable the Hollow Crown within the Legendary Crown, only called if card is Legendary Nyx or Companion.
-        @keyword masks (list[ArtLayer, LayerSet]): List of layers containing masks to enable.
-        @keyword vector_masks (list[ArtLayer, LayerSet]): List of layers containing vector masks to enable.
+        """Enable the Hollow Crown within the Legendary Crown, only called if card is Legendary Nyx or Companion.
+
+        Keyword Args:
+            masks (list[ArtLayer | LayerSet]): List of layers containing masks to enable.
+            vector_masks (list[ArtLayer | LayerSet]): List of layers containing vector masks to enable.
         """
 
         # Layer masks to enable
-        if kwargs.get('masks'):
-            for m in kwargs.get('masks'):
-                psd.enable_mask(m)
+        for m in kwargs.get('masks', []):
+            psd.enable_mask(m)
 
         # Vector masks to enable
-        if kwargs.get('vector_masks'):
-            for m in kwargs.get('vector_masks'):
-                psd.enable_vector_mask(m)
+        for m in kwargs.get('vector_masks', []):
+            psd.enable_vector_mask(m)
 
         # Enable shadow
         if self.crown_shadow_layer:
