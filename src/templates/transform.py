@@ -5,7 +5,7 @@
 from typing import Optional, Callable
 
 # Third Party Imports
-from photoshop.api.application import ArtLayer
+from photoshop.api._artlayer import ArtLayer
 
 # Local Imports
 from src.enums.adobe import Dimensions
@@ -35,6 +35,10 @@ class TransformMod(BaseTemplate):
         * PT, name, and type text are all white UNLESS this is an eldrazi, e.g. Eldritch Moon transform cards.
     """
 
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         """Add Transform frame layers step."""
@@ -48,7 +52,7 @@ class TransformMod(BaseTemplate):
         return super().text_layer_methods + funcs
 
     """
-    * Text Layer Properties
+    * Text Layers
     """
 
     @auto_prop_cached
@@ -60,13 +64,17 @@ class TransformMod(BaseTemplate):
             return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE_FLIP, self.text_group)
         return super().text_layer_rules
 
+    """
+    * Transform Text Layers
+    """
+
     @auto_prop_cached
     def text_layer_flipside_pt(self) -> Optional[ArtLayer]:
         """Flipside power/toughness layer for front face Transform cards."""
         return psd.getLayer(LAYERS.FLIPSIDE_POWER_TOUGHNESS, self.text_group)
 
     """
-    * Frame Layer Methods
+    * Transform Frame Layer Methods
     """
 
     def enable_transform_layers(self) -> None:
@@ -90,7 +98,7 @@ class TransformMod(BaseTemplate):
         pass
 
     """
-    * Text Layer Methods
+    * Transform Text Layer Methods
     """
 
     def text_layers_transform(self) -> None:
@@ -109,9 +117,8 @@ class TransformMod(BaseTemplate):
             self.text.append(
                 TextField(
                     layer=self.text_layer_flipside_pt,
-                    contents=str(self.layout.other_face_power) + "/" + str(self.layout.other_face_toughness)
-                )
-            )
+                    contents=f'{self.layout.other_face_power}/'
+                             f'{self.layout.other_face_toughness}'))
 
     def text_layers_transform_back(self) -> None:
         """Adds and modifies text layers for back face transform cards."""
@@ -128,27 +135,16 @@ class VectorTransformMod(TransformMod, VectorTemplate):
     """Transform mod for vector templates."""
 
     """
-    * Layer Properties
-    """
-
-    @auto_prop_cached
-    def transform_circle_layer(self) -> Optional[ArtLayer]:
-        """White circle backing behind Transform Icon."""
-        return psd.getLayerSet(LAYERS.TRANSFORM, self.text_group)
-
-    """
-    * Frame Layer Methods
+    * Transform Frame Layer Methods
     """
 
     def enable_transform_layers(self) -> None:
-        """Enable layers that are required by transform cards."""
-
-        # Enable transform circle background
-        self.transform_circle_layer.visible = True
+        """Enable group containing Transform layers."""
+        self.dfc_group.parent.visible = True
         super().enable_transform_layers()
 
     """
-    * Text Layer Methods
+    * Transform Text Layer Methods
     """
 
     def text_layers_transform_back(self) -> None:
@@ -198,7 +194,15 @@ class IxalanMod (NormalTemplate):
         return psd.getLayer(self.pinlines, LAYERS.BACKGROUND)
 
     """
-    * Methods
+    * Frame Layer Methods
+    """
+
+    def enable_frame_layers(self):
+        """Only background frame layer."""
+        self.background_layer.visible = True
+
+    """
+    * Text Layer Methods
     """
 
     def basic_text_layers(self):
@@ -211,10 +215,6 @@ class IxalanMod (NormalTemplate):
                 layer = self.text_layer_type,
                 contents = self.layout.type_line)
         ])
-
-    def enable_frame_layers(self):
-        """Only background frame layer."""
-        self.background_layer.visible = True
 
 
 """

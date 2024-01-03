@@ -27,20 +27,24 @@ class MDFCMod(BaseTemplate):
         * Top (arrow icon) and bottom (opposing side info) MDFC layer elements
     """
 
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
-        # Add MDFC frame layers step
+        """Add MDFC frame layers step."""
         parent_funcs = super().frame_layer_methods
         return [*parent_funcs, self.enable_mdfc_layers] if self.is_mdfc else parent_funcs
 
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
-        # Add MDFC text layers step
+        """Add MDFC text layers step."""
         parent_funcs = super().text_layer_methods
         return [*parent_funcs, self.text_layers_mdfc] if self.is_mdfc else parent_funcs
 
     """
-    TEXT LAYERS
+    * MDFC Text Layers
     """
 
     @auto_prop_cached
@@ -54,38 +58,8 @@ class MDFCMod(BaseTemplate):
         return psd.getLayer(LAYERS.RIGHT, self.dfc_group)
 
     """
-    METHODS
+    * MDFC Frame Layer Methods
     """
-
-    def text_layers_mdfc(self) -> None:
-        """Adds and modifies text layers required by modal double faced cards."""
-
-        # Add mdfc text layers
-        self.text.extend([
-            FormattedTextField(
-                layer = self.text_layer_mdfc_right,
-                contents = self.layout.other_face_right
-            ),
-            ScaledTextField(
-                layer = self.text_layer_mdfc_left,
-                contents = self.layout.other_face_left,
-                reference = self.text_layer_mdfc_right,
-            )
-        ])
-
-        # Front and back side layers
-        if self.is_front:
-            self.text_layers_mdfc_front()
-        else:
-            self.text_layers_mdfc_back()
-
-    def text_layers_mdfc_front(self) -> None:
-        """Add or modify front side MDFC tex layers."""
-        pass
-
-    def text_layers_mdfc_back(self) -> None:
-        """Add or modify back side MDFC text layers."""
-        pass
 
     def enable_mdfc_layers(self) -> None:
         """Enable layers that are required by modal double faced cards."""
@@ -102,9 +76,8 @@ class MDFCMod(BaseTemplate):
 
         # Front and back side layers
         if self.is_front:
-            self.enable_mdfc_layers_front()
-        else:
-            self.enable_mdfc_layers_back()
+            return self.enable_mdfc_layers_front()
+        return self.enable_mdfc_layers_back()
 
     def enable_mdfc_layers_front(self) -> None:
         """Enable front side MDFC layers."""
@@ -114,18 +87,46 @@ class MDFCMod(BaseTemplate):
         """Enable back side MDFC layers."""
         pass
 
+    """
+    * MDFC Text Layer Methods
+    """
+
+    def text_layers_mdfc(self) -> None:
+        """Adds and modifies text layers required by modal double faced cards."""
+
+        # Add mdfc text layers
+        self.text.extend([
+            FormattedTextField(
+                layer = self.text_layer_mdfc_right,
+                contents = self.layout.other_face_right),
+            ScaledTextField(
+                layer = self.text_layer_mdfc_left,
+                contents = self.layout.other_face_left,
+                reference = self.text_layer_mdfc_right)])
+
+        # Front and back side layers
+        if self.is_front:
+            return self.text_layers_mdfc_front()
+        return self.text_layers_mdfc_back()
+
+    def text_layers_mdfc_front(self) -> None:
+        """Add or modify front side MDFC tex layers."""
+        pass
+
+    def text_layers_mdfc_back(self) -> None:
+        """Add or modify back side MDFC text layers."""
+        pass
+
 
 class VectorMDFCMod(MDFCMod, VectorTemplate):
     """MDFC mod for vector templates."""
 
     """
-    METHODS
+    * MDFC Frame Layer Methods
     """
 
     def enable_mdfc_layers(self) -> None:
-        """Enable layers that are required by modal double faced cards."""
-
-        # Enable the MDFC group
+        """Enable group containing MDFC layers."""
         self.dfc_group.visible = True
         super().enable_mdfc_layers()
 
