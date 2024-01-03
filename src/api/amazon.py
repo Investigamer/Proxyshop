@@ -35,7 +35,7 @@ def download_cloudfront(url: yarl.URL, path: Path, callback: Optional[Callable] 
 
     # Add range header if file is partially downloaded
     header = HEADERS.Default.copy()
-    if size is not 0:
+    if size > 0:
         header["Range"] = f"bytes={str(size)}-"
 
     # Establish session
