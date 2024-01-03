@@ -88,7 +88,7 @@ def compress_7z(
         dict_size: Dictionary size value to use for the compression.
     """
     # Define the output file path
-    path_out = path_out or Path(path_in.parent, 'compressed', path_in.name)
+    path_out = path_out or Path(path_in.parent, '.compressed', path_in.name)
     path_out = path_out.with_suffix('.7z')
     null_device = open(os.devnull, 'w')
 
@@ -120,7 +120,7 @@ def compress_7z_all(
         dict_size: Dictionary size value to use for the compression.
     """
     # Use "compressed" subdirectory if not provided, ensure output directory exists
-    path_out = path_out or Path(path_out, 'compressed')
+    path_out = path_out or Path(path_in, '.compressed')
     path_out.mkdir(mode=777, parents=True, exist_ok=True)
 
     # Get a list of all .psd files in the directory
