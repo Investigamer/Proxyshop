@@ -2,11 +2,14 @@
 * Helpers: Positioning
 """
 # Standard Library Imports
-from typing import Optional, Union, Iterable
+import math
+from typing import Optional, Union
 
 # Third Party Imports
 from photoshop.api import DialogModes, AnchorPosition
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
+from photoshop.api._selection import Selection
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
@@ -15,11 +18,14 @@ from src.enums.adobe import Dimensions
 from src.helpers.bounds import (
     get_layer_dimensions,
     get_dimensions_from_bounds,
-    LayerDimensions, get_layer_width, get_layer_height)
+    LayerDimensions,
+    get_layer_width,
+    get_layer_height)
 from src.helpers.selection import (
     select_overlapping,
     check_selection_bounds,
     select_bounds)
+from src.helpers.text import get_font_size, set_text_size_and_leading
 from src.utils.adobe import ReferenceLayer
 
 # QOL Definitions
@@ -134,7 +140,8 @@ def align_bottom(
 def position_between_layers(
     layer: Union[ArtLayer, LayerSet],
     top_layer: Union[ArtLayer, LayerSet],
-    bottom_layer: Union[ArtLayer, LayerSet]
+    bottom_layer: Union[ArtLayer, LayerSet],
+    docref: Optional[Document] = None
 ) -> None:
     """Align layer vertically between two reference layers.
 
@@ -142,23 +149,31 @@ def position_between_layers(
         layer: Layer to align vertically
         top_layer: Reference layer above the layer to be aligned.
         bottom_layer: Reference layer below the layer to be aligned.
+        docref: Document reference, use active if not provided.
     """
-    bounds = [0, top_layer.bounds[3], APP.activeDocument.width, bottom_layer.bounds[1]]
+    docref = docref or APP.activeDocument
+    bounds = (0, top_layer.bounds[3], docref.width, bottom_layer.bounds[1])
     align_vertical(layer, get_dimensions_from_bounds(bounds))
 
 
 def position_dividers(
     dividers: list[Union[ArtLayer, LayerSet]],
-    layers: list[Union[ArtLayer, LayerSet]]
+    layers: list[Union[ArtLayer, LayerSet]],
+    docref: Optional[Document] = None
 ) -> None:
     """Positions a list of dividers between a list of layers.
 
     Args:
         dividers: Divider layers to position, should contain 1 fewer objects than layers param.
         layers: Layers to position the dividers between.
+        docref: Document reference, use active if not provided.
     """
     for i in range(len(layers) - 1):
-        position_between_layers(dividers[i], layers[i], layers[i + 1])
+        position_between_layers(
+            layer=dividers[i],
+            top_layer=layers[i],
+            bottom_layer=layers[i + 1],
+            docref=docref)
 
 
 def spread_layers_over_reference(
@@ -317,36 +332,144 @@ def frame_layer_by_width(
 """
 
 
+def check_reference_overlap(
+    layer: Optional[ArtLayer],
+    ref_bounds: tuple[int, int, int, int],
+    docsel: Optional[Selection] = None
+):
+    """Checks if a layer is overlapping with given set of bounds.
+
+    Args:
+        layer: Layer to check collision for.
+        ref_bounds: Bounds to check collision with.
+        docsel: Selection object, pull from document if not provided.
+
+    Returns:
+        Bounds if overlap exists, otherwise None.
+    """
+    select_bounds(ref_bounds, selection=docsel)
+    select_overlapping(layer)
+    if bounds := check_selection_bounds(docsel):
+        docsel.deselect()
+        return ref_bounds[1] - bounds[3]
+    return 0
+
+
 def clear_reference_vertical(
-        layer: Optional[ArtLayer] = None,
-        reference: Union[ArtLayer, list[Union[int, float]], None] = None
+    layer: ArtLayer,
+    ref: ReferenceLayer,
+    docsel: Optional[Selection] = None
 ) -> Union[int, float]:
     """Nudges a layer clear vertically of a given reference layer or area.
 
     Args:
         layer: Layer to nudge, so it avoids the reference area.
-        reference: Layer or bounds area to nudge clear of.
+        ref: Layer or bounds area to nudge clear of.
+        docsel: Selection object, pull from document if not provided.
 
     Returns:
         The number of pixels layer was translated by (negative or positive indicating direction).
     """
     # Use active layer if not provided
-    docref = APP.activeDocument
-    docsel = docref.selection
-    layer = layer or docref.activeLayer
-
-    # Use reference bounds if layer provided, or bounds provided, or active selection fallback
-    ref_bounds = reference.bounds if isinstance(reference, ArtLayer) else (
-        reference if isinstance(reference, Iterable) else docsel.bounds)
-
-    # Select reference bounds, then select overlapping pixels on our layer
-    select_bounds(ref_bounds)
-    select_overlapping(layer)
+    docsel = docsel or APP.activeDocument.selection
+    delta = check_reference_overlap(layer=layer, ref_bounds=ref.bounds, docsel=docsel)
 
     # Check if selection is empty, if not translate our layer to clear the reference
-    if selected_bounds := check_selection_bounds(docsel):
-        delta = ref_bounds[1] - selected_bounds[3]
-        docsel.deselect()
+    if delta < 0:
         layer.translate(0, delta)
         return delta
     return 0
+
+
+def clear_reference_vertical_multi(
+    text_layers: list[ArtLayer],
+    ref: ReferenceLayer,
+    loyalty_ref: ReferenceLayer,
+    space: Union[int, float],
+    uniform_gap: bool = False,
+    font_size: Optional[float] = None,
+    step: float = 0.2,
+    docref: Optional[Document] = None,
+    docsel: Optional[Selection] = None
+) -> None:
+    """Shift or resize multiple text layers to prevent vertical collision with a reference area.
+
+    Note:
+        Used on Planeswalker cards to allow multiple text abilities to clear the loyalty box.
+
+    Args:
+        text_layers: Ability text layers to nudge or resize.
+        ref: Reference area ability text layers must fit inside.
+        loyalty_ref: Reference area that covers the loyalty box.
+        space: Minimum space between planeswalker abilities.
+        uniform_gap: Whether the gap between abilities should be the same between each ability.
+        font_size: The current font size of the text layers, if known. Otherwise, calculate automatically.
+        step: The amount of font size and leading to step down each iteration.
+        docref: Reference document, use active if not provided (improves performance).
+        docsel: Selection object, pull from document if not provided (improves performance).
+    """
+    # Return if adjustments weren't provided
+    if not loyalty_ref:
+        return
+
+    # Establish fresh data
+    if font_size is None:
+        font_size = get_font_size(text_layers[0])
+    layers = text_layers.copy()
+    movable = len(layers)-1
+
+    # Calculate inside gap
+    total_space = ref.dims['height'] - sum([get_layer_height(layer) for layer in text_layers])
+    if not uniform_gap:
+        inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
+    else:
+        inside_gap = total_space / (len(layers) + 1)
+    leftover = (inside_gap - space) * movable
+
+    # Does the bottom layer overlap with the loyalty box?
+    delta = check_reference_overlap(
+        layer=layers[-1],
+        ref_bounds=loyalty_ref.bounds,
+        docsel=docsel)
+    if delta >= 0:
+        return
+
+    # Calculate the total distance needing to be covered
+    total_move = 0
+    layers.pop(0)
+    for n, lyr in enumerate(layers):
+        total_move += math.fabs(delta) * ((len(layers) - n)/len(layers))
+
+    # Text layers can just be shifted upwards
+    if total_move < leftover:
+        layers.reverse()
+        for n, lyr in enumerate(layers):
+            move_y = delta * ((len(layers) - n)/len(layers))
+            lyr.translate(0, move_y)
+        return
+
+    # Layer gap would be too small, need to resize text then shift upward
+    font_size -= step
+    for lyr in text_layers:
+        set_text_size_and_leading(
+            layer=lyr,
+            size=font_size,
+            leading=font_size)
+
+    # Space apart planeswalker text evenly
+    spread_layers_over_reference(
+        layers=text_layers,
+        ref=ref,
+        gap=space if not uniform_gap else None,
+        outside_matching=False)
+
+    # Check for another iteration
+    clear_reference_vertical_multi(
+        text_layers=text_layers,
+        ref=ref,
+        loyalty_ref=loyalty_ref,
+        space=space,
+        uniform_gap=uniform_gap,
+        font_size=font_size,
+        docref=docref,
+        docsel=docsel)
