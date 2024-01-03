@@ -1,6 +1,6 @@
 """
 * Manage Global State (non-GUI)
-* Only local imports should be `enums` and `utils`.
+* Only local imports should be `enums`, `utils`, or `cards`.
 """
 # Standard Library Imports
 import os
@@ -319,7 +319,8 @@ class AppConstants:
         return {
             2: [LAYERS.HALF],
             3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
-            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
+            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS],
+            5: [LAYERS.FIFTH, LAYERS.TWO_FIFTHS, LAYERS.THREE_FIFTHS, LAYERS.FOUR_FIFTHS]
         }
 
     @tracked_prop
