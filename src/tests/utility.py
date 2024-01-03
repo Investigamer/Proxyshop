@@ -4,45 +4,34 @@
 """
 # Standard Library Imports
 from contextlib import suppress
-from collections.abc import Iterable
-from pathlib import Path
 from typing import Optional, Union
 from _ctypes import COMError
-from os import path as osp, environ
-import tomlkit
+from xml.dom import minidom
 import warnings
 import logging
 import json
 import csv
-import xml.dom.minidom
+import os
 
 # Third Party Imports
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
-from photoshop.api._document import Document
-from photoshop.api._selection import Selection
 from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
     DialogModes,
-    LayerKind
-)
+    LayerKind)
 from psd_tools.constants import Resource
 from psd_tools import PSDImage
 from psd_tools.psd.image_resources import ImageResource
 import xml.etree.ElementTree as ET
-environ['HEADLESS'] = "True"
+os.environ['HEADLESS'] = "True"
 
 # Local Imports
-from src import APP, PATH
-from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds, select_bounds
-from src.helpers.text import get_text_key, apply_text_key
-from src.enums.adobe import LayerObject, LayerContainer
-from src.utils.exceptions import PS_EXCEPTIONS
-from src.helpers.masks import copy_layer_mask
-from src.helpers import get_layer_dimensions, get_color
-from src.utils.testing import time_function
+from src import APP, TEMPLATES
+import src.helpers as psd
+from src.enums.adobe import LayerContainer
 
 # Photoshop infrastructure
 cID, sID = APP.charIDtoTypeID, APP.stringIDToTypeID
@@ -54,7 +43,6 @@ TANG = [255, 97, 11]
 RED = [192, 55, 38]
 TAN = [245, 235, 210]
 BLACK = [0, 0, 0]
-
 
 """
 * Template Design Testing
@@ -76,10 +64,10 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
         groups.remove(r)
     for g in groups:
         # Enable new color
-        getLayer(new, g).visible = True
+        psd.getLayer(new, g).visible = True
         # Disable old color
         if old:
-            getLayer(old, g).visible = False
+            psd.getLayer(old, g).visible = False
 
 
 def make_duals(
@@ -95,27 +83,27 @@ def make_duals(
     @return:
     """
     duals = ["WU", "WB", "RW", "GW", "UB", "UR", "GU", "BR", "BG", "RG"]
-    group = getLayerSet(name)
-    mask_top = getLayer(mask_top, group) if mask_top else None
-    mask_bottom = getLayer(mask_bottom, group) if mask_bottom else None
-    ref = getLayer("W", group)
+    group = psd.getLayerSet(name)
+    mask_top = psd.getLayer(mask_top, group) if mask_top else None
+    mask_bottom = psd.getLayer(mask_bottom, group) if mask_bottom else None
+    ref = psd.getLayer("W", group)
 
     # Loop through each dual
     for dual in duals:
         # Change layer visibility
-        top = getLayer(dual[0], group).duplicate(ref, ElementPlacement.PlaceBefore)
-        bottom = getLayer(dual[1], group).duplicate(top, ElementPlacement.PlaceAfter)
+        top = psd.getLayer(dual[0], group).duplicate(ref, ElementPlacement.PlaceBefore)
+        bottom = psd.getLayer(dual[1], group).duplicate(top, ElementPlacement.PlaceAfter)
         top.visible = True
         bottom.visible = True
 
         # Enable masks
         if mask_top:
-            copy_layer_mask(mask_top, top)
+            psd.copy_layer_mask(mask_top, top)
         if mask_bottom:
-            copy_layer_mask(mask_bottom, bottom)
+            psd.copy_layer_mask(mask_bottom, bottom)
 
         # Merge the layers and rename
-        new_layer = merge_layers([top, bottom])
+        new_layer = psd.merge_layers([top, bottom])
         new_layer.name = dual
 
 
@@ -132,7 +120,7 @@ def create_blended_layer(
     """
     if not masks:
         # No mask provided
-        masks = [getLayer("Mask")]
+        masks = [psd.getLayer("Mask")]
     elif isinstance(masks, ArtLayer):
         # Single layer provided
         masks = [masks]
@@ -140,13 +128,13 @@ def create_blended_layer(
 
     # Enable each layer color
     for i, color in enumerate(colors):
-        layer = getLayer(color, group)
+        layer = psd.getLayer(color, group)
         layer.visible = True
 
         # Position the new layer and add a mask to previous, if previous layer exists
         if layers:
             layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-            copy_layer_mask(masks[i - 1], layers[i - 1])
+            psd.copy_layer_mask(masks[i - 1], layers[i - 1])
 
         # Add to the layer list
         layers.append(layer)
@@ -267,11 +255,14 @@ def dump_layer_action_descriptors(layer: ArtLayer, path: str) -> dict:
 
 
 def get_differing_dict(d1: dict, d2: dict):
-    """
-    Recursively generates a new dictionary comprised of differing values in two dicts.
-    @param d1: First dictionary.
-    @param d2: Second dictionary.
-    @return: A dictionary comprised of differing key value pairs.
+    """Recursively generates a new dictionary comprised of differing values in two dicts.
+
+    Args:
+        d1: First dictionary.
+        d2: Second dictionary.
+
+    Returns:
+        A dictionary comprised of differing key value pairs.
     """
     new_dict = {}
     for key, val in d1.items():
@@ -288,9 +279,10 @@ def get_differing_dict(d1: dict, d2: dict):
 
 
 def apply_single_line_composer(layer: ArtLayer) -> None:
-    """
-    Set the text composer of the layer to 'Single Line Composer'.
-    @param layer: TextLayer to apply the composer to.
+    """Set the text composer of the layer to 'Single Line Composer'.
+
+    Args:
+        layer: TextLayer to apply the composer to.
     """
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -305,16 +297,17 @@ def apply_single_line_composer(layer: ArtLayer) -> None:
 
 
 def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[str] = " "):
-    """
-    Append the "from_layer" contents to the end of "to_layer" contents with optional separator.
-    Preserves the complete style range formatting of both text contents.
-    @param from_layer: TextLayer to pull contents from.
-    @param to_layer: TextLayer to append the contents of from_layer to.
-    @param sep: Optional separator to place between them.
+    """Append the "from_layer" contents to the end of "to_layer" contents with optional separator.
+        Preserves the complete style range formatting of both text contents.
+
+    Args:
+        from_layer: TextLayer to pull contents from.
+        to_layer: TextLayer to append the contents of from_layer to.
+        sep: Optional separator to place between them.
     """
     # Grab the text key of each layer
-    from_tk = get_text_key(from_layer)
-    to_tk = get_text_key(to_layer)
+    from_tk = psd.get_text_key(from_layer)
+    to_tk = psd.get_text_key(to_layer)
 
     # Grab the style range of each layer and establish our offset
     from_range = from_tk.getList(sID("textStyleRange"))
@@ -336,15 +329,16 @@ def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[s
     to_tk.putList(sID("textStyleRange"), to_range)
 
     # Apply the updated text key to the target layer
-    apply_text_key(to_layer, to_tk)
+    psd.apply_text_key(to_layer, to_tk)
 
 
 def reset_transform_factor(layer: ArtLayer) -> None:
+    """Reset the transform xx and yy factors of a given layer.
+
+    Args:
+        layer: TextLayer to reset transform factors for.
     """
-    Reset the transform xx and yy factors of a given layer.
-    @param layer: TextLayer to reset transform factors for.
-    """
-    key = get_text_key(layer)
+    key = psd.get_text_key(layer)
     if key.hasKey(sID('transform')):
 
         # Check the scale factor
@@ -362,7 +356,7 @@ def reset_transform_factor(layer: ArtLayer) -> None:
 
         # Update the scale factor
         key.putObject(sID("transform"), sID("transform"), desc)
-        apply_text_key(layer, key)
+        psd.apply_text_key(layer, key)
 
 
 """
@@ -372,9 +366,10 @@ def reset_transform_factor(layer: ArtLayer) -> None:
 
 def xmp_remove_ancestors() -> None:
     """Remove DocumentAncestors property from XMP data."""
+
+    # Check that a document is open
     if not APP.documents:
-        # No documents open
-        APP.alert("There are no open documents. Please open a file to run this script.")
+        print('No documents open!')
         return
 
     # XMP data
@@ -395,9 +390,11 @@ def xmp_remove_ancestors() -> None:
 
 def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     layer_name = layer.name
-    color = get_color(color)
-    APP.activeDocument.activeLayer = layer
-    select_layer_bounds()
+    color = psd.get_color(color)
+    docref = APP.activeDocument
+    docsel = docref.selection
+    docref.activeLayer = layer
+    psd.select_layer_bounds(layer, docsel)
 
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
@@ -426,9 +423,9 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     APP.activeDocument.activeLayer.name = layer_name
 
     # Check dims
-    dims = get_layer_dimensions(layer)
+    dims = psd.get_layer_dimensions(layer)
     dims = (dims['width'], dims['height'])
-    new_dims = get_layer_dimensions(APP.activeDocument.activeLayer)
+    new_dims = psd.get_layer_dimensions(docref.activeLayer)
     new_dims = (new_dims['width'], new_dims['height'])
     if not dims == new_dims:
         print("DIMS CHANGED:", layer_name)
@@ -436,8 +433,8 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
         print("After:", new_dims)
 
     layer.remove()
-    APP.activeDocument.activeLayer.visible = False
-    return APP.activeDocument.activeLayer
+    docref.activeLayer.visible = False
+    return docref.activeLayer
 
 
 """
@@ -458,8 +455,8 @@ def log_all_template_fonts() -> dict:
         @param doc_path: Path to the Photoshop document.
         @return: Set of font names found in the document.
         """
-        psd, fonts = PSDImage.open(doc_path), set()
-        for layer in [n for n in psd.descendants() if n.kind == 'type']:
+        file, fonts = PSDImage.open(doc_path), set()
+        for layer in [n for n in file.descendants() if n.kind == 'type']:
             for style in layer.engine_dict['StyleRun']['RunArray']:
                 font_key = style['StyleSheet']['StyleSheetData']['Font']
                 fonts.add(layer.resource_dict['FontSet'][font_key]['Name'])
@@ -467,9 +464,8 @@ def log_all_template_fonts() -> dict:
 
     # PSD documents to test
     docs = {
-        temp['template_path']: f"{temp['plugin_name'] or 'BASE'} - {temp['layout']} - {temp['name']}"
-        for card_type, templates in get_templates().items()
-        for temp in templates if osp.exists(temp['template_path'])
+        t.path_psd: f"{t.name} ({t.plugin.name if t.plugin else 'BASE'})"
+        for t in TEMPLATES
     }
 
     # Track progress
@@ -477,13 +473,14 @@ def log_all_template_fonts() -> dict:
 
     # Check each document
     logging.basicConfig(level=logging.INFO)
-    for psd_file, temp_name in docs.items():
+    for f, temp_name in docs.items():
+
         # Alert the user
-        logging.info(f"READING FONTS — {temp_name} [{osp.basename(psd_file)}] [{current}/{total}]")
+        logging.info(f"READING FONTS — {temp_name} [{f.name}] [{current}/{total}]")
         current += 1
 
         # Open document, get fonts, close document
-        doc_fonts[temp_name] = _get_fonts_from_psd(psd_file)
+        doc_fonts[temp_name] = _get_fonts_from_psd(f)
 
     # Create master list
     for doc, font_list in doc_fonts.items():
@@ -498,78 +495,6 @@ def log_all_template_fonts() -> dict:
 
 
 """
-* Mask Experiments
-"""
-
-
-def enter_mask_channel(make_visible: bool = True):
-    """Enters mask channel to allow working with current layer's mask."""
-    d1 = ActionDescriptor()
-    r1 = ActionReference()
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    d1.PutReference(sID("target"), r1)
-    d1.PutBoolean(sID("makeVisible"), make_visible)
-    APP.Executeaction(sID("select"), d1, NO_DIALOG)
-
-
-def enter_rgb_channel(make_visible: bool = True):
-    """Enters the RGB channel (default channel)."""
-    d1 = ActionDescriptor()
-    r1 = ActionReference()
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("RGB"))
-    d1.PutReference(sID("target"), r1)
-    d1.PutBoolean(sID("makeVisible"), make_visible)
-    APP.Executeaction(sID("select"), d1, NO_DIALOG)
-
-
-def create_mask(layer: Optional[ArtLayer] = None):
-    """Add a mask to provided or active layer."""
-    if layer:
-        APP.activeDocument.activeLayer = layer
-    d1 = ActionDescriptor()
-    r1 = ActionReference()
-    d1.PutClass(sID("new"), sID("channel"))
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    d1.PutReference(sID("at"), r1)
-    d1.PutEnumerated(sID("using"), sID("userMaskEnabled"), sID("revealAll"))
-    APP.Executeaction(sID("make"), d1, NO_DIALOG)
-
-
-def paste_to_document():
-    desc1 = ActionDescriptor()
-    desc1.PutEnumerated(sID("antiAlias"), sID("antiAliasType"), sID("antiAliasNone"))
-    desc1.PutClass(sID("as"), sID("pixel"))
-    APP.Executeaction(sID("paste"), desc1, NO_DIALOG)
-
-
-def select_canvas(doc: Document = None):
-    """Select the entire canvas of a provided or active document."""
-    doc = doc or APP.activeDocument
-    doc.selection.select([
-        [0, 0],
-        [doc.width, 0],
-        [doc.width, doc.height],
-        [0, doc.height]
-    ])
-
-
-def copy_to_mask():
-    # Select canvas and copy
-    docref = APP.activeDocument
-    select_canvas(docref)
-    docref.selection.copy()
-    docref.selection.deselect()
-
-    # Create a mask and enter the mask channel
-    create_mask()
-    enter_mask_channel()
-
-    # Paste the gradient and switch back to RGB channel
-    APP.activeDocument.paste()
-    enter_rgb_channel()
-
-
-"""
 * Project: Data Sets
 * Exploring the use of data set variables for potential performance gains.
 * Status: Likely not helpful
@@ -577,11 +502,12 @@ def copy_to_mask():
 
 
 def insert_data_set_variables(xml_data: str, from_path: str, to_path: Optional[str] = None) -> None:
-    """
-    Inserts data set variable XML into a PSD document.
-    @param xml_data: Data to insert into the document.
-    @param from_path: Path of the PSD file.
-    @param to_path: Path of new PSD file created, overwrites from_path if not provided.
+    """Inserts data set variable XML into a PSD document.
+
+    Args:
+        xml_data: Data to insert into the document.
+        from_path: Path of the PSD file.
+        to_path: Path of new PSD file created, overwrites from_path if not provided.
     """
     # Decide the to_path
     to_path = to_path or from_path
@@ -591,48 +517,58 @@ def insert_data_set_variables(xml_data: str, from_path: str, to_path: Optional[s
     warnings.filterwarnings("ignore", module='psd_tools')
 
     # Open the PSD file
-    psd = PSDImage.open(from_path)
+    f = PSDImage.open(from_path)
 
     # Replace the image variables data
     new_resource = ImageResource(b'MeSa', key=Resource.IMAGE_READY_VARIABLES, name='', data=xml_data.encode(
         encoding='UTF-8', errors='strict'))
-    psd.image_resources[Resource.IMAGE_READY_VARIABLES] = new_resource
+    f.image_resources[Resource.IMAGE_READY_VARIABLES] = new_resource
 
     # Save the PSD file
-    psd.save(to_path)
+    f.save(to_path)
 
 
 def print_data_set_variables(path: str) -> None:
-    """
-    Print data set variable XML data for a given document.
-    @param path: Path to a PSD document.
+    """Print data set variable XML data for a given document.
+
+    Args:
+        path: Path to a PSD document.
     """
     data = PSDImage.open(path).image_resources.get_data(
         Resource.IMAGE_READY_DATA_SETS)
-    pretty_xml = xml.dom.minidom.parseString(data).toprettyxml()
+    pretty_xml = minidom.parseString(data).toprettyxml()
 
     # Print without excess newlines
     print('\n'.join([line for line in pretty_xml.split('\n') if line.strip()]))
 
 
 def format_data_set_variable_name(text: str) -> str:
+    """Formats string as a data set variable name.
+
+    Args:
+        text: Text to format as a data set variable name.
+
+    Returns:
+        Properly formatted data set variable name.
     """
-    Formats string as a data set variable name.
-    @param text: Text to format as a data set variable name.
-    @return: Properly formatted data set variable name.
-    """
-    return text.title().replace(' ', '').replace('-', '').replace('&', '')
+    return text.title().replace(
+        ' ', '').replace(
+        '-', '').replace(
+        '&', '')
 
 
 def get_data_set_variables(
-        group: Optional[Union[LayerContainer]] = None,
-        tree: Optional[str] = None
+    group: Optional[Union[LayerContainer]] = None,
+    tree: Optional[str] = None
 ) -> list[dict[str, str]]:
-    """
-    Get data set variables for all ArtLayer and LayerSet objects in document or LayerSet.
-    @param group: LayerSet or Document, use activeDocument if not provided.
-    @param tree: Tree to add to variable names, empty str if not provided.
-    @return: List of data set variable dicts.
+    """Get data set variables for all ArtLayer and LayerSet objects in document or LayerSet.
+
+    Args:
+        group: LayerSet or Document, use activeDocument if not provided.
+        tree: Tree to add to variable names, empty str if not provided.
+
+    Returns:
+        List of data set variable dicts.
     """
 
     # Establish current tree
@@ -704,10 +640,11 @@ def get_data_set_variable_xml():
 
 
 def create_data_set_csv(data_set: dict[str, str], path: str) -> None:
-    """
-    Create a data set CSV that can be imported for Photoshop's data set variable system.
-    @param data_set: A dictionary where variable names are the keys and variable values are the values.
-    @param path: Path to save the CSV to.
+    """Create a data set CSV that can be imported for Photoshop's data set variable system.
+
+    Args:
+        data_set: A dictionary where variable names are the keys and variable values are the values.
+        path: Path to save the CSV to.
     """
     with open(path, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -716,9 +653,10 @@ def create_data_set_csv(data_set: dict[str, str], path: str) -> None:
 
 
 def import_data_set(path: str) -> None:
-    """
-    Imports a data set into Photoshop's data set variable system.
-    @param path: Path to the data set CSV file where the first line are the variable names.
+    """Imports a data set into Photoshop's data set variable system.
+
+    Args:
+        path: Path to the data set CSV file where the first line are the variable names.
     """
     desc = ActionDescriptor()
     ref = ActionReference()
@@ -728,131 +666,17 @@ def import_data_set(path: str) -> None:
     desc.putEnumerated(sID("encoding"), sID("dataSetEncoding"), sID("dataSetEncodingAuto"))
     desc.putBoolean(sID("eraseAll"), True)
     desc.putBoolean(sID("useFirstColumn"), True)
-    APP.executeAction(sID("importDataSets"), desc, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("importDataSets"), desc, NO_DIALOG)
 
 
 def apply_data_set(data_set_name: str) -> None:
-    """
-    Applies a data set from Photoshop's data set variable system.
-    @param data_set_name: Name of the data set.
+    """Applies a data set from Photoshop's data set variable system.
+
+    Args:
+        data_set_name: Name of the data set.
     """
     desc = ActionDescriptor()
     setRef = ActionReference()
     setRef.putName(sID("dataSetClass"), data_set_name)
     desc.putReference(sID("null"), setRef)
-    APP.executeAction(sID("apply"), desc, DialogModes.DisplayNoDialogs)
-
-
-"""
-* PROJECT
-* New methodology: Nudging text to clear a reference
-* Status: Super helpful, implementation pending
-"""
-
-
-def select_overlapping(layer: ArtLayer) -> None:
-    with suppress(PS_EXCEPTIONS):
-        desc1, ref1, ref2 = ActionDescriptor(), ActionReference(), ActionReference()
-        ref1.putEnumerated(sID("channel"), sID("channel"), sID("transparencyEnum"))
-        ref1.putIdentifier(sID("layer"), layer.id)
-        desc1.putReference(sID("target"), ref1)
-        ref2.putProperty(sID("channel"), sID("selection"))
-        desc1.putReference(sID("with"), ref2)
-        APP.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
-
-
-def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[int, float]]:
-    """
-    Verifies if a selection has valid bounds.
-    @param selection: Selection object to test, otherwise use current selection of active document.
-    @return: An empty list if selection is invalid, otherwise return bounds of selection.
-    """
-    selection = selection or APP.activeDocument.selection
-    with suppress(PS_EXCEPTIONS):
-        print(selection.bounds)
-        if any(selection.bounds):
-            return selection.bounds
-    return []
-
-
-@time_function
-def clear_reference_vertical(
-        layer: Optional[ArtLayer] = None,
-        reference: Union[ArtLayer, list[Union[int, float]], None] = None
-) -> Union[int, float]:
-    """
-    Nudges a layer clear vertically of a given reference layer or area.
-    @param layer: Layer to nudge so it avoids the reference area.
-    @param reference: Layer or bounds area to nudge clear of.
-    @return: The number of pixels layer was translated by (negative or positive indicating direction).
-    """
-    # Use active layer if not provided
-    docref = APP.activeDocument
-    layer = layer or docref.activeLayer
-
-    # Use reference bounds if layer provided, or bounds provided, or active selection fallback
-    ref_bounds = reference.bounds if isinstance(reference, LayerObject) else (
-        reference if isinstance(reference, Iterable) else docref.selection.bounds)
-
-    # Select reference bounds, then select overlapping pixels on our layer
-    select_bounds(ref_bounds)
-    select_overlapping(layer)
-
-    # Check if selection is empty, if not translate our layer to clear the reference
-    if selected_bounds := check_selection_bounds(docref.selection):
-        delta = ref_bounds[1] - selected_bounds[3]
-        docref.selection.deselect()
-        layer.translate(0, delta)
-        return delta
-    return 0
-
-
-def new_clear_ref_methodology():
-    lyr, ref = getLayer('text'), getLayer('box')
-    ref = [ref.bounds[0] - 0, ref.bounds[1] - 10, ref.bounds[2] + 0, ref.bounds[3] + 10]
-    print("Position change:", clear_reference_vertical(layer=lyr, reference=ref))
-
-
-"""
-* Project: TOML preference for data files
-* Implement TOML as a data file standard for tests, settings, and elsewhere
-* Status: Helpful, ongoing implementation
-"""
-
-
-def convert_json_config_to_toml(filename: str):
-    # Import JSON render tests
-    with open(Path(PATH.SRC_DATA, filename), 'r', encoding='utf-8') as f:
-        obj = json.load(f)
-
-    # Create a new TOML document
-    doc = tomlkit.TOMLDocument()
-    header, title = '', ''
-    for sec in obj:
-
-        # Check if this is a title
-        if sec['type'] == 'title':
-            title = sec['title']
-            continue
-
-        # Add section and title if needed
-        section = sec['section']
-        if section != header:
-            header = section
-            doc[header] = tomlkit.table()
-            doc[header].append('title', title)
-
-        # Add key to section
-        doc[header][sec['key']] = tomlkit.table()
-        doc[header][sec['key']].update({
-            'title': sec['title'].replace('[b]', '').replace('[/b]', ''),
-            'desc': tomlkit.string('\n'.join(sec['desc'].split('\n')[:-1]), multiline=True),
-            'type': sec['type'],
-            'default': sec['default']
-        })
-        if options := sec.get('options'):
-            doc[header][sec['key']].append('options', options)
-
-    # Export render tests as TOML
-    with open(Path(PATH.SRC_DATA, filename).with_suffix('.toml'), 'w', encoding='utf-8') as f:
-        tomlkit.dump(doc, f)
+    APP.executeAction(sID("apply"), desc, NO_DIALOG)

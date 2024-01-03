@@ -96,3 +96,8 @@ Gemrazer = "Creature"
 "Fire [UMA]" = "Two Colors"
 "Integrity [GRN]" = "Gold"
 "Flesh [DGM]" = "Fuse Multicolor"
+
+[battle]
+"Invasion of Kaldheim [MOM]" = "Mono Color"
+"Invasion of Tolvada [MOM]" = "Dual Color"
+"Invasion of Alara [MOM]" = "Gold"
