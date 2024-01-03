@@ -10,9 +10,9 @@ spec:
 # Create required directories
 make:
     paths:
-    - ['art'],
-    - ['src'],
-    - ['plugins'],
+    - ['art']
+    - ['src']
+    - ['plugins']
     - ['templates']
 
 # Copy directories to release folder
@@ -21,10 +21,10 @@ copy:
     # Base directories and files
     base:
         paths:
-        - ['src', 'img'],
+        - ['src', 'img']
         - ['templates', 'tools']
         files:
-        - ['LICENSE.md'],
+        - ['LICENSE.md']
         - ['README.md']
 
     # Copy data directory
@@ -45,7 +45,7 @@ copy:
     # Copy plugins directory
     plugins:
         paths:
-        - ['plugins', 'Investigamer'],
+        - ['plugins', 'Investigamer']
         - ['plugins', 'SilvanMTG']
         exclude_ext:
         - '.psd'

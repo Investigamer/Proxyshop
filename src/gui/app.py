@@ -261,7 +261,7 @@ class ProxyshopGUIApp(App):
         return None
 
     @property
-    def cancel_render(self) -> Optional[Event]:
+    def thread(self) -> Optional[Event]:
         """Optional[Event]: Tracks the current render threading Event."""
         if self.current_render and hasattr(self.current_render, 'event'):
             return self.current_render.event or None
@@ -271,6 +271,12 @@ class ProxyshopGUIApp(App):
     def timer(self) -> float:
         """float: Returns the current system time as a float to use as a timer comparison."""
         return perf_counter()
+
+    @property
+    def thread_cancelled(self) -> bool:
+        """bool: Whether the current render thread has been cancelled."""
+        thr = self.thread
+        return bool(not isinstance(thr, Event) or thr.is_set())
 
     """
     * UI Properties
@@ -457,6 +463,7 @@ class ProxyshopGUIApp(App):
 
         # Render in batches separated by PSD file
         self.console.update()
+        times: list[float] = []
         for _path, class_map in layouts.items():
             for layout, cards in class_map.items():
 
@@ -473,8 +480,8 @@ class ProxyshopGUIApp(App):
                         f"for template '{temps[layout]['name']}'!\n"
                     ) + msg_bold("The following cards have been cancelled:")
                     if not self.console.error(
-                            msg=f'{message}{failed_cards}',
-                            end=msg_bold("\nShould I continue with the remaining cards?\n")
+                        msg=f'{message}{failed_cards}',
+                        end=msg_bold("\nShould I continue with the remaining cards?\n")
                     ):
                         return
 
@@ -484,11 +491,20 @@ class ProxyshopGUIApp(App):
 
                 # Render each card with this PSD and class
                 for c in cards:
-                    if not self.start_render(c, temps[layout], loaded_class):
+                    result = self.start_render(c, temps[layout], loaded_class)
+                    if self.thread_cancelled:
                         return
+                    if result is not None:
+                        times.append(result)
 
             # Render group complete
             self.close_document()
+
+        # Report the average render time
+        self.console.update(msg_success('Renders Completed!'))
+        if times:
+            avg = round(sum(times) / len(times), 1)
+            self.console.update(f'Average time: {avg} seconds')
 
     @render_process_wrapper
     def render_custom(self, template: TemplateDetails, scryfall: dict) -> None:
@@ -558,7 +574,7 @@ class ProxyshopGUIApp(App):
 
             # If not a deep test, only use first entry
             cards = {k: v for k, v in [next(iter(cards.items()))]} if not deep else cards
-            self.console.update(msg_success(f"\n---- {card_type.upper()} ----"))
+            self.console.update(msg_success(f'\n— {card_type.upper()}'))
 
             # Loop through templates to test
             for name, template in self.template_map[layout_map_types[card_type]]['map'][card_type].items():
@@ -581,6 +597,7 @@ class ProxyshopGUIApp(App):
 
                 # Loop through cards to test
                 failures: list[tuple[str, str, str]] = []
+                times: list[float] = []
                 for card_name, card_case in cards.items():
 
                     # Attempt to assign a layout
@@ -590,19 +607,29 @@ class ProxyshopGUIApp(App):
                         continue
 
                     # Grab the template class and start the render thread
-                    layout.art_file = PATH.SRC_IMG / "test.jpg"
-                    if not self.start_render(layout, template, loaded_class):
+                    layout.art_file = PATH.SRC_IMG / 'test.jpg'
+                    result = self.start_render(layout, template, loaded_class)
+                    if result is None:
                         failures.append((card_name, card_case, 'Failed to render'))
+                    else:
+                        times.append(result)
 
-                    # Thread cancelled or reset and continue?
-                    if self.cancel_render.is_set():
+                    # Was thread cancelled?
+                    if self.thread_cancelled:
                         return
 
-                # Log failure state and continue
-                result = get_bullet_points([
-                    f"{name} ({case}) — {reason}" for name, case, reason in failures
-                ]) if failures else ''
-                self.console.update(msg_error(f"FAILED\n{result}") if result else msg_success("SUCCESS"))
+                # Create a summary message
+                if failures:
+                    fail_log = get_bullet_points([
+                        f"{name} ({case}) — {reason}"
+                        for name, case, reason in failures])
+                    summary = msg_error(f'FAILED{fail_log}')
+                else:
+                    avg = round(sum(times) / len(times), 1)
+                    summary = msg_success(f'{avg}s Avg.')
+
+                # Log summary and continue to next template
+                self.console.update(summary)
                 self.close_document()
 
     @render_process_wrapper
@@ -615,7 +642,8 @@ class ProxyshopGUIApp(App):
         """
         # Load test case cards
         cases = load_data_file((PATH.SRC_DATA_TESTS / 'template_renders').with_suffix('.toml'))
-        self.console.update(msg_success(f"\n---- {template['class_name']} ----"))
+        title = f"\n— {template['class_name']}"
+        self.console.update(msg_success(title))
 
         # Is this template installed?
         if not template['object'].is_installed:
@@ -629,8 +657,9 @@ class ProxyshopGUIApp(App):
             return
 
         # Render each test case
-        for card_name, card_case in cases[card_type].items():
-            self.console.update(f"{card_name} ({card_case}) ... ", end="")
+        times: list[float] = []
+        for card_name in cases[card_type].keys():
+            self.console.update(f"{card_name} ... ", end="")
 
             # Attempt to assign a layout
             layout = assign_layout(Path(card_name))
@@ -641,15 +670,29 @@ class ProxyshopGUIApp(App):
             # Start the render
             layout.art_file = PATH.SRC_IMG / 'test.jpg'
             result = self.start_render(
-                layout, template, loaded_class,
-                reload_config=True, reload_constants=True)
+                card=layout,
+                template=template,
+                loaded_class=loaded_class,
+                reload_config=True,
+                reload_constants=True)
 
-            # Was render cancelled?
-            if self.cancel_render.is_set():
+            # Was thread cancelled?
+            if self.thread_cancelled:
                 return
+            if result is not None:
+                times.append(result)
 
             # Was render successful?
-            self.console.update(msg_success("SUCCESS") if result else msg_error("Failed to render"))
+            self.console.update(
+                msg_error('Failed to render')
+                if result is None else
+                msg_success(f'{result}s'))
+
+        # Report the average render time
+        self.console.update(msg_success('\nTests Completed!'))
+        if times:
+            avg = round(sum(times) / len(times), 1)
+            self.console.update(f'Average time: {avg} seconds')
 
     def start_render(
         self, card: CardLayout,
@@ -657,7 +700,7 @@ class ProxyshopGUIApp(App):
         loaded_class: type[BaseTemplate],
         reload_config: bool = False,
         reload_constants: bool = False
-    ) -> bool:
+    ) -> Optional[float]:
         """Execute a render job using a given card layout, template, and template class.
 
         Args:
@@ -680,8 +723,7 @@ class ProxyshopGUIApp(App):
         if reload_constants:
             self.con.reload()
 
-        # Track execution time
-        start_time = self.timer
+        # Catch any unexpected render exceptions
         try:
 
             # Set the PSD location of the template
@@ -695,23 +737,35 @@ class ProxyshopGUIApp(App):
                 executor.submit(self.console.start_await_cancel, self.current_render.event)
 
             # Render the card
+            start_time = self.timer
             result = self.current_render.execute()
+            timed = round(self.timer - start_time, 1)
 
-            # Report this results
-            if result and not self.env.TEST_MODE:
-                self.console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
-            return result
+            # Return execution time if successful
+            if not self.thread.is_set() and result:
+                if not self.env.TEST_MODE:
+                    self.console.update(f"[i]Time completed: {timed} seconds[/i]\n")
+                return timed
 
         # General error outside Template render process
-        except Exception as e:
-            return self.console.log_error(
-                self.cancel_render or Event(),
+        except Exception as error:
+
+            # Reset document
+            if self.docref:
+                self.current_render.reset()
+
+            # Log the error
+            self.console.log_error(
+                self.thread or Event(),
                 card=card.name,
                 template=template['name'],
                 msg=msg_error(
-                    "Encountered a general error!\n"
-                    "Check [b]/logs/error.txt[/b] for details."),
-                exception=e)
+                    'Encountered a general error!\n'
+                    'Check [b]/logs/error.txt[/b] for details.'),
+                e=error)
+
+        # Card failed or thread cancelled
+        return
 
     """
     * UI Utilities
@@ -927,8 +981,8 @@ class ProxyshopGUIApp(App):
 
     def on_stop(self) -> None:
         """Called when the app is closed."""
-        if self.cancel_render and isinstance(self.cancel_render, Event):
-            self.cancel_render.set()
+        if self.thread and isinstance(self.thread, Event):
+            self.thread.set()
 
     """
     * App Updates

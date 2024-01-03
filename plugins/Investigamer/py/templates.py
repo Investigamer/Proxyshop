@@ -86,25 +86,14 @@ class KaldheimTemplate (NormalTemplate):
     """
     template_suffix = "Kaldheim"
 
-    """
-    * Bool Properties
-    """
-
-    @property
-    def is_legendary(self) -> bool:
-        return False
+    # Static Properties
+    is_legendary = False
+    background_layer = None
+    twins_layer = None
 
     """
     * Layer Properties
     """
-
-    @property
-    def twins_layer(self) -> Optional[ArtLayer]:
-        return
-
-    @property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
 
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
@@ -124,13 +113,15 @@ class KaldheimTemplate (NormalTemplate):
 
 
 class CrimsonFangTemplate (TransformMod, NormalTemplate):
-    """
-    The crimson vow showcase template.
-    Original template by michayggdrasil
-    Works for Normal and Transform cards
-    Transform is kinda experimental.
+    """The crimson vow showcase template. Original template by michayggdrasil.
+
+    Notes:
+        Transform features are kind of unfinished.
     """
     template_suffix = "Fang"
+
+    # Static Properties
+    is_flipside_creature = False
 
     """
     * Details
@@ -140,15 +131,6 @@ class CrimsonFangTemplate (TransformMod, NormalTemplate):
     def background(self):
         # Use pinlines colors for background
         return self.pinlines
-
-    """
-    * Bool Properties
-    """
-
-    @property
-    def is_flipside_creature(self) -> bool:
-        # No flipside PT support
-        return False
 
     """
     * Layer Properties
@@ -177,17 +159,9 @@ class PhyrexianTemplate (NormalTemplate):
     """From the Phyrexian secret lair promo."""
     template_suffix = "Phyrexian"
 
-    """
-    * Layer Properties
-    """
-
-    @property
-    def twins_layer(self) -> Optional[ArtLayer]:
-        return
-
-    @property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
+    # Static Properties
+    background_layer = None
+    twins_layer = None
 
 
 class DoubleFeatureTemplate (NormalTemplate):
@@ -198,17 +172,13 @@ class DoubleFeatureTemplate (NormalTemplate):
     """
     template_suffix = "Double Feature"
 
+    # Static Properties
+    pinlines_layer = None
+    twins_layer = None
+
     """
     * Layer Properties
     """
-
-    @property
-    def twins_layer(self) -> Optional[ArtLayer]:
-        return
-
-    @property
-    def pinlines_layer(self) -> Optional[ArtLayer]:
-        return
 
     @property
     def background_layer(self) -> Optional[ArtLayer]:
@@ -228,17 +198,9 @@ class ColorshiftedTemplate (NormalTemplate):
     """
     template_suffix = "Colorshifted"
 
-    """
-    * Bool Properties
-    """
-
-    @property
-    def is_land(self) -> bool:
-        return False
-
-    @property
-    def is_colorless(self) -> bool:
-        return False
+    # Static Properties
+    is_land = False
+    is_colorless = False
 
     """
     * Layer Properties

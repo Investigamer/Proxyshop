@@ -5,7 +5,7 @@
 from typing import Union, Optional
 
 # Third Party Imports
-from photoshop.api import ElementPlacement, SolidColor, BlendMode
+from photoshop.api import ElementPlacement, SolidColor, BlendMode, SaveOptions
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -33,9 +33,24 @@ class SplitTemplate (BaseTemplate):
     Adds:
         * Must return all properties shared by both halves as a list of two items (left, right).
         * Must overwrite a lot of core functionality to navigate rendering 2 cards in one template.
+
+    Todo:
+        * Formalize as a vector template, implement 'Modifier' class.
     """
     is_vehicle = False
     is_artifact = False
+
+    # Color and gradient maps
+    fuse_gradient_locations = {
+        **CON.gradient_locations.copy(),
+        2: [.50, .54],
+        3: [.28, .33, .71, .76],
+        4: [.28, .33, .50, .54, .71, .76]
+    }
+    pinline_gradient_locations = [
+        {**CON.gradient_locations.copy(), 2: [.28, .33]},
+        {**CON.gradient_locations.copy(), 2: [.71, .76]}
+    ]
 
     def __init__(self, layout: SplitLayout, **kwargs):
         super().__init__(layout, **kwargs)
@@ -93,15 +108,10 @@ class SplitTemplate (BaseTemplate):
         return self.fuse_pinlines
 
     @auto_prop_cached
-    def fuse_pinline_colors(self) -> Union[SolidColor, list[dict]]:
+    def fuse_pinline_colors(self) -> Union[list[int], list[dict]]:
         """Color definition for Fuse pinlines."""
-        locations = {
-            **CON.gradient_locations.copy(),
-            2: [.50, .54],
-            3: [.28, .33, .71, .76],
-            4: [.28, .33, .50, .54, .71, .76]}
         return psd.get_pinline_gradient(
-            self.fuse_pinlines, location_map=locations)
+            self.fuse_pinlines, location_map=self.fuse_gradient_locations)
 
     @auto_prop_cached
     def fuse_pinlines_action(self) -> Union[psd.create_color_layer, psd.create_gradient_layer]:
@@ -111,14 +121,10 @@ class SplitTemplate (BaseTemplate):
         ) else psd.create_gradient_layer
 
     @auto_prop_cached
-    def pinlines_colors(self) -> list[Union[SolidColor, list[dict]]]:
+    def pinlines_colors(self) -> list[Union[list[int], list[dict]]]:
         """Color definitions used for pinlines of each side."""
-        locations = [
-            {**CON.gradient_locations.copy(), 2: [.28, .33]},
-            {**CON.gradient_locations.copy(), 2: [.71, .76]}
-        ]
         return [
-            psd.get_pinline_gradient(p, location_map=locations[i])
+            psd.get_pinline_gradient(p, location_map=self.pinline_gradient_locations[i])
             for i, p in enumerate(self.pinlines)]
 
     @auto_prop_cached
@@ -194,6 +200,18 @@ class SplitTemplate (BaseTemplate):
                 LAYERS.TEXTBOX_REFERENCE + ' Fuse' if self.is_fuse else LAYERS.TEXTBOX_REFERENCE,
                 psd.getLayerSet(LAYERS.TEXT_AND_ICONS, group)
             ) for group in self.card_groups]
+
+    @auto_prop_cached
+    def name_reference(self) -> list[ArtLayer]:
+        """list[ArtLayer]: Name reference for each side."""
+        return self.text_layer_name
+
+    @auto_prop_cached
+    def type_reference(self) -> list[ArtLayer]:
+        """list[ArtLayer]: Typeline reference for each side."""
+        return [
+            n or self.expansion_reference[i]
+            for i, n in enumerate(self.expansion_symbols)]
 
     @auto_prop_cached
     def twins_reference(self) -> list[ArtLayer]:
@@ -374,22 +392,28 @@ class SplitTemplate (BaseTemplate):
             psd.apply_fx(wm, self.watermark_fx[i])
 
     """
-    * Methods
+    * Utility Methods
     """
 
     def create_blended_layer(
-        self,
-        group: LayerSet,
-        colors: Union[str, list[str]]
-    ) -> None:
+            self,
+            group: LayerSet,
+            colors: Union[None, str, list[str]] = None,
+            masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
+    ):
         """Either enable a single frame layer or create a multicolor layer using a gradient mask.
 
         Args:
             group: Group to look for the color layers within.
             colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
         """
+        # Establish our masks
+        if not masks:
+            masks = self.mask_layers
 
         # Establish our colors
+        colors = colors or self.identity or self.pinlines
         if isinstance(colors, str) and not contains_frame_colors(colors):
             # Received a color string that isn't a frame color combination
             colors = [colors]
@@ -404,12 +428,97 @@ class SplitTemplate (BaseTemplate):
             layer.visible = True
 
             # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(self.mask_layers) >= i:
+            if layers and len(masks) >= i:
                 layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(self.mask_layers[i - 1], layers[i - 1])
+                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
 
             # Add to the layer list
             layers.append(layer)
+
+    def create_blended_solid_color(
+            self,
+            group: LayerSet,
+            colors: list[SolidColor],
+            masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
+    ) -> None:
+        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
+
+        Args:
+            group: Group to look for the color layers within.
+            colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
+        """
+        # Establish our masks
+        if masks is None:
+            masks = self.mask_layers
+
+        # Enable each layer color
+        layers: list[ArtLayer] = []
+        for i, color in enumerate(colors):
+            layer = psd.smart_layer(psd.create_color_layer(color, group))
+
+            # Position the new layer and add a mask to previous, if previous layer exists
+            if layers and len(masks) >= i:
+                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
+                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
+
+            # Add to the layer list
+            layers.append(layer)
+
+    def generate_layer(
+            self, group: Union[ArtLayer, LayerSet],
+            colors: Union[list[list[int]], list[int], list[dict], list[str], str],
+            masks: Optional[list[ArtLayer]] = None
+    ) -> Optional[ArtLayer]:
+        """Takes information about a frame layer group and routes it to the correct
+        generation function which blends rasterized layers, blends solid color layers, or
+        generates a solid color/gradient adjustment layer.
+
+        Notes:
+            The result for a given 'colors' schema:
+            - str: Enable a single texture layer.
+            - list[str]: Blend multiple texture layers.
+            - list[int]: Create a solid color adjustment layer.
+            - list[dict]: Create a gradient adjustment layer.
+            - list[list[int]]: Blend multiple solid color adjustment layers.
+
+        Args:
+            group: Layer or group containing layers.
+            colors: Color definition for this frame layer generation.
+            masks: Masks used to blend this generated layer.
+        """
+        masks = masks or self.mask_layers
+        if isinstance(colors, str):
+            return self.create_blended_layer(
+                group=group,
+                colors=colors,
+                masks=masks)
+        if isinstance(colors, list):
+            if all(isinstance(c, str) for c in colors):
+                return self.create_blended_layer(
+                    group=group,
+                    colors=colors,
+                    masks=masks)
+            if all(isinstance(c, int) for c in colors):
+                return psd.create_color_layer(
+                    color=colors,
+                    layer=group,
+                    docref=self.docref)
+            if all(isinstance(c, dict) for c in colors):
+                return psd.create_gradient_layer(
+                    colors=colors,
+                    layer=group,
+                    docref=self.docref)
+            if all(isinstance(c, list) for c in colors):
+                return self.create_blended_solid_color(
+                    group=group,
+                    colors=colors,
+                    masks=masks)
+        self.log(f"Couldn't generate colors for frame element: '{group.name}'")
+
+    """
+    * Loading Files
+    """
 
     def load_artwork(self) -> None:
         """Lead artwork for each face."""
@@ -461,42 +570,26 @@ class SplitTemplate (BaseTemplate):
 
             # Perform content aware fill if needed
             if self.is_content_aware_enabled:
-                action = psd.generative_fill_edges if CFG.generative_fill else psd.content_aware_fill_edges
-                action(self.art_layer[i])
 
-    def basic_text_layers(self) -> None:
-        """Add basic text layers for each side."""
-        for i in range(2):
-            self.text.extend([
-                FormattedTextField(
-                    layer = self.text_layer_mana[i],
-                    contents = self.layout.mana_cost[i]
-                ),
-                ScaledTextField(
-                    layer = self.text_layer_name[i],
-                    contents = self.layout.name[i],
-                    reference = self.text_layer_mana[i]
-                ),
-                ScaledTextField(
-                    layer = self.text_layer_type[i],
-                    contents = self.layout.type_line[i],
-                    reference = self.expansion_symbols[i] or self.expansion_reference[i]
-                )
-            ])
+                # Perform a generative fill
+                if CFG.generative_fill:
+                    docref = psd.generative_fill_edges(
+                        layer=self.art_layer[i],
+                        feather=CFG.feathered_fill,
+                        close_doc=not CFG.select_variation,
+                        docref=self.docref)
+                    if docref:
+                        self.console.await_choice(
+                            self.event, msg="Select a Generative Fill variation, then click Continue ...")
+                        docref.close(SaveOptions.SaveChanges)
+                    continue
 
-    def rules_text_and_pt_layers(self) -> None:
-        """Add rules and P/T text for each face."""
-        for i in range(2):
-            self.text.append(
-                FormattedTextArea(
-                    layer = self.text_layer_rules[i],
-                    contents = self.layout.oracle_text[i],
-                    flavor = self.layout.flavor_text[i],
-                    reference = self.textbox_reference[i],
-                    divider = self.divider_layer[i],
-                    centered = self.is_centered[i]
-                )
-            )
+                # Perform a content aware fill
+                psd.content_aware_fill_edges(self.art_layer, CFG.feathered_fill)
+
+    """
+    * Frame Layer Methods
+    """
 
     def enable_frame_layers(self) -> None:
         """Enable frame layers for each side. Add Fuse layers if required."""
@@ -511,31 +604,71 @@ class SplitTemplate (BaseTemplate):
             psd.align_horizontal(twins, self.twins_reference[i])
 
             # Copy background and position
-            background = self.background_layer[i].duplicate(self.background_groups[i], ElementPlacement.PlaceInside)
+            background = self.background_layer[i].duplicate(
+                self.background_groups[i], ElementPlacement.PlaceInside)
             background.visible = True
             psd.align_horizontal(background, self.background_reference[i])
 
             # Copy textbox and position
-            textbox = self.textbox_layer[i].duplicate(self.textbox_groups[i], ElementPlacement.PlaceInside)
+            textbox = self.textbox_layer[i].duplicate(
+                self.textbox_groups[i], ElementPlacement.PlaceInside)
             textbox.visible = True
             self.active_layer = textbox
             psd.align_horizontal(textbox, self.textbox_reference[i].dims)
             if self.is_fuse:
-                psd.select_bounds(self.textbox_reference[i], self.doc_selection)
+                psd.select_bounds(self.textbox_reference[i].bounds, self.doc_selection)
                 self.doc_selection.invert()
                 self.doc_selection.clear()
             self.doc_selection.deselect()
 
             # Apply pinlines
-            self.pinlines_action[i](self.pinlines_colors[i], layer=self.pinlines_groups[i])
+            self.generate_layer(
+                group=self.pinlines_groups[i],
+                colors=self.pinlines_colors[i])
 
         # Fuse addone
         if self.is_fuse:
-            psd.getLayer(LAYERS.BORDER + ' Fuse').visible = True
+            psd.getLayer(f'{LAYERS.BORDER} Fuse').visible = True
             self.fuse_group.visible = True
-            self.fuse_pinlines_action(
-                self.fuse_pinline_colors,
-                layer=self.fuse_pinlines_group)
-            self.create_blended_layer(
+            self.generate_layer(
+                group=self.fuse_pinlines_group,
+                colors=self.fuse_pinline_colors)
+            self.generate_layer(
                 group=self.fuse_textbox_group,
-                colors=self.fuse_textbox_colors)
+                colors=self.fuse_textbox_colors,
+                masks=self.mask_layers)
+
+    """
+    * Text Layer Methods
+    """
+
+    def basic_text_layers(self) -> None:
+        """Add basic text layers for each side."""
+        for i in range(2):
+            self.text.extend([
+                FormattedTextField(
+                    layer = self.text_layer_mana[i],
+                    contents = self.layout.mana_cost[i]
+                ),
+                ScaledTextField(
+                    layer = self.text_layer_name[i],
+                    contents = self.layout.name[i],
+                    reference = self.name_reference
+                ),
+                ScaledTextField(
+                    layer = self.text_layer_type[i],
+                    contents = self.layout.type_line[i],
+                    reference = self.type_reference
+                )])
+
+    def rules_text_and_pt_layers(self) -> None:
+        """Add rules and P/T text for each face."""
+        for i in range(2):
+            self.text.append(
+                FormattedTextArea(
+                    layer = self.text_layer_rules[i],
+                    contents = self.layout.oracle_text[i],
+                    flavor = self.layout.flavor_text[i],
+                    reference = self.textbox_reference[i],
+                    divider = self.divider_layer[i],
+                    centered = self.is_centered[i]))

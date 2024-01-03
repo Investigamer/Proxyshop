@@ -5,7 +5,6 @@
 from typing import Callable, Optional, Union
 
 # Third Party Imports
-from photoshop.api import SolidColor
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -33,9 +32,13 @@ class AdventureMod (NormalTemplate):
     def __init__(self, layout: AdventureLayout, **kwargs):
         super().__init__(layout, **kwargs)
 
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
-        """Add Adventure text layers."""
+        """Add Adventure text layers step."""
         funcs = [self.text_layers_adventure] if isinstance(self.layout, AdventureLayout) else []
         return [*super().text_layer_methods, *funcs]
 
@@ -69,7 +72,7 @@ class AdventureMod (NormalTemplate):
         return psd.getLayer(LAYERS.DIVIDER_ADVENTURE, self.text_group)
 
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
@@ -77,7 +80,7 @@ class AdventureMod (NormalTemplate):
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
 
     """
-    ADVENTURE METHODS
+    * Adventure Methods
     """
 
     def text_layers_adventure(self):
@@ -116,23 +119,73 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
         * Adventure textbox, pinline, wings, and titles.
     """
 
+    # Color Maps
+    adventure_name_color_map = {
+        """Maps color values to adventure name box."""
+        'W': [179, 172, 156],
+        'U': [43, 126, 167],
+        'B': [104, 103, 102],
+        'R': [159, 83, 59],
+        'G': [68, 96, 63],
+        'Colorless': [],
+        'Gold': [166, 145, 80],
+        'Land': [177, 166, 169]
+    }
+    adventure_typeline_color_map = {
+        """Maps color values to adventure typeline box."""
+        'W': [129, 120, 103],
+        'U': [3, 94, 127],
+        'B': [44, 41, 40],
+        'R': [124, 51, 33],
+        'G': [11, 53, 30],
+        'Colorless': [],
+        'Gold': [117, 90, 40],
+        'Land': [154, 137, 130]
+    }
+    adventure_typeline_accent_color_map = {
+        """Maps color values to adventure typeline accent box."""
+        'W': [90, 82, 71],
+        'U': [2, 67, 96],
+        'B': [20, 17, 19],
+        'R': [81, 34, 22],
+        'G': [2, 34, 16],
+        'Colorless': [],
+        'Gold': [75, 62, 37],
+        'Land': [115, 98, 89]
+    }
+    adventure_wings_color_map = {
+        """Maps color values to adventure wings."""
+        'W': [213, 203, 181],
+        'U': [181, 198, 213],
+        'B': [162, 155, 152],
+        'R': [192, 142, 115],
+        'G': [174, 174, 155],
+        'Colorless': [],
+        'Gold': [196, 172, 131],
+        'Land': [194, 178, 177]
+    }
+
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
-        # Add Adventure frame layers step
+        """Add Adventure frame layers step."""
         funcs = [self.enable_adventure_layers] if isinstance(self.layout, AdventureLayout) else []
         return [*super().frame_layer_methods, *funcs]
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
     def textbox_group(self) -> LayerSet:
-        """Use right page of storybook as main textbox group."""
+        """LayerSet: Use right page of storybook as main textbox group."""
         return psd.getLayerSet(LAYERS.RIGHT, self.adventure_group)
 
     """
-    ADVENTURE GROUPS
+    * Adventure Groups
     """
 
     @auto_prop_cached
@@ -171,67 +224,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
         return psd.getLayerSet(LAYERS.WINGS, self.adventure_group)
 
     """
-    ADVENTURE COLOR MAPS
-    """
-
-    @auto_prop_cached
-    def adventure_name_color_map(self) -> dict:
-        """Maps color values to adventure name box."""
-        return {
-            'W': [179, 172, 156],
-            'U': [43, 126, 167],
-            'B': [104, 103, 102],
-            'R': [159, 83, 59],
-            'G': [68, 96, 63],
-            'Colorless': [],
-            'Gold': [166, 145, 80],
-            'Land': [177, 166, 169]
-        }
-
-    @auto_prop_cached
-    def adventure_typeline_color_map(self) -> dict:
-        """Maps color values to adventure typeline box."""
-        return {
-            'W': [129, 120, 103],
-            'U': [3, 94, 127],
-            'B': [44, 41, 40],
-            'R': [124, 51, 33],
-            'G': [11, 53, 30],
-            'Colorless': [],
-            'Gold': [117, 90, 40],
-            'Land': [154, 137, 130]
-        }
-
-    @auto_prop_cached
-    def adventure_typeline_accent_color_map(self) -> dict:
-        """Maps color values to adventure typeline accent box."""
-        return {
-            'W': [90, 82, 71],
-            'U': [2, 67, 96],
-            'B': [20, 17, 19],
-            'R': [81, 34, 22],
-            'G': [2, 34, 16],
-            'Colorless': [],
-            'Gold': [75, 62, 37],
-            'Land': [115, 98, 89]
-        }
-
-    @auto_prop_cached
-    def adventure_wings_color_map(self) -> dict:
-        """Maps color values to adventure wings."""
-        return {
-            'W': [213, 203, 181],
-            'U': [181, 198, 213],
-            'B': [162, 155, 152],
-            'R': [192, 142, 115],
-            'G': [174, 174, 155],
-            'Colorless': [],
-            'Gold': [196, 172, 131],
-            'Land': [194, 178, 177]
-        }
-
-    """
-    ADVENTURE COLORS
+    * Adventure Colors
     """
 
     @auto_prop_cached
@@ -240,30 +233,29 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
         return self.layout.adventure_colors
 
     @auto_prop_cached
-    def adventure_name_colors(self) -> SolidColor:
+    def adventure_name_colors(self) -> list[int]:
         """Colors to use for adventure name box."""
-        return psd.get_color(self.adventure_name_color_map.get(self.layout.adventure_colors))
+        return self.adventure_name_color_map.get(self.layout.adventure_colors)
 
     @auto_prop_cached
-    def adventure_typeline_colors(self) -> SolidColor:
+    def adventure_typeline_colors(self) -> list[int]:
         """Colors to use for adventure typeline box."""
-        return psd.get_color(self.adventure_typeline_color_map.get(self.layout.adventure_colors))
+        return self.adventure_typeline_color_map.get(self.layout.adventure_colors)
 
     @auto_prop_cached
-    def adventure_typeline_accent_colors(self) -> SolidColor:
+    def adventure_typeline_accent_colors(self) -> list[int]:
         """Colors to use for adventure typeline accent box."""
-        return psd.get_color(self.adventure_typeline_accent_color_map.get(self.layout.adventure_colors))
+        return self.adventure_typeline_accent_color_map.get(self.layout.adventure_colors)
 
     @auto_prop_cached
-    def adventure_wings_colors(self) -> Callable:
+    def adventure_wings_colors(self) -> Union[list[int], list[dict]]:
         """Colors to use for adventure wings."""
         return psd.get_pinline_gradient(
             self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
-            color_map=self.adventure_wings_color_map
-        )
+            color_map=self.adventure_wings_color_map)
 
     """
-    ADVENTURE BLENDING MASKS
+    * Adventure Blending Masks
     """
 
     @auto_prop_cached
@@ -276,26 +268,42 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
         return [psd.getLayer(LAYERS.HALF, [LAYERS.MASKS, LAYERS.RIGHT])]
 
     """
-    ADVENTURE METHODS
+    * Adventure Frame Methods
     """
 
     def enable_adventure_layers(self) -> None:
         """Add and modify layers required for Adventure cards."""
 
-        # Add pinlines and wings
-        self.pinlines_action(self.pinlines_colors, self.adventure_pinlines_group)
-        self.pinlines_action(self.adventure_wings_colors, self.adventure_wings_group)
+        # Pinlines
+        self.generate_layer(
+            group=self.adventure_pinlines_group,
+            colors=self.pinlines_colors)
 
-        # Add textbox
-        self.create_blended_layer(
+        # Wings
+        self.generate_layer(
+            group=self.adventure_wings_group,
+            colors=self.adventure_wings_colors)
+
+        # textbox
+        self.generate_layer(
             group=self.adventure_textbox_group,
             colors=self.adventure_textbox_colors,
             masks=self.adventure_textbox_masks)
 
-        # Add twins
-        psd.create_color_layer(self.adventure_name_colors, self.adventure_name_group)
-        psd.create_color_layer(self.adventure_typeline_colors, self.adventure_typeline_group)
-        psd.create_color_layer(self.adventure_typeline_accent_colors, self.adventure_typeline_accent_group)
+        # Adventure Name
+        self.generate_layer(
+            group=self.adventure_name_group,
+            colors=self.adventure_name_colors)
+
+        # Adventure Typeline
+        self.generate_layer(
+            group=self.adventure_typeline_group,
+            colors=self.adventure_typeline_colors)
+
+        # Adventure Accent
+        self.generate_layer(
+            group=self.adventure_typeline_accent_group,
+            colors=self.adventure_typeline_accent_colors)
 
 
 """
@@ -311,7 +319,7 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
     """Vector template for Adventure cards introduced in Throne of Eldraine."""
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -323,7 +331,7 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
         return psd.getLayerSet(LAYERS.PINLINES, LAYERS.PINLINES)
 
     """
-    SHAPES
+    * Shapes
     """
 
     @auto_prop_cached

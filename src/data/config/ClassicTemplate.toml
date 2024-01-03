@@ -12,3 +12,12 @@ title = "Extended Art"
 desc = """When enabled, card will render as an extended art frame with a faded border."""
 type = "bool"
 default = 0
+
+[TEXT]
+title = 'Text Options'
+
+[TEXT.'Collector.Align.Left']
+title = 'Left Align Collector Info'
+desc = """When enabled, shifts collector info to the left side of the card bottom."""
+type = 'bool'
+default = 0

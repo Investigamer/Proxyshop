@@ -3,17 +3,17 @@
 """
 # Standard Library Imports
 from contextlib import suppress
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 
 # Third Party Imports
 from comtypes.client.lazybind import Dispatch
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, BlendMode, LayerKind
+from photoshop.api import DialogModes, ActionDescriptor, ActionReference, BlendMode
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._document import Document
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src import APP
+from src import APP, ENV
 from src.enums.adobe import LayerContainer
 from src.utils.adobe import ReferenceLayer
 from src.utils.exceptions import PS_EXCEPTIONS
@@ -39,9 +39,7 @@ LayerObjectTypes = Union[ArtLayer, LayerSet, Dispatch]
 
 def getLayer(
     name: str,
-    group: Union[
-        str, None, list[str], LayerContainerTypes, list[LayerContainerTypes], tuple[LayerContainerTypes]
-    ] = None
+    group: Union[str, None, list[str], LayerContainerTypes, Iterable[LayerContainerTypes]] = None
 ) -> Optional[ArtLayer]:
     """Retrieve ArtLayer object from given name and group/group tree.
 
@@ -78,19 +76,18 @@ def getLayer(
         raise OSError(f"ArtLayer invalid")
     except PS_EXCEPTIONS:
         # Layer couldn't be found
-        print(f'Layer "{name}" could not be found!')
-        if group and isinstance(group, LayerSet):
-            print(f"LayerSet reference used: {group.name}")
-        elif group and isinstance(group, str):
-            print(f"LayerSet reference used: {group}")
+        if ENV.DEV_MODE:
+            print(f'Layer "{name}" could not be found!')
+            if group and isinstance(group, LayerSet):
+                print(f"LayerSet reference used: {group.name}")
+            elif group and isinstance(group, str):
+                print(f"LayerSet reference used: {group}")
     return
 
 
 def getLayerSet(
     name: str,
-    group: Union[
-        str, None, list[str], LayerContainerTypes, list[LayerContainerTypes], tuple[LayerContainerTypes]
-    ] = None
+    group: Union[str, None, list[str], LayerContainerTypes, Iterable[LayerContainerTypes]] = None
 ) -> Optional[LayerSet]:
     """Retrieve layer group object.
 
@@ -201,16 +198,17 @@ def merge_layers(layers: list[ArtLayer] = None, name: Optional[str] = None) -> A
     Returns:
         Returns the merged layer.
     """
-    # Select none, then select entire list
-    if layers:
-        select_layers(layers)
 
     # Return layer if only one is present in the list
     if len(layers) == 1:
         return layers[0]
 
+    # Select none, then select entire list
+    if layers:
+        select_layers(layers)
+
     # Merge layers and return result
-    APP.executeAction(sID("mergeLayersNew"), ActionDescriptor(), NO_DIALOG)
+    APP.executeAction(sID("mergeLayersNew"), None, NO_DIALOG)
     if name:
         APP.activeDocument.activeLayer.name = name
     return APP.activeDocument.activeLayer
@@ -414,6 +412,8 @@ def select_layers(layers: list[ArtLayer, LayerSet]) -> None:
     # Select no layers
     if not layers:
         return
+    if len(layers) == 1:
+        APP.activeDocument.activeLayer = layers[0]
     select_no_layers()
 
     # ID's and descriptors

@@ -243,7 +243,11 @@ def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color
     apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
 
 
-def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], color_type: str = 'color') -> None:
+def apply_color(
+    action: ActionDescriptor,
+    color: Union[list[int], SolidColor, str],
+    color_type: str = 'color'
+) -> None:
     """Applies color to the specified action descriptor.
 
     Args:
@@ -253,9 +257,10 @@ def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], c
     """
     if isinstance(color, list):
         # List notation
-        return apply_rgb_from_list(action, color, color_type) if (
-            len(color) < 4
-        ) else apply_cmyk_from_list(action, color, color_type)
+        return apply_rgb_from_list(
+            action, color, color_type
+        ) if len(color) < 4 else apply_cmyk_from_list(
+            action, color, color_type)
     if isinstance(color, SolidColor):
         if color.model == ColorModel.RGBModel:
             # RGB SolidColor object
@@ -264,9 +269,8 @@ def apply_color(action: ActionDescriptor, color: Union[list[int], SolidColor], c
             # CMYK SolidColor object
             return apply_cmyk(action, color, color_type)
     if isinstance(color, str):
-        # Named color or hexcode
-        color = get_color(color)
-        apply_color(action, color, color_type)
+        # Named or hex color
+        return apply_color(action, get_color(color), color_type)
     raise ValueError(f"Received unsupported color object: {color}")
 
 
@@ -303,7 +307,7 @@ def get_pinline_gradient(
         colors: str,
         color_map: Optional[dict] = None,
         location_map: dict = None
-) -> Union[SolidColor, list[dict]]:
+) -> Union[list[int], list[dict]]:
     """Return a gradient color list notation for some given pinline colors.
 
     Args:
@@ -324,64 +328,64 @@ def get_pinline_gradient(
 
     # Return our colors
     if not colors:
-        return get_color(color_map.get('Artifact', [0, 0, 0]))
+        return color_map.get('Artifact', [0, 0, 0])
     if len(colors) == 1:
-        return get_color(color_map.get(colors, [0, 0, 0]))
+        return color_map.get(colors, [0, 0, 0])
     if len(colors) == 2:
         return [
             {
-                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
+                'color': color_map.get(colors[0], [0, 0, 0]),
                 'location': location_map[2][0] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'color': color_map.get(colors[1], [0, 0, 0]),
                 'location': location_map[2][1] * 4096, 'midpoint': 50,
             }
         ]
     if len(colors) == 3:
         return [
             {
-                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
+                'color': color_map.get(colors[0], [0, 0, 0]),
                 'location': location_map[3][0] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'color': color_map.get(colors[1], [0, 0, 0]),
                 'location': location_map[3][1] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'color': color_map.get(colors[1], [0, 0, 0]),
                 'location': location_map[3][2] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
+                'color': color_map.get(colors[2], [0, 0, 0]),
                 'location': location_map[3][3] * 4096, 'midpoint': 50
             }
         ]
     if len(colors) == 4 and colors not in [LAYERS.LAND, LAYERS.GOLD]:
         return [
             {
-                'color': get_color(color_map.get(colors[0], [0, 0, 0])),
+                'color': color_map.get(colors[0], [0, 0, 0]),
                 'location': location_map[4][0] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'color': color_map.get(colors[1], [0, 0, 0]),
                 'location': location_map[4][1] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[1], [0, 0, 0])),
+                'color': color_map.get(colors[1], [0, 0, 0]),
                 'location': location_map[4][2] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
+                'color': color_map.get(colors[2], [0, 0, 0]),
                 'location': location_map[4][3] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[2], [0, 0, 0])),
+                'color': color_map.get(colors[2], [0, 0, 0]),
                 'location': location_map[4][4] * 4096, 'midpoint': 50
             },
             {
-                'color': get_color(color_map.get(colors[3], [0, 0, 0])),
+                'color': color_map.get(colors[3], [0, 0, 0]),
                 'location': location_map[4][5] * 4096, 'midpoint': 50
             }
         ]
-    return get_color(color_map.get(colors, [0, 0, 0]))
+    return color_map.get(colors, [0, 0, 0])

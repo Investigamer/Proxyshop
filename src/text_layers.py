@@ -20,19 +20,26 @@ from photoshop.api import (
 from photoshop.api._document import Document
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
+from photoshop.api._selection import Selection
 from photoshop.api.text_item import TextItem
 
 # Local Imports
-from src import APP, CFG, CON
+from src import APP, CFG, CON, CONSOLE
+from src.cards import generate_italics, locate_symbols, locate_italics, CardItalicString, CardSymbolString
 from src.enums.mtg import CardFonts, SymbolColor
-from src import format_text as ft
-from src.format_text import CardSymbolString, CardItalicString
 from src.helpers import select_layer
 from src.helpers.bounds import get_layer_dimensions, LayerDimensions, get_layer_width
 from src.helpers.colors import apply_color, get_text_item_color
 from src.helpers.position import position_between_layers, clear_reference_vertical
 from src.helpers.selection import select_layer_bounds
-from src.helpers.text import get_text_scale_factor, remove_trailing_text
+from src.helpers.text import (
+    get_text_scale_factor,
+    remove_trailing_text,
+    scale_text_to_width_textbox,
+    scale_text_to_width,
+    scale_text_to_height,
+    scale_text_left_overlap,
+    scale_text_right_overlap)
 from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
 
@@ -129,6 +136,11 @@ class TextField:
         """The currently active Photoshop document."""
         return APP.activeDocument
 
+    @cached_property
+    def doc_selection(self) -> Selection:
+        """The Selection object from the active document."""
+        return self.docref.selection
+
     @property
     def layer(self) -> ArtLayer:
         """ArtLayer containing the TextItem."""
@@ -214,7 +226,7 @@ class ScaledTextField (TextField):
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            ft.scale_text_right_overlap(self.layer, self.reference)
+            scale_text_right_overlap(self.layer, self.reference)
 
 
 class ScaledTextFieldLeft (TextField):
@@ -226,7 +238,7 @@ class ScaledTextFieldLeft (TextField):
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            ft.scale_text_left_overlap(self.layer, self.reference)
+            scale_text_left_overlap(self.layer, self.reference)
 
 
 class ScaledWidthTextField (TextField):
@@ -249,7 +261,7 @@ class ScaledWidthTextField (TextField):
 
         # Scale down the text layer until it doesn't overlap with a reference layer
         if self.reference:
-            ft.scale_text_to_width(self.layer, width=self.reference_width)
+            scale_text_to_width(self.layer, width=self.reference_width)
 
 
 class FormattedTextField (TextField):
@@ -275,7 +287,7 @@ class FormattedTextField (TextField):
     def text_details(self) -> dict:
 
         # Generate italic text arrays from things in (parentheses), ability words, and the given flavor text
-        italic_text = ft.generate_italics(self.contents) if self.contents else []
+        italic_text = generate_italics(self.contents) if self.contents else []
 
         # Add flavor text to italics array
         if self.flavor_text.count("*") >= 2:
@@ -288,15 +300,23 @@ class FormattedTextField (TextField):
             italic_text.append(self.flavor_text)
 
         # Locate symbols and update the rules string
-        rules, symbols = ft.locate_symbols(self.contents, self.kw_symbol_map)
+        rules, symbols = locate_symbols(
+            text=self.contents,
+            symbol_map=self.kw_symbol_map,
+            logger=CONSOLE)
 
         # Create the new input string
         input_str = f'{rules}\r{self.flavor_text}' if rules and self.flavor_text else (
             rules if rules else self.flavor_text)
 
         # Locate italics text indices
-        italicized = ft.locate_italics(input_str, italic_text, self.kw_symbol_map)
+        italicized = locate_italics(
+            st=input_str,
+            italics_strings=italic_text,
+            symbol_map=self.kw_symbol_map,
+            logger=CONSOLE)
 
+        # Return text details
         return {
             'rules_text': rules,
             'input_string': input_str,
@@ -706,20 +726,19 @@ class FormattedTextArea (FormattedTextField):
         """Inserts and correctly positions flavor text divider."""
 
         # Create a reference layer with no effects
-        docsel = self.docref.selection
         flavor = self.layer.duplicate()
         rules = flavor.duplicate()
         flavor.rasterize(RasterizeType.EntireLayer)
         remove_trailing_text(rules, self.flavor_start)
-        select_layer_bounds(rules, docsel)
+        select_layer_bounds(rules, self.doc_selection)
         self.docref.activeLayer = flavor
-        docsel.expand(2)
-        docsel.clear()
+        self.doc_selection.expand(2)
+        self.doc_selection.clear()
 
         # Move flavor text to bottom, then position divider
         flavor.translate(0, self.layer.bounds[3] - flavor.bounds[3])
         position_between_layers(self.divider, rules, flavor)
-        docsel.deselect()
+        self.doc_selection.deselect()
         flavor.remove()
         rules.remove()
 
@@ -728,7 +747,7 @@ class FormattedTextArea (FormattedTextField):
         contents = self.contents if not self.flavor_text else str(
             self.contents + "\r" + self.flavor_text)
         self.TI.contents = contents
-        return ft.scale_text_to_height(
+        return scale_text_to_height(
             layer=self.layer,
             height=int(self.reference_dims['height']*1.1))
 
@@ -740,20 +759,20 @@ class FormattedTextArea (FormattedTextField):
 
             # Resize the text until it fits the reference vertically
             if self.scale_height:
-                font_size = ft.scale_text_to_height(
+                font_size = scale_text_to_height(
                     layer=self.layer,
                     height=self.reference_dims['height'])
 
             # Resize the text until it fits the reference horizontally
             if self.scale_width:
-                font_size = ft.scale_text_to_width(
+                font_size = scale_text_to_width(
                     layer=self.layer,
                     width=self.reference_dims['width'],
                     step=0.2, font_size=font_size)
 
         # Resize the text until it fits the TextLayer bounding box
         if self.fix_overflow_width:
-            ft.scale_text_to_width_textbox(
+            scale_text_to_width_textbox(
                 layer=self.layer, font_size=font_size)
 
     def position_within_reference(self):
@@ -770,7 +789,7 @@ class FormattedTextArea (FormattedTextField):
     def execute(self):
 
         # Skip if both are empty
-        if not any([self.contents, self.flavor_text]):
+        if not self.input:
             return
         font_size = None
 
@@ -805,12 +824,8 @@ class CreatureFormattedTextArea (FormattedTextArea):
     """
 
     @cached_property
-    def pt_reference(self) -> Optional[ArtLayer]:
+    def pt_reference(self) -> Optional[ReferenceLayer]:
         return self.kwargs.get('pt_reference', None)
-
-    @cached_property
-    def pt_top_reference(self) -> Optional[ArtLayer]:
-        return self.kwargs.get('pt_top_reference', None)
 
     """
     * Methods
@@ -823,10 +838,10 @@ class CreatureFormattedTextArea (FormattedTextArea):
         if self.pt_reference:
 
             # Use newer methodology if top reference not provided
-            delta = ft.vertically_nudge_creature_text(
-                self.layer, self.pt_reference, self.pt_top_reference
-            ) if self.pt_top_reference else clear_reference_vertical(
-                self.layer, self.pt_reference)
+            delta = clear_reference_vertical(
+                layer=self.layer,
+                ref=self.pt_reference,
+                docsel=self.doc_selection)
 
             # Shift the divider if layer was moved
             if delta < 0 and self.divider:

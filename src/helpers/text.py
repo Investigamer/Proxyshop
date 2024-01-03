@@ -5,13 +5,24 @@
 from typing import Union, Optional, Any
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
+from photoshop.api import (
+    DialogModes,
+    ActionDescriptor,
+    ActionReference,
+    ActionList,
+    LayerKind)
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._document import Document
+from photoshop.api._layerSet import LayerSet
+from photoshop.api.text_item import TextItem
 
 # Local Imports
 from src import APP
-from src.helpers.bounds import get_layer_height
+from src.helpers.bounds import (
+    get_layer_height,
+    get_layer_width,
+    get_textbox_width,
+    get_width_no_effects)
 from src.helpers.document import pixels_to_points
 from src.utils.exceptions import PS_EXCEPTIONS
 
@@ -502,3 +513,296 @@ def set_font(layer: ArtLayer, font_name: str) -> None:
         font_name:  Name of the font to set.
     """
     layer.textItem.font = APP.fonts.getByName(font_name).postScriptName
+
+
+"""
+* Scaling Font Down
+"""
+
+
+def ensure_visible_reference(reference: ArtLayer) -> Optional[TextItem]:
+    """Ensures that a layer used for reference has bounds if it is a text layer.
+
+    Args:
+        reference: Reference layer that might be a TextLayer.
+
+    Returns:
+        TextItem if reference is an empty text layer, otherwise None.
+    """
+    if isinstance(reference, LayerSet):
+        return None
+    if reference.kind is LayerKind.TextLayer:
+        if reference.bounds == (0, 0, 0, 0):
+            TI = reference.textItem
+            TI.contents = "."
+            return TI
+    return None
+
+
+def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer, gap: int = 30) -> None:
+    """Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's left bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
+        gap: Minimum gap to ensure between the layer and reference (DPI adjusted).
+    """
+    # Ensure a valid and visible reference layer
+    if not reference:
+        return
+    ref_TI = ensure_visible_reference(reference)
+
+    # Set starting variables
+    font_size = old_size = get_font_size(layer)
+    ref_left_bound = reference.bounds[0] - APP.scale_by_dpi(gap)
+    step, half_step = 0.4, 0.2
+
+    # Guard against reference being left of the layer
+    if ref_left_bound < layer.bounds[0]:
+        # Reset reference
+        if ref_TI:
+            ref_TI.contents = ''
+        return
+
+    # Make our first check if scaling is necessary
+    if continue_scaling := bool(layer.bounds[2] > ref_left_bound):
+
+        # Step down the font till it clears the reference
+        while continue_scaling:
+            font_size -= step
+            set_text_size(layer, font_size)
+            continue_scaling = bool(layer.bounds[2] > ref_left_bound)
+
+        # Go up a half step
+        font_size += half_step
+        set_text_size(layer, font_size)
+
+        # If out of bounds, revert half step
+        if layer.bounds[2] > ref_left_bound:
+            font_size -= half_step
+            set_text_size(layer, font_size)
+
+        # Shift baseline up to keep text centered vertically
+        layer.textItem.baselineShift = (old_size * 0.3) - (font_size * 0.3)
+
+    # Fix corrected reference layer
+    if ref_TI:
+        # Reset reference
+        ref_TI.contents = ''
+
+
+def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer, gap: int = 30) -> None:
+    """Scales a text layer down (in 0.2 pt increments) until its left bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's right bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
+        gap: Minimum gap to ensure between the layer and reference (DPI adjusted).
+    """
+    # Ensure a valid and visible reference layer
+    if not reference or reference.bounds == [0, 0, 0, 0]:
+        return
+    ref_TI = ensure_visible_reference(reference)
+
+    # Set starting variables
+    font_size = old_size = get_font_size(layer)
+    ref_right_bound = reference.bounds[2] + APP.scale_by_dpi(gap)
+    step, half_step = 0.4, 0.2
+
+    # Guard against reference being right of the layer
+    if layer.bounds[0] < reference.bounds[0]:
+        # Reset reference
+        if ref_TI:
+            ref_TI.contents = ''
+        return
+
+    # Make our first check if scaling is necessary
+    if continue_scaling := bool(ref_right_bound > layer.bounds[0]):
+
+        # Step down the font till it clears the reference
+        while continue_scaling:
+            font_size -= step
+            set_text_size(layer, font_size)
+            continue_scaling = bool(ref_right_bound > layer.bounds[0])
+
+        # Go up a half step
+        font_size += half_step
+        set_text_size(layer, font_size)
+
+        # If text not in bounds, revert half step
+        if ref_right_bound > layer.bounds[0]:
+            font_size -= half_step
+            set_text_size(layer, font_size)
+
+        # Shift baseline up to keep text centered vertically
+        layer.textItem.baselineShift = (old_size * 0.3) - (font_size * 0.3)
+
+    # Fix corrected reference layer
+    if ref_TI:
+        ref_TI.contents = ''
+
+
+def scale_text_to_width(
+    layer: ArtLayer,
+    width: int,
+    spacing: int = 64,
+    step: float = 0.4,
+    font_size: Optional[float] = None
+) -> Optional[float]:
+    """Resize a given text layer's font size/leading until it fits inside a reference width.
+
+    Args:
+        layer: Text layer to scale.
+        width: Width the text layer must fit (after spacing added).
+        spacing: Amount of DPI adjusted spacing to pad the width.
+        step: Amount to step font size down by in each check.
+        font_size: The starting font size if pre-calculated.
+
+    Returns:
+        Font size if font size is calculated during operation, otherwise None.
+    """
+    # Cancel if we're already within expected bounds
+    width = width - APP.scale_by_dpi(spacing)
+    continue_scaling = bool(width < get_layer_width(layer))
+    if not continue_scaling:
+        return
+
+    # Establish starting size and half step
+    if font_size is None:
+        font_size = get_font_size(layer)
+    half_step = step / 2
+
+    # Step down font and lead sizes by the step size, and update those sizes in the layer
+    while continue_scaling:
+        font_size -= step
+        set_text_size_and_leading(layer, font_size, font_size)
+        continue_scaling = bool(width < get_layer_width(layer))
+
+    # Increase by a half step
+    font_size += half_step
+    set_text_size_and_leading(layer, font_size, font_size)
+
+    # Revert if half step still exceeds reference
+    if width < get_layer_width(layer):
+        font_size -= half_step
+        set_text_size_and_leading(layer, font_size, font_size)
+    return font_size
+
+
+def scale_text_to_height(
+    layer: ArtLayer,
+    height: int,
+    spacing: int = 64,
+    step: float = 0.4,
+    font_size: Optional[float] = None
+) -> Optional[float]:
+    """Resize a given text layer's font size/leading until it fits inside a reference width.
+
+    Args:
+        layer: Text layer to scale.
+        height: Width the text layer must fit (after spacing added).
+        spacing: Amount of DPI adjusted spacing to pad the height.
+        step: Amount to step font size down by in each check.
+        font_size: The starting font size if pre-calculated.
+
+    Returns:
+        Font size if font size is calculated during operation, otherwise None.
+    """
+    # Cancel if we're already within expected bounds
+    height = height - APP.scale_by_dpi(spacing)
+    continue_scaling = bool(height < get_layer_height(layer))
+    if not continue_scaling:
+        return
+
+    # Establish starting size and half step
+    if font_size is None:
+        font_size = get_font_size(layer)
+    half_step = step / 2
+
+    # Step down font and lead sizes by the step size, and update those sizes in the layer
+    while continue_scaling:
+        font_size -= step
+        set_text_size_and_leading(layer, font_size, font_size)
+        continue_scaling = bool(height < get_layer_height(layer))
+
+    # Increase by a half step
+    font_size += half_step
+    set_text_size_and_leading(layer, font_size, font_size)
+
+    # Revert if half step still exceeds reference
+    if height < get_layer_height(layer):
+        font_size -= half_step
+        set_text_size_and_leading(layer, font_size, font_size)
+    return font_size
+
+
+def scale_text_to_width_textbox(
+    layer: ArtLayer,
+    font_size: Optional[float] = None,
+    step: float = 0.1
+) -> None:
+    """Check if the text in a TextLayer exceeds its bounding box.
+
+    Args:
+        layer: ArtLayer with "kind" of TextLayer.
+        font_size: Starting font size, calculated if not provided (slower execution time).
+        step: Amount of points to step down each iteration.
+    """
+    # Get the starting font size
+    if font_size is None:
+        font_size = get_font_size(layer)
+    ref = get_textbox_width(layer) + 1
+
+    # Continue to reduce the size until within the bounding box
+    while get_width_no_effects(layer) > ref:
+        font_size -= step
+        set_text_size_and_leading(layer, font_size, font_size)
+
+
+def scale_text_layers_to_height(
+    text_layers: list[ArtLayer],
+    ref_height: Union[int, float],
+    font_size: Optional[float] = None,
+    step: float = 0.4
+) -> Optional[float]:
+    """Scale multiple text layers until they all can fit within the same given height dimension.
+
+    Args:
+        text_layers: List of TextLayers to check.
+        ref_height: Height to fit inside.
+        font_size: Starting font size of the text layers, calculated if not provided.
+        step: Points to step down the text layers to fit.
+    """
+    # Check initial fit
+    total_layer_height = sum([get_layer_height(layer) for layer in text_layers])
+    if total_layer_height <= ref_height:
+        return
+
+    # Establish font size
+    if font_size is None:
+        font_size = get_font_size(text_layers[0])
+    half_step = step / 2
+
+    # Compare height of all 3 elements vs total reference height
+    while total_layer_height > ref_height:
+        total_layer_height = 0
+        font_size -= step
+        for i, layer in enumerate(text_layers):
+            set_text_size_and_leading(layer, font_size, font_size)
+            total_layer_height += get_layer_height(layer)
+
+    # Increase by a half step
+    font_size += half_step
+    total_layer_height = 0
+    for i, layer in enumerate(text_layers):
+        set_text_size_and_leading(layer, font_size, font_size)
+        total_layer_height += get_layer_height(layer)
+
+    # If out of bounds, revert half step
+    if total_layer_height > ref_height:
+        font_size -= half_step
+        for i, layer in enumerate(text_layers):
+            set_text_size_and_leading(layer, font_size, font_size)
+    return font_size

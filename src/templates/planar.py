@@ -22,8 +22,10 @@ import src.helpers as psd
 
 
 class PlanarTemplate (StarterTemplate):
-    """
-    * Planar template for Planar and Phenomenon cards introduced in the Planechase block.
+    """Planar template for Planar and Phenomenon cards introduced in the Planechase block.
+
+    Todo:
+        Needs a complete rework and a 'Modifier' class.
     """
 
     def __init__(self, layout: CardLayout, **kwargs):
@@ -39,8 +41,7 @@ class PlanarTemplate (StarterTemplate):
         return psd.getLayer(LAYERS.CHAOS_ABILITY, self.text_group)
 
     def basic_text_layers(self):
-
-        # Add text layers
+        """No mana cost, don't scale name layer."""
         self.text.extend([
             text_classes.TextField(
                 layer = self.text_layer_name,
@@ -49,7 +50,7 @@ class PlanarTemplate (StarterTemplate):
             text_classes.ScaledTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.expansion_symbol_layer or self.expansion_reference
+                reference = self.type_reference
             )
         ])
 
