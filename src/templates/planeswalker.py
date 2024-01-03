@@ -7,19 +7,19 @@ from typing import Optional, Callable
 # Third Party Imports
 from photoshop.api import ElementPlacement, ColorBlendMode
 from photoshop.api.application import ArtLayer
-from photoshop.api._selection import Selection
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
-import src.format_text as ft
 import src.helpers as psd
+from src.helpers import scale_text_layers_to_height
 from src.layouts import PlaneswalkerLayouts
 from src.templates._core import StarterTemplate
 from src.templates._cosmetic import BorderlessMod, FullartMod
 from src.templates.mdfc import MDFCMod
 from src.templates.transform import TransformMod
 import src.text_layers as text_classes
+from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
 
 """
@@ -193,12 +193,9 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
     """
 
     @auto_prop_cached
-    def top_ref(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.PW_TOP_REFERENCE, self.text_group)
-
-    @auto_prop_cached
-    def adj_ref(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.PW_ADJUSTMENT_REFERENCE, self.text_group)
+    def loyalty_reference(self) -> ReferenceLayer:
+        """ArtLayer: Reference used to check ability layer collision with the loyalty box."""
+        return psd.get_reference_layer(LAYERS.LOYALTY_REFERENCE, self.loyalty_group)
 
     """
     * Methods
@@ -248,7 +245,9 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
         total_height = self.textbox_reference.dims['height'] - (spacing * spaces)
 
         # Resize text items till they fit in the available space
-        ft.scale_text_layers_to_fit(self.ability_layers, total_height)
+        font_size = scale_text_layers_to_height(
+            text_layers=self.ability_layers,
+            ref_height=total_height)
 
         # Space abilities evenly apart
         uniform_gap = True if len(self.ability_layers) < 3 or not self.layout.loyalty else False
@@ -259,13 +258,15 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
 
         # Adjust text to avoid loyalty badge
         if self.layout.loyalty:
-            ft.vertically_nudge_pw_text(
+            psd.clear_reference_vertical_multi(
                 text_layers=self.ability_layers,
                 ref=self.textbox_reference,
-                adj_ref=self.adj_ref,
-                top_ref=self.top_ref,
+                loyalty_ref=self.loyalty_reference,
                 space=spacing,
-                uniform_gap=uniform_gap)
+                uniform_gap=uniform_gap,
+                font_size=font_size,
+                docref=self.docref,
+                docsel=self.doc_selection)
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -413,17 +414,18 @@ class PlaneswalkerMDFCTemplate (MDFCMod, PlaneswalkerTemplate):
     """
 
     @auto_prop_cached
-    def dfc_group(self) -> Optional[LayerSet]:
-        # Both DFC groups at top level
-        return psd.getLayerSet(self.face_type, LAYERS.MDFC)
+    def dfc_group(self) -> LayerSet:
+        """LayerSet: DFC group at top level."""
+        face = LAYERS.FRONT if self.is_front else LAYERS.BACK
+        return psd.getLayerSet(f'{LAYERS.MDFC} {face}')
 
     """
     * Text Layers
     """
 
     @auto_prop_cached
-    def text_layer_name(self) -> Optional[ArtLayer]:
-        # Name is always shifted
+    def text_layer_name(self) -> ArtLayer:
+        """ArtLayer: Name is always shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
 
@@ -435,17 +437,18 @@ class PlaneswalkerMDFCBorderlessTemplate (MDFCMod, PlaneswalkerBorderlessTemplat
     """
 
     @auto_prop_cached
-    def dfc_group(self) -> Optional[LayerSet]:
-        # Both DFC groups at top level
-        return psd.getLayerSet(self.face_type, LAYERS.MDFC)
+    def dfc_group(self) -> LayerSet:
+        """LayerSet: DFC group at top level."""
+        face = LAYERS.FRONT if self.is_front else LAYERS.BACK
+        return psd.getLayerSet(f'{LAYERS.MDFC} {face}')
 
     """
     * Text Layers
     """
 
     @auto_prop_cached
-    def text_layer_name(self) -> Optional[ArtLayer]:
-        # Name is always shifted
+    def text_layer_name(self) -> ArtLayer:
+        """ArtLayer: Name is always shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
 
@@ -462,22 +465,24 @@ class PlaneswalkerTFTemplate (TransformMod, PlaneswalkerTemplate):
     """
 
     @auto_prop_cached
-    def dfc_group(self) -> Optional[LayerSet]:
-        # Transform group at top level
-        return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
+    def dfc_group(self) -> LayerSet:
+        """LayerSet: DFC group at top level."""
+        return psd.getLayerSet(
+            LAYERS.FRONT if self.is_front else LAYERS.BACK,
+            LAYERS.TRANSFORM)
 
     """
     * Text Layers
     """
 
     @auto_prop_cached
-    def text_layer_name(self) -> Optional[ArtLayer]:
-        # Name always shifted
+    def text_layer_name(self) -> ArtLayer:
+        """ArtLayer: Name is always shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
     @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
-        # Typeline always shifted
+        """ArtLayer: Typeline is always shifted."""
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
     """
@@ -485,7 +490,7 @@ class PlaneswalkerTFTemplate (TransformMod, PlaneswalkerTemplate):
     """
 
     def text_layers_transform(self):
-        # No text changes needed
+        """No text changes needed."""
         pass
 
 
@@ -497,22 +502,24 @@ class PlaneswalkerTFBorderlessTemplate (TransformMod, PlaneswalkerBorderlessTemp
     """
 
     @auto_prop_cached
-    def dfc_group(self) -> Optional[LayerSet]:
-        # Transform group at top level
-        return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
+    def dfc_group(self) -> LayerSet:
+        """LayerSet: DFC group at top level."""
+        return psd.getLayerSet(
+            LAYERS.FRONT if self.is_front else LAYERS.BACK,
+            LAYERS.TRANSFORM)
 
     """
     * Text Layers
     """
 
     @auto_prop_cached
-    def text_layer_name(self) -> Optional[ArtLayer]:
-        # Name always shifted
+    def text_layer_name(self) -> ArtLayer:
+        """ArtLayer: Name is always shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
     @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
-        # Typeline always shifted
+        """ArtLayer: Typeline is always shifted."""
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
     """
@@ -520,5 +527,5 @@ class PlaneswalkerTFBorderlessTemplate (TransformMod, PlaneswalkerBorderlessTemp
     """
 
     def text_layers_transform(self):
-        # No text changes needed
+        """No text changes needed."""
         pass
