@@ -11,7 +11,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src import APP
-from src.helpers.layers import select_layer
+from src.helpers.selection import select_canvas
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
@@ -189,6 +189,89 @@ def disable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
         layer: ArtLayer object.
     """
     set_layer_vector_mask(layer, False)
+
+
+"""
+* Editing Masks
+"""
+
+
+def enter_mask_channel(layer: Union[ArtLayer, LayerSet, None] = None):
+    """Enters mask channel to allow working with current layer's mask.
+
+    Args:
+        layer: Layer to make active, if provided.
+    """
+    if layer:
+        APP.activeDocument.activeLayer = layer
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    d1.PutReference(sID("target"), r1)
+    d1.PutBoolean(sID("makeVisible"), True)
+    APP.Executeaction(sID("select"), d1, NO_DIALOG)
+
+
+def enter_rgb_channel(layer: Union[ArtLayer, LayerSet, None] = None):
+    """Enters the RGB channel (default channel).
+
+    Args:
+        layer: Layer to make active, if provided.
+    """
+    if layer:
+        APP.activeDocument.activeLayer = layer
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("RGB"))
+    d1.PutReference(sID("target"), r1)
+    d1.PutBoolean(sID("makeVisible"), True)
+    APP.Executeaction(sID("select"), d1, NO_DIALOG)
+
+
+def create_mask(layer: Union[ArtLayer, LayerSet, None] = None):
+    """Add a mask to provided or active layer.
+
+    Args:
+        layer: Layer to make active, if provided.
+    """
+    if layer:
+        APP.activeDocument.activeLayer = layer
+    d1 = ActionDescriptor()
+    r1 = ActionReference()
+    d1.PutClass(sID("new"), sID("channel"))
+    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
+    d1.PutReference(sID("at"), r1)
+    d1.PutEnumerated(sID("using"), sID("userMaskEnabled"), sID("revealAll"))
+    APP.Executeaction(sID("make"), d1, NO_DIALOG)
+
+
+def copy_to_mask(
+    target: Union[ArtLayer, LayerSet],
+    source: Union[ArtLayer, LayerSet, None] = None,
+):
+    """Copies the pixels of the current layer, creates a mask on target layer,
+    enters that layer's mask, and pastes to the mask before exiting the mask.
+
+    Args:
+        target: Layer to create a mask on and paste the copied pixels.
+        source: Layer to copy pixels from, use active if not provided.
+    """
+
+    # Select canvas and copy
+    docref = APP.activeDocument
+    if source:
+        docref.activeLayer = source
+    docsel = docref.selection
+    select_canvas(docref)
+    docsel.copy()
+    docsel.deselect()
+
+    # Create a mask, enter, paste, and exit
+    docref.activeLayer = target
+    create_mask()
+    enter_mask_channel()
+    docref.paste()
+    enter_rgb_channel()
 
 
 """
