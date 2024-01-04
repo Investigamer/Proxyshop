@@ -142,9 +142,11 @@ class AppEnvironment:
     @auto_prop_cached
     def VERSION(self) -> str:
         """str: Current app version."""
-        if ver := environ.get('VERSION'):
-            return ver
-        return get_app_version(PATH.CWD / 'pyproject.toml')
+        if hasattr(sys, '_MEIPASS'):
+            # Use generated version module in Pyinstaller build
+            import __VERSION__
+            return str(__VERSION__.version)
+        return environ.get('VERSION', get_app_version(PATH.CWD / 'pyproject.toml'))
 
     @auto_prop_cached
     def API_GOOGLE(self) -> str:

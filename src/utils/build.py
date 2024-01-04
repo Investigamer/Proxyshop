@@ -20,7 +20,7 @@ from shutil import (
 import PyInstaller.__main__
 
 # Local Imports
-from src import PATH, ENV
+from src import PATH
 from src.utils.files import load_data_file, dump_data_file, get_app_version
 
 # Directory definitions
@@ -71,6 +71,16 @@ class DistConfig(TypedDict):
 """
 * Handling Build Files
 """
+
+
+def generate_version_file(version: str):
+    """Generate version file using the version provided.
+
+    Args:
+        version: Version string to use in the version file.
+    """
+    with open(Path(SRC, '__VERSION__.py'), 'w') as f:
+        f.write(f"version='{version}'")
 
 
 def make_directories(config: DistConfig) -> None:
@@ -219,20 +229,15 @@ def build_release(
     make_directories(dist_config)
 
     # Use provided version or fallback to project defined
-    if version:
-        os.environ['VERSION'] = str(version)
     version = version or get_app_version((SRC / 'pyproject').with_suffix('.toml'))
-    del ENV.VERSION
+    generate_version_file(version)
 
     # Run Pyinstaller
     spec_path: list[str] = dist_config['spec']['console'] if console else dist_config['spec']['release']
     PyInstaller.__main__.run([str(Path(SRC, *spec_path)), '--clean'])
 
     # Copy our essential app files
-    try:
-        copy_app_files(dist_config)
-    except Exception as e:
-        print(e)
+    copy_app_files(dist_config)
 
     # Build zip release if requested
     if zipped:
@@ -245,6 +250,7 @@ def build_release(
 
     # Clear build files, except dist
     clear_build_files(clear_dist=False)
+    os.remove(Path(SRC, '__VERSION__.py'))
 
 
 """
