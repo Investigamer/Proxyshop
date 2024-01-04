@@ -4,7 +4,6 @@
 # Standard Library Imports
 import os
 from pathlib import Path
-from typing import Union
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -91,12 +90,12 @@ class TemplateModule(DynamicTabPanel, GlobalAccess):
         container = TemplateTabContainer()
 
         # Add template list to the scroll box
-        scroll_box.add_widget(
-            TemplateList(
-                category=category,
-                templates=templates,
-                preview=container.ids.preview_image
-            ))
+        TL = TemplateList(
+            category=category,
+            templates=templates,
+            preview=container.ids.preview_image)
+        scroll_box.add_widget(TL)
+        GUI.template_list.setdefault(category, []).append(TL)
 
         # Add scroll box to the container and return it
         container.ids.template_view_container.add_widget(scroll_box)
@@ -114,7 +113,7 @@ class TemplateView(ScrollView):
 class TemplateList(BoxLayout, GlobalAccess):
     """Builds a list of templates from a certain template type."""
 
-    def __init__(self, category: str, templates: TemplateCategoryMap, preview: Image, **kwargs):
+    def __init__(self, category: str, templates: type[TemplateCategoryMap], preview: Image, **kwargs):
         super().__init__(**kwargs)
         self.category = category
         self.preview = preview
@@ -130,7 +129,7 @@ class TemplateList(BoxLayout, GlobalAccess):
         for name in self.templates['names']:
 
             # Get details for each type
-            templates: dict[str, Union[None, TemplateDetails]] = {
+            templates: dict[str, type[TemplateDetails]] = {
                 t: self.templates['map'][t].get(name) for t in self.types}
 
             # Is template installed?
@@ -175,19 +174,21 @@ class TemplateList(BoxLayout, GlobalAccess):
 class TemplateRow(BoxLayout, GlobalAccess):
     """Row containing template selector and governing buttons."""
 
-    def __init__(self, category: str, template_map: dict[str, TemplateDetails], preview: Image, **kwargs):
+    def __init__(self, category: str, template_map: dict[str, type[TemplateDetails]], preview: Image, **kwargs):
         super().__init__(**kwargs)
 
         # Key attributes
-        self.image = preview
-        self.template_map = template_map
-        self.types = list(template_map.keys())
-        self.category = category
+        self.image: Image = preview
+        self.template_map: dict[str, type[TemplateDetails]] = template_map
+        self.types: list[str] = list(template_map.keys())
+        self.category: str = category
 
         # Establish the name and previews
         name, config, previews = '', None, [PATH.SRC_IMG_NOTFOUND] * len(self.types)
         for i, t in enumerate(self.types):
             if obj := template_map.get(t, {}):
+                if not obj:
+                    continue
 
                 # Set the name if still empty
                 if not name:

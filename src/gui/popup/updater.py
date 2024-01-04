@@ -15,7 +15,7 @@ from kivy.uix.label import Label
 # Local Imports
 from src._state import PATH
 from src._loader import AppTemplate, check_for_updates
-from src.gui._state import GlobalAccess
+from src.gui._state import GlobalAccess, GUI
 from src.utils.strings import msg_success, msg_error, msg_italics
 
 """
@@ -27,6 +27,7 @@ class UpdatePopup(Popup, GlobalAccess):
     """Popup modal for updating templates."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "updater.kv"))
     updates: list[AppTemplate] = []
+    update_downloaded = False
     loading = True
     categories = {}
     entries = {}
@@ -34,6 +35,13 @@ class UpdatePopup(Popup, GlobalAccess):
     """
     * Update Utils
     """
+
+    def on_dismiss(self):
+        """When this popup is dismissed, reload rows if updates were downloaded."""
+        if self.update_downloaded:
+            for _, layouts in GUI.template_list.items():
+                for TL in layouts:
+                    TL.reload_template_rows()
 
     def check_for_updates(self):
         """Runs the check_for_updates core function and fills the update dictionary."""
@@ -86,12 +94,13 @@ class UpdateEntry(BoxLayout, GlobalAccess):
         download.add_widget(self.progress)
         result = await ak.run_in_thread(
             lambda: self.template.update_template(
-                self.progress.update_progress),
-            daemon=True)
+                self.progress.update_progress
+            ), daemon=True)
         await ak.sleep(.5)
 
         # Success
         if result:
+            self.root.update_downloaded = True
             return await self.mark_updated()
 
         # Failed
@@ -105,8 +114,9 @@ class UpdateEntry(BoxLayout, GlobalAccess):
         self.template.mark_updated()
 
         # Remove this widget
-        self.root.ids.container.remove_widget(self.root.entries[str(self.template.path_psd)])
-        del self.root.entries[str(self.template.path_psd)]
+        entry = self.root.entries[str(self.template.path_psd)]
+        self.root.ids.container.remove_widget(entry)
+        del entry
 
 
 class UpdateProgress(ProgressBar, GlobalAccess):
