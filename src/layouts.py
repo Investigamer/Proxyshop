@@ -1,5 +1,5 @@
 """
-CARD LAYOUTS
+* Card Layout Data
 """
 # Standard Library Imports
 from typing import Optional, Match, Union, Type
@@ -7,50 +7,59 @@ from os import path as osp
 from pathlib import Path
 
 # Local Imports
-from src.console import console
-from src.constants import con
+from src import CFG, CON, CONSOLE, ENV, PATH
+from src.api.hexproof import get_watermark_svg, get_watermark_svg_from_set
 from src.enums.layers import LAYERS
-from src.settings import cfg
-from src.utils.decorators import auto_prop_cached, auto_prop
+from src.enums.mtg import LayoutType, LayoutScryfall
+from src.utils.properties import auto_prop_cached, auto_prop
 from src.utils.regex import Reg
+from src.cards import parse_card_info, CardDetails, FrameDetails, process_card_data
 from src.enums.mtg import Rarity, TransformIcons, planeswalkers_tall
-from src.enums.settings import CollectorMode
-from src.utils.scryfall import get_set_data, get_card_data, parse_card_info
+from src.enums.settings import CollectorMode, WatermarkMode
+from src.api.scryfall import get_cards_oracle
+from src.cards import get_card_data
 from src.frame_logic import (
     get_frame_details,
-    FrameDetails,
     get_ordered_colors,
     get_special_rarity,
     check_hybrid_mana_cost,
     get_mana_cost_colors
 )
-from src.utils.strings import normalize_str, msg_error, msg_success, strip_lines, get_line, get_lines
-from src.types.cards import CardDetails
+from src.utils.strings import (
+    normalize_str,
+    msg_error,
+    msg_success,
+    strip_lines,
+    get_line,
+    get_lines)
+
 
 """
-FUNCTIONS
+* Layout Processing
 """
 
 
-def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
-    """
-    Assign layout object to a card.
-    @param filename: String including card name, and the following optional tags:
+def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
+    """Assign layout object to a card.
+
+    Args:
+        filename: Path to the art file, filename supports optional tags:
         - (artist name)
         - [set code]
         - {collector number}
-    @return: Layout object for this card.
+
+    Returns:
+        Layout object for this card.
     """
     # Get basic card information
     card = parse_card_info(filename)
-    name_failed = osp.basename(str(card.get('filename', 'None')))
+    name_failed = osp.basename(str(card.get('file', 'None')))
 
     # Get scryfall data for the card
-    scryfall = get_card_data(card['name'], card['set'], card['number'])
-    if isinstance(scryfall, Exception) or not scryfall:
-        # Scryfall request failed
-        console.log_exception(scryfall)
+    scryfall = get_card_data(card, cfg=CFG, logger=CONSOLE)
+    if not scryfall:
         return msg_error(name_failed, reason="Scryfall search failed")
+    scryfall = process_card_data(scryfall, card)
 
     # Instantiate layout object
     if scryfall.get('layout', 'None') in layout_map:
@@ -58,24 +67,33 @@ def assign_layout(filename: Union[Path, str]) -> Union[str, 'CardLayout']:
             layout = layout_map[scryfall['layout']](scryfall, card)
         except Exception as e:
             # Couldn't instantiate layout object
-            console.log_exception(e)
+            CONSOLE.log_exception(e)
             return msg_error(name_failed, reason="Layout generation failed")
-        if not cfg.test_mode:
-            console.update(f"{msg_success('FOUND:')} {str(layout)}")
+        if not ENV.TEST_MODE:
+            CONSOLE.update(f"{msg_success('FOUND:')} {str(layout)}")
         return layout
     # Couldn't find an appropriate layout
     return msg_error(name_failed, reason="Layout incompatible")
 
 
 def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
-    """
-    Join any layout objects that are dual sides of the same card, i.e. Split cards.
-    @param layouts: List of layout objects (or strings which are skipped).
-    @return: List of layouts, with split layouts joined.
+    """Join any layout objects that are dual sides of the same card, i.e. Split cards.
+
+    Args:
+        layouts: List of layout objects (or strings which are skipped).
+
+    Returns:
+        List of layouts, with split layouts joined.
     """
     # Check if we have any split cards
-    normal: list[Union[str, CardLayout]] = [n for n in layouts if isinstance(n, str) or n.card_class != con.split_class]
-    split: list[SplitLayout] = [n for n in layouts if not isinstance(n, str) and n.card_class == con.split_class]
+    normal: list[Union[str, CardLayout]] = [
+        n for n in layouts
+        if isinstance(n, str)
+        or n.card_class != LayoutType.Split]
+    split: list[SplitLayout] = [
+        n for n in layouts
+        if not isinstance(n, str)
+        and n.card_class == LayoutType.Split]
     if not split:
         return normal
 
@@ -89,21 +107,22 @@ def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
                 continue
             if str(c) == str(card):
                 # Order them according to name position
-                card.filename = [*card.filename, *c.filename] if (
+                card.art_file = [*card.art_file, *c.art_file] if (
                         normalize_str(card.name[0]) == normalize_str(card.file['name'])
-                ) else [*c.filename, *card.filename]
+                ) else [*c.art_file, *card.art_file]
                 skip.extend([card, c])
         add.append(card)
     return [*normal, *add]
 
 
 """
-LAYOUT CLASSES
+* Layout Classes
 """
 
 
 class NormalLayout:
     """Defines unified properties for all cards and serves as the layout for any M15 style typical card."""
+    card_class: str = LayoutType.Normal
 
     # Static properties
     is_transform: bool = False
@@ -125,16 +144,6 @@ class NormalLayout:
                 f"{f' [{self.set}]' if self.set else ''}"
                 f"{f' {{{self.collector_number}}}' if self.collector_number else ''}")
 
-    @auto_prop_cached
-    def card_class(self) -> str:
-        """Establish the card's template class type."""
-        if "Miracle" in self.frame_effects and cfg.render_miracle:
-            return con.miracle_class
-        elif "Snow" in self.type_line_raw and cfg.render_snow:
-            # Pre-KHM Snow cards don't contain "Snow" frame effect
-            return con.snow_class
-        return con.normal_class
-
     """
     * Core Data
     """
@@ -151,20 +160,18 @@ class NormalLayout:
 
     @auto_prop_cached
     def set_data(self) -> dict:
-        """Set data fetched from Scryfall and MTGJSON, only required for 'Normal' Collector Mode."""
-        if self.scryfall.get('set') != 'MTG' and cfg.collector_mode == CollectorMode.Normal:
-            return get_set_data(self.scryfall.get('set')) or {}
-        return {}
+        """Set data from the current hexproof.io data file."""
+        return CON.set_data.get(self.scryfall.get('set', 'mtg'), {})
 
     @auto_prop_cached
-    def template_file(self) -> str:
+    def template_file(self) -> Path:
         """Template PSD file path, replaced before render process."""
-        return osp.join(con.path_templates, 'normal.psd')
+        return PATH.TEMPLATES / 'normal.psd'
 
     @auto_prop_cached
-    def art_file(self) -> str:
-        """Art image file path."""
-        return self.file['filename']
+    def art_file(self) -> Path:
+        """Path: Art image file path."""
+        return self.file['file']
 
     @auto_prop_cached
     def scryfall_scan(self) -> str:
@@ -181,12 +188,16 @@ class NormalLayout:
         for i, face in enumerate(self.scryfall.get('card_faces', [])):
             # Card with multiple faces, first index is always front side
             if normalize_str(face['name']) == normalize_str(self.input_name):
-                face['front'] = bool(not i)
                 return face
 
         # Treat single face cards as front
-        self.scryfall['front'] = True
         return self.scryfall
+
+    @auto_prop_cached
+    def first_print(self) -> dict:
+        """Card data fetched from Scryfall representing the first print of this card."""
+        first = get_cards_oracle(self.scryfall.get('oracle_id', ''))
+        return first[0] if first else {}
 
     @auto_prop_cached
     def frame_effects(self) -> list:
@@ -291,9 +302,15 @@ class NormalLayout:
         return self.scryfall.get('set', 'MTG').upper()
 
     @auto_prop_cached
+    def symbol_code(self) -> str:
+        """Code used to match a symbol to this card's set. Provided by hexproof.io."""
+        code = self.set_data.get('code_symbol', 'DEFAULT').upper()
+        return CFG.symbol_default.upper() if code == 'DEFAULT' or CFG.symbol_force_default else code
+
+    @auto_prop_cached
     def lang(self) -> str:
         """Card print language, uppercase enforced, falls back to settings defined value."""
-        return self.scryfall.get('lang', cfg.lang).upper()
+        return self.scryfall.get('lang', CFG.lang).upper()
 
     @auto_prop_cached
     def rarity(self) -> str:
@@ -330,38 +347,35 @@ class NormalLayout:
 
     @auto_prop_cached
     def collector_number(self) -> int:
-        """Card number assigned within release set. Non-digit characters are ignored, falls back to 0."""
-        return int(''.join(char for char in self.scryfall.get('collector_number', '0') if char.isdigit()))
+        """int: Card number assigned within release set. Non-digit characters are ignored, falls back to 0."""
+        if self.collector_number_raw:
+            return int(''.join(char for char in self.collector_number_raw if char.isdigit()))
+        return 0
 
     @auto_prop_cached
     def collector_number_raw(self) -> Optional[str]:
-        """Card number assigned within release set. Raw string representation, allows non-digits."""
+        """str | None: Card number assigned within release set. Raw string representation, allows non-digits."""
         return self.scryfall.get('collector_number')
 
     @auto_prop_cached
     def card_count(self) -> Optional[int]:
-        """Number of cards within the card's release set. Only required in 'Normal' Collector Mode."""
-        if not cfg.collector_mode == CollectorMode.Normal:
+        """int | None: Number of cards within the card's release set. Only required in 'Normal' Collector Mode."""
+
+        # Skip if collector mode doesn't require it or if collector number is bad
+        if CFG.collector_mode != CollectorMode.Normal or not self.collector_number_raw:
             return
 
-        # Look for the lowest card count number present in set data
-        nums = {
-            int(self.set_data.get(n)) for n in
-            ['card_count', 'printed_size', 'baseSetSize', 'totalSetSize']
-            if n in self.set_data
-        }
-
-        # Skip if no counts found
-        if not nums:
+        # Prefer printed count, fallback to card count, skip if count isn't found
+        count = self.set_data.get('count_printed', self.set_data.get('count_cards'))
+        if count is None:
             return
 
         # Skip if count is smaller than collector number
-        card_count = min(nums)
-        return card_count if card_count >= self.collector_number else None
+        return count if int(count) >= self.collector_number else None
 
     @auto_prop_cached
     def collector_data(self) -> str:
-        """Formatted collector info line, e.g. 050/230 M."""
+        """str: Formatted collector info line, e.g. 050/230 M."""
         if self.card_count:
             return f"{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} {self.rarity_letter}"
         if self.collector_number_raw:
@@ -370,7 +384,7 @@ class NormalLayout:
 
     @auto_prop_cached
     def creator(self) -> str:
-        """Optional creator string provided by user in art file name."""
+        """str: Optional creator string provided by user in art file name."""
         return self.file.get('creator', '')
 
     """
@@ -378,44 +392,93 @@ class NormalLayout:
     """
 
     @auto_prop_cached
-    def symbol_font(self) -> str:
-        """Font definition for card's expansion symbol."""
-        # Default symbol enabled?
-        if cfg.symbol_force_default:
-            return cfg.get_default_symbol()
-
-        # Look for set code, then promo code, fallback on default set code
-        sym = con.set_symbols.get(
-            self.set, con.set_symbols.get(
-                self.set[1:], cfg.get_default_symbol()))
-
-        # Check if this symbol redirects to another
-        return con.set_symbols[sym] if (
-                isinstance(sym, str) and len(sym) > 1 and sym in con.set_symbols
-        ) else sym
-
-    @auto_prop_cached
     def symbol_svg(self) -> Optional[Path]:
         """SVG path definition for card's expansion symbol."""
-        expansion = cfg.symbol_default.upper() if cfg.symbol_force_default else self.set
-        expansion = f"{expansion}F" if expansion == 'CON' else expansion  # Conflux case
-        svg_path = Path(con.path_img, 'symbols', expansion, f"{self.rarity_letter}.svg")
 
         # Does SVG exist?
-        if svg_path.is_file():
-            return svg_path
+        path = (PATH.SRC_IMG_SYMBOLS / 'set' / self.symbol_code / self.rarity_letter).with_suffix('.svg')
+        if path.is_file():
+            return path
 
-        # Check for a set code redirect
-        sym = con.set_symbols.get(expansion)
-        if isinstance(sym, str) and len(sym) > 1:
-            svg_path = Path(con.path_img, 'symbols', sym.upper(), f"{self.rarity_letter}.svg")
-            return svg_path if svg_path.is_file() else None
+        # Revert to default symbol or None
+        path = (PATH.SRC_IMG_SYMBOLS / 'set' / 'DEFAULT' / self.rarity_letter).with_suffix('.svg')
+        if path.is_file():
+            return path
         return
 
     @auto_prop_cached
     def watermark(self) -> Optional[str]:
-        """Name of the card's watermark if provided."""
+        """Name of the card's watermark file that is actually used, if provided."""
+        if not self.watermark_svg:
+            return
+        if self.watermark_svg.stem.upper() == 'WM':
+            return self.watermark_svg.parent.stem.lower()
+        return self.watermark_svg.stem.lower()
+
+    @auto_prop_cached
+    def watermark_raw(self) -> Optional[str]:
+        """Name of the card's watermark from raw Scryfall data, if provided."""
         return self.card.get('watermark')
+
+    @auto_prop_cached
+    def watermark_svg(self) -> Optional[Path]:
+        """Path to the watermark SVG file, if provided."""
+        def _find_watermark_svg(wm: str) -> Optional[Path]:
+            """Try to find a watermark SVG asset, allowing for special cases and set code fallbacks.
+
+            Args:
+                wm: Watermark name or set code to look for.
+
+            Returns:
+                Path to a watermark SVG file if found, otherwise None.
+
+            Notes:
+                - 'set' maps to the symbol collection of the set this card was first printed in.
+                - 'symbol' maps to the symbol collection of this card object's set.
+            """
+            if not wm:
+                return
+            wm = wm.lower()
+
+            # Special case watermarks
+            if wm in ['set', 'symbol']:
+                return get_watermark_svg_from_set(
+                    self.first_print.get('set', self.set) if wm == 'set' else self.set)
+
+            # Look for normal watermark
+            return get_watermark_svg(wm)
+
+        # WatermarkMode: Disabled, Forced
+        if CFG.watermark_mode == WatermarkMode.Disabled:
+            return
+        elif CFG.watermark_mode == WatermarkMode.Forced:
+            return _find_watermark_svg(CFG.watermark_default)
+
+        # WatermarkMode: Automatic
+        path = _find_watermark_svg(self.watermark_raw)
+        if path or CFG.watermark_mode == WatermarkMode.Automatic:
+            return path
+
+        # WatermarkMode: Fallback
+        return _find_watermark_svg(CFG.watermark_default)
+
+    @auto_prop_cached
+    def watermark_basic(self) -> Optional[Path]:
+        """Optional[Path]: Path to basic land watermark, if card is a Basic Land."""
+        if not self.is_basic_land:
+            return
+
+        # Map pinlines to basic land type
+        _map = {
+            'W': 'plains',
+            'U': 'island',
+            'B': 'swamp',
+            'R': 'mountain',
+            'G': 'forest',
+            'Land': 'wastes'}
+        if basic_type := _map.get(self.pinlines):
+            return (PATH.SRC_IMG_SYMBOLS / 'watermark' / basic_type).with_suffix('.svg')
+        return
 
     """
     * Bool Properties
@@ -432,19 +495,14 @@ class NormalLayout:
         return 'Land' in self.type_line_raw
 
     @auto_prop_cached
+    def is_basic_land(self) -> bool:
+        """True if card is a Basic Land."""
+        return self.type_line_raw.startswith('Basic')
+
+    @auto_prop_cached
     def is_legendary(self) -> bool:
         """True if card is Legendary."""
         return 'Legendary' in self.type_line_raw
-
-    @auto_prop_cached
-    def is_nyx(self) -> bool:
-        """True if card has Nyx enchantment background texture."""
-        return "nyxtouched" in self.frame_effects
-
-    @auto_prop_cached
-    def is_companion(self) -> bool:
-        """True if card is a Companion."""
-        return "companion" in self.frame_effects
 
     @auto_prop_cached
     def is_colorless(self) -> bool:
@@ -474,7 +532,7 @@ class NormalLayout:
     @auto_prop_cached
     def is_front(self) -> bool:
         """True if card is front face."""
-        return bool(self.card.get('front', True))
+        return bool(self.scryfall.get('front', True))
 
     @auto_prop_cached
     def is_alt_lang(self) -> bool:
@@ -482,7 +540,31 @@ class NormalLayout:
         return bool(self.lang != 'EN')
 
     """
-    * Frame Properties
+    * Cosmetic Bool
+    """
+
+    @auto_prop_cached
+    def is_nyx(self) -> bool:
+        """True if card has Nyx enchantment background texture."""
+        return "nyxtouched" in self.frame_effects
+
+    @auto_prop_cached
+    def is_companion(self) -> bool:
+        """True if card is a Companion."""
+        return "companion" in self.frame_effects
+
+    @auto_prop_cached
+    def is_miracle(self) -> bool:
+        """True if card is a 'Miracle' card."""
+        return bool("Miracle" in self.frame_effects)
+
+    @auto_prop_cached
+    def is_snow(self) -> bool:
+        """True if card is a 'Snow' card."""
+        return bool('Snow' in self.type_line_raw)
+
+    """
+    * Frame Details
     """
 
     @auto_prop_cached
@@ -604,16 +686,21 @@ class NormalLayout:
 
 class MutateLayout(NormalLayout):
     """Mutate card layout introduced in Ikoria: Lair of Behemoths."""
-    card_class: str = con.mutate_class
+    card_class: str = LayoutType.Mutate
 
     """
     * Text Info
     """
 
     @auto_prop_cached
+    def oracle_text_unprocessed(self) -> str:
+        """str: Unaltered text to split between oracle and mutate."""
+        return self.card.get('printed_text', self.oracle_text_raw) if self.is_alt_lang else self.oracle_text_raw
+
+    @auto_prop_cached
     def oracle_text(self) -> str:
-        """Remove the mutate ability text."""
-        return strip_lines(super().oracle_text, 1)
+        """str: Remove the mutate ability text."""
+        return strip_lines(self.oracle_text_unprocessed, 1)
 
     """
     * Mutate Properties
@@ -621,13 +708,13 @@ class MutateLayout(NormalLayout):
 
     @auto_prop_cached
     def mutate_text(self) -> str:
-        """Correctly formatted mutate ability text."""
-        return get_line(super().oracle_text, 0)
+        """str: Isolated mutate ability text."""
+        return get_line(self.oracle_text_unprocessed, 0)
 
 
 class PrototypeLayout(NormalLayout):
     """Prototype card layout, introduced in The Brothers' War."""
-    card_class: str = con.prototype_class
+    card_class: str = LayoutType.Prototype
 
     """
     * Text Info
@@ -674,7 +761,7 @@ class PrototypeLayout(NormalLayout):
 
 class PlaneswalkerLayout(NormalLayout):
     """Planeswalker card layout introduced in Lorwyn block."""
-    card_class: str = con.planeswalker_class
+    card_class: str = LayoutType.Planeswalker
 
     """
     * Text Info
@@ -764,7 +851,7 @@ class PlaneswalkerTransformLayout(PlaneswalkerLayout):
     @auto_prop_cached
     def card_class(self) -> str:
         """Card class separated by card face."""
-        return con.pw_tf_front_class if self.is_front else con.pw_tf_back_class
+        return LayoutType.PlaneswalkerTransformFront if self.is_front else LayoutType.PlaneswalkerTransformBack
 
 
 class PlaneswalkerMDFCLayout(PlaneswalkerLayout):
@@ -776,7 +863,7 @@ class PlaneswalkerMDFCLayout(PlaneswalkerLayout):
     @auto_prop_cached
     def card_class(self) -> str:
         """Card class separated by card face."""
-        return con.pw_mdfc_front_class if self.is_front else con.pw_mdfc_back_class
+        return LayoutType.PlaneswalkerMDFCFront if self.is_front else LayoutType.PlaneswalkerMDFCBack
 
 
 class TransformLayout(NormalLayout):
@@ -789,9 +876,9 @@ class TransformLayout(NormalLayout):
     def card_class(self) -> str:
         """Card class separated by card face, also supports special Ixalan lands."""
         if self.is_front:
-            return con.transform_front_class
+            return LayoutType.TransformFront
         # Special Ixalan transform lands case
-        return con.ixalan_class if self.transform_icon == TransformIcons.COMPASSLAND else con.transform_back_class
+        return LayoutType.Ixalan if self.transform_icon == TransformIcons.COMPASSLAND else LayoutType.TransformBack
 
 
 class ModalDoubleFacedLayout(NormalLayout):
@@ -803,7 +890,7 @@ class ModalDoubleFacedLayout(NormalLayout):
     @auto_prop_cached
     def card_class(self) -> str:
         """Card class separated by card face."""
-        return con.mdfc_front_class if self.is_front else con.mdfc_back_class
+        return LayoutType.MDFCFront if self.is_front else LayoutType.MDFCBack
 
     """
     * Text Info
@@ -821,14 +908,14 @@ class ModalDoubleFacedLayout(NormalLayout):
 
 class AdventureLayout(NormalLayout):
     """Adventure card layout, introduced in Throne of Eldraine."""
-    card_class: str = con.adventure_class
+    card_class: str = LayoutType.Adventure
 
     """
     * Core Data
     """
 
     @auto_prop_cached
-    def other_face(self) -> dict:
+    def adventure(self) -> dict:
         """Card object for adventure side."""
         return self.scryfall['card_faces'][1]
 
@@ -839,28 +926,33 @@ class AdventureLayout(NormalLayout):
     @auto_prop_cached
     def mana_adventure(self) -> str:
         """Mana cost of the adventure side."""
-        return self.other_face['mana_cost']
+        return self.adventure['mana_cost']
 
     @auto_prop_cached
     def name_adventure(self) -> str:
         """Name of the Adventure side."""
-        if self.is_alt_lang and 'printed_name' in self.other_face:
-            return self.other_face.get('printed_name', '')
-        return self.other_face.get('name', '')
+        if self.is_alt_lang and 'printed_name' in self.adventure:
+            return self.adventure.get('printed_name', '')
+        return self.adventure.get('name', '')
 
     @auto_prop_cached
     def type_line_adventure(self) -> str:
         """Type line of the Adventure side."""
-        if self.is_alt_lang and 'printed_type_line' in self.other_face:
-            return self.other_face.get('printed_type_line', '')
-        return self.other_face.get('type_line', '')
+        if self.is_alt_lang and 'printed_type_line' in self.adventure:
+            return self.adventure.get('printed_type_line', '')
+        return self.adventure.get('type_line', '')
 
     @auto_prop_cached
     def oracle_text_adventure(self) -> str:
         """Oracle text of the Adventure side."""
-        if self.is_alt_lang and 'printed_text' in self.other_face:
-            return self.other_face.get('printed_text', '')
-        return self.other_face.get('oracle_text', '')
+        if self.is_alt_lang and 'printed_text' in self.adventure:
+            return self.adventure.get('printed_text', '')
+        return self.adventure.get('oracle_text', '')
+
+    @auto_prop_cached
+    def flavor_text_adventure(self) -> str:
+        """Flavor text of the Adventure side."""
+        return self.adventure.get('flavor_text', '')
 
     """
     * Adventure Colors
@@ -868,12 +960,12 @@ class AdventureLayout(NormalLayout):
 
     @auto_prop_cached
     def color_identity_adventure(self) -> list[str]:
-        """Color identity of the Adventure side of this card."""
+        """Colors present in the adventure side mana cost."""
         return [n for n in get_mana_cost_colors(self.mana_adventure)]
 
     @auto_prop_cached
     def adventure_colors(self) -> str:
-        """Colors of adventure side of the card."""
+        """Color identity of adventure side frame elements."""
         if check_hybrid_mana_cost(self.color_identity_adventure, self.mana_adventure):
             return LAYERS.LAND
         if len(self.color_identity_adventure) > 1:
@@ -885,7 +977,7 @@ class AdventureLayout(NormalLayout):
 
 class LevelerLayout(NormalLayout):
     """Leveler card layout, introduced in Rise of the Eldrazi."""
-    card_class: str = con.leveler_class
+    card_class: str = LayoutType.Leveler
 
     """
     * Leveler Text
@@ -934,7 +1026,7 @@ class LevelerLayout(NormalLayout):
 
 class SagaLayout(NormalLayout):
     """Saga card layout, introduced in Dominaria."""
-    card_class: str = con.saga_class
+    card_class: str = LayoutType.Saga
 
     """
     * Bool Properties
@@ -986,7 +1078,7 @@ class SagaLayout(NormalLayout):
 
 class ClassLayout(NormalLayout):
     """Class card layout, introduced in Adventures in the Forgotten Realms."""
-    card_class: str = con.class_class
+    card_class: str = LayoutType.Class
 
     """
     * Class Properties
@@ -1007,7 +1099,7 @@ class ClassLayout(NormalLayout):
         """Unpack class text into list of dictionaries containing ability levels, cost, and text."""
 
         # Initial class ability
-        initial, lines = self.oracle_text.split('\n')
+        initial, *lines = self.class_text.split('\n')
         abilities: list[dict] = [{'text': initial, 'cost': None, 'level': 1}]
 
         # Add level-up abilities
@@ -1028,7 +1120,7 @@ class ClassLayout(NormalLayout):
 
 class BattleLayout(TransformLayout):
     """Battle card layout, introduced in March of the Machine."""
-    card_class: str = con.battle_class
+    card_class: str = LayoutType.Battle
 
     """
     * Text Info
@@ -1042,16 +1134,17 @@ class BattleLayout(TransformLayout):
 
 class PlanarLayout(NormalLayout):
     """Planar card layout, introduced in Planechase block."""
-    card_class: str = con.planar_class
+    card_class: str = LayoutType.Planar
 
 
 class SplitLayout(NormalLayout):
     """Split card layout, introduced in Invasion."""
-    card_class: str = con.split_class
+    card_class: str = LayoutType.Split
 
     # Static properties
     is_nyx: bool = False
     is_land: bool = False
+    is_basic_land: bool = False
     is_artifact: bool = False
     is_creature: bool = False
     is_legendary: bool = False
@@ -1070,9 +1163,9 @@ class SplitLayout(NormalLayout):
     """
 
     @auto_prop_cached
-    def filename(self) -> list[str]:
-        """Two image files, second is appended during render process."""
-        return [self.file['filename']]
+    def art_file(self) -> list[Path]:
+        """list[Path]: Two image files, second is appended during render process."""
+        return [self.file['file']]
 
     @auto_prop_cached
     def display_name(self) -> str:
@@ -1096,7 +1189,7 @@ class SplitLayout(NormalLayout):
     @auto_prop_cached
     def color_indicator(self) -> str:
         """Color indicator is shared by both halves, use raw Scryfall instead of 'card' data."""
-        return get_ordered_colors(self.scryfall.get('color_indicator'))
+        return get_ordered_colors(self.scryfall.get('color_indicator', []))
 
     """
     * Images
@@ -1127,10 +1220,80 @@ class SplitLayout(NormalLayout):
             return ' '.join(count)
         return artist
 
+    """
+    * Symbols
+    """
+
     @auto_prop_cached
-    def watermark(self) -> list[str]:
-        """Both side watermarks."""
+    def watermark(self) -> list[Optional[str]]:
+        """Name of the card's watermark file that is actually used, if provided."""
+        watermarks: list[Optional[str]] = []
+        for wm in self.watermark_svg:
+            if not wm:
+                watermarks.append(None)
+            elif wm.stem.upper() == 'WM':
+                watermarks.append(wm.parent.stem.lower())
+            else:
+                watermarks.append(wm.stem.lower())
+        return watermarks
+
+    @auto_prop_cached
+    def watermark_raw(self) -> list[Optional[str]]:
+        """Name of the card's watermark from raw Scryfall data, if provided."""
         return [c.get('watermark', '') for c in self.card]
+
+    @auto_prop_cached
+    def watermark_svg(self) -> list[Optional[Path]]:
+        """Path to the watermark SVG file, if provided."""
+        def _find_watermark_svg(wm: str) -> Optional[Path]:
+            """Try to find a watermark SVG asset, allowing for special cases and set code fallbacks.
+
+            Args:
+                wm: Watermark name or set code to look for.
+
+            Returns:
+                Path to a watermark SVG file if found, otherwise None.
+
+            Notes:
+                - 'set' maps to the symbol collection of the set this card was first printed in.
+                - 'symbol' maps to the symbol collection of this card object's set.
+            """
+            if not wm:
+                return
+            wm = wm.lower()
+
+            # Special case watermarks
+            if wm in ['set', 'symbol']:
+                return get_watermark_svg_from_set(
+                    self.first_print.get('set', self.set) if wm == 'set' else self.set)
+
+            # Look for normal watermark
+            return get_watermark_svg(wm)
+
+        # Find a watermark SVG for each face
+        watermarks = []
+        for w in self.watermark_raw:
+            if CFG.watermark_mode == WatermarkMode.Disabled:
+                # Disabled Mode
+                watermarks.append(None)
+                continue
+            elif CFG.watermark_mode == WatermarkMode.Forced:
+                # Forced Mode
+                watermarks.append(
+                    _find_watermark_svg(
+                        CFG.watermark_default))
+                continue
+            else:
+                # Automatic Mode
+                path = _find_watermark_svg(w)
+                if path or CFG.watermark_mode == WatermarkMode.Automatic:
+                    watermarks.append(path)
+                    continue
+                # Fallback Mode
+                watermarks.append(
+                    _find_watermark_svg(
+                        CFG.watermark_default))
+        return watermarks
 
     """
     * Text Info
@@ -1194,7 +1357,7 @@ class SplitLayout(NormalLayout):
         return [f['is_colorless'] for f in self.frame]
 
     """
-    FRAME DETAILS
+    * Frame Details
     """
 
     @auto_prop_cached
@@ -1225,14 +1388,11 @@ class SplitLayout(NormalLayout):
 
 class TokenLayout(NormalLayout):
     """Token card layout for token game pieces."""
-    card_class: str = con.token_class
-
-    # Static properties
-    rarity_letter: str = 'T'
+    card_class: str = LayoutType.Token
 
     @property
-    def display_name(self):
-        """Add Token for display on GUI."""
+    def display_name(self) -> str:
+        """str: Add Token for display on GUI."""
         return f"{self.name} Token"
 
     """
@@ -1240,38 +1400,36 @@ class TokenLayout(NormalLayout):
     """
 
     @auto_prop_cached
+    def collector_data(self) -> str:
+        """str: Formatted collector info line, rarity letter is always T, e.g. 050/230 T."""
+        if self.card_count:
+            return f'{str(self.collector_number).zfill(3)}/{str(self.card_count).zfill(3)} T'
+        if self.collector_number_raw:
+            return f'T {str(self.collector_number).zfill(4)}'
+        return ''
+
+    @auto_prop_cached
     def set(self) -> str:
-        """Remove T from token set code."""
-        code = self.scryfall.get('set', 'MTG').upper()
-        return code[1:] if code[0] == "T" else code
+        """str: Use parent set code if provided."""
+        return self.set_data.get('code_parent', super().set).upper()
 
     @auto_prop_cached
     def card_count(self) -> Optional[int]:
-        """Use modified set_data metrics for token set card count."""
-        if not self.set_data:
+        """Optional[int]: Use token count for token cards."""
+
+        # Skip if collector mode doesn't require it or if collector number is bad
+        if CFG.collector_mode != CollectorMode.Normal or not self.collector_number_raw:
             return
 
-        # Find the lowest card count
-        nums = {
-            int(self.set_data.get[n]) for n in
-            ['printed_size', 'card_count', 'tokenCount']
-            if n in self.set_data
-        }
-
-        # Skip card count if none found
-        if not nums:
-            return
-
-        # Skip card count if it's larger than collector number
-        return None if self.collector_number > min(nums) else min(nums)
+        # Prefer printed count, fallback to card count, skip if count isn't found
+        return self.set_data.get('count_tokens', None)
 
 
-class BasicLandLayout(NormalLayout):
-    """Basic Land card layout."""
-    card_class: str = con.basic_class
+"""
+* Types & Enums
+"""
 
-
-# Any Card Layout Type
+"""All card layout classes."""
 CardLayout = Union[
     NormalLayout,
     TransformLayout,
@@ -1284,35 +1442,46 @@ CardLayout = Union[
     ClassLayout,
     SplitLayout,
     PlanarLayout,
-    TokenLayout,
-    BasicLandLayout
+    TokenLayout
 ]
 
-# Planeswalker Card Layouts
+"""Planeswalker card layout classes."""
 PlaneswalkerLayouts = Union[
     PlaneswalkerLayout,
     PlaneswalkerTransformLayout,
     PlaneswalkerMDFCLayout
 ]
 
-# LAYOUT MAP
+"""Maps Scryfall layout names to their respective layout class."""
 layout_map: dict[str, Type[CardLayout]] = {
-    "normal": NormalLayout,
-    "transform": TransformLayout,
-    "modal_dfc": ModalDoubleFacedLayout,
-    "adventure": AdventureLayout,
-    "leveler": LevelerLayout,
-    "saga": SagaLayout,
-    "mutate": MutateLayout,
-    "prototype": PrototypeLayout,
-    "planeswalker": PlaneswalkerLayout,
-    "planeswalker_tf": PlaneswalkerTransformLayout,
-    "planeswalker_mdfc": PlaneswalkerMDFCLayout,
-    "split": SplitLayout,
-    "class": ClassLayout,
-    "battle": BattleLayout,
-    "planar": PlanarLayout,
-    "token": TokenLayout,
-    "emblem": TokenLayout,
-    'basic': BasicLandLayout
+    LayoutScryfall.Normal: NormalLayout,
+    LayoutScryfall.Split: SplitLayout,
+    LayoutScryfall.Transform: TransformLayout,
+    LayoutScryfall.MDFC: ModalDoubleFacedLayout,
+    LayoutScryfall.Meld: TransformLayout,
+    LayoutScryfall.Leveler: LevelerLayout,
+    LayoutScryfall.Class: ClassLayout,
+    LayoutScryfall.Saga: SagaLayout,
+    LayoutScryfall.Adventure: AdventureLayout,
+    LayoutScryfall.Mutate: MutateLayout,
+    LayoutScryfall.Prototype: PrototypeLayout,
+    LayoutScryfall.Battle: BattleLayout,
+    LayoutScryfall.Planar: PlanarLayout,
+    LayoutScryfall.Token: TokenLayout,
+    LayoutScryfall.Emblem: TokenLayout,
+
+    # TODO: Not fully Implemented
+    LayoutScryfall.Flip: TransformLayout,
+    LayoutScryfall.Scheme: NormalLayout,
+    LayoutScryfall.Vanguard: NormalLayout,
+    LayoutScryfall.DoubleFacedToken: TransformLayout,
+    LayoutScryfall.Augment: NormalLayout,
+    LayoutScryfall.Host: NormalLayout,
+    LayoutScryfall.ArtSeries: TokenLayout,
+    LayoutScryfall.ReversibleCard: TransformLayout,
+
+    # Definitions added to Scryfall data in postprocessing
+    LayoutScryfall.Planeswalker: PlaneswalkerLayout,
+    LayoutScryfall.PlaneswalkerMDFC: PlaneswalkerMDFCLayout,
+    LayoutScryfall.PlaneswalkerTransform: PlaneswalkerTransformLayout
 }

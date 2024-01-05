@@ -1,14 +1,18 @@
 """
-FRAME LOGIC MODULE
+* Frame Logic Module
 """
-from functools import cached_property
 # Standard Library Imports
-from typing import Union, Optional
+from functools import cached_property, cache
+from typing import Union, Iterable
 
-from src.enums.mtg import Rarity
 # Local Imports
-from src.types.cards import FrameDetails
+from src.cards import FrameDetails
+from src.enums.mtg import Rarity
 from src.enums.layers import LAYERS
+
+"""
+* Planned Utility Classes
+"""
 
 
 class RulesTextLine:
@@ -103,55 +107,67 @@ hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R',
 
 
 """
-COLOR CHECKS
+* Color Checks
 """
 
 
+@cache
 def contains_frame_colors(text: str) -> bool:
-    """
-    Checks if a string contains only frame color characters.
-    @param text: String of color letters, or other string.
-    @return: True if the string represents color letters.
+    """Checks if a string contains only frame color characters.
+
+    Args:
+        text: String of color letters, or other string.
+
+    Returns:
+        True if the string represents color letters.
     """
     if not text:
         return False
-    if len(text) == 1:
+    LT = len(text)
+    if LT == 1:
         return False
-    if len(text) > 5:
+    if LT > 5:
         return False
-    if len(text) == 5:
+    if LT == 5:
         return bool(text == LAYERS.WUBRG)
-    return bool(''.join(sorted(text)) in color_lookup.get(len(text), []))
+    return bool(''.join(sorted(text)) in color_lookup.get(LT, []))
 
 
-def get_ordered_colors(text: Union[str, list]) -> Optional[str]:
-    """
-    Takes in a string of letters representing color identity and puts them in the MTG
+def get_ordered_colors(text: Union[str, Iterable]) -> str:
+    """Takes in a string of letters representing color identity and puts them in the MTG
     accurate letter order.
-    @param text: String of letters representing color identity.
-    @return: Properly ordered list of color letters.
+
+    Args:
+        text: String of letters representing color identity.
+
+    Returns:
+        Properly ordered list of color letters.
     """
+    # Validate the input
     if not text:
-        # No colors provided
         return ''
+    if isinstance(text, Iterable):
+        text = ''.join(text)
+
+    # Match an ordered color
     if len(text) == 1:
         # Return single color
-        return text if isinstance(text, str) else text[0]
+        return text
     if 1 < len(text) < 5:
-        # Choose the appropriate lookup table
-        lookup = color_lookup.get(len(text), {})
-        if color := lookup.get(''.join(sorted(text))):
-            return color
-        # No matching color found
-        return ''
+        # Use a lookup table
+        return color_lookup[len(text)].get(''.join(sorted(text)), '')
+    # All 5 colors
     return LAYERS.WUBRG
 
 
 def get_mana_cost_colors(mana_cost: str) -> str:
-    """
-    Get a list of colors from the mana cost of a card.
-    @param mana_cost: Mana cost string, ex: {1}{W}{U}{B}{R}{G}
-    @return: List of colors that matched.
+    """Get a list of colors from the mana cost of a card.
+
+    Args:
+        mana_cost: Mana cost string, ex: {1}{W}{U}{B}{R}{G}
+
+    Returns:
+        List of colors that matched.
     """
     # No valid mana cost
     if not mana_cost:
@@ -167,14 +183,17 @@ def get_color_identity_nonland(
     color_indicator: str,
     color_list: str
 ) -> str:
-    """
-    Get the assumed color identity of Non-Land card based on a priority list of factors.
-    @param mana_cost: Mana Cost of the card.
-    @param type_line: Type Line text of the card.
-    @param oracle_text: Rules text of the card.
-    @param color_indicator: List of colors in the color indicator.
-    @param color_list: List of colors in the Scryfall color identity.
-    @return: Our best guess for this card's color identity.
+    """Get the assumed color identity of Non-Land card based on a priority list of factors.
+
+    Args:
+        mana_cost: Mana Cost of the card.
+        type_line: Type Line text of the card.
+        oracle_text: Rules text of the card.
+        color_indicator: List of colors in the color indicator.
+        color_list: List of colors in the Scryfall color identity.
+
+    Returns:
+        Our best guess for this card's color identity.
     """
     if ' is all colors.' in oracle_text:
         # Transguild Courier case
@@ -194,15 +213,20 @@ def get_color_identity_nonland(
 
 
 def check_hybrid_color_card(color_identity: Union[str, list[str]], mana_cost: str, is_dfc: bool) -> bool:
-    """
-    Check a number of inputs to see if this card is:
+    """Check a number of inputs to see if this card is:
         - A card with only hybrid Mana symbols
         - Only 2 colors represented
-    Control cases are "Maelstrom Muse" and "Bant Sureblade"
-    @param color_identity: String representing the assumed color identity.
-    @param mana_cost: Mana Cost of the card.
-    @param is_dfc: Is this a double faced card?
-    @return: True if hybrid, otherwise False.
+
+    Notes:
+        Control cases are 'Maelstrom Muse' and 'Bant Sureblade'.
+
+    Args:
+        color_identity: String representing the assumed color identity.
+        mana_cost: Mana Cost of the card.
+        is_dfc: Is this a double faced card?
+
+    Returns:
+        True if hybrid, otherwise False.
     """
     # Identify if the card is a two-color hybrid card with only hybrid mana
     if len(color_identity) == 2 and not any([symbol in mana_cost for symbol in mono_symbols]):
@@ -217,11 +241,14 @@ def check_hybrid_color_card(color_identity: Union[str, list[str]], mana_cost: st
 
 
 def check_hybrid_mana_cost(color_identity: Union[str, list[str]], mana_cost: str) -> bool:
-    """
-    More simplified hybrid mana test for isolated mana cases e.g. Adventure spells.
-    @param color_identity: Color identity list or string.
-    @param mana_cost: Mana cost string.
-    @return: True if hybrid mana cost, otherwise False.
+    """More simplified hybrid mana test for isolated mana cases e.g. Adventure spells.
+
+    Args:
+        color_identity: Color identity list or string.
+        mana_cost: Mana cost string.
+
+    Returns:
+        True if hybrid mana cost, otherwise False.
     """
     # Identify if the card is a two-color hybrid card with only hybrid mana
     if len(color_identity) == 2 and not any([symbol in mana_cost for symbol in mono_symbols]):
@@ -231,16 +258,19 @@ def check_hybrid_mana_cost(color_identity: Union[str, list[str]], mana_cost: str
 
 
 """
-FRAME ANALYSIS
+* Frame Details Analysis
 """
 
 
 def get_frame_details(card: dict) -> FrameDetails:
-    """
-    Figure out which layers to use for pinlines, background, twins and define the color identity.
+    """Figure out which layers to use for pinlines, background, twins and define the color identity.
     Pass the card to an appropriate function based on card type.
-    @param card: Dict of Scryfall data representing the card.
-    @return: Dict containing FrameDetails representing the card's frame makeup.
+
+    Args:
+        card: Dict of Scryfall data representing the card.
+
+    Returns:
+        Dict containing FrameDetails representing the card's frame makeup.
     """
     if 'Land' in card.get('type_line', ''):
         return get_frame_details_land(card)
@@ -248,10 +278,13 @@ def get_frame_details(card: dict) -> FrameDetails:
 
 
 def get_frame_details_land(card: dict) -> FrameDetails:
-    """
-    Card is a Land card, must check a variety of cases to identify the appropriate color identity.
-    @param card: Dict of Scryfall data representing the card.
-    @return: Dict containing FrameDetails representing the card's frame makeup.
+    """Card is a Land card, must check a variety of cases to identify the appropriate color identity.
+
+    Args:
+        card: Dict of Scryfall data representing the card.
+
+    Returns:
+        Dict containing FrameDetails representing the card's frame makeup.
     """
     # Grab the attributes we need
     type_line, oracle_text = card.get('type_line', ''), card.get('oracle_text', '')
@@ -403,10 +436,11 @@ def get_frame_details_land(card: dict) -> FrameDetails:
 
 
 def get_frame_details_nonland(card: dict) -> FrameDetails:
-    """
-    Get frame details related to a Non-Land card. Must discern the frame color identity,
+    """Get frame details related to a Non-Land card. Must discern the frame color identity,
     for example Noble Hierarch's color identity is [W, U, G] on Scryfall, but the frame is Green.
-    @param card: Dict containing Scryfall data for this card.
+
+    Args:
+        card: Dict containing Scryfall data for this card.
     """
     # Establish the attributes we need
     mana_cost = card.get('mana_cost', '')
@@ -508,16 +542,19 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
 
 
 """
-SPECIAL CARD UTILITIES
+* Special Card Utilities
 """
 
 
 def get_special_rarity(rarity: str, card: dict) -> str:
-    """
-    Control for special rarities.
-    @param rarity: Provided rarity string.
-    @param card: Card data from Scryfall.
-    @return: Proper rarity string for generating symbol.
+    """Control for special rarities.
+
+    Args:
+        rarity: Provided rarity string.
+        card: Card data from Scryfall.
+
+    Returns:
+        Proper rarity string for generating symbol.
     """
     if rarity == Rarity.S:
         # Timeshifted cards
@@ -525,6 +562,9 @@ def get_special_rarity(rarity: str, card: dict) -> str:
             return Rarity.T
         # Championship cards
         if 'Champion' in card.get('set_name'):
+            return Rarity.M
+        # Masterpiece
+        if card.get('set_type') == 'masterpiece':
             return Rarity.M
         # Case like Prismatic Piper
         return Rarity.C

@@ -1,0 +1,107 @@
+[FRAME]
+title = "Frame Options"
+
+[FRAME."Textbox.Size"]
+title = "Textbox Size"
+desc = """Governs the height of the textbox. Automatic will use a size proportional to the number of lines in card text."""
+type = "options"
+default = "Automatic"
+options = ["Tall", "Normal", "Medium", "Short", "Automatic"]
+
+[FRAME.Textless]
+title = "Render Textless"
+desc = """When enabled, card will be rendered with only a name and type box and no textbox or other text elements."""
+type = "bool"
+default = 0
+
+[FRAME."Crown.Texture"]
+title = "Legendary Crown Textured"
+desc = """When disabled, removes textures from Legendary Crown to give it a more minimalist look."""
+type = "bool"
+default = 1
+
+[FRAME."Panorama.Mode"]
+title = "Panorama Mode"
+desc = """Renders N cards, where N is the amount of times the artwork can be split horizontally to fit into the frame. The resulting cards, when cropped, make a seamless panorama."""
+type = "bool"
+default = 0
+
+[TEXT]
+title = "Text Options"
+
+[TEXT.Nickname]
+title = "Use Nickname"
+desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify in the image name as [nick=...]."""
+type = "bool"
+default = 0
+
+[TEXT."Nickname.In.Oracle"]
+title = "Nickname in Oracle"
+desc = """When enabled, cards that are rendered with a nickname will replace the card name in their oracle text with their nickname."""
+type = "bool"
+default = 1
+
+[TEXT."Drop.Shadow"]
+title = "Text Drop Shadow"
+desc = """When enabled, card text will have a drop shadow."""
+type = "bool"
+default = 1
+
+[COLORS]
+title = "Color Options"
+
+[COLORS."Max.Colors"]
+title = "Max Frame Colors"
+desc = """How many colors can the frame split by before the card just becomes Gold?"""
+type = "options"
+default = "2"
+options = ["1", "2", "3", "4"]
+
+[COLORS."Hybrid.Colored"]
+title = "Colored Hybrid Cards"
+desc = """When enabled, hybrid cards will have blended name plate colors and a colored PT Box."""
+type = "bool"
+default = 1
+
+[COLORS."Front.Face.Colors"]
+title = "Authentic Front Face Colors"
+desc = """When enabled, front face MDFC and Transform cards will have authentic lighter colors."""
+type = "bool"
+default = 1
+
+[COLORS."Land.Colorshift"]
+title = "Darker Land Colors"
+desc = """When enabled, non-colored Land elements will use a darker brownish color."""
+type = "bool"
+default = 0
+
+[COLORS."Artifact.Color.Mode"]
+title = "Artifact Colored Elements"
+desc = """Governs whether Twins (name and type boxes), PT Box, and Textbox have color on colored artifacts."""
+type = "options"
+default = "Twins and PT"
+options = ["All", "Twins and PT", "Twins", "PT Box", "Textbox", "None"]
+
+[COLORS."Multicolor.PT"]
+title = "Multicolor PT"
+desc = """When enabled, the PT Box on multicolor cards will use the last color instead of gold, e.g. URB -> Black."""
+type = "bool"
+default = 0
+
+[COLORS."Multicolor.Twins"]
+title = "Multicolor Twins"
+desc = """When enabled, the Name and Type boxes on multicolor cards will use blended colors instead of Gold."""
+type = "bool"
+default = 0
+
+[COLORS."Multicolor.Textbox"]
+title = "Multicolor Textbox"
+desc = """When enabled, the Textbox on multicolor cards will use blended colors instead of Gold."""
+type = "bool"
+default = 1
+
+[COLORS."Multicolor.Pinlines"]
+title = "Multicolor Pinlines"
+desc = """When enabled, the Pinlines and Legendary Crown on multicolor cards will use blended colors instead of Gold."""
+type = "bool"
+default = 1

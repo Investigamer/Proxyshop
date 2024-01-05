@@ -2,7 +2,7 @@
 name = "proxyshop"
 version = "1.12.0"
 description = "Photoshop automation tool for generating high quality Magic the Gathering card renders."
-authors = ["MrTeferi <freethoughtleft@gmail.com>"]
+authors = ["Investigamer <freethoughtleft@gmail.com>"]
 license = "MPL-2.0"
 readme = "README.md"
 homepage = "https://github.com/MrTeferi/Proxyshop"
@@ -12,7 +12,7 @@ keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photosh
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
-photoshop-python-api = "^0.22.0"
+photoshop-python-api = { git = "https://github.com/MrTeferi/photoshop-python-api.git" }
 requests = "^2.28.1"
 asynckivy = "^0.5.4"
 Pillow = "^9.4.0"
@@ -27,16 +27,31 @@ py7zr = "^0.20.5"
 tqdm = "^4.65.0"
 python-dotenv = "^1.0.0"
 click = "^8.1.7"
+tomli = "^2.0.1"
+yarl = "^1.9.3"
+pydantic = "^2.5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
-mypy = "^0.991"
+mypy = "^1.6.0"
 commitizen = "^2.39.1"
 setuptools = "^67.6.0"
 matplotlib = "^3.7.2"
 psd-tools = "^1.9.28"
 pyclean = "^2.2.0"
-pyinstaller = "5.6.2"
+pyinstaller = "^5.12.0"
+pre-commit = "^3.5.0"
+mkdocs = "^1.5.3"
+mkdocs-material = "^9.4.8"
+mkdocs-include-markdown-plugin = "^6.0.4"
+mkdocs-pymdownx-material-extras = "^2.5.5"
+mkdocs-minify-plugin = "^0.7.1"
+mkdocstrings-python = "^1.7.3"
+mkdocs-gen-files = "^0.5.0"
+mkdocs-autolinks-plugin = "^0.7.1"
+mkdocs-same-dir = "^0.1.2"
+mkdocs-git-revision-date-plugin = "^0.3.2"
+mkdocstrings = {extras = ["python"], version = "^0.23.0"}
 
 [build-system]
 requires = ["poetry-core"]
@@ -48,6 +63,5 @@ changelog_start_rev = '1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
-    "pyproject.toml:version",
-    "src/__version__.py"
+    "pyproject.toml:version"
 ]

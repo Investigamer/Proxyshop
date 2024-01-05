@@ -9,7 +9,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
-!src/data/build/
 develop-eggs/
 dist/
 downloads/
@@ -161,26 +160,32 @@ cython_debug/
 /logs
 # For personal testing
 /testing.py
-# User generated data files
-/src/data/sets/
+# User custom data files
+/src/data/user.yml
 # User specific version tracker
-/src/data/version_tracker.json
+/src/data/versions.yml
 # Generated new release
 /release
 # Environmental variables
 /src/__private__.py
 # All plugins that aren't MrTeferi or SilvanMTG
 /plugins/*
-!/plugins/MrTeferi
+!/plugins/Investigamer
 !/plugins/SilvanMTG
+/plugins/*/config_ini
 # PSD templates directories
 /templates/*
 !/templates/tools
 /plugins/*/templates/*
 # User generated config files
 /config.ini
-/src/configs/*.ini
+/src/data/config_ini
 # User generated plugin config files
 /plugins/*/configs/*.ini
 # Test generated symbol images
 /src/tests/symbols/**/*[.png, .jpg, .jpeg, .tif, .tga, .webp, .psd]
+# Ignore symbols -- downloaded from mtg-vectors repository
+/src/img/symbols
+/src/data/hexproof
+# Allow the internal build tools
+!src/data/build/

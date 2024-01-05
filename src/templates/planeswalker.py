@@ -2,30 +2,40 @@
 * PLANESWALKER TEMPLATES
 """
 # Standard Library Imports
-from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
 from photoshop.api import ElementPlacement, ColorBlendMode
 from photoshop.api.application import ArtLayer
+from photoshop.api._selection import Selection
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
-from src.templates._core import StarterTemplate
-from src.templates.transform import TransformMod
-from src.templates.mdfc import MDFCMod
-import src.text_layers as text_classes
 from src.enums.layers import LAYERS
-from src.layouts import PlaneswalkerLayouts
 import src.format_text as ft
 import src.helpers as psd
+from src.layouts import PlaneswalkerLayouts
+from src.templates._core import StarterTemplate
+from src.templates._cosmetic import BorderlessMod, FullartMod
+from src.templates.mdfc import MDFCMod
+from src.templates.transform import TransformMod
+import src.text_layers as text_classes
+from src.utils.properties import auto_prop_cached
+
+"""
+* Template Classes
+"""
 
 
-class PlaneswalkerTemplate (StarterTemplate):
+class PlaneswalkerMod (FullartMod, StarterTemplate):
+    """A modifier class which adds methods required for Planeswalker type cards introduced in Lorwyn block.
+
+    Adds:
+        * Planeswalker text layers.
+        * Planeswalker text layer positioning.
+        * Planeswalker ability mask generation.
     """
-    * The main Planeswalker template to extend to for essential Planeswalker support.
-    * Does not support MDFC or Transform Planeswalker cards.
-    """
+    frame_suffix = 'Normal'
 
     def __init__(self, layout: PlaneswalkerLayouts, **kwargs):
         super().__init__(layout, **kwargs)
@@ -35,57 +45,47 @@ class PlaneswalkerTemplate (StarterTemplate):
         self._icons = []
         self._colons = []
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
-        """Add Planeswalker text layers."""
+        """Add and position Planeswalker text layers, add ability mask."""
         return [*super().text_layer_methods, self.pw_text_layers]
 
-    @cached_property
-    def general_methods(self) -> list[Callable]:
+    @auto_prop_cached
+    def post_text_methods(self) -> list[Callable]:
         """Add Planeswalker layer positioning and ability mask step."""
         return [
-            *super().general_methods,
+            *super().post_text_methods,
             self.pw_layer_positioning,
             self.pw_ability_mask
         ]
 
     """
-    DETAILS
+    * Frame Details
     """
 
-    @cached_property
-    def abilities(self) -> list[dict]:
-        """List of Planeswalker abilities data."""
-        return self.layout.pw_abilities
-
-    @cached_property
+    @auto_prop_cached
     def art_frame_vertical(self):
-        """Use special Borderless frame for Colorless cards."""
+        """Use special Borderless frame for 'Colorless' cards."""
         if self.is_colorless:
             return LAYERS.BORDERLESS_FRAME
         return LAYERS.FULL_ART_FRAME
 
-    @cached_property
+    """
+    * Planeswalker Details
+    """
+
+    @auto_prop_cached
+    def abilities(self) -> list[dict]:
+        """List of Planeswalker abilities data."""
+        return self.layout.pw_abilities
+
+    @auto_prop_cached
     def fill_color(self):
         """Ragged lines mask fill color."""
         return self.RGB_BLACK
 
     """
-    TOGGLE
-    """
-
-    @cached_property
-    def is_fullart(self) -> bool:
-        """Always prefer vertical art."""
-        return True
-
-    @cached_property
-    def is_content_aware_enabled(self) -> bool:
-        """Always content aware fill non-vertical art."""
-        return True if not self.is_art_vertical else False
-
-    """
-    PLANESWALKER LAYERS
+    * Planeswalker Layers
     """
 
     @property
@@ -113,111 +113,117 @@ class PlaneswalkerTemplate (StarterTemplate):
         self._icons = value
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def group(self) -> LayerSet:
         """The main Planeswalker layer group, sized according to number of abilities."""
         if group := psd.getLayerSet(f"pw-{str(self.layout.pw_size)}"):
             group.visible = True
             return group
 
-    @cached_property
+    @auto_prop_cached
     def loyalty_group(self) -> LayerSet:
         """Group containing Planeswalker loyalty graphics."""
         return psd.getLayerSet(LAYERS.LOYALTY_GRAPHICS)
 
-    @cached_property
+    @auto_prop_cached
     def border_group(self) -> Optional[LayerSet]:
         """Border group, nested in the appropriate Planeswalker group."""
         return psd.getLayerSet(LAYERS.BORDER, self.group)
 
-    @cached_property
+    @auto_prop_cached
     def mask_group(self) -> Optional[LayerSet]:
         """Group containing the vector shapes used to create the ragged lines divider mask."""
         return psd.getLayerSet(LAYERS.MASKS)
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> Optional[LayerSet]:
         """Group to populate with ragged lines divider mask."""
         return psd.getLayerSet("Ragged Lines", [self.group, LAYERS.TEXTBOX, "Ability Dividers"])
 
-    @cached_property
+    @auto_prop_cached
     def text_group(self) -> LayerSet:
         """Text Layer group, nexted in the appropriate Planeswalker group."""
         return psd.getLayerSet(LAYERS.TEXT_AND_ICONS, self.group)
 
     """
-    FRAME LAYERS
+    * Frame Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def twins_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.twins, psd.getLayerSet(LAYERS.TWINS, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, psd.getLayerSet(LAYERS.PINLINES, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def background_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.background, psd.getLayerSet(LAYERS.BACKGROUND, self.group))
 
-    @cached_property
+    @auto_prop_cached
     def color_indicator_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.pinlines, [self.group, LAYERS.COLOR_INDICATOR])
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_loyalty(self) -> ArtLayer:
         return psd.getLayer(LAYERS.TEXT, [self.loyalty_group, LAYERS.STARTING_LOYALTY])
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.ABILITY_TEXT, self.loyalty_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_static(self) -> ArtLayer:
         return psd.getLayer(LAYERS.STATIC_TEXT, self.loyalty_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_colon(self) -> ArtLayer:
         return psd.getLayer(LAYERS.COLON, self.loyalty_group)
 
     """
-    REFERENCES
+    * References
     """
 
-    @cached_property
+    @auto_prop_cached
     def top_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_TOP_REFERENCE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def adj_ref(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.PW_ADJUSTMENT_REFERENCE, self.text_group)
 
     """
-    METHODS
+    * Methods
     """
 
     def enable_frame_layers(self):
 
-        # Enable twins, pinlines, background, color indicator
+        # Twins
         if self.twins_layer:
             self.twins_layer.visible = True
+
+        # Pinlines
         if self.pinlines_layer:
             self.pinlines_layer.visible = True
+
+        # Background
         if self.background_layer:
             self.background_layer.visible = True
+
+        # Color Indicator
         if self.is_type_shifted and self.color_indicator_layer:
             self.color_indicator_layer.visible = True
 
     """
-    PLANESWALKER METHODS
+    * Planeswalker Methods
     """
 
     def pw_text_layers(self) -> None:
@@ -239,8 +245,7 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Auto-position the ability text, colons, and shields.
         spacing = self.app.scale_by_dpi(64)
         spaces = len(self.ability_layers) + 1
-        ref_height = psd.get_layer_dimensions(self.textbox_reference)['height']
-        total_height = ref_height - (spacing * spaces)
+        total_height = self.textbox_reference.dims['height'] - (spacing * spaces)
 
         # Resize text items till they fit in the available space
         ft.scale_text_layers_to_fit(self.ability_layers, total_height)
@@ -248,21 +253,19 @@ class PlaneswalkerTemplate (StarterTemplate):
         # Space abilities evenly apart
         uniform_gap = True if len(self.ability_layers) < 3 or not self.layout.loyalty else False
         psd.spread_layers_over_reference(
-            self.ability_layers,
-            self.textbox_reference,
-            spacing if not uniform_gap else None
-        )
+            layers=self.ability_layers,
+            ref=self.textbox_reference,
+            gap=spacing if not uniform_gap else None)
 
         # Adjust text to avoid loyalty badge
         if self.layout.loyalty:
             ft.vertically_nudge_pw_text(
-                self.ability_layers,
-                self.textbox_reference,
-                self.adj_ref,
-                self.top_ref,
-                spacing,
-                uniform_gap=uniform_gap
-            )
+                text_layers=self.ability_layers,
+                ref=self.textbox_reference,
+                adj_ref=self.adj_ref,
+                top_ref=self.top_ref,
+                space=spacing,
+                uniform_gap=uniform_gap)
 
         # Align colons and shields to respective text layers
         for i, ref_layer in enumerate(self.ability_layers):
@@ -304,13 +307,14 @@ class PlaneswalkerTemplate (StarterTemplate):
             n += 2
 
     """
-    PLANESWALKER UTILITY METHODS
+    * Utility Methods
     """
 
     def pw_add_ability(self, ability: dict) -> None:
-        """
-        Add a Planeswalker ability.
-        @param ability: Planeswalker ability data.
+        """Add a Planeswalker ability.
+
+        Args:
+            ability: Planeswalker ability data.
         """
         # Create an icon and colon if this isn't a static ability
         static = False if ability.get('icon') and ability.get('cost') else True
@@ -337,9 +341,10 @@ class PlaneswalkerTemplate (StarterTemplate):
             ))
 
     def fill_between_dividers(self, group: list[ArtLayer]) -> None:
-        """
-        Fill area between two ragged lines, or a top line and the bottom of the document.
-        @param group: List containing 1 or 2 ragged lines to fill between.
+        """Fill area between two ragged lines, or a top line and the bottom of the document.
+
+        Args:
+            group: List containing 1 or 2 ragged lines to fill between.
         """
         # If no second line is provided use the bottom of the document
         bottom_bound: int = (group[1].bounds[1] if len(group) == 2 else self.docref.height) + 1
@@ -350,21 +355,22 @@ class PlaneswalkerTemplate (StarterTemplate):
         self.active_layer.move(group[0], ElementPlacement.PlaceAfter)
 
         # Select between the two points and fill
-        self.docref.selection.select([
+        self.doc_selection.select([
             [top_bound[0] - 200, top_bound[3] - 1],
             [top_bound[2] + 200, top_bound[3] - 1],
             [top_bound[2] + 200, bottom_bound],
             [top_bound[0] - 200, bottom_bound]
         ])
-        self.docref.selection.fill(self.fill_color, ColorBlendMode.NormalBlendColor, 100)
-        self.docref.selection.deselect()
+        self.doc_selection.fill(self.fill_color, ColorBlendMode.NormalBlendColor, 100)
+        self.doc_selection.deselect()
 
     @staticmethod
     def position_divider(layers: list[ArtLayer], line: ArtLayer) -> None:
-        """
-        Positions a ragged divider line correctly.
-        @param layers: Two layers to position the line between.
-        @param line: Line layer to be positioned.
+        """Positions a ragged divider line for an ability text mask.
+
+        Args:
+            layers: Two layers to position the line between.
+            line: Line layer to be positioned.
         """
         delta = (layers[1].bounds[1] - layers[0].bounds[3]) / 2
         reference_position = (line.bounds[3] + line.bounds[1]) / 2
@@ -372,125 +378,110 @@ class PlaneswalkerTemplate (StarterTemplate):
         line.translate(0, (target_position - reference_position))
 
 
-class PlaneswalkerExtendedTemplate (PlaneswalkerTemplate):
-    """
-    * An extended version of PlaneswalkerTemplate.
-    * Functionally identical except for the lack of background textures.
-    """
-    template_suffix = "Extended"
+"""
+* Template Classes
+"""
+
+
+class PlaneswalkerTemplate (PlaneswalkerMod, StarterTemplate):
+    """Core Planeswalker 'Normal' M15-style template."""
+
+
+class PlaneswalkerBorderlessTemplate (BorderlessMod, PlaneswalkerTemplate):
+    """A Borderless version of PlaneswalkerTemplate."""
 
     """
-    DETAILS
+    * Details
     """
 
     @property
     def art_frame_vertical(self) -> str:
+        """No separation for 'Colorless' cards."""
         return LAYERS.FULL_ART_FRAME
-
-    """
-    PROPERTIES
-    """
-
-    @property
-    def is_fullart(self) -> bool:
-        return True
-
-    @cached_property
-    def is_content_aware_enabled(self):
-        return True
-
-    """
-    LAYERS
-    """
-
-    @cached_property
-    def background_layer(self) -> Optional[ArtLayer]:
-        return
 
 
 """
-* MDFC PLANESWALKERS, introduced in Kaldheim.
+* MDFC Planeswalker Classes, introduced in Kaldheim.
 """
 
 
 class PlaneswalkerMDFCTemplate (MDFCMod, PlaneswalkerTemplate):
-    """Adds support for MDFC functionality to the existing PlaneswalkerTemplate."""
+    """Adds MDFC functionality to the existing PlaneswalkerTemplate."""
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Both DFC groups at top level
         return psd.getLayerSet(self.face_type, LAYERS.MDFC)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name is always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
 
-class PlaneswalkerMDFCExtendedTemplate (MDFCMod, PlaneswalkerExtendedTemplate):
-    """Adds support for MDFC functionality to the existing PlaneswalkerExtendedTemplate."""
-    template_suffix = "Extended"
+class PlaneswalkerMDFCBorderlessTemplate (MDFCMod, PlaneswalkerBorderlessTemplate):
+    """Adds MDFC functionality to the existing PlaneswalkerExtendedTemplate."""
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Both DFC groups at top level
         return psd.getLayerSet(self.face_type, LAYERS.MDFC)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name is always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
 
 """
-* TRANSFORM PLANESWALKERS, introduced in Innistrad block.
+* Transform Planeswalker Classes, introduced in Innistrad.
 """
 
 
-class PlaneswalkerTransformTemplate (TransformMod, PlaneswalkerTemplate):
-    """Adds support for Transform functionality to the existing PlaneswalkerTemplate."""
+class PlaneswalkerTFTemplate (TransformMod, PlaneswalkerTemplate):
+    """Adds Transform functionality to the existing PlaneswalkerTemplate."""
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Transform group at top level
         return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
         # Typeline always shifted
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
     """
-    METHODS
+    * Transform Methods
     """
 
     def text_layers_transform(self):
@@ -498,35 +489,34 @@ class PlaneswalkerTransformTemplate (TransformMod, PlaneswalkerTemplate):
         pass
 
 
-class PlaneswalkerTransformExtendedTemplate (TransformMod, PlaneswalkerExtendedTemplate):
-    """Adds support for Transform functionality to the existing PlaneswalkerExtendedTemplate."""
-    template_suffix = "Extended"
+class PlaneswalkerTFBorderlessTemplate (TransformMod, PlaneswalkerBorderlessTemplate):
+    """Adds Transform functionality to the existing PlaneswalkerBorderlessTemplate."""
 
     """
-    GROUPS
+    * Groups
     """
 
-    @cached_property
+    @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         # Transform group at top level
         return psd.getLayerSet(self.face_type, LAYERS.TRANSFORM)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name(self) -> Optional[ArtLayer]:
         # Name always shifted
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type(self) -> Optional[ArtLayer]:
         # Typeline always shifted
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
     """
-    METHODS
+    * Transform Methods
     """
 
     def text_layers_transform(self):

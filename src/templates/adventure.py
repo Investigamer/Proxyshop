@@ -1,8 +1,7 @@
 """
-* ADVENTURE TEMPLATES
+* Adventure Templates
 """
 # Standard Library
-from functools import cached_property
 from typing import Callable, Optional, Union
 
 # Third Party Imports
@@ -11,59 +10,60 @@ from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
+from src.enums.layers import LAYERS
+import src.helpers as psd
 from src.layouts import AdventureLayout
-from src.helpers import create_color_layer
 from src.templates._vector import VectorTemplate
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
-from src.enums.layers import LAYERS
-import src.helpers as psd
-
+from src.utils.properties import auto_prop_cached
 
 """
-* ADVENTURE MODIFIER CLASSES
+* Modifier Classes
 """
 
 
 class AdventureMod (NormalTemplate):
-    """
-    * A modifier for adding steps required for Adventure type cards introduced in Throne of Eldraine.
+    """A modifier class which adds functionality required by Adventure cards, introduced in Throne of Eldraine.
 
     Adds:
         * Adventure side text layers (Mana cost, name, typeline, and oracle text) and textbox reference.
     """
 
-    @cached_property
+    def __init__(self, layout: AdventureLayout, **kwargs):
+        super().__init__(layout, **kwargs)
+
+    @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers."""
         funcs = [self.text_layers_adventure] if isinstance(self.layout, AdventureLayout) else []
         return [*super().text_layer_methods, *funcs]
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_name_adventure(self) -> Optional[ArtLayer]:
         """Name for the adventure side."""
         return psd.getLayer(LAYERS.NAME_ADVENTURE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_mana_adventure(self) -> Optional[ArtLayer]:
         """Mana cost for the adventure side."""
         return psd.getLayer(LAYERS.MANA_COST_ADVENTURE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_type_adventure(self) -> Optional[ArtLayer]:
         """Type line for the adventure side."""
         return psd.getLayer(LAYERS.TYPE_LINE_ADVENTURE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def text_layer_rules_adventure(self) -> Optional[ArtLayer]:
         """Rules text for the adventure side."""
         return psd.getLayer(LAYERS.RULES_TEXT_ADVENTURE, self.text_group)
 
-    @cached_property
+    @auto_prop_cached
     def divider_layer_adventure(self) -> Optional[ArtLayer]:
         """Flavor divider for the adventure side."""
         return psd.getLayer(LAYERS.DIVIDER_ADVENTURE, self.text_group)
@@ -72,9 +72,9 @@ class AdventureMod (NormalTemplate):
     REFERENCES
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_reference_adventure(self) -> Optional[ArtLayer]:
-        return psd.getLayer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
+        return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
 
     """
     ADVENTURE METHODS
@@ -97,7 +97,8 @@ class AdventureMod (NormalTemplate):
                 layer = self.text_layer_rules_adventure,
                 contents = self.layout.oracle_text_adventure,
                 reference = self.textbox_reference_adventure,
-                flavor = "", centered = False
+                flavor = self.layout.flavor_text_adventure,
+                centered = False
             ),
             text_classes.TextField(
                 layer = self.text_layer_type_adventure,
@@ -115,7 +116,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
         * Adventure textbox, pinline, wings, and titles.
     """
 
-    @cached_property
+    @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         # Add Adventure frame layers step
         funcs = [self.enable_adventure_layers] if isinstance(self.layout, AdventureLayout) else []
@@ -125,7 +126,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """Use right page of storybook as main textbox group."""
         return psd.getLayerSet(LAYERS.RIGHT, self.adventure_group)
@@ -134,37 +135,37 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     ADVENTURE GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def adventure_group(self) -> LayerSet:
         """Adventure storybook group."""
         return psd.getLayerSet(LAYERS.STORYBOOK)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_pinlines_group(self) -> LayerSet:
         """Pinline at the bottom of adventure storybook."""
         return psd.getLayerSet(LAYERS.PINLINES, self.adventure_group)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_textbox_group(self) -> LayerSet:
         """Left side storybook page, contains adventure text."""
         return psd.getLayerSet(LAYERS.LEFT, self.adventure_group)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_name_group(self) -> LayerSet:
         """Plate to color for adventure name."""
         return psd.getLayerSet(LAYERS.ADVENTURE_NAME, self.adventure_group)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_group(self) -> LayerSet:
         """Plate to color for adventure typeline."""
         return psd.getLayerSet(LAYERS.ADVENTURE_TYPELINE, self.adventure_group)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_accent_group(self) -> LayerSet:
         """Plate to color for adventure typeline accent."""
         return psd.getLayerSet(LAYERS.ADVENTURE_TYPELINE_ACCENT, self.adventure_group)
 
-    @cached_property
+    @auto_prop_cached
     def adventure_wings_group(self) -> LayerSet:
         """Group containing wings on each side of adventure storybook."""
         return psd.getLayerSet(LAYERS.WINGS, self.adventure_group)
@@ -173,7 +174,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     ADVENTURE COLOR MAPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def adventure_name_color_map(self) -> dict:
         """Maps color values to adventure name box."""
         return {
@@ -187,7 +188,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
             'Land': [177, 166, 169]
         }
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_color_map(self) -> dict:
         """Maps color values to adventure typeline box."""
         return {
@@ -201,7 +202,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
             'Land': [154, 137, 130]
         }
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_accent_color_map(self) -> dict:
         """Maps color values to adventure typeline accent box."""
         return {
@@ -215,7 +216,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
             'Land': [115, 98, 89]
         }
 
-    @cached_property
+    @auto_prop_cached
     def adventure_wings_color_map(self) -> dict:
         """Maps color values to adventure wings."""
         return {
@@ -233,27 +234,27 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     ADVENTURE COLORS
     """
 
-    @cached_property
+    @auto_prop_cached
     def adventure_textbox_colors(self) -> str:
         """Colors to use for adventure textbox textures."""
         return self.layout.adventure_colors
 
-    @cached_property
+    @auto_prop_cached
     def adventure_name_colors(self) -> SolidColor:
         """Colors to use for adventure name box."""
         return psd.get_color(self.adventure_name_color_map.get(self.layout.adventure_colors))
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_colors(self) -> SolidColor:
         """Colors to use for adventure typeline box."""
         return psd.get_color(self.adventure_typeline_color_map.get(self.layout.adventure_colors))
 
-    @cached_property
+    @auto_prop_cached
     def adventure_typeline_accent_colors(self) -> SolidColor:
         """Colors to use for adventure typeline accent box."""
         return psd.get_color(self.adventure_typeline_accent_color_map.get(self.layout.adventure_colors))
 
-    @cached_property
+    @auto_prop_cached
     def adventure_wings_colors(self) -> Callable:
         """Colors to use for adventure wings."""
         return psd.get_pinline_gradient(
@@ -265,12 +266,12 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     ADVENTURE BLENDING MASKS
     """
 
-    @cached_property
+    @auto_prop_cached
     def adventure_textbox_masks(self) -> list[ArtLayer]:
         """Masks to use for adventure textbox texture blending."""
         return []
 
-    @cached_property
+    @auto_prop_cached
     def textbox_masks(self) -> list[ArtLayer]:
         return [psd.getLayer(LAYERS.HALF, [LAYERS.MASKS, LAYERS.RIGHT])]
 
@@ -292,13 +293,13 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
             masks=self.adventure_textbox_masks)
 
         # Add twins
-        create_color_layer(self.adventure_name_colors, self.adventure_name_group)
-        create_color_layer(self.adventure_typeline_colors, self.adventure_typeline_group)
-        create_color_layer(self.adventure_typeline_accent_colors, self.adventure_typeline_accent_group)
+        psd.create_color_layer(self.adventure_name_colors, self.adventure_name_group)
+        psd.create_color_layer(self.adventure_typeline_colors, self.adventure_typeline_group)
+        psd.create_color_layer(self.adventure_typeline_accent_colors, self.adventure_typeline_accent_group)
 
 
 """
-* ADVENTURE TEMPLATE CLASSES
+* Template Classes
 """
 
 
@@ -313,11 +314,11 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
     GROUPS
     """
 
-    @cached_property
+    @auto_prop_cached
     def crown_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN, LAYERS.LEGENDARY_CROWN)
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.PINLINES, LAYERS.PINLINES)
 
@@ -325,19 +326,19 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
     SHAPES
     """
 
-    @cached_property
+    @auto_prop_cached
     def pinlines_legendary_shape(self) -> Optional[ArtLayer]:
         if self.is_legendary:
             return psd.getLayer(LAYERS.LEGENDARY, [self.pinlines_group, LAYERS.SHAPE])
         return
 
-    @cached_property
+    @auto_prop_cached
     def pt_shape(self) -> Optional[ArtLayer]:
         if self.is_creature:
             return psd.getLayer(LAYERS.SHAPE, LAYERS.PT_BOX)
         return
 
-    @cached_property
+    @auto_prop_cached
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         return [self.border_shape, self.pinlines_legendary_shape, self.pt_shape]
 

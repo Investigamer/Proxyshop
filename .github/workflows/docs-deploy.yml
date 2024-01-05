@@ -1,0 +1,35 @@
+name: Deploy Github Pages Docs
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    #-----------------------------------------------
+    #-------  Setup Python and Checkout Repo  ------
+    #-----------------------------------------------
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    #-----------------------------------------------
+    #-------  install Poetry and Dependencies  -----
+    #-----------------------------------------------
+    - name: Install Poetry & dependencies
+      run: |
+        python -m pip install -U pip poetry
+        poetry --version
+        poetry install
+    #-----------------------------------------------
+    #-------  Deploy Docs to Github Pages  ---------
+    #-----------------------------------------------
+    - name: Deploy to GitHub Pages
+      run: |
+        gh --version
+        poetry run mkdocs gh-deploy --remote-branch gh-docs --force

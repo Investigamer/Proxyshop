@@ -7,249 +7,141 @@ from typing import Optional, Union
 
 # Third Party Imports
 from photoshop.api import (
-    ActionList,
-    ActionReference,
-    ActionDescriptor,
-    SolidColor,
     DialogModes,
     LayerKind,
     RasterizeType
 )
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
+from photoshop.api.text_item import TextItem
 
 # Local Imports
-from src.constants import con
-from src.enums.mtg import non_italics_abilities
+from src import APP, CONSOLE
+from src.enums.mtg import non_italics_abilities, SymbolColor
 from src.helpers.bounds import (
-    get_dimensions_no_effects,
-    get_textbox_dimensions,
-    get_layer_dimensions,
-    get_text_layer_dimensions
-)
-from src.helpers.colors import get_color, apply_color
-from src.helpers.layers import select_layer_bounds
+    get_width_no_effects,
+    get_textbox_width,
+    get_layer_height,
+    get_layer_width)
 from src.helpers.position import spread_layers_over_reference
-from src.helpers.text import get_text_scale_factor, set_text_size, set_text_leading, get_font_size
-from src.types.cards import CardTextSymbols, CardTextSymbolIndex
+from src.helpers.selection import select_layer_bounds
+from src.helpers.text import set_text_size, get_font_size, set_text_size_and_leading
+from src.utils.adobe import ReferenceLayer
 from src.utils.regex import Reg
 
 # QOL Definitions
-app = con.app
-sID = app.stringIDToTypeID
-cID = app.charIDToTypeID
+sID = APP.stringIDToTypeID
+cID = APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
+"""
+* Types
+"""
 
-class SymbolMapper:
-    """Maps symbols to their corresponding colors."""
+# (Start index, end index)
+CardItalicString = tuple[int, int]
 
-    def load(self, color_map: dict = None) -> None:
-        """
-        Load SolidColor objects using data from the constants object.
-        @param color_map: Optional color map to use instead of the default in con.
-        """
-        color_map = color_map or con.mana_colors
+# (Start index, list of colors for each character)
+CardSymbolString = tuple[int, list[SymbolColor]]
 
-        # Primary inner color (black default)
-        self.primary = get_color(color_map['primary'])
-
-        # Secondary inner color (white default)
-        self.secondary = get_color(color_map['secondary'])
-
-        # Colorless color
-        self.colorless = get_color(color_map['c'])
-
-        # Symbol map for regular mana symbols
-        self.color_map = {
-            "W": get_color(color_map['w']),
-            "U": get_color(color_map['u']),
-            "B": get_color(color_map['b']),
-            "R": get_color(color_map['r']),
-            "G": get_color(color_map['g']),
-            "2": get_color(color_map['c'])
-        }
-        self.color_map_inner = {
-            "W": get_color(color_map['w_i']),
-            "U": get_color(color_map['u_i']),
-            "B": get_color(color_map['b_i']),
-            "R": get_color(color_map['r_i']),
-            "G": get_color(color_map['g_i']),
-            "2": get_color(color_map['c_i'])
-        }
-
-        # For hybrid symbols with generic mana, use the black symbol color rather than colorless for B
-        self.hybrid_color_map = self.color_map.copy()
-        self.hybrid_color_map['B'] = get_color(color_map['bh'])
-        self.hybrid_color_map_inner = self.color_map_inner.copy()
-        self.hybrid_color_map_inner['B'] = get_color(color_map['bh_i'])
+"""
+* Classes
+"""
 
 
-def locate_symbols(input_string: str) -> CardTextSymbols:
-    """
-    Locate symbols in the input string, replace them with the proper characters from the NDPMTG font,
+def locate_symbols(
+    text: str,
+    symbol_map: dict[str, tuple[str, list[SymbolColor]]]
+) -> tuple[str, list[CardSymbolString]]:
+    """Locate symbols in the input string, replace them with the proper characters from the NDPMTG font,
     and determine the colors those characters need to be.
-    @param input_string: String to analyze for symbols.
-    @return: Dict containing the modified string, and a list of dictionaries containing the location and color
-             of each symbol to format.
+
+    Args:
+        text: String to analyze for symbols.
+        symbol_map: Maps a characters and colors to a scryfall symbol string.
+
+    Returns:
+        Tuple containing the modified string, and a list of dictionaries containing the location and color
+            of each symbol to format.
     """
     # Is there a symbol in this text?
-    if '{' not in input_string:
-        return {
-            'input_string': input_string,
-            'symbol_indices': []
-        }
+    if '{' not in text:
+        return text, []
 
     # Starting values
-    symbol_indices: list[CardTextSymbolIndex] = []
-    start = input_string.find('{')
-    end = input_string.find('}')
-    symbol = ""
-    try:
-        while 0 <= start <= end:
-            # Replace the symbol and add its index
-            symbol = input_string[start:end+1]
-            input_string = input_string.replace(symbol, con.symbols[symbol], 1)
-            symbol_indices.append({
-                'index': start,
-                'colors': determine_symbol_colors(symbol)
-            })
-            start = input_string.find('{')
-            end = input_string.find('}')
-    except (KeyError, IndexError):
-        raise Exception(f"Encountered a symbol I don't recognize: {symbol}")
-    return {
-        'input_string': input_string,
-        'symbol_indices': symbol_indices
-    }
+    symbol_indices: list[CardSymbolString] = []
+    start, end = text.find('{'), text.find('}')
+
+    # Look for symbols in the text
+    while 0 <= start <= end:
+        symbol = text[start:end + 1]
+        try:
+            # Replace the symbol, add its location and color
+            symbol_string, symbol_color = symbol_map[symbol]
+            text = text.replace(symbol, symbol_string, 1)
+            symbol_indices.append((start, symbol_color))
+        except (KeyError, IndexError):
+            CONSOLE.update(f"Symbol not recognized: {symbol}")
+            text = text.replace(symbol, symbol.strip('{}'))
+        # Move to the next symbols
+        start, end = text.find('{'), text.find('}')
+    return text, symbol_indices
 
 
-def locate_italics(input_string: str, italics_strings: list) -> list[dict[str: int]]:
+def locate_italics(
+    st: str,
+    italics_strings: list,
+    symbol_map: dict[str, tuple[str, list[SymbolColor]]]
+) -> list[CardItalicString]:
+    """Locate all instances of italic strings in the input string and record their start and end indices.
+
+    Args:
+        st: String to search for italics strings.
+        italics_strings: List of italics strings to look for.
+        symbol_map: Maps a characters and colors to a scryfall symbol string.
+
+    Returns:
+        List of italic string indices (start and end).
     """
-    Locate all instances of italic strings in the input string and record their start and end indices.
-    @param input_string: String to search for italics strings.
-    @param italics_strings: List of italics strings to look for.
-    @return: List of italic string indices (start and end).
-    """
-    italics_indices = []
-    for italics in italics_strings:
-        # Replace symbols with their font characters
-        if '{' in italics:
-            start = italics.find('{')
-            end = italics.find('}')
+    indexes = []
+    for italic in italics_strings:
+
+        # Look for symbols present in italicized text
+        if '{' in italic:
+            start = italic.find('{')
+            end = italic.find('}')
             while 0 <= start < end:
-                symbol = italics[start:end + 1]
-                italics = italics.replace(symbol, con.symbols[symbol])
-                start = italics.find('{')
-                end = italics.find('}')
+                # Replace the symbol
+                symbol = italic[start:end + 1]
+                try:
+                    italic = italic.replace(symbol, symbol_map[symbol][0])
+                except (KeyError, IndexError):
+                    CONSOLE.update(f"Symbol not recognized: {symbol}")
+                    st = st.replace(symbol, symbol.strip('{}'))
+                # Move to the next symbol
+                start, end = italic.find('{'), italic.find('}')
 
         # Locate Italicized text
         end_index = 0
         while True:
-            start_index = input_string.find(italics, end_index)
+            start_index = st.find(italic, end_index)
             if start_index < 0:
                 break
-            end_index = start_index + len(italics)
-            italics_indices.append({
-                'start_index': start_index,
-                'end_index': end_index,
-            })
-    return italics_indices
+            end_index = start_index + len(italic)
+            indexes.append((start_index, end_index))
 
-
-def determine_symbol_colors(symbol: str) -> list[SolidColor]:
-    """
-    Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
-    @param symbol: Symbol to determine the colors of.
-    @return: List of SolidColor objects to color the symbol's characters.
-    """
-    # Special Symbols
-    if symbol in ("{E}", "{CHAOS}"):
-        # Energy or chaos symbols
-        return [symbol_map.primary]
-    elif symbol == "{S}":
-        # Snow symbol
-        return [symbol_map.colorless, symbol_map.primary, symbol_map.secondary]
-    elif symbol == "{Q}":
-        # Untap symbol
-        return [symbol_map.primary, symbol_map.secondary]
-
-    # Normal mana symbol
-    if normal_symbol_match := Reg.MANA_NORMAL.match(symbol):
-        return [
-            symbol_map.color_map[normal_symbol_match[1]],
-            symbol_map.color_map_inner[normal_symbol_match[1]]
-        ]
-
-    # Hybrid
-    if hybrid_match := Reg.MANA_HYBRID.match(symbol):
-        # Use the darker color for black's symbols for 2/B hybrid symbols
-        color_map = symbol_map.hybrid_color_map if hybrid_match[1] == "2" else symbol_map.color_map
-        return [
-            color_map[hybrid_match[2]],
-            color_map[hybrid_match[1]],
-            symbol_map.color_map_inner[hybrid_match[1]],
-            symbol_map.color_map_inner[hybrid_match[2]]
-        ]
-
-    # Phyrexian
-    if phyrexian_match := Reg.MANA_PHYREXIAN.match(symbol):
-        return [
-            symbol_map.hybrid_color_map[phyrexian_match[1]],
-            symbol_map.hybrid_color_map_inner[phyrexian_match[1]]
-        ]
-
-    # Phyrexian hybrid
-    if phyrexian_hybrid_match := Reg.MANA_PHYREXIAN_HYBRID.match(symbol):
-        return [
-            symbol_map.color_map[phyrexian_hybrid_match[2]],
-            symbol_map.color_map[phyrexian_hybrid_match[1]],
-            symbol_map.color_map_inner[phyrexian_hybrid_match[1]],
-            symbol_map.color_map_inner[phyrexian_hybrid_match[2]]
-        ]
-
-    # Weird situation?
-    if len(con.symbols[symbol]) == 2:
-        return [symbol_map.colorless, symbol_map.primary]
-
-    # Nothing matching found!
-    raise Exception(f"Encountered a symbol that I don't know how to color: {symbol}")
-
-
-def format_symbol(
-    action_list: ActionList,
-    symbol_index: int,
-    symbol_colors: list[SolidColor],
-    font_size: Union[int, float]
-) -> None:
-    """
-    Formats an n-character symbol at the specified index (symbol length determined from symbol_colors).
-    @param action_list: Action list to append these actions to.
-    @param symbol_index: Index where the symbol begins in the text layer.
-    @param symbol_colors: List of SolidColors to color this symbol's characters.
-    @param font_size: Font size to apply to this symbol's characters.
-    """
-    for i, color in enumerate(symbol_colors):
-        desc1 = ActionDescriptor()
-        desc2 = ActionDescriptor()
-        idTxtS = sID("textStyle")
-        desc1.putInteger(sID("from"), symbol_index + i)
-        desc1.putInteger(sID("to"), symbol_index + i + 1)
-        desc2.putString(sID("fontPostScriptName"), con.font_mana)
-        desc2.putString(sID("fontName"), con.font_mana)
-        desc2.putUnitDouble(sID("size"), sID("pointsUnit"), font_size)
-        desc2.putBoolean(sID("autoLeading"), False)
-        desc2.putUnitDouble(sID("leading"), sID("pointsUnit"), font_size)
-        apply_color(desc2, color)
-        desc1.putObject(idTxtS, idTxtS, desc2)
-        action_list.putObject(sID("textStyleRange"), desc1)
+    # Return list of italics indexes
+    return indexes
 
 
 def generate_italics(card_text: str) -> list[str]:
-    """
-    Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
-    @param card_text: Text to search for strings that need to be italicised.
-    @return: List of italics strings.
+    """Generates italics text array from card text to italicise all text within (parentheses) and all ability words.
+
+    Args:
+        card_text: Text to search for strings that need to be italicised.
+
+    Returns:
+        List of italics strings.
     """
     italic_text = []
 
@@ -285,10 +177,13 @@ def generate_italics(card_text: str) -> list[str]:
 
 
 def strip_reminder_text(text: str) -> str:
-    """
-    Strip out any reminder text from a given oracle text. Reminder text appears in parentheses.
-    @param text: Text that may contain reminder text.
-    @return: Oracle text with no reminder text.
+    """Strip out any reminder text from a given oracle text. Reminder text appears in parentheses.
+
+    Args:
+        text: Text that may contain reminder text.
+
+    Returns:
+        Oracle text with no reminder text.
     """
     # Skip if there's no reminder text present
     if '(' not in text:
@@ -306,111 +201,53 @@ def strip_reminder_text(text: str) -> str:
     return text
 
 
-def align_formatted_text(
-    action_list: ActionList,
-    start: int,
-    end: int,
-    alignment: str = "right"
-):
-    """
-    Align a selection of formatted text to a certain alignment.
-    Align the quote credit of --Name to the right like on some classic cards.
-    @param action_list: Action list to add this action to
-    @param start: Starting index of the quote string
-    @param end: Ending index of the quote string
-    @param alignment: left, right, or center
-    @return: Returns the existing ActionDescriptor with changes applied
-    """
-    desc1 = ActionDescriptor()
-    desc2 = ActionDescriptor()
-    desc1.putInteger(sID("from"), start)
-    desc1.putInteger(sID("to"), end)
-    idstyleSheetHasParent = sID("styleSheetHasParent")
-    desc2.putBoolean(idstyleSheetHasParent, True)
-    desc2.putEnumerated(sID("align"), sID("alignmentType"), sID(alignment))
-    idparagraphStyle = sID("paragraphStyle")
-    desc1.putObject(idparagraphStyle, idparagraphStyle, desc2)
-    idparagraphStyleRange = sID("paragraphStyleRange")
-    action_list.putObject(idparagraphStyleRange, desc1)
-    return action_list
+def ensure_visible_reference(reference: ArtLayer) -> Optional[TextItem]:
+    """Ensures that a layer used for reference has bounds if it is a text layer.
 
+    Args:
+        reference: Reference layer that might be a TextLayer.
 
-def align_formatted_text_right(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
-    """
-    align_formatted_text(action_list, start, end, "right")
-
-
-def align_formatted_text_left(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
-    """
-    align_formatted_text(action_list, start, end, "left")
-
-
-def align_formatted_text_center(action_list: ActionList, start: int, end: int) -> None:
-    """
-    Quality of life shorthand to call align_formatted_text with correct alignment.
-    @param action_list: Action list to apply the following action to.
-    @param start: Starting index of the string to apply this action to.
-    @param end: Ending index of the string to apply this action to.
-    """
-    align_formatted_text(action_list, start, end, "center")
-
-
-def ensure_visible_reference(reference: ArtLayer) -> bool:
-    """
-    Ensures that a layer used for reference has bounds if it is a text layer.
-    @param reference: Reference layer that might be a TextLayer.
-    @return: True if it was empty previously, False if it was always visible.
+    Returns:
+        TextItem if reference is an empty text layer, otherwise None.
     """
     if isinstance(reference, LayerSet):
-        return False
+        return None
     if reference.kind is LayerKind.TextLayer:
-        if reference.textItem.contents in ("", " "):
-            reference.textItem.contents = "."
-            return True
-    return False
+        if reference.bounds == (0, 0, 0, 0):
+            TI = reference.textItem
+            TI.contents = "."
+            return TI
+    return None
 
 
-def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
-    """
-    Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 36 px clearance from a reference layer's left bound.
-    @param layer: The text item layer to scale.
-    @param reference: Reference layer we need to avoid.
+def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer, gap: int = 30) -> None:
+    """Scales a text layer down (in 0.2 pt increments) until its right bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's left bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
+        gap: Minimum gap to ensure between the layer and reference (DPI adjusted).
     """
     # Ensure a valid and visible reference layer
-    if not reference or reference.bounds == [0, 0, 0, 0]:
+    if not reference:
         return
-    ref_empty = ensure_visible_reference(reference)
-
-    # Obtain the correct font scale factor
-    factor = get_text_scale_factor(layer)
+    ref_TI = ensure_visible_reference(reference)
 
     # Set starting variables
-    font_size = old_size = float(layer.textItem.size) * factor
-    ref_left_bound = reference.bounds[0] - app.scale_by_dpi(30)
-    layer_right_bound = layer.bounds[2]
+    font_size = old_size = get_font_size(layer)
+    ref_left_bound = reference.bounds[0] - APP.scale_by_dpi(gap)
     step, half_step = 0.4, 0.2
 
     # Guard against reference being left of the layer
     if ref_left_bound < layer.bounds[0]:
-        if ref_empty:
-            # Reset reference
-            reference.textItem.contents = ''
+        # Reset reference
+        if ref_TI:
+            ref_TI.contents = ''
         return
 
     # Make our first check if scaling is necessary
-    continue_scaling = bool(layer_right_bound > ref_left_bound)
-    if continue_scaling:
+    if continue_scaling := bool(layer.bounds[2] > ref_left_bound):
 
         # Step down the font till it clears the reference
         while continue_scaling:
@@ -418,165 +255,212 @@ def scale_text_right_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
             set_text_size(layer, font_size)
             continue_scaling = bool(layer.bounds[2] > ref_left_bound)
 
-        # Go up a half step and check if still in bounds
+        # Go up a half step
         font_size += half_step
         set_text_size(layer, font_size)
+
+        # If out of bounds, revert half step
         if layer.bounds[2] > ref_left_bound:
             font_size -= half_step
             set_text_size(layer, font_size)
 
         # Shift baseline up to keep text centered vertically
-        layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
+        layer.textItem.baselineShift = (old_size * 0.3) - (font_size * 0.3)
 
     # Fix corrected reference layer
-    if ref_empty:
+    if ref_TI:
         # Reset reference
-        reference.textItem.contents = ''
+        ref_TI.contents = ''
 
 
-def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer) -> None:
-    """
-    Scales a text layer down (in 0.2 pt increments) until its right bound
-    has a 36 px clearance from a reference layer's left bound.
-    @param layer: The text item layer to scale.
-    @param reference: Reference layer we need to avoid.
+def scale_text_left_overlap(layer: ArtLayer, reference: ArtLayer, gap: int = 30) -> None:
+    """Scales a text layer down (in 0.2 pt increments) until its left bound
+    has a 30 px~ (based on DPI) clearance from a reference layer's right bound.
+
+    Args:
+        layer: The text item layer to scale.
+        reference: Reference layer we need to avoid.
+        gap: Minimum gap to ensure between the layer and reference (DPI adjusted).
     """
     # Ensure a valid and visible reference layer
     if not reference or reference.bounds == [0, 0, 0, 0]:
         return
-    ref_empty = ensure_visible_reference(reference)
-
-    # Obtain the correct font scale factor
-    factor = get_text_scale_factor(layer)
+    ref_TI = ensure_visible_reference(reference)
 
     # Set starting variables
-    font_size = old_size = float(layer.textItem.size) * factor
-    ref_right_bound = reference.bounds[2] + app.scale_by_dpi(30)
-    ref_left_bound = reference.bounds[0]
-    layer_left_bound = layer.bounds[0]
+    font_size = old_size = get_font_size(layer)
+    ref_right_bound = reference.bounds[2] + APP.scale_by_dpi(gap)
     step, half_step = 0.4, 0.2
 
     # Guard against reference being right of the layer
-    if layer.bounds[0] < ref_left_bound:
-        if ref_empty:
-            # Reset reference
-            reference.textItem.contents = ''
+    if layer.bounds[0] < reference.bounds[0]:
+        # Reset reference
+        if ref_TI:
+            ref_TI.contents = ''
         return
 
     # Make our first check if scaling is necessary
-    continue_scaling = bool(ref_right_bound > layer_left_bound)
-    if continue_scaling:
+    if continue_scaling := bool(ref_right_bound > layer.bounds[0]):
 
         # Step down the font till it clears the reference
-        while continue_scaling:  # minimum 24 px gap
+        while continue_scaling:
             font_size -= step
             set_text_size(layer, font_size)
             continue_scaling = bool(ref_right_bound > layer.bounds[0])
 
-        # Go up a half step and check if still in bounds
+        # Go up a half step
         font_size += half_step
         set_text_size(layer, font_size)
+
+        # If text not in bounds, revert half step
         if ref_right_bound > layer.bounds[0]:
             font_size -= half_step
             set_text_size(layer, font_size)
 
         # Shift baseline up to keep text centered vertically
-        layer.textItem.baselineShift = (old_size * 0.3) - (float(layer.textItem.size) * factor * 0.3)
+        layer.textItem.baselineShift = (old_size * 0.3) - (font_size * 0.3)
 
     # Fix corrected reference layer
-    if ref_empty:
-        # Reset reference
-        reference.textItem.contents = ''
+    if ref_TI:
+        ref_TI.contents = ''
 
 
-def scale_text_to_fit_textbox(layer: ArtLayer) -> None:
-    """
-    Check if the text in a TextLayer exceeds its bounding box.
-    @param layer: ArtLayer with "kind" of TextLayer.
-    """
-    if layer.kind != LayerKind.TextLayer:
-        return
-
-    # Get the starting font size
-    font_size = get_font_size(layer)
-    ref_width = get_textbox_dimensions(layer)['width'] + 1
-    step = 0.1
-
-    # Continue to reduce the size until within the bounding box
-    while get_dimensions_no_effects(layer)['width'] > ref_width:
-        font_size -= step
-        set_text_size(layer, font_size)
-        set_text_leading(layer, font_size)
-
-
-def scale_text_to_fit_reference(
+def scale_text_to_width(
     layer: ArtLayer,
-    ref: Union[ArtLayer, int, float],
-    spacing: Optional[int] = None,
-    height: bool = True,
-    step: float = 0.4
-) -> None:
-    """
-    Resize a given text layer's font size/leading until it fits inside a reference layer.
-    @param layer: Text layer to scale.
-    @param ref: Reference layer the text should fit inside.
-    @param spacing: [Optional] Amount of mandatory spacing at the bottom of text layer.
-    @param height: Fit according to height if true, otherwise fit according to width.
-    @param step: Amount to step font size down by in each check.
-    """
-    # Establish the dimension to use
-    dim = 'height' if height else 'width'
+    width: int,
+    spacing: int = 64,
+    step: float = 0.4,
+    font_size: Optional[float] = None
+) -> Optional[float]:
+    """Resize a given text layer's font size/leading until it fits inside a reference width.
 
-    # Establish reference dimension
-    if isinstance(ref, int) or isinstance(ref, float):
-        # Fixed number
-        ref_dim = ref
-    elif isinstance(ref, ArtLayer):
-        # UReference layer dimension
-        ref_dim = get_layer_dimensions(ref)[dim] - (spacing or app.scale_by_dpi(64))
-    else:
-        return
+    Args:
+        layer: Text layer to scale.
+        width: Width the text layer must fit (after spacing added).
+        spacing: Amount of DPI adjusted spacing to pad the width.
+        step: Amount to step font size down by in each check.
+        font_size: The starting font size if pre-calculated.
 
+    Returns:
+        Font size if font size is calculated during operation, otherwise None.
+    """
     # Cancel if we're already within expected bounds
-    continue_scaling = bool(ref_dim < get_text_layer_dimensions(layer)[dim])
+    width = width - APP.scale_by_dpi(spacing)
+    continue_scaling = bool(width < get_layer_width(layer))
     if not continue_scaling:
         return
 
     # Establish starting size and half step
-    # TODO: Comprehensive way to clean resized text layers so we can eliminate scale factor
-    font_size = get_font_size(layer)
+    if font_size is None:
+        font_size = get_font_size(layer)
     half_step = step / 2
 
     # Step down font and lead sizes by the step size, and update those sizes in the layer
     while continue_scaling:
         font_size -= step
-        set_text_size(layer, font_size)
-        set_text_leading(layer, font_size)
-        continue_scaling = bool(ref_dim < get_text_layer_dimensions(layer)[dim])
+        set_text_size_and_leading(layer, font_size, font_size)
+        continue_scaling = bool(width < get_layer_width(layer))
 
     # Increase by a half step
     font_size += half_step
-    set_text_size(layer, font_size)
-    set_text_leading(layer, font_size)
+    set_text_size_and_leading(layer, font_size, font_size)
 
     # Revert if half step still exceeds reference
-    if ref_dim < get_text_layer_dimensions(layer)[dim]:
+    if width < get_layer_width(layer):
         font_size -= half_step
-        set_text_size(layer, font_size)
-        set_text_leading(layer, font_size)
+        set_text_size_and_leading(layer, font_size, font_size)
+    return font_size
 
 
-def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int, float]) -> None:
+def scale_text_to_height(
+    layer: ArtLayer,
+    height: int,
+    spacing: int = 64,
+    step: float = 0.4,
+    font_size: Optional[float] = None
+) -> Optional[float]:
+    """Resize a given text layer's font size/leading until it fits inside a reference width.
+
+    Args:
+        layer: Text layer to scale.
+        height: Width the text layer must fit (after spacing added).
+        spacing: Amount of DPI adjusted spacing to pad the height.
+        step: Amount to step font size down by in each check.
+        font_size: The starting font size if pre-calculated.
+
+    Returns:
+        Font size if font size is calculated during operation, otherwise None.
     """
-    Scale multiple text layers until they all can fit within the same given height dimension.
-    @param text_layers: List of TextLayers to check.
-    @param ref_height: Height to fit inside.
+    # Cancel if we're already within expected bounds
+    height = height - APP.scale_by_dpi(spacing)
+    continue_scaling = bool(height < get_layer_height(layer))
+    if not continue_scaling:
+        return
+
+    # Establish starting size and half step
+    if font_size is None:
+        font_size = get_font_size(layer)
+    half_step = step / 2
+
+    # Step down font and lead sizes by the step size, and update those sizes in the layer
+    while continue_scaling:
+        font_size -= step
+        set_text_size_and_leading(layer, font_size, font_size)
+        continue_scaling = bool(height < get_layer_height(layer))
+
+    # Increase by a half step
+    font_size += half_step
+    set_text_size_and_leading(layer, font_size, font_size)
+
+    # Revert if half step still exceeds reference
+    if height < get_layer_height(layer):
+        font_size -= half_step
+        set_text_size_and_leading(layer, font_size, font_size)
+    return font_size
+
+
+def scale_text_to_width_textbox(
+    layer: ArtLayer,
+    font_size: Optional[float] = None,
+    step: float = 0.1
+) -> None:
+    """Check if the text in a TextLayer exceeds its bounding box.
+
+    Args:
+        layer: ArtLayer with "kind" of TextLayer.
+        font_size: Starting font size, calculated if not provided (slower execution time).
+        step: Amount of points to step down each iteration.
+    """
+    # Get the starting font size
+    if font_size is None:
+        font_size = get_font_size(layer)
+    ref = get_textbox_width(layer) + 1
+
+    # Continue to reduce the size until within the bounding box
+    while get_width_no_effects(layer) > ref:
+        font_size -= step
+        set_text_size_and_leading(layer, font_size, font_size)
+
+
+def scale_text_layers_to_fit(
+    text_layers: list[ArtLayer],
+    ref_height: Union[int, float],
+    font_size: Optional[float] = None,
+    step: float = 0.4
+) -> None:
+    """Scale multiple text layers until they all can fit within the same given height dimension.
+
+    Args:
+        text_layers: List of TextLayers to check.
+        ref_height: Height to fit inside.
+        font_size: Starting font size of the text layers, calculated if not provided.
+        step: Points to step down the text layers to fit.
     """
     # Heights
-    font_size = text_layers[0].textItem.size * get_text_scale_factor(text_layers[0])
-    step = 0.40
-    half_step = 0.20
-    total_layer_height = sum([get_text_layer_dimensions(layer)["height"] for layer in text_layers])
+    half_step = step / 2
+    if font_size is None:
+        font_size = get_font_size(text_layers[0])
+    total_layer_height = sum([get_layer_height(layer) for layer in text_layers])
 
     # Skip if the size is already fine
     if total_layer_height <= ref_height:
@@ -587,37 +471,21 @@ def scale_text_layers_to_fit(text_layers: list[ArtLayer], ref_height: Union[int,
         total_layer_height = 0
         font_size -= step
         for i, layer in enumerate(text_layers):
-            set_text_size(layer, font_size)
-            set_text_leading(layer, font_size)
-            total_layer_height += get_text_layer_dimensions(layer)["height"]
+            set_text_size_and_leading(layer, font_size, font_size)
+            total_layer_height += get_layer_height(layer)
 
-    # Check half_step
+    # Increase by a half step
     font_size += half_step
     total_layer_height = 0
     for i, layer in enumerate(text_layers):
-        set_text_size(layer, font_size)
-        set_text_leading(layer, font_size)
-        total_layer_height += get_text_layer_dimensions(layer)["height"]
+        set_text_size_and_leading(layer, font_size, font_size)
+        total_layer_height += get_layer_height(layer)
 
-    # Compare height of all 3 elements vs total reference height
+    # If out of bounds, revert half step
     if total_layer_height > ref_height:
         font_size -= half_step
         for i, layer in enumerate(text_layers):
-            set_text_size(layer, font_size)
-            set_text_leading(layer, font_size)
-
-
-def vertically_align_text(layer: ArtLayer, reference_layer: ArtLayer) -> None:
-    """
-    Centers a given text layer vertically with respect to the bounding box of a reference layer.
-    @param layer: TextLayer to vertically center.
-    @param reference_layer: Reference layer to center within.
-    """
-    ref_height = get_layer_dimensions(reference_layer)['height']
-    lay_height = get_text_layer_dimensions(layer)['height']
-    bound_delta = reference_layer.bounds[1] - layer.bounds[1]
-    height_delta = ref_height - lay_height
-    layer.translate(0, bound_delta + height_delta / 2)
+            set_text_size_and_leading(layer, font_size, font_size)
 
 
 def check_for_text_overlap(
@@ -625,20 +493,25 @@ def check_for_text_overlap(
     adj_reference: ArtLayer,
     top_reference: ArtLayer
 ) -> Union[int, float]:
+    """Check if text layer overlaps another layer.
+
+    Args:
+        text_layer: Text layer to check.
+        adj_reference: Box marking where the text is overlapping.
+        top_reference: Box marking where the text is cleared.
+
+    Returns:
+        How much the layer must be moved to compensate.
     """
-    Check if text layer overlaps another layer.
-    @param text_layer: Text layer to check.
-    @param adj_reference: Box marking where the text is overlapping.
-    @param top_reference: Box marking where the text is cleared.
-    @return: How much the layer must be moved to compensate.
-    """
+    docref = APP.activeDocument
+    docsel = docref.selection
     layer_copy = text_layer.duplicate()
     layer_copy.rasterize(RasterizeType.TextContents)
-    app.activeDocument.activeLayer = layer_copy
-    select_layer_bounds(adj_reference)
-    app.activeDocument.selection.invert()
-    app.activeDocument.selection.clear()
-    app.activeDocument.selection.deselect()
+    docref.activeLayer = layer_copy
+    select_layer_bounds(adj_reference, docsel)
+    docsel.invert()
+    docsel.clear()
+    docsel.deselect()
 
     # Determine how much the rules text overlaps loyalty box
     dif = top_reference.bounds[3] - layer_copy.bounds[3]
@@ -648,17 +521,24 @@ def check_for_text_overlap(
 
 def vertically_nudge_creature_text(
     layer: ArtLayer,
-    reference_layer: ArtLayer,
-    top_reference_layer: ArtLayer
+    adj_reference: ArtLayer,
+    top_reference: ArtLayer
 ) -> int:
-    """
-    Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
+    """Vertically nudge a creature's text layer if it overlaps with the power/toughness box,
     determined by the given reference layers.
+
+    Args:
+        layer: Layer to vertically nudge.
+        adj_reference: Box marking where the text is overlapping.
+        top_reference: Box marking where the text is cleared.
+
+    Returns:
+        How much the layer must be moved to compensate.
     """
     # Is the layer even close?
-    if layer.bounds[2] >= reference_layer.bounds[0]:
+    if layer.bounds[2] >= adj_reference.bounds[0]:
         # does the layer overlap?
-        delta = check_for_text_overlap(layer, reference_layer, top_reference_layer)
+        delta = check_for_text_overlap(layer, adj_reference, top_reference)
         if delta < 0:
             layer.translate(0, delta)
 
@@ -669,40 +549,46 @@ def vertically_nudge_creature_text(
 
 def vertically_nudge_pw_text(
     text_layers: list[ArtLayer],
-    ref: ArtLayer,
-    adj_reference: Optional[ArtLayer],
-    top_reference: Optional[ArtLayer],
+    ref: ReferenceLayer,
+    adj_ref: Optional[ArtLayer],
+    top_ref: Optional[ArtLayer],
     space: Union[int, float],
-    uniform_gap: bool = False
+    uniform_gap: bool = False,
+    font_size: Optional[float] = None,
+    step: float = 0.2
 ) -> None:
-    """
-    Shift or resize planeswalker text to prevent overlap with the loyalty shield.
+    """Shift or resize planeswalker text to prevent overlap with the loyalty shield.
+
+    Args:
+        text_layers: Ability text layers to nudge or resize.
+        ref: Reference area ability text layers must fit inside.
+        adj_ref: Box marking where the text is overlapping.
+        top_ref: Box marking where the text is cleared.
+        space: Minimum space between planeswalker abilities.
+        uniform_gap: Whether the gap between abilities should be the same between each ability.
+        font_size: The current font size of the text layers, if known. Otherwise, calculate automatically.
+        step: The amount of font size and leading to step down each iteration.
     """
     # Return if adjustments weren't provided
-    if not adj_reference or not top_reference:
+    if not adj_ref or not top_ref:
         return
 
-    # Layer references
+    # Establish fresh data
+    if font_size is None:
+        font_size = get_font_size(text_layers[0])
     layers = text_layers.copy()
-    bottom = layers[-1]
     movable = len(layers)-1
 
-    # Additional references
-    ref_height = get_layer_dimensions(ref)['height']
-    font_size = text_layers[0].textItem.size * get_text_scale_factor(text_layers[0])
-
     # Calculate inside gap
-    total_space = ref_height - sum(
-        [get_text_layer_dimensions(layer)['height'] for layer in text_layers]
-    )
+    total_space = ref.dims['height'] - sum([get_layer_height(layer) for layer in text_layers])
     if not uniform_gap:
         inside_gap = ((total_space - space) - (ref.bounds[3] - layers[-1].bounds[1])) / movable
     else:
         inside_gap = total_space / (len(layers) + 1)
     leftover = (inside_gap - space) * movable
 
-    # Does the layer overlap with the loyalty box?
-    delta = check_for_text_overlap(bottom, adj_reference, top_reference)
+    # Does the bottom layer overlap with the loyalty box?
+    delta = check_for_text_overlap(layers[-1], adj_ref, top_ref)
     if delta > 0:
         return
 
@@ -721,37 +607,23 @@ def vertically_nudge_pw_text(
         return
 
     # Layer gap would be too small, need to resize text then shift upward
+    font_size = font_size - step
     for lyr in text_layers:
-        set_text_size(lyr, font_size - 0.2)
-        set_text_leading(lyr, font_size - 0.2)
+        set_text_size_and_leading(lyr, font_size, font_size)
 
     # Space apart planeswalker text evenly
-    spread_layers_over_reference(text_layers, ref, space if not uniform_gap else None, outside_matching=False)
+    spread_layers_over_reference(
+        layers=text_layers,
+        ref=ref,
+        gap=space if not uniform_gap else None,
+        outside_matching=False)
 
     # Check for another iteration
-    vertically_nudge_pw_text(text_layers, ref, adj_reference, top_reference, space, uniform_gap)
-
-
-"""
-PARAGRAPH FORMATTING
-"""
-
-
-def space_after_paragraph(space: Union[int, float]) -> None:
-    """
-    Set the space after paragraph value.
-    @param space: Space after paragraph
-    """
-    desc1 = ActionDescriptor()
-    ref1 = ActionReference()
-    deesc2 = ActionDescriptor()
-    ref1.PutProperty(sID("property"), sID("paragraphStyle"))
-    ref1.PutEnumerated(sID("textLayer"), sID("ordinal"), sID("targetEnum"))
-    desc1.PutReference(sID("target"),  ref1)
-    deesc2.PutInteger(sID("textOverrideFeatureName"),  808464438)
-    deesc2.PutUnitDouble(sID("spaceAfter"), sID("pointsUnit"),  space)
-    desc1.PutObject(sID("to"), sID("paragraphStyle"),  deesc2)
-    app.ExecuteAction(sID("set"), desc1, NO_DIALOG)
-
-
-symbol_map = SymbolMapper()
+    vertically_nudge_pw_text(
+        text_layers=text_layers,
+        ref=ref,
+        adj_ref=adj_ref,
+        top_ref=top_ref,
+        space=space,
+        uniform_gap=uniform_gap,
+        font_size=font_size)

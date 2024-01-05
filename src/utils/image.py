@@ -1,29 +1,39 @@
 """
-IMAGE UTILITIES
+* Utils: Images
 """
 # Standard Library Imports
-from os import path as osp
 from pathlib import Path
 
 # Third Party Imports
 from PIL import Image
 from PIL.Image import Resampling
 
+"""
+* Util Funcs
+"""
 
-def downscale_image(path: str, **kwargs) -> None:
-    """
-    Downscale an image to max width of MAX_WIDTH.
-    @param path: Path to the image.
-    @keyword width (int): Maximum width, default: 3264
-    @keyword optimize (bool): Whether to use Pillow optimize, default: True
-    @keyword quality (int): JPEG quality, 1-100, default: 3264
-    @keyword resample (Resampling): Resampling algorithm, default: LANCZOS
+
+def downscale_image(path: Path, **kwargs) -> bool:
+    """Downscale an image to max width of MAX_WIDTH.
+
+    Args:
+        path: Path to the image.
+
+    Keyword Args:
+        width (int): Maximum width, default: 3264
+        optimize (bool): Whether to use Pillow optimize, default: True
+        quality (int): JPEG quality, 1-100, default: 3264
+        resample (Resampling): Resampling algorithm, default: LANCZOS
+
+    Returns:
+        True if successful, otherwise False.
     """
     # Establish our source and destination directories
-    path_out = osp.join(osp.dirname(path), 'compressed')
-    Path(path_out).mkdir(mode=711, parents=True, exist_ok=True)
-    file_name = kwargs.get('name', osp.basename(osp.splitext(path)[0]))
-    save_path = osp.join(path_out, f"{file_name}.jpg")
+    path_out = Path(path.parent, 'compressed')
+    path_out.mkdir(mode=777, parents=True, exist_ok=True)
+    save_path = Path(
+        path_out, kwargs.get('name', path.name)
+    ).with_suffix('.jpg')
 
     # Establish our optional parameters
     max_width = kwargs.get('max_width', 3264)
@@ -33,6 +43,9 @@ def downscale_image(path: str, **kwargs) -> None:
     # Open the image, get dimensions
     with Image.open(path) as image:
 
+        # Convert to RGB
+        image.convert('RGB')
+
         # Calculate dimensions
         width, height = image.size
         if width > max_width:
@@ -41,8 +54,12 @@ def downscale_image(path: str, **kwargs) -> None:
                 resample=kwargs.get('resample', Resampling.LANCZOS))
 
         # Save the new image
-        image.save(
-            fp=save_path,
-            format='JPEG',
-            quality=quality,
-            optimize=optimize)
+        try:
+            image.save(
+                fp=save_path,
+                format='JPEG',
+                quality=quality,
+                optimize=optimize)
+        except OSError:
+            return False
+        return True

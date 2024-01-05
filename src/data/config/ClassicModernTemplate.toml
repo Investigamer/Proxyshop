@@ -1,0 +1,11 @@
+[FRAME]
+title = "Frame Options"
+
+[FRAME."Crown.Mode"]
+title = "Legendary Crown Mode"
+desc = """Governs the styling of the Legendary Crown. Pinlines mode uses solid color matched to pinlines.
+Texture Pinlines uses a background texture matched to pinlines.
+Texture Background uses background texture matched to background."""
+type = "options"
+default = "Pinlines"
+options = ["Pinlines", "Texture Pinlines", "Texture Background"]

@@ -1,0 +1,9 @@
+[FRAME]
+title = "Frame Options"
+
+[FRAME.Accent]
+title = "Accent Colors"
+desc = """Choose whether to use Silver or Bronze accents!"""
+type = "options"
+default = "Silver"
+options = ["Silver", "Bronze"]

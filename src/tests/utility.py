@@ -1,11 +1,11 @@
 """
-TESTING UTILITY
-For contributors and plugin development.
+* General Testing Utility
+* For contributors and plugin development.
 """
 # Standard Library Imports
 from contextlib import suppress
 from collections.abc import Iterable
-from pprint import pprint
+from pathlib import Path
 from typing import Optional, Union
 from _ctypes import COMError
 from os import path as osp, environ
@@ -14,17 +14,9 @@ import warnings
 import logging
 import json
 import csv
-
 import xml.dom.minidom
 
-from src.enums.layers import LAYERS
-
-# Use this to force a working directory if IDE doesn't support it
-# os.chdir(os.path.abspath(os.path.join(os.getcwd(), '..', '..')))
-environ['HEADLESS'] = "True"
-
 # Third Party Imports
-from psd_tools import PSDImage
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._document import Document
@@ -33,34 +25,27 @@ from photoshop.api import (
     ActionDescriptor,
     ActionReference,
     ElementPlacement,
-    ActionList,
     DialogModes,
-    LayerKind,
-    SaveOptions
+    LayerKind
 )
 from psd_tools.constants import Resource
 from psd_tools import PSDImage
 from psd_tools.psd.image_resources import ImageResource
 import xml.etree.ElementTree as ET
-from pprint import pprint
+environ['HEADLESS'] = "True"
 
 # Local Imports
+from src import APP, PATH
 from src.helpers.layers import getLayer, getLayerSet, merge_layers, select_layer_bounds, select_bounds
-from src.helpers.text import get_text_scale_factor, get_text_key, apply_text_key
-from src.helpers.document import points_to_pixels
-from src.types.adobe import LayerObject, LayerContainer
+from src.helpers.text import get_text_key, apply_text_key
+from src.enums.adobe import LayerObject, LayerContainer
 from src.utils.exceptions import PS_EXCEPTIONS
-from src.utils.objects import PhotoshopHandler
 from src.helpers.masks import copy_layer_mask
 from src.helpers import get_layer_dimensions, get_color
-from src.core import get_templates
-from src.constants import con
 from src.utils.testing import time_function
 
 # Photoshop infrastructure
-app: PhotoshopHandler = con.app
-cID = app.charIDtoTypeID
-sID = app.stringIDtoTypeID
+cID, sID = APP.charIDtoTypeID, APP.stringIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
 # Reference Box colors
@@ -72,7 +57,7 @@ BLACK = [0, 0, 0]
 
 
 """
-TEMPLATE TESTING UTILITIES
+* Template Design Testing
 """
 
 
@@ -98,9 +83,9 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
 
 
 def make_duals(
-    name: str = "Pinlines & Textbox",
-    mask_top: Optional[str] = "MASK",
-    mask_bottom: Optional[str] = None
+        name: str = "Pinlines & Textbox",
+        mask_top: Optional[str] = "MASK",
+        mask_bottom: Optional[str] = None
 ):
     """
     Creates dual color layers for a given group.
@@ -135,9 +120,9 @@ def make_duals(
 
 
 def create_blended_layer(
-    colors: Union[str, list[str]],
-    group: LayerSet,
-    masks: Union[None, ArtLayer, list[ArtLayer]] = None
+        colors: Union[str, list[str]],
+        group: LayerSet,
+        masks: Union[None, ArtLayer, list[ArtLayer]] = None
 ):
     """
     Create a multicolor layer using a gradient mask.
@@ -160,15 +145,15 @@ def create_blended_layer(
 
         # Position the new layer and add a mask to previous, if previous layer exists
         if layers:
-            layer.move(layers[i-1], ElementPlacement.PlaceAfter)
-            copy_layer_mask(masks[i-1], layers[i-1])
+            layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
+            copy_layer_mask(masks[i - 1], layers[i - 1])
 
         # Add to the layer list
         layers.append(layer)
 
 
 """
-ACTION DESCRIPTOR/GETTER HELPERS
+* Action Descriptor Getters
 """
 
 
@@ -239,7 +224,7 @@ def get_action_items(desc) -> dict:
         count = 0
     for i in range(count):
         type_id: int = desc.getKey(i)
-        string_id: str = app.typeIDToStringID(type_id)
+        string_id: str = APP.typeIDToStringID(type_id)
         if desc.hasKey(type_id):
             try:
                 result = get_action_items(desc.getObjectValue(type_id))
@@ -265,7 +250,7 @@ def dump_layer_action_descriptors(layer: ArtLayer, path: str) -> dict:
     # Get the layer descriptor
     reference = ActionReference()
     reference.putIdentifier(sID('layer'), layer.id)
-    descriptor = app.executeActionGet(reference)
+    descriptor = APP.executeActionGet(reference)
 
     # Generate a dict of all descriptors
     actions = get_action_items(descriptor)
@@ -277,40 +262,7 @@ def dump_layer_action_descriptors(layer: ArtLayer, path: str) -> dict:
 
 
 """
-TEXTBOX HELPERS
-"""
-
-
-def get_textbox_bounds_alternate(layer: ArtLayer) -> list[int]:
-    """
-    Get the bounds of a TextLayer's bounding box, slower than the original function.
-    Will likely remove in the future, but has some potentially useful insights.
-    @param layer: ArtLayer with "kind" of TextLayer.
-    @return: List of left, top, right, bottom points of the box.
-    """
-    # Establish the textKey descriptor
-    text_key = get_text_key(layer)
-
-    # Establish the X and Y coordinates of the box
-    x_scale, y_scale = get_text_scale_factor(text_key=text_key, axis=['xx', 'yy'])
-    click_point = text_key.getObject(sID('textClickPoint'))
-    x_pos = click_point.getUnitDoubleValue(sID('horizontal')) * x_scale
-    y_pos = click_point.getUnitDoubleValue(sID('vertical')) * y_scale
-
-    # Establish the bounds of the box
-    shape = text_key.getList(sID('textShape')).getObjectValue(0)
-    bounds = shape.getObjectValue(sID('bounds'))
-
-    return [
-        int(points_to_pixels((bounds.getUnitDoubleValue(sID('left')) * x_scale) + x_pos)),
-        int(points_to_pixels((bounds.getUnitDoubleValue(sID('top')) * y_scale) + y_pos)),
-        int(points_to_pixels((bounds.getUnitDoubleValue(sID('right')) * x_scale) + x_pos)),
-        int(points_to_pixels((bounds.getUnitDoubleValue(sID('bottom')) * y_scale) + y_pos))
-    ]
-
-
-"""
-DICT HELPERS
+* Dict Utilities
 """
 
 
@@ -331,7 +283,7 @@ def get_differing_dict(d1: dict, d2: dict):
 
 
 """
-TEXT FUNCTIONS
+* Text Utilities
 """
 
 
@@ -349,7 +301,7 @@ def apply_single_line_composer(layer: ArtLayer) -> None:
     desc2.PutInteger(sID("textOverrideFeatureName"), 808464691)
     desc2.PutBoolean(sID("textEveryLineComposer"), False)
     desc1.PutObject(sID("to"), sID("paragraphStyle"), desc2)
-    app.Executeaction(sID("set"), desc1, NO_DIALOG)
+    APP.Executeaction(sID("set"), desc1, NO_DIALOG)
 
 
 def combine_text_items(from_layer: ArtLayer, to_layer: ArtLayer, sep: Optional[str] = " "):
@@ -414,37 +366,37 @@ def reset_transform_factor(layer: ArtLayer) -> None:
 
 
 """
-XMP UTILS
+* XMP Utilities
 """
 
 
 def xmp_remove_ancestors() -> None:
     """Remove DocumentAncestors property from XMP data."""
-    if not app.documents:
+    if not APP.documents:
         # No documents open
-        app.alert("There are no open documents. Please open a file to run this script.")
+        APP.alert("There are no open documents. Please open a file to run this script.")
         return
 
     # XMP data
-    app.eval_javascript('''
+    APP.eval_javascript('''
         if (ExternalObject.AdobeXMPScript == undefined) {
           ExternalObject.AdobeXMPScript = new ExternalObject("lib:AdobeXMPScript");
         }
         var xmp = new XMPMeta( activeDocument.xmpMetadata.rawData);  
         xmp.deleteProperty(XMPConst.NS_PHOTOSHOP, "DocumentAncestors");
-        app.activeDocument.xmpMetadata.rawData = xmp.serialize();
+        APP.activeDocument.xmpMetadata.rawData = xmp.serialize();
     ''')
 
 
 """
-VECTOR SHAPE UTILS
+* Vector Shape Utilities
 """
 
 
 def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     layer_name = layer.name
     color = get_color(color)
-    app.activeDocument.activeLayer = layer
+    APP.activeDocument.activeLayer = layer
     select_layer_bounds()
 
     desc1 = ActionDescriptor()
@@ -455,7 +407,7 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     ref2.putProperty(sID("selectionClass"), sID("selection"))
     desc1.putReference(sID("from"), ref2)
     desc1.putUnitDouble(sID("tolerance"), sID("pixelsUnit"), 2.000000)
-    app.executeaction(sID("make"), desc1, NO_DIALOG)
+    APP.executeaction(sID("make"), desc1, NO_DIALOG)
 
     ref1 = ActionReference()
     desc1 = ActionDescriptor()
@@ -463,20 +415,20 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
     desc3 = ActionDescriptor()
     desc4 = ActionDescriptor()
     ref1.putClass(sID("contentLayer"))
-    desc1.putReference(sID("target"),  ref1)
+    desc1.putReference(sID("target"), ref1)
     desc4.putDouble(sID("red"), color.rgb.red)
     desc4.putDouble(sID("green"), color.rgb.green)
     desc4.putDouble(sID("blue"), color.rgb.blue)
-    desc3.putObject(sID("color"), sID("RGBColor"),  desc4)
-    desc2.putObject(sID("type"), sID("solidColorLayer"),  desc3)
-    desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
-    app.executeaction(sID("make"), desc1,  NO_DIALOG)
-    app.activeDocument.activeLayer.name = layer_name
+    desc3.putObject(sID("color"), sID("RGBColor"), desc4)
+    desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
+    desc1.putObject(sID("using"), sID("contentLayer"), desc2)
+    APP.executeaction(sID("make"), desc1, NO_DIALOG)
+    APP.activeDocument.activeLayer.name = layer_name
 
     # Check dims
     dims = get_layer_dimensions(layer)
     dims = (dims['width'], dims['height'])
-    new_dims = get_layer_dimensions(app.activeDocument.activeLayer)
+    new_dims = get_layer_dimensions(APP.activeDocument.activeLayer)
     new_dims = (new_dims['width'], new_dims['height'])
     if not dims == new_dims:
         print("DIMS CHANGED:", layer_name)
@@ -484,12 +436,12 @@ def create_color_shape(layer: ArtLayer, color: list) -> ArtLayer:
         print("After:", new_dims)
 
     layer.remove()
-    app.activeDocument.activeLayer.visible = False
-    return app.activeDocument.activeLayer
+    APP.activeDocument.activeLayer.visible = False
+    return APP.activeDocument.activeLayer
 
 
 """
-FONT UTILS
+* Font Utilities
 """
 
 
@@ -526,7 +478,6 @@ def log_all_template_fonts() -> dict:
     # Check each document
     logging.basicConfig(level=logging.INFO)
     for psd_file, temp_name in docs.items():
-
         # Alert the user
         logging.info(f"READING FONTS — {temp_name} [{osp.basename(psd_file)}] [{current}/{total}]")
         current += 1
@@ -547,7 +498,7 @@ def log_all_template_fonts() -> dict:
 
 
 """
-MASK EXPERIMENTS
+* Mask Experiments
 """
 
 
@@ -558,7 +509,7 @@ def enter_mask_channel(make_visible: bool = True):
     r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
     d1.PutReference(sID("target"), r1)
     d1.PutBoolean(sID("makeVisible"), make_visible)
-    app.Executeaction(sID("select"), d1, NO_DIALOG)
+    APP.Executeaction(sID("select"), d1, NO_DIALOG)
 
 
 def enter_rgb_channel(make_visible: bool = True):
@@ -568,32 +519,32 @@ def enter_rgb_channel(make_visible: bool = True):
     r1.PutEnumerated(sID("channel"), sID("channel"), sID("RGB"))
     d1.PutReference(sID("target"), r1)
     d1.PutBoolean(sID("makeVisible"), make_visible)
-    app.Executeaction(sID("select"), d1, NO_DIALOG)
+    APP.Executeaction(sID("select"), d1, NO_DIALOG)
 
 
 def create_mask(layer: Optional[ArtLayer] = None):
     """Add a mask to provided or active layer."""
     if layer:
-        app.activeDocument.activeLayer = layer
+        APP.activeDocument.activeLayer = layer
     d1 = ActionDescriptor()
     r1 = ActionReference()
     d1.PutClass(sID("new"), sID("channel"))
     r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
     d1.PutReference(sID("at"), r1)
     d1.PutEnumerated(sID("using"), sID("userMaskEnabled"), sID("revealAll"))
-    app.Executeaction(sID("make"), d1, NO_DIALOG)
+    APP.Executeaction(sID("make"), d1, NO_DIALOG)
 
 
 def paste_to_document():
     desc1 = ActionDescriptor()
     desc1.PutEnumerated(sID("antiAlias"), sID("antiAliasType"), sID("antiAliasNone"))
     desc1.PutClass(sID("as"), sID("pixel"))
-    app.Executeaction(sID("paste"), desc1,  NO_DIALOG)
+    APP.Executeaction(sID("paste"), desc1, NO_DIALOG)
 
 
 def select_canvas(doc: Document = None):
     """Select the entire canvas of a provided or active document."""
-    doc = doc or app.activeDocument
+    doc = doc or APP.activeDocument
     doc.selection.select([
         [0, 0],
         [doc.width, 0],
@@ -604,7 +555,7 @@ def select_canvas(doc: Document = None):
 
 def copy_to_mask():
     # Select canvas and copy
-    docref = app.activeDocument
+    docref = APP.activeDocument
     select_canvas(docref)
     docref.selection.copy()
     docref.selection.deselect()
@@ -614,7 +565,7 @@ def copy_to_mask():
     enter_mask_channel()
 
     # Paste the gradient and switch back to RGB channel
-    app.activeDocument.paste()
+    APP.activeDocument.paste()
     enter_rgb_channel()
 
 
@@ -689,7 +640,7 @@ def get_data_set_variables(
         f'{format_data_set_variable_name(group.name)}.' if group else '')
 
     # Establish group or top level document container
-    group = group or app.activeDocument
+    group = group or APP.activeDocument
     layer_vars: list[dict[str, str]] = []
 
     # Add layer variables
@@ -777,7 +728,7 @@ def import_data_set(path: str) -> None:
     desc.putEnumerated(sID("encoding"), sID("dataSetEncoding"), sID("dataSetEncodingAuto"))
     desc.putBoolean(sID("eraseAll"), True)
     desc.putBoolean(sID("useFirstColumn"), True)
-    app.executeAction(sID("importDataSets"), desc, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("importDataSets"), desc, DialogModes.DisplayNoDialogs)
 
 
 def apply_data_set(data_set_name: str) -> None:
@@ -789,7 +740,7 @@ def apply_data_set(data_set_name: str) -> None:
     setRef = ActionReference()
     setRef.putName(sID("dataSetClass"), data_set_name)
     desc.putReference(sID("null"), setRef)
-    app.executeAction(sID("apply"), desc, DialogModes.DisplayNoDialogs)
+    APP.executeAction(sID("apply"), desc, DialogModes.DisplayNoDialogs)
 
 
 """
@@ -807,7 +758,7 @@ def select_overlapping(layer: ArtLayer) -> None:
         desc1.putReference(sID("target"), ref1)
         ref2.putProperty(sID("channel"), sID("selection"))
         desc1.putReference(sID("with"), ref2)
-        app.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
+        APP.executeAction(sID("interfaceIconFrameDimmed"), desc1, NO_DIALOG)
 
 
 def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[int, float]]:
@@ -816,7 +767,7 @@ def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[
     @param selection: Selection object to test, otherwise use current selection of active document.
     @return: An empty list if selection is invalid, otherwise return bounds of selection.
     """
-    selection = selection or app.activeDocument.selection
+    selection = selection or APP.activeDocument.selection
     with suppress(PS_EXCEPTIONS):
         print(selection.bounds)
         if any(selection.bounds):
@@ -826,8 +777,8 @@ def check_selection_bounds(selection: Optional[Selection] = None) -> list[Union[
 
 @time_function
 def clear_reference_vertical(
-    layer: Optional[ArtLayer] = None,
-    reference: Union[ArtLayer, list[Union[int, float]], None] = None
+        layer: Optional[ArtLayer] = None,
+        reference: Union[ArtLayer, list[Union[int, float]], None] = None
 ) -> Union[int, float]:
     """
     Nudges a layer clear vertically of a given reference layer or area.
@@ -836,7 +787,7 @@ def clear_reference_vertical(
     @return: The number of pixels layer was translated by (negative or positive indicating direction).
     """
     # Use active layer if not provided
-    docref = app.activeDocument
+    docref = APP.activeDocument
     layer = layer or docref.activeLayer
 
     # Use reference bounds if layer provided, or bounds provided, or active selection fallback
@@ -869,9 +820,9 @@ def new_clear_ref_methodology():
 """
 
 
-def convert_json_config_to_toml():
+def convert_json_config_to_toml(filename: str):
     # Import JSON render tests
-    with open(osp.join(con.path_data, 'base_settings.json'), 'r', encoding='utf-8') as f:
+    with open(Path(PATH.SRC_DATA, filename), 'r', encoding='utf-8') as f:
         obj = json.load(f)
 
     # Create a new TOML document
@@ -885,7 +836,7 @@ def convert_json_config_to_toml():
             continue
 
         # Add section and title if needed
-        section = sec['section'].split('.')[1]
+        section = sec['section']
         if section != header:
             header = section
             doc[header] = tomlkit.table()
@@ -903,5 +854,5 @@ def convert_json_config_to_toml():
             doc[header][sec['key']].append('options', options)
 
     # Export render tests as TOML
-    with open(osp.join(con.path_data, 'configs/config_base.toml'), 'w', encoding='utf-8') as f:
+    with open(Path(PATH.SRC_DATA, filename).with_suffix('.toml'), 'w', encoding='utf-8') as f:
         tomlkit.dump(doc, f)

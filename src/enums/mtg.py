@@ -1,11 +1,254 @@
 """
-* MTG Enums
+* Enums: MTG Related Data
 """
+# Standard Library Imports
+from typing import Union
+
+from src.utils.regex import Reg
+# Local Imports
+from src.utils.schema import DictSchema, Schema
 from src.utils.strings import StrEnum
 
 """
-ICONS
+* Card Layout Nomenclature
 """
+
+
+class LayoutCategory(StrEnum):
+    """Card layout category, broad naming used for displaying on GUI elements."""
+    Adventure = 'Adventure'
+    Battle = 'Battle'
+    Class = 'Class'
+    Ixalan = 'Ixalan'
+    Leveler = 'Leveler'
+    MDFC = 'MDFC'
+    Mutate = 'Mutate'
+    Normal = 'Normal'
+    Planar = 'Planar'
+    Planeswalker = 'Planeswalker'
+    PlaneswalkerMDFC = 'PW MDFC'
+    PlaneswalkerTransform = 'PW Transform'
+    Prototype = 'Prototype'
+    Saga = 'Saga'
+    Split = 'Split'
+    Token = 'Token'
+    Transform = 'Transform'
+
+
+class LayoutType(StrEnum):
+    """Card layout type, fine-grained naming separated by front/back where applicable."""
+    Adventure = 'adventure'
+    Battle = 'battle'
+    Class = 'class'
+    Ixalan = 'ixalan'
+    Leveler = 'leveler'
+    MDFCBack = 'mdfc_back'
+    MDFCFront = 'mdfc_front'
+    Mutate = 'mutate'
+    Normal = 'normal'
+    Planar = 'planar'
+    Planeswalker = 'planeswalker'
+    PlaneswalkerMDFCBack = 'pw_mdfc_back'
+    PlaneswalkerMDFCFront = 'pw_mdfc_front'
+    PlaneswalkerTransformBack = 'pw_tf_back'
+    PlaneswalkerTransformFront = 'pw_tf_front'
+    Prototype = 'prototype'
+    Saga = 'saga'
+    Split = 'split'
+    Token = 'token'
+    TransformBack = 'transform_back'
+    TransformFront = 'transform_front'
+
+
+class LayoutScryfall(StrEnum):
+    """Card layout type, according to Scryfall data."""
+    Normal = 'normal'
+    Split = 'split'
+    Flip = 'flip'
+    Transform = 'transform'
+    MDFC = 'modal_dfc'
+    Meld = 'meld'
+    Leveler = 'leveler'
+    Class = 'class'
+    Saga = 'saga'
+    Adventure = 'adventure'
+    Mutate = 'mutate'
+    Prototype = 'prototype'
+    Battle = 'battle'
+    Planar = 'planar'
+    Scheme = 'scheme'
+    Vanguard = 'vanguard'
+    Token = 'token'
+    DoubleFacedToken = 'double_faced_token'
+    Emblem = 'emblem'
+    Augment = 'augment'
+    Host = 'host'
+    ArtSeries = 'art_series'
+    ReversibleCard = 'reversible_card'
+
+    # Definitions added to Scryfall data in postprocessing
+    Planeswalker = 'planeswalker'
+    PlaneswalkerMDFC = 'planeswalker_mdfc'
+    PlaneswalkerTransform = 'planeswalker_tf'
+
+
+"""Maps Layout categories to a list of equivalent Layout types."""
+layout_map_category: dict[LayoutCategory, list[LayoutType]] = {
+    LayoutCategory.Normal: [LayoutType.Normal],
+    LayoutCategory.MDFC: [LayoutType.MDFCFront, LayoutType.MDFCBack],
+    LayoutCategory.Transform: [LayoutType.TransformFront, LayoutType.TransformBack],
+    LayoutCategory.Planeswalker: [LayoutType.Planeswalker],
+    LayoutCategory.PlaneswalkerMDFC: [LayoutType.PlaneswalkerMDFCFront, LayoutType.PlaneswalkerMDFCBack],
+    LayoutCategory.PlaneswalkerTransform: [LayoutType.PlaneswalkerTransformFront, LayoutType.PlaneswalkerTransformBack],
+    LayoutCategory.Saga: [LayoutType.Saga],
+    LayoutCategory.Class: [LayoutType.Class],
+    LayoutCategory.Ixalan: [LayoutType.Ixalan],
+    LayoutCategory.Mutate: [LayoutType.Mutate],
+    LayoutCategory.Prototype: [LayoutType.Prototype],
+    LayoutCategory.Adventure: [LayoutType.Adventure],
+    LayoutCategory.Leveler: [LayoutType.Leveler],
+    LayoutCategory.Split: [LayoutType.Split],
+    LayoutCategory.Battle: [LayoutType.Battle],
+    LayoutCategory.Token: [LayoutType.Token],
+    LayoutCategory.Planar: [LayoutType.Planar]
+}
+
+
+"""Maps Layout types to their equivalent Layout category."""
+layout_map_types = {
+    raw: named for named, raw in sum([
+        [(k, n) for n in names] for k, names in layout_map_category.items()
+    ], [])
+}
+
+
+"""Maps display formatted layout types to a singular layout type.."""
+layout_map_display_condition = {
+    f'{LayoutCategory.Transform} Front': LayoutType.TransformFront,
+    f'{LayoutCategory.Transform} Back': LayoutType.TransformBack,
+    f'{LayoutCategory.MDFC} Front': LayoutType.MDFCFront,
+    f'{LayoutCategory.MDFC} Back': LayoutType.MDFCBack,
+    f'{LayoutCategory.PlaneswalkerTransform} Front': LayoutType.PlaneswalkerTransformFront,
+    f'{LayoutCategory.PlaneswalkerTransform} Back': LayoutType.PlaneswalkerTransformBack,
+    f'{LayoutCategory.PlaneswalkerMDFC} Front': LayoutType.PlaneswalkerMDFCFront,
+    f'{LayoutCategory.PlaneswalkerMDFC} Back': LayoutType.PlaneswalkerMDFCBack
+}
+
+
+"""Maps display formatted layout types to a combined group of two layout types."""
+layout_map_display_condition_dual = {
+    LayoutCategory.Transform: [
+        LayoutType.TransformFront,
+        LayoutType.TransformBack],
+    LayoutCategory.MDFC: [
+        LayoutType.MDFCFront,
+        LayoutType.MDFCBack],
+    LayoutCategory.PlaneswalkerTransform: [
+        LayoutType.PlaneswalkerTransformFront,
+        LayoutType.PlaneswalkerTransformBack],
+    LayoutCategory.PlaneswalkerMDFC: [
+        LayoutType.PlaneswalkerMDFCFront,
+        LayoutType.PlaneswalkerMDFCBack],
+}
+
+
+"""Maps Layout types to a display formatted Layout category (with Back or Front)."""
+layout_map_types_display = {
+    raw: (
+        f'{named} Front' if 'front' in raw else (
+            f'{named} Back' if 'back' in raw else named)
+    ) for raw, named in layout_map_types.items()
+}
+
+
+"""
+* Symbol Libraries
+"""
+
+mana_symbol_map = {
+    "{W/P}": "Qp",
+    "{U/P}": "Qp",
+    "{B/P}": "Qp",
+    "{R/P}": "Qp",
+    "{G/P}": "Qp",
+    "{W/U/P}": "Qqyz",
+    "{U/B/P}": "Qqyz",
+    "{B/R/P}": "Qqyz",
+    "{R/G/P}": "Qqyz",
+    "{G/W/P}": "Qqyz",
+    "{W/B/P}": "Qqyz",
+    "{B/G/P}": "Qqyz",
+    "{G/U/P}": "Qqyz",
+    "{U/R/P}": "Qqyz",
+    "{R/W/P}": "Qqyz",
+    "{A}": "oi",
+    "{E}": "e",
+    "{T}": "ot",
+    "{X}": "ox",
+    "{Y}": "oY",
+    "{Z}": "oZ",
+    "{∞}": "o∞",
+    "{0}": "o0",
+    "{1}": "o1",
+    "{2}": "o2",
+    "{3}": "o3",
+    "{4}": "o4",
+    "{5}": "o5",
+    "{6}": "o6",
+    "{7}": "o7",
+    "{8}": "o8",
+    "{9}": "o9",
+    "{10}": "oA",
+    "{11}": "oB",
+    "{12}": "oC",
+    "{13}": "oD",
+    "{14}": "oE",
+    "{15}": "oF",
+    "{16}": "oG",
+    "{17}": "oÅ",
+    "{18}": "oÆ",
+    "{19}": "oÃ",
+    "{20}": "oK",
+    "{W}": "ow",
+    "{U}": "ou",
+    "{B}": "ob",
+    "{R}": "or",
+    "{G}": "og",
+    "{C}": "oc",
+    "{W/U}": "QqLS",
+    "{U/B}": "QqMT",
+    "{B/R}": "QqNU",
+    "{R/G}": "QqOV",
+    "{G/W}": "QqPR",
+    "{W/B}": "QqLT",
+    "{B/G}": "QqNV",
+    "{G/U}": "QqPS",
+    "{U/R}": "QqMU",
+    "{R/W}": "QqOR",
+    "{2/W}": "QqWR",
+    "{2/U}": "QqWS",
+    "{2/B}": "QqWT",
+    "{2/R}": "QqWU",
+    "{2/G}": "QqWV",
+    "{S}": "omn",
+    "{Q}": "ol",
+    "{CHAOS}": "?"
+}
+
+"""
+* Naming Conventions
+"""
+
+
+class Rarity(StrEnum):
+    """Card rarities."""
+    C = "common"
+    U = "uncommon"
+    R = "rare"
+    M = "mythic"
+    S = "special"
+    B = "bonus"
+    T = "timeshifted"
 
 
 class TransformIcons(StrEnum):
@@ -21,58 +264,7 @@ class TransformIcons(StrEnum):
 
 
 """
-FONTS
-"""
-
-
-class CardFonts(StrEnum):
-    """Fonts used for card text."""
-    RULES = "PlantinMTPro-Regular"
-    RULES_BOLD = "PlantinMTPro-Bold"
-    RULES_ITALIC = "PlantinMTPro-Italic"
-    NICKNAME = "PlantinMTPro-SemiboldIt"
-    TITLES = "BelerenProxy-Bold"
-    TITLES_CLASSIC = "Magic:theGathering"
-    MANA = "Proxyglyph"
-    ARTIST = "BelerenSmallCaps-Bold"
-    ARTIST_CLASSIC = "Matrix-Bold"
-    COLLECTOR = "Gotham-Medium"
-    SYMBOL = "Keyrune"
-
-
-"""
-NAMING CONVENTIONS
-"""
-
-
-class Rarity(StrEnum):
-    """Card rarities."""
-    C = "common"
-    U = "uncommon"
-    R = "rare"
-    M = "mythic"
-    S = "special"
-    B = "bonus"
-    T = "timeshifted"
-
-
-# Basic land dictionary
-BASIC_LANDS = {
-    "plains": "Basic Land — Plains",
-    "island": "Basic Land — Island",
-    "swamp": "Basic Land — Swamp",
-    "mountain": "Basic Land — Mountain",
-    "forest": "Basic Land — Forest",
-    "wastes": "Basic Land",
-    "snowcoveredplains": "Basic Snow Land — Plains",
-    "snowcoveredisland": "Basic Snow Land — Island",
-    "snowcoveredswamp": "Basic Snow Land — Swamp",
-    "snowcoveredmountain": "Basic Snow Land — Mountain",
-    "snowcoveredforest": "Basic Snow Land — Forest"
-}
-
-"""
-TEXT FORMATTING
+* Text Formatting Cases
 """
 
 # Abilities that aren't italicize, despite fitting the pattern
@@ -91,28 +283,48 @@ planeswalkers_tall = [
 ]
 
 """
-DEFAULT COLOR MAPS
+* Colors & Gradient Maps
 """
 
-mana_color_map = {
-    # Default mana symbol colors
-    'primary': [0, 0, 0],
-    'secondary': [255, 255, 255],
-    'c': [204, 194, 193],
-    'w': [255, 251, 214],
-    'u': [170, 224, 250],
-    'b': [204, 194, 193],
-    'r': [249, 169, 143],
-    'g': [154, 211, 175],
-    'bh': [159, 146, 143],
-    'c_i': [0, 0, 0],
-    'w_i': [0, 0, 0],
-    'u_i': [0, 0, 0],
-    'b_i': [0, 0, 0],
-    'r_i': [0, 0, 0],
-    'g_i': [0, 0, 0],
-    'bh_i': [0, 0, 0]
-}
+# Represents a color mapped to a symbol
+SymbolColor = Union[str, list[int]]
+
+
+class ManaColors(DictSchema):
+    """Defines the mana colors for a specific symbol map (inner, outer, hybrid)."""
+    C: SymbolColor = [204, 194, 193]
+    W: SymbolColor = [255, 251, 214]
+    U: SymbolColor = [170, 224, 250]
+    B: SymbolColor = [204, 194, 193]
+    R: SymbolColor = [249, 169, 143]
+    G: SymbolColor = [154, 211, 175]
+
+    def __new__(cls, **data):
+        d = super().__new__(cls, **data)
+        d['2'] = d.pop('C', [0, 0, 0])
+        return d
+
+
+class ManaColorsInner(ManaColors):
+    """Default mana colors."""
+    C: SymbolColor = [0, 0, 0]
+    W: SymbolColor = [0, 0, 0]
+    U: SymbolColor = [0, 0, 0]
+    B: SymbolColor = [0, 0, 0]
+    R: SymbolColor = [0, 0, 0]
+    G: SymbolColor = [0, 0, 0]
+
+
+class SymbolColorMap(Schema):
+    """Color map schema."""
+    primary: SymbolColor = [0, 0, 0]
+    secondary: SymbolColor = [255, 255, 255]
+    colorless: SymbolColor = [204, 194, 193]
+    colors: dict[str, SymbolColor] = ManaColors()
+    hybrid: dict[str, SymbolColor] = ManaColors(B=[159, 146, 143])
+    colors_inner: dict[str, SymbolColor] = ManaColorsInner()
+    hybrid_inner: dict[str, SymbolColor] = ManaColorsInner()
+
 
 watermark_color_map = {
     # Default watermark colors
@@ -125,6 +337,17 @@ watermark_color_map = {
     'Land': [94, 84, 72],
     'Artifact': [100, 125, 134],
     'Colorless': [100, 125, 134]
+}
+
+basic_watermark_color_map = {
+    # Basic land watermark colors
+    'W': [248, 249, 243],
+    'U': [0, 115, 178],
+    'B': [6, 0, 0],
+    'R': [212, 39, 44],
+    'G': [1, 131, 69],
+    'Land': [165, 150, 132],
+    'Snow': [255, 255, 255]
 }
 
 pinline_color_map = {
@@ -166,16 +389,6 @@ crown_color_map = {
     'Colorless': [214, 214, 220]
 }
 
-basic_land_color_map = {
-    # Basic land watermark colors
-    'W': [248, 249, 243],
-    'U': [0, 115, 178],
-    'B': [6, 0, 0],
-    'R': [212, 39, 44],
-    'G': [1, 131, 69],
-    'Land': [165, 150, 132]
-}
-
 saga_banner_color_map = {
     # Saga banner colors
     'W': [241, 225, 193],
@@ -201,9 +414,97 @@ saga_stripe_color_map = {
     'Dual': [42, 42, 42]
 }
 
+rarity_gradient_map = {
+    'c': [],
+    'u': [
+        {
+            "color": [98, 110, 119],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [199, 225, 241],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [98, 110, 119],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    'r': [
+        {
+            "color": [146, 116, 67],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [213, 180, 109],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [146, 116, 67],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    'm': [
+        {
+            "color": [192, 55, 38],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [245, 149, 29],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [192, 55, 38],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ],
+    't': [
+        {
+            "color": [98, 45, 118],
+            "location": 0,
+            "midpoint": 50
+        },
+        {
+            "color": [191, 153, 195],
+            "location": 2048,
+            "midpoint": 50
+        },
+        {
+            "color": [98, 45, 118],
+            "location": 4096,
+            "midpoint": 50
+        }
+    ]
+}
+
 """
-SPECIAL CHARACTERS
+* Fonts & Characters
 """
+
+
+class CardFonts(StrEnum):
+    """Fonts used for card text."""
+    RULES = "PlantinMTPro-Regular"
+    RULES_BOLD = "PlantinMTPro-Bold"
+    RULES_ITALIC = "PlantinMTPro-Italic"
+    NICKNAME = "PlantinMTPro-SemiboldIt"
+    TITLES = "BelerenProxy-Bold"
+    PT = "BelerenProxy-Bold"
+    TITLES_CLASSIC = "Magic:theGathering"
+    MANA = "Proxyglyph"
+    ARTIST = "BelerenSmallCaps-Bold"
+    ARTIST_CLASSIC = "Matrix-Bold"
+    COLLECTOR = "Gotham-Medium"
+    SYMBOL = "Keyrune"
 
 
 class MagicIcons:
@@ -212,3 +513,73 @@ class MagicIcons:
     PAINTBRUSH_CLASSIC = "ýþ"
     # Gotham-Medium font
     COLLECTOR_STAR = "¬"
+
+
+"""
+* Utility Funcs
+"""
+
+
+def get_symbol_colors(symbol: str, chars: str, color_map: SymbolColorMap) -> list[SymbolColor]:
+    """Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+
+    Args:
+        symbol: Symbol to determine the colors of.
+        chars: Character representation of the symbol.
+        color_map: Maps colors to symbol strings.
+
+    Returns:
+        List of SolidColor objects to color the symbol's characters.
+    """
+
+    # Special Symbols
+    if symbol in ("{E}", "{CHAOS}"):
+        # Energy or chaos symbols
+        return [color_map.primary]
+    elif symbol == "{S}":
+        # Snow symbol
+        return [color_map.colorless, color_map.primary, color_map.secondary]
+    elif symbol == "{Q}":
+        # Untap symbol
+        return [color_map.primary, color_map.secondary]
+
+    # Normal mana symbol
+    if normal_symbol_match := Reg.MANA_NORMAL.match(symbol):
+        return [
+            color_map.colors[normal_symbol_match[1]],
+            color_map.colors_inner[normal_symbol_match[1]]
+        ]
+
+    # Hybrid
+    if hybrid_match := Reg.MANA_HYBRID.match(symbol):
+        # Use the darker color for black's symbols for 2/B hybrid symbols
+        colors = color_map.hybrid if hybrid_match[1] == "2" else color_map.colors
+        return [
+            colors[hybrid_match[2]],
+            colors[hybrid_match[1]],
+            color_map.colors_inner[hybrid_match[1]],
+            color_map.colors_inner[hybrid_match[2]]
+        ]
+
+    # Phyrexian
+    if phyrexian_match := Reg.MANA_PHYREXIAN.match(symbol):
+        return [
+            color_map.hybrid[phyrexian_match[1]],
+            color_map.hybrid_inner[phyrexian_match[1]]
+        ]
+
+    # Phyrexian hybrid
+    if phyrexian_hybrid_match := Reg.MANA_PHYREXIAN_HYBRID.match(symbol):
+        return [
+            color_map.colors[phyrexian_hybrid_match[2]],
+            color_map.colors[phyrexian_hybrid_match[1]],
+            color_map.colors_inner[phyrexian_hybrid_match[1]],
+            color_map.colors_inner[phyrexian_hybrid_match[2]]
+        ]
+
+    # Weird situation?
+    if len(chars) == 2:
+        return [color_map.colorless, color_map.primary]
+
+    # Nothing matching found!
+    raise Exception(f"Encountered a symbol that I don't know how to color: {symbol}")
