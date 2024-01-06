@@ -31,12 +31,11 @@ class RenderSpec(TypedDict):
 * File parsing
 """
 
-def parse_render_spec(file_path: Path, logger: Optional[Any] = None) -> RenderSpec:
+def parse_render_spec(file_path: Path) -> RenderSpec:
     """Retrieve render spec from the input file.
 
     Args:
         file_path: Path to the text file.
-        logger: Console or other logger object used to relay warning messages.
 
     Returns:
         Dict containing the configurations and cards in this spec.
@@ -47,7 +46,8 @@ def parse_render_spec(file_path: Path, logger: Optional[Any] = None) -> RenderSp
 
     # Load all the content and get rid of empty lines and comments
     spec_lines = open(file_path, 'r').read().splitlines()
-    spec_lines = [l for l in spec_lines if l.split('#')[0].strip()]
+    spec_lines = [l.split('#')[0].strip() for l in spec_lines]
+    spec_lines = [l for l in spec_lines if l]
 
     # Split lines with configs and lines with cards
     config_lines = [l for l in spec_lines if regex.match(r'([a-zA-Z0-9_ ]+):(.*)', l)]
@@ -76,16 +76,12 @@ def parse_render_spec(file_path: Path, logger: Optional[Any] = None) -> RenderSp
         parts = list(map(str.strip, l.split('|')))
         full_line_spec = parts[0]
         used_configs = parts[1:]
-        invalid_configs = [c for c in used_configs if c not in configs]
-        if invalid_configs:
-            if logger:
-                logger.update(f'Card ignored due to unknown render spec configurations: {full_line_spec.split()[0]}')
-                for c in invalid_configs:
-                    logger.update(f'\nUnknown render spec configuration: {c}')
-            continue
         for c in used_configs:
-            spec_info = configs[c]['info']
-            full_line_spec += f' {spec_info}'
+            if c in configs:
+                spec_info = configs[c]['info']
+                full_line_spec += f' {spec_info}'
+            else:
+                full_line_spec += f' {c}'
 
         def append_card(card_spec):
             # Pretend this is a file and parse that
