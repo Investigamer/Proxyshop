@@ -383,7 +383,7 @@ class BaseTemplate:
     @auto_prop_cached
     def is_art_vertical(self) -> bool:
         """bool: Returns True if art provided is vertically oriented, False if it is horizontal."""
-        with Image.open(self.layout.art_file) as image:
+        with Image.open(self.art_file) as image:
             width, height = image.size
         if height > (width * 1.1):
             # Vertical orientation
@@ -669,6 +669,15 @@ class BaseTemplate:
     * Loading Artwork
     """
 
+    @auto_prop_cached
+    def art_file(self) -> Path:
+        """Path to the art file to load."""
+        art_file = self.layout.file.get('additional_cfg', {}).get('art', None)
+        if art_file is not None:
+            return self.layout.art_file.with_name(art_file)
+        else:
+            return self.layout.art_file
+
     @property
     def art_action(self) -> Optional[Callable]:
         """Function that is called to perform an action on the imported art."""
@@ -684,21 +693,21 @@ class BaseTemplate:
 
         # Check for fullart test image
         if ENV.TEST_MODE and self.is_fullart:
-            self.layout.art_file = PATH.SRC_IMG / "test-fa.jpg"
+            self.art_file = PATH.SRC_IMG / "test-fa.jpg"
 
         # Paste the file into the art
         self.active_layer = self.art_layer
         if self.art_action:
             psd.paste_file(
                 layer=self.art_layer,
-                path=self.layout.art_file,
+                path=self.art_file,
                 action=self.art_action,
                 action_args=self.art_action_args,
                 docref=self.docref)
         else:
             psd.import_art(
                 layer=self.art_layer,
-                path=self.layout.art_file,
+                path=self.art_file,
                 docref=self.docref)
 
         # Frame the artwork
