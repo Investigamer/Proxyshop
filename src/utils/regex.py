@@ -25,7 +25,7 @@ class Reg:
     PATH_SET: re.Pattern = re.compile(r"\[(.*)]")
     PATH_NUM: re.Pattern = re.compile(r"\{(.*)}")
     PATH_CONDITION: re.Pattern = re.compile(r'<([^>]*)>')
-    PATH_SET_OR_CFG: re.Pattern = re.compile(r"\[(.*)]")
+    PATH_SET_OR_CFG: re.Pattern = re.compile(r"\[([^\]]*)]")
 
     # Mana - Symbols
     SYMBOL: re.Pattern = re.compile(r"(\{.*?})")
