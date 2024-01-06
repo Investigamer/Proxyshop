@@ -110,7 +110,7 @@ def get_card_data(card: CardDetails, cfg: AppConfig, logger: Optional[Any] = Non
 """
 
 
-def parse_card_info(file_path: Union[Path, str]) -> CardDetails:
+def parse_card_info(file_path: Path) -> CardDetails:
     """Retrieve card name from the input file, and optional tags (artist, set, number).
 
     Args:
@@ -120,7 +120,7 @@ def parse_card_info(file_path: Union[Path, str]) -> CardDetails:
         Dict of card details.
     """
     # Extract just the card name
-    file_name = file_path.stem if isinstance(file_path, Path) else file_path
+    file_name = file_path.stem
 
     # Match pattern and format data
     name_split = Reg.PATH_SPLIT.split(file_name)

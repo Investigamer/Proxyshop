@@ -36,7 +36,6 @@ import asynckivy as ak
 from src._state import AppConstants, AppEnvironment, PATH
 from src._config import AppConfig
 from src.api.hexproof import update_hexproof_cache, get_api_key
-from src.cards import parse_card_info
 from src.enums.mtg import layout_map_types
 from src.gui.console import GUIConsole, ConsoleOutput
 from src.gui.popup.settings import SettingsPopup
@@ -57,6 +56,7 @@ from src.layouts import (
     CardLayout,
     layout_map,
     assign_layout,
+    flatten_cards,
     join_dual_card_layouts)
 from src.templates import BaseTemplate
 from src.utils.adobe import PhotoshopHandler
@@ -413,57 +413,15 @@ class ProxyshopGUIApp(App):
             return self.console.update(
                 "No art images found!" if target else "No art images selected!")
 
-        # .txt files declare a panorama, open and unwrap these seperately
-        txt_files = [f for f in files if Path(f).suffix == ".txt"]
-        files = [f for f in files if f not in txt_files]
-        panorama_cards = []
-        for definition in txt_files:
-            # Unwrap panorama files
-            cards = open(definition, "r").readlines()
-
-            # Run through each file, assigning layout
-            with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
-                cards = pool.map(assign_layout, cards)
-
-            # Get panorama art file
-            get_name = lambda f: os.path.basename(os.path.splitext(f)[0])
-            file_name = get_name(definition)
-            parent_dir = Path(definition).parent.absolute()
-            art_files = [ f for f in os.listdir(Path(definition).parent.absolute()) if Path(f).suffix != ".txt" ]
-            art_files = [ os.path.join(parent_dir, f) for f in art_files if get_name(f) == file_name ]
-            if len(art_files) == 0:
-                proceed = self.console.error(
-                    msg=f"\n[b]Panorama {definition} has no possible art files[/b] ...\n",
-                    end="\n[b]Should I continue anyway?[/b] ...\n"
-                )
-            else:
-                proceed = len(art_files) == 1 or self.console.error(
-                    msg=f"\n[b]Panorama {definition} has multiple possible art files[/b] ...\n",
-                    end="\n[b]Should I pick the first option or cancel?[/b] ...\n"
-                )
-
-            if proceed and len(art_files) > 0:
-                cards = list(cards)
-
-                card_info = parse_card_info(definition)
-                artist = card_info.get('artist', '')
-                pano_size = [int(c) for c in card_info.get('additional_cfg', {}).get('pano', '{}x1'.format(len(cards))).split('x')]
-                art_file = art_files[0]
-
-                for (i, card) in enumerate(cards):
-                    card.art_file = art_file
-                    card.file['artist'] = artist
-                    card.file['filename'] = art_file
-                    card.file['panorama_element'] = i
-                    card.file['panorama_size'] = pano_size
-                panorama_cards += cards
-
         # Run through each file, assigning layout
         with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
             cards = pool.map(assign_layout, files)
+            
+            # Flatten results, which may contain lists
+            cards = flatten_cards(list(cards))
 
         # Join dual card layouts
-        cards = join_dual_card_layouts(list(cards) + panorama_cards)
+        cards = join_dual_card_layouts(cards)
 
         # Remove failed strings
         layouts: dict[str, dict[str, list[CardLayout]]] = {}
