@@ -100,13 +100,18 @@ def parse_render_spec(file_path: Path, logger: Optional[Any] = None) -> RenderSp
                 ended_group = groups.pop()
                 ended_group = [c + f' {full_line_spec}' for c in ended_group]
 
-                # Replace special variables
-                ended_group = [c.replace('${GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
-                
                 if groups:
+                    # Replace special variables
+                    ended_group = [c.replace('${GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+                    ended_group = [c.replace('${INNER_GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+                
                     # If this was a nested group we just put these into the outer group
                     groups[-1].extend(ended_group)
                 else:
+                    # Replace special variables
+                    ended_group = [c.replace('${GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+                    ended_group = [c.replace('${OUTER_GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+
                     # Otherwise append to the render spec
                     for card in ended_group:
                         append_card(card)
