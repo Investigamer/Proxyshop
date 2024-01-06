@@ -712,7 +712,7 @@ class BaseTemplate:
 
         # Frame the artwork
         if self.panorama_mode_enabled:
-            psd.frame_panorama(self.active_layer, self.art_reference, self.layout.file['panorama_element'], self.layout.file['panorama_size'])
+            psd.frame_panorama(self.active_layer, self.art_reference, self.panorama_position, self.panorama_size)
         else:
             psd.frame_layer(self.active_layer, self.art_reference)
 

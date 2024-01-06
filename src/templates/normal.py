@@ -1209,12 +1209,34 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         return bool(CFG.get_setting(
             section="FRAME",
             key="Panorama.Mode",
-            default=False)) and 'panorama_size' in self.layout.file
+            default=False)) and self.panorama_size is not None
+
+    @auto_prop_cached
+    def panorama_size(self) -> Union[tuple[int, int], None]:
+        """Returns the size of the panorama as a tuple of number of cards in each dimension."""
+        pano_size = self.layout.file.get('additional_cfg', {}).get('pano_size', None)
+        if pano_size is not None and 'x' in pano_size:
+            pano_size = tuple(int(s) for s in pano_size.split('x'))
+        return pano_size
+
+    @auto_prop_cached
+    def panorama_position(self) -> Union[tuple[int, int], None]:
+        """Returns the position of this card in the panorama, if None it will be deduced."""
+        pano_pos = self.layout.file.get('additional_cfg', {}).get('pano_pos', None)
+        pano_elem = self.layout.file.get('additional_cfg', {}).get('pano_elem', None)
+        if pano_pos is not None and 'x' in pano_pos:
+            pano_pos = (int(s) for s in pano_pos.split('x'))
+        elif pano_elem:
+            pano_elem = int(pano_elem)
+            pano_x = pano_elem % self.panorama_size[0]
+            pano_y = pano_elem // self.panorama_size[0]
+            pano_pos = (pano_x, pano_y)
+        return pano_pos
 
     @auto_prop_cached
     def panorama_is_horizontal(self) -> bool:
         """Returns True if panorama goes both down and to the side."""
-        return self.panorama_mode_enabled and self.layout.file['panorama_size'][1] > 1
+        return self.panorama_mode_enabled and self.panorama_size[1] > 1
 
     @auto_prop_cached
     def multicolor_textbox(self) -> bool:

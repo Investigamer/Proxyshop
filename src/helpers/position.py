@@ -228,7 +228,7 @@ def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, 
 def frame_panorama(
     layer: Union[ArtLayer, LayerSet],
     reference: Union[ArtLayer, LayerSet, dict],
-    panorama_element: int,
+    panorama_position: [int, int],
     panorama_size: [int, int],
     anchor: AnchorPosition = AnchorPosition.TopLeft
 ):
@@ -255,10 +255,8 @@ def frame_panorama(
 
     # Move the layer according to the given index
     ref_dim = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
-    pano_x = panorama_element % panorama_size[0]
-    pano_y = panorama_element // panorama_size[0]
-    layer.translate(-ref_dim['width'] * pano_x, 0)
-    layer.translate(0, -ref_dim['height'] * pano_y)
+    layer.translate(-ref_dim['width'] * panorama_position[0], 0)
+    layer.translate(0, -ref_dim['height'] * panorama_position[1])
 
 
 def frame_layer(
