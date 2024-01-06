@@ -126,11 +126,11 @@ def parse_card_info(file_path: Path) -> CardDetails:
     name_split = Reg.PATH_SPLIT.split(file_name)
     artist = Reg.PATH_ARTIST.search(file_name)
     number = Reg.PATH_NUM.search(file_name)
-    set_or_cfg = Reg.PATH_SET_OR_CFG.search(file_name)
+    set_or_cfg = Reg.PATH_SET_OR_CFG.findall(file_name)
 
     code = None
     additional_cfg = {}
-    for cfg in set_or_cfg.groups() if set_or_cfg else []:
+    for cfg in set_or_cfg:
         cfg_name_and_value = cfg.split("=", 1)
         if len(cfg_name_and_value) == 1:
             code = cfg
