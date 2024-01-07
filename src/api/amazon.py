@@ -40,7 +40,13 @@ def download_cloudfront(url: yarl.URL, path: Path, callback: Optional[Callable] 
 
     # Establish session
     sess = requests.session()
-    res = sess.get(url, headers=header, stream=True, verify=True)
+    res = sess.get(url, headers=header, stream=True)
 
     # Start the download
-    return download_file(file, res, sess, path, callback)
+    result = download_file(
+        file=file,
+        res=res,
+        path=path,
+        callback=callback)
+    sess.close()
+    return result

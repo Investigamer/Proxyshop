@@ -35,7 +35,6 @@ class ArchiveExt(StrEnum):
     GZip = '.gz'
     XZip = '.xz'
     SevenZip = '.7z'
-    TarZip = '.tar.zip'
     TarGZip = '.tar.gz'
     TarXZip = '.tar.xz'
     TarSevenZip = '.tar.xz'
@@ -159,6 +158,7 @@ def unpack_zip(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with zipfile.ZipFile(path, 'r') as zip_ref:
         zip_ref.extractall(path=path.parent)
+    return
 
 
 def unpack_gz(path: Path) -> None:
@@ -176,6 +176,7 @@ def unpack_gz(path: Path) -> None:
     with gzip.open(path, 'rb') as arch:
         with open(output, 'wb') as f:
             shutil.copyfileobj(arch, f)
+    return
 
 
 def unpack_xz(path: Path) -> None:
@@ -193,6 +194,7 @@ def unpack_xz(path: Path) -> None:
     with lzma.open(path, mode='r') as arch:
         with open(output, 'wb') as f:
             shutil.copyfileobj(arch, f)
+    return
 
 
 def unpack_7z(path: Path) -> None:
@@ -208,23 +210,8 @@ def unpack_7z(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with py7zr.SevenZipFile(path, 'r') as arch:
         arch.extractall(path=path.parent)
-
-
-def unpack_tar_zip(path: Path) -> None:
-    """Unpack target `tar.gz` archive.
-
-    Args:
-        path: Path to the archive.
-
-    Raises:
-        FileNotFoundError: If archive couldn't be located.
-    """
-    if not path.is_file():
-        raise FileNotFoundError(f'Archive not found: {str(path)}')
-    with zipfile.ZipFile(path, 'r') as zip_ref:
-        zip_ref.extractall(path=path)
-    with tarfile.open(path.with_suffix('.tar'), 'r') as tar:
-        tar.extractall(path=path.parent)
+    del arch
+    return
 
 
 def unpack_tar_gz(path: Path) -> None:
@@ -240,6 +227,7 @@ def unpack_tar_gz(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with tarfile.open(path, 'r:gz') as tar:
         tar.extractall(path=path.parent)
+    return
 
 
 def unpack_tar_xz(path: Path) -> None:
@@ -255,6 +243,7 @@ def unpack_tar_xz(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with tarfile.open(path, 'r:xz') as tar:
         tar.extractall(path=path.parent)
+    return
 
 
 def unpack_archive(path: Path, remove: bool = True) -> None:
@@ -266,22 +255,21 @@ def unpack_archive(path: Path, remove: bool = True) -> None:
 
     Raises:
         FileNotFoundError: If archive couldn't be located.
-        Not
     """
     action_map: dict[str, Callable] = {
         ArchiveExt.Zip: unpack_zip,
         ArchiveExt.GZip: unpack_gz,
         ArchiveExt.XZip: unpack_xz,
-        ArchiveExt.TarZip: unpack_tar_zip,
         ArchiveExt.TarGZip: unpack_tar_gz,
         ArchiveExt.TarXZip: unpack_tar_xz,
         ArchiveExt.SevenZip: unpack_7z,
         ArchiveExt.TarSevenZip: unpack_7z
     }
     if path.suffix not in action_map:
-        raise NotImplementedError(
-            f"File extension '{path.suffix}' not a supported archive type!")
+        return
+    action = action_map[path.suffix]
     with ARCHIVE_LOCK:
-        action_map[path.suffix](path)
+        _ = action(path)
     if remove:
         os.remove(path)
+    return

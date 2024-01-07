@@ -133,6 +133,7 @@ class GUIResources:
         self.template_row: dict[str, dict[str, BoxLayout]] = {k: {} for k in layout_map_category}
         self.template_btn: dict[str, dict[str, ToggleButton]] = {k: {} for k in layout_map_category}
         self.template_btn_cfg: dict[str, dict[str, Button]] = {k: {} for k in layout_map_category}
+        self.template_list: dict[str, list[BoxLayout]] = {k: [] for k in layout_map_category}
 
 
 GUI = GUIResources()

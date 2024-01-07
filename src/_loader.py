@@ -564,16 +564,6 @@ class AppTemplate:
         # Establish the complete map
         self.map = mapped
 
-    @auto_prop_cached
-    def map_config(self) -> dict[str, ConfigManager]:
-        """dict[str, ConfigManager]: Maps template class names to their respective ConfigManager object."""
-        # TODO: Evaluate whether this is necessary
-        mapped = {}
-        for t, class_map in self.map.items():
-            for name, details in class_map.items():
-                mapped[details['class_name']] = details['config']
-        return mapped
-
     """
     * Template Metadata
     """
@@ -829,24 +819,30 @@ class AppTemplate:
         Returns:
             True if succeeded, False if failed.
         """
+        try:
 
-        # Download using Google Drive
-        result = download_google_drive(
-            url=self.url_google_drive,
-            path=self.path_download,
-            path_cookies=PATH.LOGS_COOKIES,
-            callback=callback
-        ) if self.google_drive_id else False
-
-        # Google Drive failed or isn't an option, download from Amazon S3
-        if not result:
-            result = download_cloudfront(
-                url=self.url_amazon,
+            # Download using Google Drive
+            result = download_google_drive(
+                url=self.url_google_drive,
                 path=self.path_download,
-                callback=callback)
+                path_cookies=PATH.LOGS_COOKIES,
+                callback=callback
+            ) if self.google_drive_id else False
 
-        # Return result status
-        return result
+            # Google Drive failed or isn't an option, download from Amazon S3
+            if not result:
+                result = download_cloudfront(
+                    url=self.url_amazon,
+                    path=self.path_download,
+                    callback=callback)
+
+            # Return result status
+            return result
+
+        # Exception caught while downloading / unpacking
+        except Exception as e:
+            print(e)
+        return False
 
     def mark_updated(self) -> None:
         """Update the version tracker with the currently logged update version and clear the update data."""

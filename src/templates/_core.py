@@ -853,9 +853,9 @@ class BaseTemplate:
     def load_expansion_symbol(self) -> None:
         """Imports and positions the expansion symbol SVG image."""
 
-        # Force disable expansion symbol
-        if not self.expansion_reference:
-            return self.log('Expansion symbol disabled, no reference layer found.')
+        # Check for expansion symbol disabled
+        if not CFG.symbol_enabled or not self.expansion_reference:
+            return
         if not self.layout.symbol_svg:
             return self.log("Expansion symbol disabled, SVG file not found.")
 

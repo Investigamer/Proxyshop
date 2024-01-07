@@ -124,7 +124,7 @@ def download_google_drive(
 
     # Add range header if file is partially downloaded
     header = HEADERS.Default.copy()
-    if size is not 0:
+    if size > 0:
         header["Range"] = f"bytes={str(size)}-"
 
     # Create initial session
@@ -138,7 +138,7 @@ def download_google_drive(
 
     # Get file resource
     while True:
-        res = sess.get(url, headers=header, stream=True, verify=True)
+        res = sess.get(url, headers=header, stream=True)
 
         # Save cookies
         if path_cookies:
@@ -155,12 +155,17 @@ def download_google_drive(
         # Need to redirect with confirmation
         try:
             url = get_url_from_gdrive_confirmation(res.text)
-        except OSError as e:
-            print("Access denied with the following error:")
-            print("\n".join(textwrap.wrap(str(e))))
+        except Exception as e:
+            sess.close()
+            err = '\n'.join(textwrap.wrap(str(e)))
+            print(f'Access denied with the following error:\n{err}')
             return False
 
     # Start the download
-    check = download_file(file, res, sess, path, callback)
+    result = download_file(
+        file=file,
+        res=res,
+        path=path,
+        callback=callback)
     sess.close()
-    return check
+    return result

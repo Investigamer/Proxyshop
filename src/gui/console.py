@@ -203,7 +203,7 @@ class GUIConsole(BoxLayout):
         thr: Optional[Event] = None,
         msg: str = 'Encountered a general error!',
         exception: Optional[Exception] = None,
-        end: str = ' Continue to next card?\n'
+        end: str = '\nShould I continue?\n'
     ) -> bool:
         """Display error, wait for user to cancel or continue.
 
@@ -231,12 +231,15 @@ class GUIConsole(BoxLayout):
         if self.cfg.skip_failed:
             self.update(f"{msg}\n{self.message_skipping}")
             return True
+
         # Previous error already handled
         if thr and thr.is_set():
             return False
+
         # Wait for user response
         if self.await_choice(thr, msg, end):
             return True
+
         # Relay the cancellation
         self.update(self.message_cancel)
         return False

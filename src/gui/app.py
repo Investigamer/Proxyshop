@@ -20,6 +20,7 @@ import requests
 from PIL import Image as PImage
 from photoshop.api._document import Document
 from photoshop.api import SaveOptions, PurgeTarget
+from packaging.version import parse
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -453,37 +454,50 @@ class ProxyshopGUIApp(App):
             # If all failed alert the user and cancel
             failure_list = '\n'.join(failed)
             if not layouts:
-                return self.console.update(f"\n[b]Failed to render all cards[/b] ...\n{failure_list}")
+                return self.console.update(
+                    f"\n{msg_bold(msg_error('Failed to render all cards!'))}"
+                    f"\n{failure_list}")
 
             # Let the user choose to continue if only some failed
-            line1 = '\n' + msg_bold("I couldn't render the following cards") + ' ...\n' + failure_list
-            line2 = '\n' + msg_bold("Should I continue anyway?") + ' ...\n'
-            if not self.console.error(msg=line1, end=line2):
+            if not self.console.error(
+                msg=f"\n{msg_error('Unable to render these cards:')}"
+                    f"{failure_list}"
+            ):
                 return
 
         # Render in batches separated by PSD file
         self.console.update()
         times: list[float] = []
-        for _path, class_map in layouts.items():
+        for (i), (_path, class_map) in enumerate(layouts.items()):
             for layout, cards in class_map.items():
 
                 # Initialize the template's python class module
                 loaded_class = temps[layout]['object'].get_template_class(
                     temps[layout]['class_name'])
                 if not loaded_class:
+
                     # Failed to load module or python class
-                    failed_cards = get_bullet_points(
-                        text=[str(c.display_name) for c in cards],
-                        char='-')
-                    message = msg_error(
-                        f"Unable to load Python class '{temps[layout]['class_name']}' "
-                        f"for template '{temps[layout]['name']}'!\n"
-                    ) + msg_bold("The following cards have been cancelled:")
-                    if not self.console.error(
-                        msg=f'{message}{failed_cards}',
-                        end=msg_bold("\nShould I continue with the remaining cards?\n")
-                    ):
-                        return
+                    self.console.update(msg_error(
+                        "Unable to load Python class: "
+                        f"{msg_bold(temps[layout]['class_name'])}"))
+
+                    # If more templates in the queue, ask to continue
+                    if (i + 1) < len(layouts):
+
+                        # Get a list of cards using this template
+                        failed_cards = get_bullet_points(
+                            text=[str(c.display_name) for c in cards],
+                            char='-')
+                        if self.console.error(
+                            msg=f"{msg_error('The following cards have been cancelled:')}"
+                                f"{failed_cards}"
+                        ):
+                            # Continue to next template
+                            self.console.update()
+                            continue
+
+                    # Cancel render process
+                    return
 
                 # Load constants and config for this template
                 self.cfg.load(temps[layout]['config'])
@@ -529,12 +543,11 @@ class ProxyshopGUIApp(App):
                     'artist': scryfall.get('artist', ''),
                     'set': scryfall.get('set', ''),
                     'creator': None
-                }
-            )
+                })
         except Exception as e:
             self.console.update(
-                'Custom card failed!\n'
-                'Unable to create a layout object, make sure you input valid information.',
+                msg='Unable to create a layout object, make sure you input valid information.\n'
+                    'Custom card failed!',
                 exception=e)
             return
 
@@ -542,8 +555,8 @@ class ProxyshopGUIApp(App):
         if not template['object'].is_installed:
             # Template is not installed
             self.console.update(
-                'Custom card failed!\n'
-                f"Template '{template['name']}' with type '{c.card_class}' is not installed!")
+                f"Template '{template['name']}' for card type '{c.card_class}' is not installed!\n"
+                'Custom card failed!')
             return
 
         # Initialize a python class for the template
@@ -551,9 +564,8 @@ class ProxyshopGUIApp(App):
         if not loaded_class:
             # Failed to load module or python class
             self.console.update(
-                'Custom card failed!\n'
-                f"Unable to load Python class '{template['class_name']}' "
-                f"for template '{template['name']}'.")
+                f"Unable to load Python class: {msg_bold(template['class_name'])}\n"
+                'Custom card failed!')
             return
 
         # Start render
@@ -1003,10 +1015,9 @@ class ProxyshopGUIApp(App):
             Return True if up to date, otherwise False.
         """
         with suppress(requests.RequestException, json.JSONDecodeError):
-            current = f"v{self.env.VERSION}"
             response = requests.get(
                 "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
                 timeout=(3, 3))
-            latest = response.json().get("tag_name", current)
-            return bool(current == latest)
+            latest = response.json().get("tag_name", self.env.VERSION)
+            return bool(parse(self.env.VERSION.lstrip('v')) >= parse(latest.lstrip('v')))
         return True

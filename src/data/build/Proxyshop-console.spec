@@ -1,17 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Standard Library Imports
 import os
+from pathlib import Path
 
 # Third Party Imports
 from kivy_deps import sdl2, glew
 
-# Local Imports
-from src import PATH
+# Configure Build
+CWD = Path(os.getcwd())
+IMG = CWD / 'src' / 'img'
 block_cipher = None
 
 
 a = Analysis(
-    [os.path.join(PATH.CWD, 'main.py')],
+    [os.path.join(CWD, 'main.py')],
     binaries=[],
     datas=[],
     hiddenimports=[
@@ -22,7 +24,7 @@ a = Analysis(
         'reportlab.graphics',
         'requests'
     ],
-    hookspath=[os.path.join(PATH.SRC_DATA, 'build', 'hooks')],
+    hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
@@ -53,4 +55,4 @@ exe = EXE(
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    icon=os.path.join(PATH.SRC_IMG, 'favicon.ico'))
+    icon=os.path.join(IMG, 'favicon.ico'))
