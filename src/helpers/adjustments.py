@@ -2,11 +2,12 @@
 * Helpers: Adjustment Layers
 """
 # Standard Library
-from typing import Union
+from typing import Union, Optional
 
 # Third Party
 from photoshop.api import DialogModes, ActionList, ActionDescriptor, ActionReference, SolidColor
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
@@ -32,12 +33,18 @@ def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
     APP.executeAction(sID("vibrance"), desc232, NO_DIALOG)
 
 
-def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
+def create_color_layer(
+    color: Union[list[int], SolidColor, str],
+    layer: Union[ArtLayer, LayerSet, None],
+    docref: Optional[Document] = None,
+    **kwargs
+) -> ArtLayer:
     """Create a solid color adjustment layer.
 
     Args:
         color: Color to use for the layer.
-        layer: ArtLayer or LayerSet to make active.
+        layer: ArtLayer or LayerSet to make active, if provided.
+        docref: Reference Document, use active if not provided.
 
     Keyword Args:
         clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
@@ -45,8 +52,9 @@ def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None]
     Returns:
         The new solid color adjustment layer.
     """
+    docref = docref or APP.activeDocument
     if layer:
-        APP.activeDocument.activeLayer = layer
+        docref.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     desc2 = ActionDescriptor()
@@ -59,15 +67,21 @@ def create_color_layer(color: SolidColor, layer: Union[ArtLayer, LayerSet, None]
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
     desc1.putObject(sID("using"), sID("contentLayer"), desc2)
     APP.executeAction(sID("make"), desc1, NO_DIALOG)
-    return APP.activeDocument.activeLayer
+    return docref.activeLayer
 
 
-def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, None], **kwargs) -> ArtLayer:
+def create_gradient_layer(
+    colors: list[dict],
+    layer: Union[ArtLayer, LayerSet, None],
+    docref: Optional[Document] = None,
+    **kwargs
+) -> ArtLayer:
     """Create a gradient adjustment layer.
 
     Args:
         colors: List of gradient color dicts.
-        layer: ArtLayer or LayerSet to make active.
+        layer: ArtLayer or LayerSet to make active, if provided.
+        docref: Reference Document, use active if not provided.
 
     Keyword Args:
         clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
@@ -77,8 +91,9 @@ def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, N
     Returns:
         The new gradient adjustment layer.
     """
+    docref = docref or APP.activeDocument
     if layer:
-        APP.activeDocument.activeLayer = layer
+        docref.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
     desc2 = ActionDescriptor()
@@ -94,8 +109,7 @@ def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, N
     desc3.putEnumerated(
         sID("gradientsInterpolationMethod"),
         sID("gradientInterpolationMethodType"),
-        sID("perceptual")
-    )
+        sID("perceptual"))
     desc3.putUnitDouble(sID("angle"), sID("angleUnit"), kwargs.get('rotation', 0))
     desc3.putEnumerated(sID("type"), sID("gradientType"), sID("linear"))
     desc3.putUnitDouble(sID("scale"), sID("percentUnit"), kwargs.get('scale', 100))
@@ -122,4 +136,4 @@ def create_gradient_layer(colors: list[dict], layer: Union[ArtLayer, LayerSet, N
     desc2.putObject(sID("type"), sID("gradientLayer"),  desc3)
     desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
     APP.executeAction(sID("make"), desc1,  NO_DIALOG)
-    return APP.activeDocument.activeLayer
+    return docref.activeLayer

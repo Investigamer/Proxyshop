@@ -5,20 +5,18 @@
 from typing import Union, Optional, Callable
 
 # Third Party Imports
-from photoshop.api import SolidColor
 from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
 from src.enums.mtg import pinline_color_map
-import src.format_text as ft
 import src.helpers as psd
 from src.layouts import ClassLayout
 from src.templates._core import NormalTemplate
 from src.templates._cosmetic import VectorNyxMod
 from src.templates._vector import VectorTemplate
-import src.text_layers as text_classes
+from src.text_layers import FormattedTextField, TextField
 from src.utils.properties import auto_prop_cached
 
 """
@@ -43,29 +41,38 @@ class ClassMod (NormalTemplate):
         super().__init__(layout, **kwargs)
 
     """
-    CLASS METHODS
+    * Checks
+    """
+
+    @auto_prop_cached
+    def is_class_layout(self) -> bool:
+        """bool: Checks if this card is a ClassLayout object."""
+        return isinstance(self.layout, ClassLayout)
+
+    """
+    * Mixin Methods
     """
 
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
-        funcs = [self.text_layers_classes] if isinstance(self.layout, ClassLayout) else []
+        funcs = [self.text_layers_classes] if self.is_class_layout else []
         return [*super().text_layer_methods, *funcs]
 
     @auto_prop_cached
     def frame_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
-        funcs = [self.frame_layers_classes] if isinstance(self.layout, ClassLayout) else []
+        funcs = [self.frame_layers_classes] if self.is_class_layout else []
         return [*super().frame_layer_methods, *funcs]
 
     @auto_prop_cached
     def post_text_methods(self) -> list[Callable]:
         """Position Class abilities and stage dividers."""
-        funcs = [self.layer_positioning_classes] if isinstance(self.layout, ClassLayout) else []
+        funcs = [self.layer_positioning_classes] if self.is_class_layout else []
         return [*super().post_text_methods, *funcs]
 
     """
-    CLASS GROUPS
+    * Class Groups
     """
 
     @auto_prop_cached
@@ -77,15 +84,15 @@ class ClassMod (NormalTemplate):
         return psd.getLayerSet(LAYERS.STAGE, self.class_group)
 
     """
-    CLASS TEXT LAYERS
+    * Class Text Layers
     """
 
     @auto_prop_cached
-    def texT_layer_ability(self) -> ArtLayer:
+    def text_layer_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.TEXT, self.class_group)
 
     """
-    ABILITY LINES
+    * Class Abilities
     """
 
     @property
@@ -97,7 +104,7 @@ class ClassMod (NormalTemplate):
         self._line_layers = value
 
     """
-    STAGE DIVIDER GROUPS
+    * Class Stage Dividers
     """
 
     @property
@@ -109,7 +116,7 @@ class ClassMod (NormalTemplate):
         self._stage_layers = value
 
     """
-    METHODS
+    * Text Layer Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
@@ -117,26 +124,25 @@ class ClassMod (NormalTemplate):
         pass
 
     """
-    CLASS METHODS
+    * Class Text Layer Methods
     """
 
     def text_layers_classes(self) -> None:
         """Add and modify text layers relating to Class type cards."""
 
         # Add first static line
-        self.line_layers.append(self.texT_layer_ability)
+        self.line_layers.append(self.text_layer_ability)
         self.text.append(
-            text_classes.FormattedTextField(
-                layer=self.texT_layer_ability,
+            FormattedTextField(
+                layer=self.text_layer_ability,
                 contents=self.layout.class_lines[0]['text']
-            )
-        )
+            ))
 
         # Add text fields for each line and class stage
         for i, line in enumerate(self.layout.class_lines[1:]):
 
             # Create a new ability line
-            line_layer = self.texT_layer_ability.duplicate()
+            line_layer = self.text_layer_ability.duplicate()
             self.line_layers.append(line_layer)
 
             # Use existing stage divider or create new one
@@ -146,16 +152,22 @@ class ClassMod (NormalTemplate):
 
             # Add text layers to be formatted
             self.text.extend([
-                text_classes.FormattedTextField(layer=line_layer, contents=line['text']),
-                text_classes.FormattedTextField(layer=cost, contents=f"{line['cost']}:"),
-                text_classes.TextField(layer=level, contents=f"Level {line['level']}")
+                FormattedTextField(layer=line_layer, contents=line['text']),
+                FormattedTextField(layer=cost, contents=f"{line['cost']}:"),
+                TextField(layer=level, contents=f"Level {line['level']}")
             ])
 
-    def frame_layers_classes(self) -> None:
-        """Enable frame layers required by Class cards."""
+    """
+    * Class Frame Layer Methods
+    """
 
-        # None by default
+    def frame_layers_classes(self) -> None:
+        """Enable frame layers required by Class cards. None by default."""
         pass
+
+    """
+    * Class Positioning Methods
+    """
 
     def layer_positioning_classes(self) -> None:
         """Positions and sizes class ability layers and stage dividers."""
@@ -163,16 +175,18 @@ class ClassMod (NormalTemplate):
         # Core vars
         spacing = self.app.scale_by_dpi(80)
         spaces = len(self.line_layers) - 1
-        divider_height = psd.get_layer_dimensions(self.stage_layers[0])['height']
+        divider_height = psd.get_layer_height(self.stage_layers[0])
         ref_height = self.textbox_reference.dims['height']
         spacing_total = (spaces * (spacing + divider_height)) + (spacing * 2)
         total_height = ref_height - spacing_total
 
         # Resize text items till they fit in the available space
-        ft.scale_text_layers_to_fit(self.line_layers, total_height)
+        psd.scale_text_layers_to_height(
+            text_layers=self.line_layers,
+            ref_height=total_height)
 
         # Get the exact gap between each layer left over
-        layer_heights = sum([psd.get_layer_dimensions(lyr)["height"] for lyr in self.line_layers])
+        layer_heights = sum([psd.get_layer_height(lyr) for lyr in self.line_layers])
         gap = (ref_height - layer_heights) * (spacing / spacing_total)
         inside_gap = (ref_height - layer_heights) * ((spacing + divider_height) / spacing_total)
 
@@ -184,7 +198,10 @@ class ClassMod (NormalTemplate):
             inside_gap=inside_gap)
 
         # Position a class stage between each ability line
-        psd.position_dividers(self.stage_layers, self.line_layers)
+        psd.position_dividers(
+            dividers=self.stage_layers,
+            layers=self.line_layers,
+            docref=self.docref)
 
 
 """
@@ -196,56 +213,51 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     """Class template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
-    BOOL
+    * Bool
     """
 
     @auto_prop_cached
     def is_name_shifted(self) -> bool:
-        # Back face TF symbol is on right side
+        """Back face TF symbol is on right side."""
         return bool(self.is_transform and self.is_front)
 
     """
-    COLORS
+    * Colors
     """
 
     @auto_prop_cached
     def textbox_colors(self) -> list[str]:
-        # Transform back side textures
+        """list[str]: Support back side texture names."""
+        colors = list(self.identity) if self.is_within_color_limit else [self.pinlines]
+        # Is this card a back face transform?
         if self.is_transform and not self.is_front:
-            # Dual color textures
-            if 1 < len(self.identity) < self.color_limit:
-                return [f"{n} {LAYERS.BACK}" for n in self.identity]
-            # Single color textures
-            return [f"{self.pinlines} {LAYERS.BACK}"]
-        # Dual color front textures
-        if 1 < len(self.identity) < self.color_limit:
-            return [n for n in self.identity]
-        # Single color front textures
-        return [self.pinlines]
+            return [f'{n} {LAYERS.BACK}' for n in colors]
+        return colors
 
     @auto_prop_cached
-    def crown_colors(self) -> Union[SolidColor, list[dict]]:
-        # Return SolidColor or Gradient dict notation for colored adjustment layers
-        return psd.get_pinline_gradient(self.pinlines, self.crown_color_map)
+    def crown_colors(self) -> Union[list[int], list[dict]]:
+        """Return RGB notation or Gradient dict notation for adjustment layers."""
+        return psd.get_pinline_gradient(
+            colors=self.pinlines, color_map=self.crown_color_map)
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
     def crown_group(self) -> LayerSet:
         """Use inner shape group for Legendary Crown."""
-        return psd.getLayerSet(LAYERS.SHAPE, LAYERS.LEGENDARY_CROWN)
+        return psd.getLayerSet(LAYERS.SHAPE, [self.docref, LAYERS.LEGENDARY_CROWN])
 
     @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """Must enable textbox group."""
-        if group := psd.getLayerSet(LAYERS.TEXTBOX):
+        if group := psd.getLayerSet(LAYERS.TEXTBOX, self.docref):
             group.visible = True
             return group
 
     """
-    LAYERS
+    * Layers
     """
 
     @auto_prop_cached
@@ -256,7 +268,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
             self.twins_group)
 
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
@@ -266,7 +278,9 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         if self.is_front and self.is_flipside_creature:
-            return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}', self.class_group)
+            return psd.get_reference_layer(
+                f'{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}',
+                self.class_group)
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.class_group)
 
     @auto_prop_cached
@@ -274,7 +288,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
         return psd.getLayer(LAYERS.ART_FRAME + " Right")
 
     """
-    BLENDING MASKS
+    * Blending Masks
     """
 
     @auto_prop_cached
@@ -288,7 +302,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BACKGROUND])]
 
     """
-    SHAPES
+    * Shapes
     """
 
     @auto_prop_cached
@@ -339,7 +353,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
         ]
 
     """
-    MASKS
+    * Masks to Enable
     """
 
     @auto_prop_cached
@@ -358,7 +372,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
         return [self.pinlines_mask]
 
     """
-    METHODS
+    * Frame Layer Methods
     """
 
     def enable_frame_layers(self) -> None:
@@ -366,22 +380,12 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
 
         # Merge the textbox and shift it to right half
         psd.merge_group(self.textbox_group)
-        psd.align_horizontal(self.active_layer, self.textbox_position_reference)
-
-    def enable_crown(self) -> None:
-
-        # Legendary Crown -> A solid color or gradient layer
-        self.crown_group.visible = True
-        self.pinlines_action(self.crown_colors, layer=self.crown_group)
-
-        # Enable Hollow Crown
-        self.enable_hollow_crown(
-            masks=[self.crown_group],
-            vector_masks=[self.pinlines_group]
-        )
+        psd.align_horizontal(
+            layer=self.active_layer,
+            ref=self.textbox_position_reference)
 
     """
-    CLASS CARD METHODS
+    * Class Frame Layer Methods
     """
 
     def frame_layers_classes(self):
@@ -396,49 +400,48 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
     """Saga Vector template with Universes Beyond frame treatment."""
     template_suffix = 'Universes Beyond'
 
-    """
-    COLORS
-    """
+    # Color Maps
+    pinline_color_map = {
+        **pinline_color_map.copy(),
+        'W': [246, 247, 241],
+        'U': [0, 131, 193],
+        'B': [44, 40, 33],
+        'R': [237, 66, 31],
+        'G': [5, 129, 64],
+        'Gold': [239, 209, 107],
+        'Land': [165, 150, 132],
+        'Artifact': [227, 228, 230],
+        'Colorless': [227, 228, 230]
+    }
 
-    @auto_prop_cached
-    def pinline_color_map(self) -> dict:
-        colors = pinline_color_map.copy()
-        colors.update({
-            'W': [246, 247, 241],
-            'U': [0, 131, 193],
-            'B': [44, 40, 33],
-            'R': [237, 66, 31],
-            'G': [5, 129, 64],
-            'Gold': [239, 209, 107],
-            'Land': [165, 150, 132],
-            'Artifact': [227, 228, 230],
-            'Colorless': [227, 228, 230]
-        })
-        return colors
+    """
+    * Colors
+    """
 
     @auto_prop_cached
     def textbox_colors(self) -> list[str]:
-        # Dual color front textures
-        if 1 < len(self.identity) < self.color_limit:
+        """list[str]: Support identity by color limit, fallback to pinline colors."""
+        if self.is_within_color_limit:
             return [n for n in self.identity]
-        # Single color front textures
         return [self.pinlines]
 
     @auto_prop_cached
-    def twins_colors(self) -> Optional[str]:
-        return f"{self.twins} Beyond"
+    def twins_colors(self) -> str:
+        """str: Universes Beyond variant texture name."""
+        return f'{self.twins} Beyond'
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
     def background_group(self) -> LayerSet:
+        """LayerSet: Universes Beyond variant group."""
         return psd.getLayerSet(f'{LAYERS.BACKGROUND} Beyond')
 
     @auto_prop_cached
     def textbox_group(self) -> LayerSet:
-        """Must enable group."""
-        if group := psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond"):
-            group.visible = True
-            return group
+        """LayerSet: Universes Beyond variant group. Must be enabled."""
+        group = psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond")
+        group.visible = True
+        return group

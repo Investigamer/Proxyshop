@@ -18,7 +18,7 @@ from colorama import Fore, Style
 os.environ['HEADLESS'] = "True"
 
 # Local Imports
-from src import CONSOLE as logr, PATH
+from src import CONSOLE as logr, PATH, CFG
 from src.utils.files import load_data_file
 from src.layouts import layout_map, CardLayout
 from src.cards import get_card_data
@@ -89,13 +89,15 @@ def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, Frame
                     set_code = cfg
 
         # Pull Scryfall data
-        scryfall = get_card_data({
-            'name': card_name,
-            'set': set_code,
-            'number': None,
-            'creator': None,
-            'file': '',
-            'artist': None})
+        scryfall = get_card_data(
+            card={
+                'name': card_name,
+                'set': set_code,
+                'number': None,
+                'creator': None,
+                'file': '',
+                'artist': None},
+            cfg=CFG, logger=logr)
     except Exception as e:
         # Exception occurred during Scryfall lookup
         return logr.failed(f"Scryfall error occurred at card: '{card_name}'", exc_info=e)

@@ -290,6 +290,11 @@ planeswalkers_tall = [
 SymbolColor = Union[str, list[int]]
 
 
+class ColorSchema(DictSchema):
+    """Defines RGB or CMYK color values mapped to string keys."""
+    # TODO: Finish this
+
+
 class ManaColors(DictSchema):
     """Defines the mana colors for a specific symbol map (inner, outer, hybrid)."""
     C: SymbolColor = [204, 194, 193]
@@ -516,12 +521,12 @@ class MagicIcons:
 
 
 """
-* Utility Funcs
+* Util Funcs
 """
 
 
 def get_symbol_colors(symbol: str, chars: str, color_map: SymbolColorMap) -> list[SymbolColor]:
-    """Determines the colors of a symbol (represented as Scryfall string) and returns an array of SolidColor objects.
+    """Determines the colors of a symbol (represented as Scryfall string) and returns an array Symbol colors.
 
     Args:
         symbol: Symbol to determine the colors of.

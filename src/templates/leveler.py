@@ -31,6 +31,10 @@ class LevelerMod (NormalTemplate):
         * Level requirements for second and third stage.
     """
 
+    """
+    * Mixin Methods
+    """
+
     @auto_prop_cached
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers."""
@@ -38,7 +42,7 @@ class LevelerMod (NormalTemplate):
         return [*super().text_layer_methods, *funcs]
 
     """
-    GROUPS
+    * Groups
     """
 
     @auto_prop_cached
@@ -47,7 +51,7 @@ class LevelerMod (NormalTemplate):
         return psd.getLayerSet("Leveler Text", self.text_group)
 
     """
-    LAYERS
+    * Layers
     """
 
     @auto_prop_cached
@@ -55,7 +59,7 @@ class LevelerMod (NormalTemplate):
         return psd.getLayer(self.twins, LAYERS.PT_AND_LEVEL_BOXES)
 
     """
-    TEXT LAYERS
+    * Text Layers
     """
 
     @auto_prop_cached
@@ -67,7 +71,7 @@ class LevelerMod (NormalTemplate):
         return psd.getLayer("Top Power / Toughness", self.leveler_group)
 
     """
-    LEVELER TEXT LAYERS
+    * Leveler Text Layers
     """
 
     @auto_prop_cached
@@ -95,12 +99,16 @@ class LevelerMod (NormalTemplate):
         return psd.getLayer("Bottom Power / Toughness", self.leveler_group)
 
     """
-    REFERENCES
+    * References
     """
 
     @auto_prop_cached
     def textbox_reference(self) -> Optional[ArtLayer]:
         return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
+
+    """
+    * Leveler References
+    """
 
     @auto_prop_cached
     def textbox_reference_x_y(self) -> Optional[ArtLayer]:
@@ -111,7 +119,7 @@ class LevelerMod (NormalTemplate):
         return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Levels Z+', self.leveler_group)
 
     """
-    LEVELER METHODS
+    * Leveler Text Methods
     """
 
     def rules_text_and_pt_layers(self) -> None:
@@ -167,7 +175,7 @@ class LevelerMod (NormalTemplate):
 
 
 """
-* TEMPLATE CLASSES
+* Template Classes
 """
 
 

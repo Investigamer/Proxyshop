@@ -311,9 +311,10 @@ def get_document(name: str) -> Optional[Document]:
         The Document if located, None if missing.
     """
     try:
-        if APP.documents.length < 1:
+        docs = APP.documents
+        if docs.length < 1:
             return
-        doc = APP.documents.getByName(name)
+        doc = docs.getByName(name)
         APP.activeDocument = doc
         return doc
     except PS_EXCEPTIONS:
@@ -471,3 +472,22 @@ def rotate_clockwise() -> None:
 def rotate_full() -> None:
     """Utility definition for rotating a full 180 degrees."""
     rotate_document(180)
+
+
+"""
+* Copy / Paste
+"""
+
+
+def paste_to_document(layer: Union[ArtLayer, LayerSet, None] = None):
+    """Paste current clipboard to the current layer.
+
+    Args:
+        layer: Layer to make active, if provided.
+    """
+    if layer:
+        APP.activeDocument.activeLayer = layer
+    desc1 = ActionDescriptor()
+    desc1.PutEnumerated(sID("antiAlias"), sID("antiAliasType"), sID("antiAliasNone"))
+    desc1.PutClass(sID("as"), sID("pixel"))
+    APP.Executeaction(sID("paste"), desc1, NO_DIALOG)

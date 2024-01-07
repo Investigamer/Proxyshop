@@ -7,8 +7,8 @@ from typing import TypedDict
 
 # Local Imports
 from src import CONSOLE as logr, PATH
+from src.cards import generate_italics
 from src.utils.files import load_data_file
-from src.format_text import generate_italics
 
 
 """

@@ -1,6 +1,6 @@
 """
 * Manage Global State (non-GUI)
-* Only local imports should be `enums` and `utils`.
+* Only local imports should be `enums`, `utils`, or `cards`.
 """
 # Standard Library Imports
 import os
@@ -142,9 +142,11 @@ class AppEnvironment:
     @auto_prop_cached
     def VERSION(self) -> str:
         """str: Current app version."""
-        if ver := environ.get('VERSION'):
-            return ver
-        return get_app_version(PATH.CWD / 'pyproject.toml')
+        if hasattr(sys, '_MEIPASS'):
+            # Use generated version module in Pyinstaller build
+            import __VERSION__
+            return str(__VERSION__.version)
+        return environ.get('VERSION', get_app_version(PATH.CWD / 'pyproject.toml'))
 
     @auto_prop_cached
     def API_GOOGLE(self) -> str:
@@ -319,7 +321,8 @@ class AppConstants:
         return {
             2: [LAYERS.HALF],
             3: [LAYERS.THIRD, LAYERS.TWO_THIRDS],
-            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS]
+            4: [LAYERS.QUARTER, LAYERS.HALF, LAYERS.THREE_QUARTERS],
+            5: [LAYERS.FIFTH, LAYERS.TWO_FIFTHS, LAYERS.THREE_FIFTHS, LAYERS.FOUR_FIFTHS]
         }
 
     @tracked_prop

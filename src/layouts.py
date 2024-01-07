@@ -177,7 +177,7 @@ class NormalLayout:
         """String representation of the card layout object."""
         return (f"{self.name}"
                 f"{f' [{self.set}]' if self.set else ''}"
-                f"{f' {{{self.collector_number}}}' if self.collector_number else ''}")
+                f"{f' {{{self.collector_number_raw}}}' if self.collector_number else ''}")
 
     """
     * Core Data
@@ -194,11 +194,6 @@ class NormalLayout:
         return self._scryfall
 
     @auto_prop_cached
-    def set_data(self) -> dict:
-        """Set data from the current hexproof.io data file."""
-        return CON.set_data.get(self.scryfall.get('set', 'mtg'), {})
-
-    @auto_prop_cached
     def template_file(self) -> Path:
         """Template PSD file path, replaced before render process."""
         return PATH.TEMPLATES / 'normal.psd'
@@ -212,6 +207,25 @@ class NormalLayout:
     def scryfall_scan(self) -> str:
         """Scryfall large image scan, if available."""
         return self.card.get('image_uris', {}).get('large', '')
+
+    """
+    * Set Data
+    """
+
+    @auto_prop_cached
+    def set(self) -> str:
+        """Card set code, uppercase enforced, falls back to 'MTG' if missing."""
+        return self.scryfall.get('set', 'MTG').upper()
+
+    @auto_prop_cached
+    def set_data(self) -> dict:
+        """Set data from the current hexproof.io data file."""
+        return CON.set_data.get(self.scryfall.get('set', 'mtg'), {})
+
+    @auto_prop_cached
+    def set_type(self) -> str:
+        """str: Type of set the card was printed in, e.g. promo, draft_innovation, etc."""
+        return self.scryfall.get('set_type', '')
 
     """
     * Gameplay Info
@@ -234,15 +248,24 @@ class NormalLayout:
         first = get_cards_oracle(self.scryfall.get('oracle_id', ''))
         return first[0] if first else {}
 
+    """
+    * Card Collections
+    """
+
     @auto_prop_cached
-    def frame_effects(self) -> list:
+    def frame_effects(self) -> list[str]:
         """Array of frame effects, e.g. nyxtouched, snow, etc."""
         return self.scryfall.get('frame_effects', [])
 
     @auto_prop_cached
-    def keywords(self) -> list:
+    def keywords(self) -> list[str]:
         """Array of keyword abilities, e.g. Flying, Haste, etc."""
         return self.scryfall.get('keywords', [])
+
+    @auto_prop_cached
+    def promo_types(self) -> list[str]:
+        """list[str]: Promo types this card matches, e.g. stamped, datestamped, etc."""
+        return self.scryfall.get('promo_types', [])
 
     """
     * Text Info
@@ -330,11 +353,6 @@ class NormalLayout:
     """
     * Collector Info
     """
-
-    @auto_prop_cached
-    def set(self) -> str:
-        """Card set code, uppercase enforced, falls back to 'MTG' if missing."""
-        return self.scryfall.get('set', 'MTG').upper()
 
     @auto_prop_cached
     def symbol_code(self) -> str:
@@ -562,7 +580,13 @@ class NormalLayout:
     @auto_prop_cached
     def is_promo(self) -> bool:
         """True if card is a promotional print."""
-        return bool(self.scryfall.get('promo', False))
+        if self.scryfall.get('promo', False):
+            return True
+        if self.set_type == 'promo':
+            return True
+        if self.promo_types:
+            return True
+        return False
 
     @auto_prop_cached
     def is_front(self) -> bool:

@@ -20,6 +20,7 @@ import requests
 from PIL import Image as PImage
 from photoshop.api._document import Document
 from photoshop.api import SaveOptions, PurgeTarget
+from packaging.version import parse
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -262,7 +263,7 @@ class ProxyshopGUIApp(App):
         return None
 
     @property
-    def cancel_render(self) -> Optional[Event]:
+    def thread(self) -> Optional[Event]:
         """Optional[Event]: Tracks the current render threading Event."""
         if self.current_render and hasattr(self.current_render, 'event'):
             return self.current_render.event or None
@@ -272,6 +273,12 @@ class ProxyshopGUIApp(App):
     def timer(self) -> float:
         """float: Returns the current system time as a float to use as a timer comparison."""
         return perf_counter()
+
+    @property
+    def thread_cancelled(self) -> bool:
+        """bool: Whether the current render thread has been cancelled."""
+        thr = self.thread
+        return bool(not isinstance(thr, Event) or thr.is_set())
 
     """
     * UI Properties
@@ -451,36 +458,50 @@ class ProxyshopGUIApp(App):
             # If all failed alert the user and cancel
             failure_list = '\n'.join(failed)
             if not layouts:
-                return self.console.update(f"\n[b]Failed to render all cards[/b] ...\n{failure_list}")
+                return self.console.update(
+                    f"\n{msg_bold(msg_error('Failed to render all cards!'))}"
+                    f"\n{failure_list}")
 
             # Let the user choose to continue if only some failed
-            line1 = '\n' + msg_bold("I couldn't render the following cards") + ' ...\n' + failure_list
-            line2 = '\n' + msg_bold("Should I continue anyway?") + ' ...\n'
-            if not self.console.error(msg=line1, end=line2):
+            if not self.console.error(
+                msg=f"\n{msg_error('Unable to render these cards:')}"
+                    f"{failure_list}"
+            ):
                 return
 
         # Render in batches separated by PSD file
         self.console.update()
-        for _path, class_map in layouts.items():
+        times: list[float] = []
+        for (i), (_path, class_map) in enumerate(layouts.items()):
             for layout, cards in class_map.items():
 
                 # Initialize the template's python class module
                 loaded_class = temps[layout]['object'].get_template_class(
                     temps[layout]['class_name'])
                 if not loaded_class:
+
                     # Failed to load module or python class
-                    failed_cards = get_bullet_points(
-                        text=[str(c.display_name) for c in cards],
-                        char='-')
-                    message = msg_error(
-                        f"Unable to load Python class '{temps[layout]['class_name']}' "
-                        f"for template '{temps[layout]['name']}'!\n"
-                    ) + msg_bold("The following cards have been cancelled:")
-                    if not self.console.error(
-                            msg=f'{message}{failed_cards}',
-                            end=msg_bold("\nShould I continue with the remaining cards?\n")
-                    ):
-                        return
+                    self.console.update(msg_error(
+                        "Unable to load Python class: "
+                        f"{msg_bold(temps[layout]['class_name'])}"))
+
+                    # If more templates in the queue, ask to continue
+                    if (i + 1) < len(layouts):
+
+                        # Get a list of cards using this template
+                        failed_cards = get_bullet_points(
+                            text=[str(c.display_name) for c in cards],
+                            char='-')
+                        if self.console.error(
+                            msg=f"{msg_error('The following cards have been cancelled:')}"
+                                f"{failed_cards}"
+                        ):
+                            # Continue to next template
+                            self.console.update()
+                            continue
+
+                    # Cancel render process
+                    return
 
                 # Load constants and config for this template
                 self.cfg.load(temps[layout]['config'])
@@ -488,11 +509,20 @@ class ProxyshopGUIApp(App):
 
                 # Render each card with this PSD and class
                 for c in cards:
-                    if not self.start_render(c, temps[layout], loaded_class):
+                    result = self.start_render(c, temps[layout], loaded_class)
+                    if self.thread_cancelled:
                         return
+                    if result is not None:
+                        times.append(result)
 
             # Render group complete
             self.close_document()
+
+        # Report the average render time
+        self.console.update(msg_success('Renders Completed!'))
+        if times:
+            avg = round(sum(times) / len(times), 1)
+            self.console.update(f'Average time: {avg} seconds')
 
     @render_process_wrapper
     def render_custom(self, template: TemplateDetails, scryfall: dict) -> None:
@@ -517,12 +547,11 @@ class ProxyshopGUIApp(App):
                     'artist': scryfall.get('artist', ''),
                     'set': scryfall.get('set', ''),
                     'creator': None
-                }
-            )
+                })
         except Exception as e:
             self.console.update(
-                'Custom card failed!\n'
-                'Unable to create a layout object, make sure you input valid information.',
+                msg='Unable to create a layout object, make sure you input valid information.\n'
+                    'Custom card failed!',
                 exception=e)
             return
 
@@ -530,8 +559,8 @@ class ProxyshopGUIApp(App):
         if not template['object'].is_installed:
             # Template is not installed
             self.console.update(
-                'Custom card failed!\n'
-                f"Template '{template['name']}' with type '{c.card_class}' is not installed!")
+                f"Template '{template['name']}' for card type '{c.card_class}' is not installed!\n"
+                'Custom card failed!')
             return
 
         # Initialize a python class for the template
@@ -539,9 +568,8 @@ class ProxyshopGUIApp(App):
         if not loaded_class:
             # Failed to load module or python class
             self.console.update(
-                'Custom card failed!\n'
-                f"Unable to load Python class '{template['class_name']}' "
-                f"for template '{template['name']}'.")
+                f"Unable to load Python class: {msg_bold(template['class_name'])}\n"
+                'Custom card failed!')
             return
 
         # Start render
@@ -562,7 +590,7 @@ class ProxyshopGUIApp(App):
 
             # If not a deep test, only use first entry
             cards = {k: v for k, v in [next(iter(cards.items()))]} if not deep else cards
-            self.console.update(msg_success(f"\n---- {card_type.upper()} ----"))
+            self.console.update(msg_success(f'\n— {card_type.upper()}'))
 
             # Loop through templates to test
             for name, template in self.template_map[layout_map_types[card_type]]['map'][card_type].items():
@@ -585,6 +613,7 @@ class ProxyshopGUIApp(App):
 
                 # Loop through cards to test
                 failures: list[tuple[str, str, str]] = []
+                times: list[float] = []
                 for card_name, card_case in cards.items():
 
                     # Attempt to assign a layout
@@ -594,19 +623,29 @@ class ProxyshopGUIApp(App):
                         continue
 
                     # Grab the template class and start the render thread
-                    layout.art_file = PATH.SRC_IMG / "test.jpg"
-                    if not self.start_render(layout, template, loaded_class):
+                    layout.art_file = PATH.SRC_IMG / 'test.jpg'
+                    result = self.start_render(layout, template, loaded_class)
+                    if result is None:
                         failures.append((card_name, card_case, 'Failed to render'))
+                    else:
+                        times.append(result)
 
-                    # Thread cancelled or reset and continue?
-                    if self.cancel_render.is_set():
+                    # Was thread cancelled?
+                    if self.thread_cancelled:
                         return
 
-                # Log failure state and continue
-                result = get_bullet_points([
-                    f"{name} ({case}) — {reason}" for name, case, reason in failures
-                ]) if failures else ''
-                self.console.update(msg_error(f"FAILED\n{result}") if result else msg_success("SUCCESS"))
+                # Create a summary message
+                if failures:
+                    fail_log = get_bullet_points([
+                        f"{name} ({case}) — {reason}"
+                        for name, case, reason in failures])
+                    summary = msg_error(f'FAILED{fail_log}')
+                else:
+                    avg = round(sum(times) / len(times), 1)
+                    summary = msg_success(f'{avg}s Avg.')
+
+                # Log summary and continue to next template
+                self.console.update(summary)
                 self.close_document()
 
     @render_process_wrapper
@@ -619,7 +658,8 @@ class ProxyshopGUIApp(App):
         """
         # Load test case cards
         cases = load_data_file((PATH.SRC_DATA_TESTS / 'template_renders').with_suffix('.toml'))
-        self.console.update(msg_success(f"\n---- {template['class_name']} ----"))
+        title = f"\n— {template['class_name']}"
+        self.console.update(msg_success(title))
 
         # Is this template installed?
         if not template['object'].is_installed:
@@ -633,8 +673,9 @@ class ProxyshopGUIApp(App):
             return
 
         # Render each test case
-        for card_name, card_case in cases[card_type].items():
-            self.console.update(f"{card_name} ({card_case}) ... ", end="")
+        times: list[float] = []
+        for card_name in cases[card_type].keys():
+            self.console.update(f"{card_name} ... ", end="")
 
             # Attempt to assign a layout
             layout = assign_layout(Path(card_name))
@@ -645,15 +686,29 @@ class ProxyshopGUIApp(App):
             # Start the render
             layout.art_file = PATH.SRC_IMG / 'test.jpg'
             result = self.start_render(
-                layout, template, loaded_class,
-                reload_config=True, reload_constants=True)
+                card=layout,
+                template=template,
+                loaded_class=loaded_class,
+                reload_config=True,
+                reload_constants=True)
 
-            # Was render cancelled?
-            if self.cancel_render.is_set():
+            # Was thread cancelled?
+            if self.thread_cancelled:
                 return
+            if result is not None:
+                times.append(result)
 
             # Was render successful?
-            self.console.update(msg_success("SUCCESS") if result else msg_error("Failed to render"))
+            self.console.update(
+                msg_error('Failed to render')
+                if result is None else
+                msg_success(f'{result}s'))
+
+        # Report the average render time
+        self.console.update(msg_success('\nTests Completed!'))
+        if times:
+            avg = round(sum(times) / len(times), 1)
+            self.console.update(f'Average time: {avg} seconds')
 
     def start_render(
         self, card: CardLayout,
@@ -661,7 +716,7 @@ class ProxyshopGUIApp(App):
         loaded_class: type[BaseTemplate],
         reload_config: bool = False,
         reload_constants: bool = False
-    ) -> bool:
+    ) -> Optional[float]:
         """Execute a render job using a given card layout, template, and template class.
 
         Args:
@@ -684,8 +739,7 @@ class ProxyshopGUIApp(App):
         if reload_constants:
             self.con.reload()
 
-        # Track execution time
-        start_time = self.timer
+        # Catch any unexpected render exceptions
         try:
 
             # Set the PSD location of the template
@@ -699,23 +753,35 @@ class ProxyshopGUIApp(App):
                 executor.submit(self.console.start_await_cancel, self.current_render.event)
 
             # Render the card
+            start_time = self.timer
             result = self.current_render.execute()
+            timed = round(self.timer - start_time, 1)
 
-            # Report this results
-            if result and not self.env.TEST_MODE:
-                self.console.update(f"[i]Time completed: {int(self.timer - start_time)} seconds[/i]\n")
-            return result
+            # Return execution time if successful
+            if not self.thread.is_set() and result:
+                if not self.env.TEST_MODE:
+                    self.console.update(f"[i]Time completed: {timed} seconds[/i]\n")
+                return timed
 
         # General error outside Template render process
-        except Exception as e:
-            return self.console.log_error(
-                self.cancel_render or Event(),
+        except Exception as error:
+
+            # Reset document
+            if self.docref:
+                self.current_render.reset()
+
+            # Log the error
+            self.console.log_error(
+                self.thread or Event(),
                 card=card.name,
                 template=template['name'],
                 msg=msg_error(
-                    "Encountered a general error!\n"
-                    "Check [b]/logs/error.txt[/b] for details."),
-                exception=e)
+                    'Encountered a general error!\n'
+                    'Check [b]/logs/error.txt[/b] for details.'),
+                e=error)
+
+        # Card failed or thread cancelled
+        return
 
     """
     * UI Utilities
@@ -931,8 +997,8 @@ class ProxyshopGUIApp(App):
 
     def on_stop(self) -> None:
         """Called when the app is closed."""
-        if self.cancel_render and isinstance(self.cancel_render, Event):
-            self.cancel_render.set()
+        if self.thread and isinstance(self.thread, Event):
+            self.thread.set()
 
     """
     * App Updates
@@ -953,10 +1019,9 @@ class ProxyshopGUIApp(App):
             Return True if up to date, otherwise False.
         """
         with suppress(requests.RequestException, json.JSONDecodeError):
-            current = f"v{self.env.VERSION}"
             response = requests.get(
                 "https://api.github.com/repos/MrTeferi/Proxyshop/releases/latest",
                 timeout=(3, 3))
-            latest = response.json().get("tag_name", current)
-            return bool(current == latest)
+            latest = response.json().get("tag_name", self.env.VERSION)
+            return bool(parse(self.env.VERSION.lstrip('v')) >= parse(latest.lstrip('v')))
         return True

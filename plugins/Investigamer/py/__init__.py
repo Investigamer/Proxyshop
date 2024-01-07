@@ -1,4 +1,4 @@
 """
 * Import all Template Classes
 """
-from .templates import *
+from plugins.Investigamer.py.templates import *

@@ -4,17 +4,16 @@
 # Standard Library Imports
 import os
 from pathlib import Path
-import sys
 import shutil
 from tempfile import NamedTemporaryFile
 from typing import Callable, Optional
 
 # Third Party Imports
 import requests
+from memory_profiler import profile
 
 # Local Imports
 from src.utils.compression import unpack_archive
-
 
 """
 * Download Utils
@@ -42,15 +41,16 @@ def get_temporary_file(path: Path, ext: str = '.drive') -> tuple[Path, int]:
             return file, file.stat().st_size
 
     # Create a new temporary file
-    with NamedTemporaryFile(prefix=temp.name, dir=temp.parent, delete=False) as f:
-        file = f.name
+    f = NamedTemporaryFile(prefix=temp.name, dir=temp.parent, delete=False)
+    file = f.name
+    f.close()
     return Path(file), 0
 
 
+@profile
 def download_file(
     file: Path,
     res: requests.Response,
-    sess: requests.Session,
     path: Path = None,
     callback: Optional[Callable] = None,
     chunk_size = 1024 * 1024
@@ -60,7 +60,6 @@ def download_file(
     Args:
         file: Path of the temporary file.
         res: Download request.
-        sess: Download session.
         path: Final path to save the completed temporary file.
         callback: Callback to update download progress.
         chunk_size: Amount of bytes to download before calling `callback`.
@@ -68,26 +67,34 @@ def download_file(
     Returns:
         True if download completed successfully, otherwise False.
     """
-    # Try to download the file
+    # Establish initial progress
+    path = path or file
     total = int(res.headers.get("Content-Length") or 1)
     current = file.stat().st_size
     try:
+
+        # Open the temporary file and write each chunk
         with open(file, "ab") as f:
-            # Write each chunk and call the progress callback
             for chunk in res.iter_content(chunk_size=chunk_size):
                 f.write(chunk)
+
+                # Execute progress callback if provided
                 if callback:
                     current += int(chunk_size)
                     callback(current, total)
-        if path and str(file) != str(path):
-            # Rename TMP file
-            shutil.move(file, path)
-            # Decompress zipped file
-            if path.suffix == '.7z':
-                unpack_archive(path)
-    except IOError as e:
-        print(e, file=sys.stderr)
-        sess.close()
+
+    # Download failure
+    except Exception as e:
+        print(f'Download failed: {file}\n{e}')
         return False
-    sess.close()
+    del res
+
+    # Rename the temporary file, unpack it
+    try:
+        if file != path:
+            shutil.move(file, path)
+        unpack_archive(path)
+    except Exception as e:
+        print(f'Unpacking failed: {path}\n{e}')
+        return False
     return True

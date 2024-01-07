@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 import os.path as osp
+from contextlib import suppress
 from pathlib import Path
 from threading import Event
 from typing import Optional, Callable, Any, Union, Iterable
@@ -17,18 +18,16 @@ from photoshop.api import (
     ElementPlacement,
     SaveOptions,
     SolidColor,
-    BlendMode
-)
+    BlendMode)
 from PIL import Image
 
 # Local Imports
 from src import APP, CON, CONSOLE, CFG, ENV, PATH
+from src.cards import strip_reminder_text
 from src.enums.mtg import (
     MagicIcons,
     watermark_color_map,
-    basic_watermark_color_map
-)
-import src.format_text as ft
+    basic_watermark_color_map)
 import src.helpers as psd
 from src.text_layers import (
     TextField,
@@ -36,8 +35,7 @@ from src.text_layers import (
     FormattedTextArea,
     FormattedTextField,
     FormattedTextLayer,
-    CreatureFormattedTextArea
-)
+    CreatureFormattedTextArea)
 from src.enums.adobe import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import (
@@ -45,8 +43,7 @@ from src.enums.settings import (
     OutputFileType,
     CollectorPromo,
     WatermarkMode,
-    BorderColor
-)
+    BorderColor)
 from src.enums.adobe import LayerContainer
 from src.helpers.effects import LayerEffects
 from src.utils.adobe import PhotoshopHandler, ReferenceLayer
@@ -56,6 +53,10 @@ from src.utils.files import get_unique_filename
 from src.utils.regex import Reg
 from src.api.scryfall import get_card_scan
 from src.utils.strings import msg_warn, msg_error
+
+"""
+* Template Classes
+"""
 
 
 class BaseTemplate:
@@ -262,8 +263,21 @@ class BaseTemplate:
         return path
 
     """
-    * Uncached Toggle Properties
-    * Static value or directly accessed from Layout object.
+    * Cosmetic Extendable Checks
+    """
+
+    @property
+    def is_hollow_crown(self) -> bool:
+        """bool: Governs whether a hollow crown should be rendered."""
+        return False
+
+    @property
+    def is_fullart(self) -> bool:
+        """bool: Returns True if art must be treated as Fullart."""
+        return False
+
+    """
+    * Boolean Checks
     """
 
     @property
@@ -317,16 +331,6 @@ class BaseTemplate:
         return self.layout.is_mdfc
 
     @property
-    def is_hollow_crown(self) -> bool:
-        """bool: Governs whether a hollow crown should be rendered."""
-        return False
-
-    @property
-    def is_fullart(self) -> bool:
-        """bool: Returns True if art must be treated as Fullart."""
-        return False
-
-    @property
     def is_companion(self) -> bool:
         """bool: Enables companion cosmetic elements."""
         return self.layout.is_companion
@@ -362,8 +366,7 @@ class BaseTemplate:
         return bool(
             len(self.layout.flavor_text) <= 1
             and len(self.layout.oracle_text) <= 70
-            and "\n" not in self.layout.oracle_text
-        )
+            and "\n" not in self.layout.oracle_text)
 
     @auto_prop_cached
     def is_name_shifted(self) -> bool:
@@ -444,27 +447,14 @@ class BaseTemplate:
             return LAYERS.ARTIFACT
         return self.layout.background
 
-    @auto_prop_cached
-    def face_type(self) -> Optional[str]:
-        """Optional[str]: Name of the double face text and icons group."""
-        if self.is_mdfc:
-            if self.is_front:
-                return LAYERS.MDFC_FRONT
-            return LAYERS.MDFC_BACK
-        if self.is_transform:
-            if self.is_front:
-                return LAYERS.TF_FRONT
-            return LAYERS.TF_BACK
-        return
-
     """
     * Layer Groups
     """
 
     @auto_prop_cached
-    def legal_group(self) -> Optional[LayerSet]:
-        """Optional[LayerSet]: Group containing artist credit, collector info, and other legal details."""
-        return self.docref.layerSets.getByName(LAYERS.LEGAL)
+    def legal_group(self) -> LayerSet:
+        """LayerSet: Group containing artist credit, collector info, and other legal details."""
+        return self.docref.layerSets[LAYERS.LEGAL]
 
     @auto_prop_cached
     def border_group(self) -> Optional[Union[LayerSet, ArtLayer]]:
@@ -478,16 +468,18 @@ class BaseTemplate:
     @auto_prop_cached
     def text_group(self) -> Optional[LayerSet]:
         """Optional[LayerSet]: Text and icon group, contains rules text and necessary symbols."""
-        if group := self.docref.layerSets.getByName(LAYERS.TEXT_AND_ICONS):
-            return group
+        with suppress(Exception):
+            return self.docref.layerSets[LAYERS.TEXT_AND_ICONS]
         return self.docref
 
     @auto_prop_cached
     def dfc_group(self) -> Optional[LayerSet]:
         """Optional[LayerSet]: Group containing double face elements."""
-        if self.face_type and self.text_group:
-            return psd.getLayerSet(self.face_type, self.text_group)
-        return
+        face = LAYERS.FRONT if self.is_front else LAYERS.BACK
+        if self.is_transform:
+            return psd.getLayerSet(face, [self.text_group, LAYERS.TRANSFORM])
+        if self.is_mdfc:
+            return psd.getLayerSet(f'{LAYERS.MDFC} {face}', self.text_group)
 
     """
     * Text Layers
@@ -577,23 +569,6 @@ class BaseTemplate:
         return psd.getLayer(self.background, LAYERS.BACKGROUND)
 
     @auto_prop_cached
-    def color_indicator_layer(self) -> Optional[ArtLayer]:
-        """Color indicator icon layer."""
-        if self.layout.color_indicator:
-            return psd.getLayer(self.layout.color_indicator, LAYERS.COLOR_INDICATOR)
-        return
-
-    @auto_prop_cached
-    def transform_icon_layer(self) -> Optional[ArtLayer]:
-        """Transform icon layer."""
-        return psd.getLayer(self.layout.transform_icon, self.dfc_group)
-
-    @auto_prop_cached
-    def crown_layer(self) -> Optional[ArtLayer]:
-        """Legendary crown layer."""
-        return psd.getLayer(self.pinlines, LAYERS.LEGENDARY_CROWN)
-
-    @auto_prop_cached
     def pt_layer(self) -> Optional[ArtLayer]:
         """Power and toughness box layer."""
         # Test for Vehicle PT support
@@ -605,44 +580,61 @@ class BaseTemplate:
         return psd.getLayer(self.twins, LAYERS.PT_BOX)
 
     @auto_prop_cached
+    def crown_layer(self) -> Optional[ArtLayer]:
+        """Legendary crown layer."""
+        return psd.getLayer(self.pinlines, LAYERS.LEGENDARY_CROWN)
+
+    @auto_prop_cached
     def crown_shadow_layer(self) -> Union[ArtLayer, LayerSet, None]:
         """Legendary crown hollow shadow layer."""
         return psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW, self.docref)
+
+    @auto_prop_cached
+    def color_indicator_layer(self) -> Optional[ArtLayer]:
+        """Color indicator icon layer."""
+        if self.layout.color_indicator:
+            return psd.getLayer(self.layout.color_indicator, LAYERS.COLOR_INDICATOR)
+        return
+
+    @auto_prop_cached
+    def transform_icon_layer(self) -> Optional[ArtLayer]:
+        """Optional[ArtLayer]: Transform icon layer."""
+        return psd.getLayer(self.layout.transform_icon, self.dfc_group)
 
     """
     * Reference Layers
     """
 
     @auto_prop_cached
-    def art_reference(self) -> ArtLayer:
-        """Reference frame used to scale and position the art layer."""
-        # Check if art provided is vertically oriented or vertical fullart is enabled on a fullart template
+    def art_reference(self) -> ReferenceLayer:
+        """ReferenceLayer: Reference frame used to scale and position the art layer."""
+        # Check if art is vertically oriented, or forced vertical, and for valid vertical frame
         if self.is_art_vertical or (self.is_fullart and CFG.vertical_fullart):
-            # Check if we have a valid vertical art frame
-            if layer := psd.getLayer(self.art_frame_vertical):
+            if layer := psd.get_reference_layer(self.art_frame_vertical):
                 return layer
         # Check for normal art frame
-        return psd.getLayer(self.art_frame) or psd.getLayer(LAYERS.ART_FRAME)
+        return psd.get_reference_layer(self.art_frame) or psd.get_reference_layer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
-    def textbox_reference(self) -> Optional[ReferenceLayer]:
-        """Reference frame used to scale and position the rules text layer."""
+    def name_reference(self) -> ArtLayer:
+        """ArtLayer: By default, name uses Mana Cost as a reference to check collision against."""
+        return self.text_layer_mana
+
+    @auto_prop_cached
+    def type_reference(self) -> ArtLayer:
+        """ArtLayer: By default, typeline uses the expansion symbol to check collision against,
+        otherwise fallback to the expansion symbols reference layer."""
+        return self.expansion_symbol_layer or self.expansion_reference
+
+    @auto_prop_cached
+    def textbox_reference(self) -> ReferenceLayer:
+        """ReferenceLayer: Reference frame used to scale and position the rules text layer."""
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
 
     @auto_prop_cached
-    def pt_reference(self) -> Optional[ArtLayer]:
+    def pt_reference(self) -> ReferenceLayer:
         """ArtLayer: Reference used to check rules text overlap with the PT Box."""
-        return psd.getLayer(LAYERS.PT_REFERENCE, self.text_group)
-
-    @auto_prop_cached
-    def pt_top_reference(self) -> Optional[ArtLayer]:
-        """Reference used to get the top of the PT box."""
-        return psd.getLayer(LAYERS.PT_TOP_REFERENCE, self.text_group)
-
-    @auto_prop_cached
-    def pt_adjustment_reference(self) -> Optional[ArtLayer]:
-        """Reference used to get the location of the PT box."""
-        return psd.getLayer(LAYERS.PT_ADJUSTMENT_REFERENCE, self.text_group)
+        return psd.get_reference_layer(LAYERS.PT_REFERENCE, self.text_group)
 
     """
     * Processing Layout Data
@@ -659,11 +651,11 @@ class BaseTemplate:
 
         # Strip reminder text, string or list
         if CFG.remove_reminder:
-            self.layout.oracle_text = ft.strip_reminder_text(
+            self.layout.oracle_text = strip_reminder_text(
                 self.layout.oracle_text
             ) if isinstance(
                 self.layout.oracle_text, str
-            ) else [ft.strip_reminder_text(n) for n in self.layout.oracle_text]
+            ) else [strip_reminder_text(n) for n in self.layout.oracle_text]
 
     """
     * Loading Artwork
@@ -765,8 +757,9 @@ class BaseTemplate:
 
             # Frame the layer and position it above the art layer
             bleed = int(self.docref.resolution / 8)
-            bounds = [bleed, bleed, self.docref.width - bleed, self.docref.height - bleed]
-            psd.frame_layer(layer, psd.get_dimensions_from_bounds(bounds))
+            dims = psd.get_dimensions_from_bounds(
+                (bleed, bleed, self.docref.width - bleed, self.docref.height - bleed))
+            psd.frame_layer(layer, dims)
             layer.move(self.art_layer, ElementPlacement.PlaceBefore)
             layer.visible = visible
             return layer
@@ -794,14 +787,15 @@ class BaseTemplate:
     def collector_info_basic(self) -> None:
         """Called to generate basic collector info."""
 
-        # Artist and set layer
+        # Collector layers
         artist_layer = psd.getLayer(LAYERS.ARTIST, self.legal_group)
         set_layer = psd.getLayer(LAYERS.SET, self.legal_group)
+        set_TI = set_layer.textItem
+
+        # Correct color for non-black border
         if self.border_color != BorderColor.Black:
-            # Correct color for non-black border
-            set_layer.textItem.color = self.RGB_BLACK
+            set_TI.color = self.RGB_BLACK
             artist_layer.textItem.color = self.RGB_BLACK
-        psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
         # Disable Set layer if Artist Only mode is enabled
         if CFG.collector_mode == CollectorMode.ArtistOnly:
@@ -812,41 +806,42 @@ class BaseTemplate:
         if self.is_collector_promo:
             psd.replace_text(set_layer, "•", MagicIcons.COLLECTOR_STAR)
 
-        # Fill alternate language and set info
+        # Fill language, artist, and set
         if self.layout.lang != "en":
             psd.replace_text(set_layer, "EN", self.layout.lang.upper())
-        set_layer.textItem.contents = self.layout.set + set_layer.textItem.contents
+        psd.replace_text(artist_layer, "Artist", self.layout.artist)
+        set_TI.contents = self.layout.set + set_TI.contents
 
     def collector_info_authentic(self) -> None:
         """Called to generate realistic collector info."""
 
         # Hide basic layers
-        psd.getLayer(LAYERS.ARTIST, self.legal_group).opacity = 0
-        psd.getLayer(LAYERS.SET, self.legal_group).opacity = 0
+        psd.getLayer(LAYERS.ARTIST, self.legal_group).visible = False
+        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
 
         # Get the collector layers
-        collector_group = psd.getLayerSet(LAYERS.COLLECTOR, LAYERS.LEGAL)
-        collector_top = psd.getLayer(LAYERS.TOP_LINE, collector_group).textItem
-        collector_bottom = psd.getLayer(LAYERS.BOTTOM_LINE, collector_group)
-        collector_group.visible = True
+        group = psd.getLayerSet(LAYERS.COLLECTOR, self.legal_group)
+        top = psd.getLayer(LAYERS.TOP, group).textItem
+        bottom = psd.getLayer(LAYERS.BOTTOM, group)
+        group.visible = True
 
         # Correct color for non-black border
         if self.border_color != 'black':
-            collector_top.color = self.RGB_BLACK
-            collector_bottom.textItem.color = self.RGB_BLACK
+            top.color = self.RGB_BLACK
+            bottom.textItem.color = self.RGB_BLACK
 
         # Fill in language if needed
         if self.layout.lang != "en":
-            psd.replace_text(collector_bottom, "EN", self.layout.lang.upper())
+            psd.replace_text(bottom, "EN", self.layout.lang.upper())
 
         # Fill optional collector star
         if self.is_collector_promo:
-            psd.replace_text(collector_bottom, "•", MagicIcons.COLLECTOR_STAR)
+            psd.replace_text(bottom, "•", MagicIcons.COLLECTOR_STAR)
 
         # Apply the collector info
-        collector_top.contents = self.layout.collector_data
-        psd.replace_text(collector_bottom, "SET", self.layout.set)
-        psd.replace_text(collector_bottom, "Artist", self.layout.artist)
+        top.contents = self.layout.collector_data
+        psd.replace_text(bottom, "SET", self.layout.set)
+        psd.replace_text(bottom, "Artist", self.layout.artist)
 
     """
     * Expansion Symbol
@@ -870,9 +865,9 @@ class BaseTemplate:
     def load_expansion_symbol(self) -> None:
         """Imports and positions the expansion symbol SVG image."""
 
-        # Force disable expansion symbol
-        if not self.expansion_reference:
-            return self.log('Expansion symbol disabled, no reference layer found.')
+        # Check for expansion symbol disabled
+        if not CFG.symbol_enabled or not self.expansion_reference:
+            return
         if not self.layout.symbol_svg:
             return self.log("Expansion symbol disabled, SVG file not found.")
 
@@ -1001,10 +996,6 @@ class BaseTemplate:
     def create_basic_watermark(self) -> None:
         """Builds a basic land watermark."""
 
-        # Remove text
-        self.layout.oracle_text = ''
-        self.layout.flavor_text = ''
-
         # Generate the watermark
         wm = psd.import_svg(
             path=self.layout.watermark_basic,
@@ -1022,6 +1013,11 @@ class BaseTemplate:
         # Add snow effects
         if self.is_snow:
             self.add_basic_watermark_snow_effects(wm)
+
+        # Remove rules text step
+        self.rules_text_and_pt_layers = lambda: None
+        self.layout.oracle_text = ''
+        self.layout.flavor_text = ''
 
     def add_basic_watermark_snow_effects(self, wm: ArtLayer):
         """Adds optional snow effects for 'Snow' Basic Land watermarks.
@@ -1068,8 +1064,12 @@ class BaseTemplate:
         self._text = value
 
     def format_text_layers(self) -> None:
-        """Validate and execute text layers."""
+        """Validate and execute each formatted text layer."""
         for t in self.text:
+            # Check for cancelled thread each iteration
+            if self.event.is_set():
+                return
+            # Validate and execute
             if t and t.validate():
                 t.execute()
 
@@ -1125,7 +1125,7 @@ class BaseTemplate:
         warning: bool = False,
         args: Union[Iterable[Any], None] = None,
         kwargs: Optional[dict] = None,
-    ) -> tuple[bool, bool]:
+    ) -> bool:
         """Run a list of functions, checking for thread cancellation and exceptions on each.
 
         Args:
@@ -1147,34 +1147,33 @@ class BaseTemplate:
         for func in funcs:
             if self.event.is_set():
                 # Thread operation has been cancelled
-                return False, False
+                return False
             try:
                 # Run the task
                 func(*args, **kwargs)
             except Exception as e:
                 # Raise error or warning
                 if not warning:
-                    return False, self.raise_error(message=message, error=e)
+                    self.raise_error(message=message, error=e)
+                    return False
                 self.raise_warning(message=message, error=e)
-        return True, True
+        return True
 
-    def raise_error(self, message: str, error: Optional[Exception] = None) -> bool:
+    def raise_error(self, message: str, error: Optional[Exception] = None) -> None:
         """Raise an error on the console display.
 
         Args:
             message: Message to be displayed
             error: Exception object
-
-        Returns:
-            True if continuing, False if cancelling.
         """
-        result = self.console.log_error(
-            self.event, self.layout.name, self.layout.template_file,
-            f"{msg_error(message)}\nCheck [b]/logs/error.txt[/b] for details.",
-            error
-        )
+        self.console.log_error(
+            thr=self.event,
+            card=self.layout.name,
+            template=self.layout.template_file,
+            msg=f'{msg_error(message)}\n'
+                f'Check [b]/logs/error.txt[/b] for details.',
+            e=error)
         self.reset()
-        return result
 
     def raise_warning(self, message: str, error: Exception = None) -> None:
         """Raise a warning on the console display.
@@ -1226,111 +1225,106 @@ class BaseTemplate:
             - Never override this method!
         """
         # Preliminary Photoshop check
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=[self.check_photoshop],
             message="Unable to reach Photoshop!"
-        )
-        if not all(check):
-            return check[1]
+        ):
+            return False
 
         # Pre-process layout data
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=self.pre_render_methods,
-            message="Pre-processing layout data failed!")
-        if not all(check):
-            return check[1]
+            message="Pre-processing layout data failed!"
+        ):
+            return False
 
         # Load in the PSD template
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=[self.app.load],
             message="PSD template failed to load!",
-            args=[str(self.layout.template_file)])
-        if not all(check):
-            return check[1]
+            args=[str(self.layout.template_file)]
+        ):
+            return False
 
         # Load in artwork and frame it
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=[self.load_artwork],
-            message="Unable to load artwork!")
-        if not all(check):
-            return check[1]
+            message="Unable to load artwork!"
+        ):
+            return False
 
         # Load in Scryfall scan and frame it
         if CFG.import_scryfall_scan:
-            check = self.run_tasks(
+            self.run_tasks(
                 funcs=[self.paste_scryfall_scan],
                 message="Couldn't import Scryfall scan, continuing without it!",
                 warning=True)
-            if not all(check):
-                return check[1]
 
         # Add expansion symbol
-        check = self.run_tasks(
+        self.run_tasks(
             funcs=[self.load_expansion_symbol],
             message="Unable to generate expansion symbol!",
             warning=True)
-        if not all(check):
-            return check[1]
 
         # Add watermark
         if CFG.watermark_mode is not WatermarkMode.Disabled and not self.is_basic_land:
             # Normal watermark
-            check = self.run_tasks(
+            if not self.run_tasks(
                 funcs=[self.create_watermark],
-                message="Unable to generate watermark!")
-            if not all(check):
-                return check[1]
+                message="Unable to generate watermark!"
+            ):
+                return False
         elif CFG.enable_basic_watermark and self.is_basic_land:
             # Basic land watermark
-            check = self.run_tasks(
+            if not self.run_tasks(
                 funcs=[self.create_basic_watermark],
-                message="Unable to generate basic land watermark!")
-            if not all(check):
-                return check[1]
+                message="Unable to generate basic land watermark!"
+            ):
+                return False
 
         # Enable layers to build our frame
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=self.frame_layer_methods,
-            message="Enabling layers failed!")
-        if not all(check):
-            return check[1]
+            message="Enabling layers failed!"
+        ):
+            return False
 
         # Format text layers
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=[
                 *self.text_layer_methods,
                 self.format_text_layers,
                 *self.post_text_methods
             ],
-            message="Formatting text layers failed!")
-        if not all(check):
-            return check[1]
+            message="Formatting text layers failed!"
+        ):
+            return False
 
         # Specific hooks
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=self.hooks,
-            message="Encountered an error during triggered hooks step!")
-        if not all(check):
-            return check[1]
+            message="Encountered an error during triggered hooks step!"
+        ):
+            return False
 
         # Manual edit step?
         if CFG.exit_early and not ENV.TEST_MODE:
             self.console.await_choice(self.event)
 
         # Save the document
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=[self.save_mode],
             message="Error during file save process!",
-            kwargs={'path': self.output_file_name, 'docref': self.docref})
-        if not all(check):
-            return check[1]
+            kwargs={'path': self.output_file_name, 'docref': self.docref}
+        ):
+            return False
 
         # Post save methods
-        check = self.run_tasks(
+        if not self.run_tasks(
             funcs=self.post_save_methods,
-            message="Image saved, but an error was encountered in the post-save step!")
-        if not all(check):
-            return check[1]
+            message="Image saved, but an error was encountered during the post-save step!"
+        ):
+            return False
 
         # Reset document, return success
         if not ENV.TEST_MODE:
@@ -1358,14 +1352,13 @@ class StarterTemplate (BaseTemplate):
             ScaledTextField(
                 layer = self.text_layer_name,
                 contents = self.layout.name,
-                reference = self.text_layer_mana
+                reference = self.name_reference
             ),
             ScaledTextField(
                 layer = self.text_layer_type,
                 contents = self.layout.type_line,
-                reference = self.expansion_symbol_layer or self.expansion_reference
-            )
-        ])
+                reference = self.type_reference
+            )])
 
 
 class NormalTemplate (StarterTemplate):
@@ -1397,8 +1390,7 @@ class NormalTemplate (StarterTemplate):
                 flavor = self.layout.flavor_text,
                 reference = self.textbox_reference,
                 divider = self.divider_layer,
-                pt_reference = self.pt_adjustment_reference,
-                pt_top_reference = self.pt_top_reference,
+                pt_reference = self.pt_reference,
                 centered = self.is_centered
             ) if self.is_creature else FormattedTextArea(
                 layer = self.text_layer_rules,

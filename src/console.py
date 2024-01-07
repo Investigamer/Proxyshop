@@ -246,7 +246,7 @@ class TerminalConsole:
         card: str,
         template: Optional[str] = None,
         msg: str = "Encountered a general error!",
-        exception: Optional[Exception] = None
+        e: Optional[Exception] = None
     ) -> bool:
         """
         Log failed card and exception if provided, then prompt user to make a decision.
@@ -254,25 +254,26 @@ class TerminalConsole:
         @param card: Card to log in /logs/failed.txt.
         @param template: Template to log in /logs/failed.txt.
         @param msg: Message to add to the console output.
-        @param exception: Exception to log in /logs/error.txt.
+        @param e: Exception to log in /logs/error.txt.
         """
         with open(PATH.LOGS_FAILED, 'a', encoding='utf-8') as log:
             log.write(f"{card}{f' ({template})' if template else ''} [{self.time}]\n")
-        return self.error(thr=thr, msg=msg, exception=exception)
+        return self.error(thr=thr, msg=msg, exception=e)
 
     def error(
         self,
         thr: Optional[Event] = None,
         msg: str = 'Encountered a general error!',
         exception: Optional[Exception] = None,
-        end: str = ' Continue to next card?\n'
+        end: str = '\nShould I continue?\n'
     ) -> bool:
-        """
-        Display error, wait for user to cancel or continue.
-        @param thr: Event object representing the status of the render thread.
-        @param msg: Message to add to the console output.
-        @param exception: Exception to log in /logs/error.txt.
-        @param end: String to append to the end of the message.
+        """Display error, wait for user to cancel or continue.
+
+        Args:
+            thr: Event object representing the status of the render thread.
+            msg: Message to add to the console output.
+            exception: Exception to log in /logs/error.txt.
+            end: String to append to the end of the message.
         """
         # Stop awaiting any signals
         self.end_await()
@@ -289,12 +290,15 @@ class TerminalConsole:
         if self.cfg.skip_failed:
             self.update(f"{msg}\n{self.message_skipping}")
             return True
+
         # Previous error already handled
         if thr and thr.is_set():
             return False
+
         # Wait for user response
         if self.await_choice(thr, msg, end):
             return True
+
         # Relay the cancellation
         self.update(self.message_cancel)
         return False
@@ -388,18 +392,11 @@ class TerminalConsole:
     """
 
     def cancel_thread(self, thr: Event) -> None:
-        """
-        Initiate cancellation of a given thread operation.
-        @param thr: Thread event to signal the cancellation.
+        """Initiate cancellation of a given thread operation.
+
+        Args:
+            thr: Thread event to signal the cancellation.
         """
         # Kill the thread and notify
-        self.kill_thread(thr)
-        self.update(self.message_cancel)
-
-    @staticmethod
-    def kill_thread(thr: Event) -> None:
-        """
-        Kill a given thread.
-        @param thr: Thread event to signal the cancellation.
-        """
         thr.set()
+        self.update(self.message_cancel)

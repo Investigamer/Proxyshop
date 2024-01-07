@@ -9,12 +9,13 @@ from photoshop.api.application import ArtLayer
 
 # Local Imports
 from src import CFG
+from src.cards import strip_reminder_text
 from src.enums.layers import LAYERS
-import src.format_text as ft
 import src.helpers as psd
 from src.layouts import MutateLayout
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
+from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
 
 """
@@ -31,7 +32,7 @@ class MutateMod (NormalTemplate):
     """
 
     """
-    DETAILS
+    * Mixin Methods
     """
 
     @auto_prop_cached
@@ -41,7 +42,7 @@ class MutateMod (NormalTemplate):
         return [*super().text_layer_methods, *funcs]
 
     """
-    TEXT LAYERS
+    * Mutate Text Layers
     """
 
     @auto_prop_cached
@@ -50,24 +51,28 @@ class MutateMod (NormalTemplate):
         return psd.getLayer(LAYERS.MUTATE, self.text_group)
 
     """
-    REFERENCES
+    * Mutate References
     """
 
     @auto_prop_cached
-    def mutate_reference(self) -> Optional[ArtLayer]:
+    def mutate_reference(self) -> Optional[ReferenceLayer]:
         """Mutate textbox reference."""
-        return psd.getLayer(LAYERS.MUTATE_REFERENCE, self.text_group)
+        return psd.get_reference_layer(LAYERS.MUTATE_REFERENCE, self.text_group)
 
     """
-    METHODS
+    * Processing Methods
     """
 
     def process_layout_data(self) -> None:
         """Remove reminder text for mutate text if required."""
         if CFG.remove_reminder:
-            self.layout.mutate_text = ft.strip_reminder_text(
+            self.layout.mutate_text = strip_reminder_text(
                 self.layout.mutate_text)
         super().process_layout_data()
+
+    """
+    * Mutate Text Layer Methods
+    """
 
     def text_layers_mutate(self):
         """Add text layers required by Mutate cards."""

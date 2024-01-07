@@ -24,17 +24,13 @@ class SilvanExtendedTemplate (ExtendedMod, M15Template):
 
     @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
-
-        # Background
-        if self.is_nyx:
-            return psd.getLayer(self.background, LAYERS.NYX)
+        """Optional[ArtLayer]: No background for colorless cards."""
         if self.background == LAYERS.COLORLESS:
             return
-        return psd.getLayer(self.background, LAYERS.BACKGROUND)
+        return super().background_layer
 
     def enable_crown(self) -> None:
-
-        # Add background mask
+        """Add a mask to the background layer."""
         super().enable_crown()
         if self.background_layer:
             psd.enable_mask(self.background_layer.parent)

@@ -93,17 +93,10 @@ class BattleMod (BaseTemplate):
     """
 
     @auto_prop_cached
-    def pt_top_reference(self) -> Optional[ArtLayer]:
-        """Reference used to get the top of the PT box."""
+    def defense_reference(self) -> Optional[ArtLayer]:
+        """Optional[ArtLayer]: Reference used to detect collision with the PT box."""
         return psd.getLayer(
-            f"{LAYERS.PT_TOP_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.PT_TOP_REFERENCE,
-            self.text_group)
-
-    @auto_prop_cached
-    def pt_adjustment_reference(self) -> Optional[ArtLayer]:
-        """Reference used to get the location of the PT box."""
-        return psd.getLayer(
-            f"{LAYERS.PT_ADJUSTMENT_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.PT_REFERENCE,
+            f"{LAYERS.DEFENSE_REFERENCE} Flip" if self.is_flipside_creature else LAYERS.DEFENSE_REFERENCE,
             self.text_group)
 
     """
@@ -125,15 +118,9 @@ class BattleMod (BaseTemplate):
                 flavor = self.layout.flavor_text,
                 reference = self.textbox_reference,
                 divider = self.divider_layer,
-                pt_reference = self.pt_adjustment_reference,
-                pt_top_reference = self.pt_top_reference,
+                pt_reference = self.defense_reference,
                 centered = self.is_centered
-            ),
-            TextField(
-                layer = self.text_layer_pt,
-                contents = f"{self.layout.power}/{self.layout.toughness}"
-            ) if self.is_creature else None
-        ])
+            )])
 
     """
     * Battle Methods
