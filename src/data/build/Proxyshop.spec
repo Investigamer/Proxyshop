@@ -14,7 +14,11 @@ block_cipher = None
 
 a = Analysis(
     [os.path.join(CWD, 'main.py')],
+    binaries=[],
+    datas=[],
+    hiddenimports=[
         'src.templates',
+        'src.gui',
         'kivy',
         'svglib.svglib',
         'reportlab.graphics',
@@ -25,6 +29,11 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[],
     win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False)
+
+pyz = PYZ(
     a.pure,
     a.zipped_data,
     cipher=block_cipher)

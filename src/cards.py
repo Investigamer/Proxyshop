@@ -38,6 +38,7 @@ class CardDetails(TypedDict):
     file: Union[str, Path]
     nickname: Optional[str]
 
+
 class FrameDetails(TypedDict):
     """Frame details obtained from processing frame logic."""
     background: Optional[str]
