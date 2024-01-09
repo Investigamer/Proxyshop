@@ -4,6 +4,7 @@
 # Standard Library
 from contextlib import suppress
 import gzip
+import gc
 import lzma
 import os
 from pathlib import Path
@@ -85,6 +86,9 @@ def compress_7z(
         path_out: Path to the archive to be saved. Use 'compressed' subdirectory if not provided.
         word_size: Word size value to use for the compression.
         dict_size: Dictionary size value to use for the compression.
+
+    Returns:
+        Path to the resulting 7z archive.
     """
     # Define the output file path
     path_out = path_out or Path(path_in.parent, '.compressed', path_in.name)
@@ -158,7 +162,6 @@ def unpack_zip(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with zipfile.ZipFile(path, 'r') as zip_ref:
         zip_ref.extractall(path=path.parent)
-    return
 
 
 def unpack_gz(path: Path) -> None:
@@ -176,7 +179,6 @@ def unpack_gz(path: Path) -> None:
     with gzip.open(path, 'rb') as arch:
         with open(output, 'wb') as f:
             shutil.copyfileobj(arch, f)
-    return
 
 
 def unpack_xz(path: Path) -> None:
@@ -194,7 +196,6 @@ def unpack_xz(path: Path) -> None:
     with lzma.open(path, mode='r') as arch:
         with open(output, 'wb') as f:
             shutil.copyfileobj(arch, f)
-    return
 
 
 def unpack_7z(path: Path) -> None:
@@ -210,8 +211,6 @@ def unpack_7z(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with py7zr.SevenZipFile(path, 'r') as arch:
         arch.extractall(path=path.parent)
-    del arch
-    return
 
 
 def unpack_tar_gz(path: Path) -> None:
@@ -227,7 +226,6 @@ def unpack_tar_gz(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with tarfile.open(path, 'r:gz') as tar:
         tar.extractall(path=path.parent)
-    return
 
 
 def unpack_tar_xz(path: Path) -> None:
@@ -243,7 +241,6 @@ def unpack_tar_xz(path: Path) -> None:
         raise FileNotFoundError(f'Archive not found: {str(path)}')
     with tarfile.open(path, 'r:xz') as tar:
         tar.extractall(path=path.parent)
-    return
 
 
 def unpack_archive(path: Path, remove: bool = True) -> None:
@@ -272,4 +269,4 @@ def unpack_archive(path: Path, remove: bool = True) -> None:
         _ = action(path)
     if remove:
         os.remove(path)
-    return
+    gc.collect()
