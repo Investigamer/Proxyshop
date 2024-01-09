@@ -13,7 +13,7 @@ from src import CFG, ENV
 from src.enums.layers import LAYERS
 import src.helpers as psd
 from src.templates import TransformMod, NormalTemplate, ExtendedMod
-from plugins.Investigamer.py import pencilsketch, sketch
+from . import pencilsketch, sketch
 
 
 """

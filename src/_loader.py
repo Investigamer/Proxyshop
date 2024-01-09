@@ -8,6 +8,7 @@ from configparser import ConfigParser
 from contextlib import suppress
 import os
 from pathlib import Path
+from traceback import print_tb
 from typing import Optional, TypedDict, NotRequired, Any, Callable
 
 # Third Party Imports
@@ -30,7 +31,7 @@ from src.utils.files import (
     verify_config_fields,
     ensure_path_exists,
     copy_config_or_verify)
-from src.utils.modules import get_loaded_module
+from src.utils.modules import get_loaded_module, get_local_module
 from src.utils.properties import auto_prop_cached
 from src.utils.strings import normalize_ver
 
@@ -719,15 +720,28 @@ class AppTemplate:
             The template's loaded python class.
         """
 
-        # Is this a plugin template?
-        module = self.plugin.py_module if self.plugin else 'src.templates'
+        # Try loading local module
+        if not self.plugin:
+            try:
+                module = get_local_module(
+                    module_path='src.templates',
+                    hotswap=self.env.FORCE_RELOAD)
+                return getattr(module, class_name)
+            except Exception as e:
+                # Failed to load module
+                print_tb(e.__traceback__)
+                return print(e)
 
-        # Load the plugin module, use hot-loading if enabled
-        with suppress(Exception):
-            module = get_loaded_module(module)
-            loaded_class = getattr(module, class_name)
-            return loaded_class
-        return
+        # Try loading plugin module
+        try:
+            module = get_loaded_module(
+                module_path=self.plugin.py_module,
+                hotswap=self.env.FORCE_RELOAD)
+            return getattr(module, class_name)
+        except Exception as e:
+            # Failed to load module
+            print_tb(e.__traceback__)
+            return print(e)
 
     def generate_template_name(self) -> str:
         """Generate an automatic name when name isn't manually defined."""
