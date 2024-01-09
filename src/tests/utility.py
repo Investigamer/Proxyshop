@@ -49,13 +49,13 @@ BLACK = [0, 0, 0]
 """
 
 
-def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[str]] = None):
-    """
-    Enables given color in all necessary groups. Optionally disable a color in those groups.
-    @param new: Color to enable.
-    @param old: Color to disable.
-    @param ignore: Groups to ignore.
-    @return:
+def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[str]] = None) -> None:
+    """Enables given color in all necessary groups. Optionally disable a color in those groups.
+
+    Args:
+        new: Color to enable.
+        old: Color to disable.
+        ignore: Groups to ignore.
     """
     if ignore is None:
         ignore = ["Pinlines & Textbox"]
@@ -71,25 +71,24 @@ def test_new_color(new: str, old: Optional[str] = None, ignore: Optional[list[st
 
 
 def make_duals(
-        name: str = "Pinlines & Textbox",
-        mask_top: Optional[str] = "MASK",
-        mask_bottom: Optional[str] = None
+    name: str = "Pinlines & Textbox",
+    mask_top: Optional[ArtLayer] = None,
+    mask_bottom: Optional[ArtLayer] = None
 ):
-    """
-    Creates dual color layers for a given group.
-    @param name: Name of the group.
-    @param mask_top: Mask to place on top color.
-    @param mask_bottom: Mask to place on bottom color.
-    @return:
+    """Creates dual color layers for a given group.
+
+    Args:
+        name: Name of the group.
+        mask_top: Mask to place on top color.
+        mask_bottom: Mask to place on bottom color.
     """
     duals = ["WU", "WB", "RW", "GW", "UB", "UR", "GU", "BR", "BG", "RG"]
     group = psd.getLayerSet(name)
-    mask_top = psd.getLayer(mask_top, group) if mask_top else None
-    mask_bottom = psd.getLayer(mask_bottom, group) if mask_bottom else None
     ref = psd.getLayer("W", group)
 
     # Loop through each dual
     for dual in duals:
+
         # Change layer visibility
         top = psd.getLayer(dual[0], group).duplicate(ref, ElementPlacement.PlaceBefore)
         bottom = psd.getLayer(dual[1], group).duplicate(top, ElementPlacement.PlaceAfter)
@@ -108,15 +107,16 @@ def make_duals(
 
 
 def create_blended_layer(
-        colors: Union[str, list[str]],
-        group: LayerSet,
-        masks: Union[None, ArtLayer, list[ArtLayer]] = None
+    colors: Union[str, list[str]],
+    group: LayerSet,
+    masks: Union[None, ArtLayer, list[ArtLayer]] = None
 ):
-    """
-    Create a multicolor layer using a gradient mask.
-    @param colors: Colors to use.
-    @param group: Group to look for the color layers within.
-    @param masks: Layers containing a gradient mask.
+    """Create a multicolor layer using a gradient mask.
+
+    Args:
+        colors: Colors to use.
+        group: Group to look for the color layers within.
+        masks: Layers containing a gradient mask.
     """
     if not masks:
         # No mask provided
@@ -146,11 +146,14 @@ def create_blended_layer(
 
 
 def check_if_needed(key, keys_stored):
-    """
-    Check if double key has been locked, skip int keys if it is.
-    @param key: This key.
-    @param keys_stored: Keys already stored.
-    @return: True if needed, False if skipped.
+    """Check if double key has been locked, skip int keys if it is.
+
+    Args:
+        key: This key.
+        keys_stored: Keys already stored.
+
+    Returns:
+        True if needed, False if skipped.
     """
     if 'double' in keys_stored:
         if key in ['largeInt', 'int']:
@@ -159,11 +162,14 @@ def check_if_needed(key, keys_stored):
 
 
 def try_all_getters(desc: ActionDescriptor, type_id) -> dict:
-    """
-    Try all possible getter functions for this Descriptor and Type ID.
-    @param desc: Current descriptor object.
-    @param type_id: TypeID to send the getter for.
-    @return: All values returned from our getters.
+    """Try all possible getter functions for this Descriptor and Type ID.
+
+    Args:
+        desc: Current descriptor object.
+        type_id: TypeID to send the getter for.
+
+    Returns:
+        All values returned from our getters.
     """
     values = {}
     getters = {
@@ -200,10 +206,13 @@ def try_all_getters(desc: ActionDescriptor, type_id) -> dict:
 
 
 def get_action_items(desc) -> dict:
-    """
-    Try to pull objects and getters from each action key in a descriptor.
-    @param desc: Current descriptor.
-    @return: Recursive dict of all objects and getters matched to each key.
+    """Try to pull objects and getters from each action key in a descriptor.
+
+    Args:
+        desc: Current descriptor.
+
+    Returns:
+        Recursive dict of all objects and getters matched to each key.
     """
     items = {}
     try:
@@ -229,11 +238,14 @@ def get_action_items(desc) -> dict:
 
 
 def dump_layer_action_descriptors(layer: ArtLayer, path: str) -> dict:
-    """
-    Combs through all available descriptor keys for a layer, dumps it to JSOn, and returns as a dict.
-    @param layer: Layer to scan.
-    @param path: Path to save the JSON dump.
-    @return: Dict containing descriptors by key and value, in a branching tree.
+    """Combs through all available descriptor keys for a layer, dumps it to JSOn, and returns as a dict.
+
+    Args:
+        layer: Layer to scan.
+        path: Path to save the JSON dump.
+
+    Returns:
+        Dict containing descriptors by key and value, in a branching tree.
     """
     # Get the layer descriptor
     reference = ActionReference()
@@ -680,3 +692,12 @@ def apply_data_set(data_set_name: str) -> None:
     setRef.putName(sID("dataSetClass"), data_set_name)
     desc.putReference(sID("null"), setRef)
     APP.executeAction(sID("apply"), desc, NO_DIALOG)
+
+
+"""
+* Testing Stuff
+"""
+
+if __name__ == '__main__':
+    """Insert any test actions here."""
+    pass
