@@ -48,6 +48,7 @@ def create_color_layer(
 
     Keyword Args:
         clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
+        blend_mode (BlendMode): Optional blend mode to apply to the new layer.
 
     Returns:
         The new solid color adjustment layer.
@@ -67,7 +68,10 @@ def create_color_layer(
     desc2.putObject(sID("type"), sID("solidColorLayer"), desc3)
     desc1.putObject(sID("using"), sID("contentLayer"), desc2)
     APP.executeAction(sID("make"), desc1, NO_DIALOG)
-    return docref.activeLayer
+    layer = docref.activeLayer
+    if 'blend_mode' in kwargs:
+        layer.blendMode = kwargs['blend_mode']
+    return layer
 
 
 def create_gradient_layer(
@@ -87,6 +91,7 @@ def create_gradient_layer(
         clipped (bool): Whether to apply as a clipping mask to the nearest layer, defaults to True.
         rotation (Union[int, float]): Rotation to apply to the gradient, defaults to 90.
         scale (Union[int, float]): Scale to apply to the gradient, defaults to 100.
+        blend_mode (BlendMode): Optional blend mode to apply to the new layer.
 
     Returns:
         The new gradient adjustment layer.
@@ -136,4 +141,7 @@ def create_gradient_layer(
     desc2.putObject(sID("type"), sID("gradientLayer"),  desc3)
     desc1.putObject(sID("using"), sID("contentLayer"),  desc2)
     APP.executeAction(sID("make"), desc1,  NO_DIALOG)
-    return docref.activeLayer
+    layer = docref.activeLayer
+    if 'blend_mode' in kwargs:
+        layer.blendMode = kwargs['blend_mode']
+    return layer
