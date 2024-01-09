@@ -12,7 +12,6 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src import CFG, CON, ENV, PATH
 from src.enums.layers import LAYERS
-from src.frame_logic import contains_frame_colors
 import src.helpers as psd
 from src.helpers import LayerEffects
 from src.layouts import SplitLayout
@@ -381,140 +380,16 @@ class SplitTemplate (BaseTemplate):
                 ref=self.textbox_reference[i],
                 placement=ElementPlacement.PlaceAfter,
                 docref=self.docref)
-            psd.frame_layer_by_height(
+            psd.frame_layer(
                 layer=wm,
                 ref=self.textbox_reference[i],
+                smallest=True,
                 scale=wm_details.get('scale', 80))
 
             # Apply opacity, blending, and effects
             wm.opacity = wm_details.get('opacity', CFG.watermark_opacity)
             wm.blendMode = BlendMode.ColorBurn
             psd.apply_fx(wm, self.watermark_fx[i])
-
-    """
-    * Utility Methods
-    """
-
-    def create_blended_layer(
-            self,
-            group: LayerSet,
-            colors: Union[None, str, list[str]] = None,
-            masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
-    ):
-        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
-
-        Args:
-            group: Group to look for the color layers within.
-            colors: Color layers to look for.
-            masks: Masks to use for blending the layers.
-        """
-        # Establish our masks
-        if not masks:
-            masks = self.mask_layers
-
-        # Establish our colors
-        colors = colors or self.identity or self.pinlines
-        if isinstance(colors, str) and not contains_frame_colors(colors):
-            # Received a color string that isn't a frame color combination
-            colors = [colors]
-        elif len(colors) >= self.color_limit:
-            # Received too big a color combination, revert to pinlines
-            colors = [self.pinlines]
-
-        # Enable each layer color
-        layers: list[ArtLayer] = []
-        for i, color in enumerate(colors):
-            layer = psd.getLayer(color, group)
-            layer.visible = True
-
-            # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(masks) >= i:
-                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
-
-            # Add to the layer list
-            layers.append(layer)
-
-    def create_blended_solid_color(
-            self,
-            group: LayerSet,
-            colors: list[SolidColor],
-            masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
-    ) -> None:
-        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
-
-        Args:
-            group: Group to look for the color layers within.
-            colors: Color layers to look for.
-            masks: Masks to use for blending the layers.
-        """
-        # Establish our masks
-        if masks is None:
-            masks = self.mask_layers
-
-        # Enable each layer color
-        layers: list[ArtLayer] = []
-        for i, color in enumerate(colors):
-            layer = psd.smart_layer(psd.create_color_layer(color, group))
-
-            # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(masks) >= i:
-                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
-
-            # Add to the layer list
-            layers.append(layer)
-
-    def generate_layer(
-            self, group: Union[ArtLayer, LayerSet],
-            colors: Union[list[list[int]], list[int], list[dict], list[str], str],
-            masks: Optional[list[ArtLayer]] = None
-    ) -> Optional[ArtLayer]:
-        """Takes information about a frame layer group and routes it to the correct
-        generation function which blends rasterized layers, blends solid color layers, or
-        generates a solid color/gradient adjustment layer.
-
-        Notes:
-            The result for a given 'colors' schema:
-            - str: Enable a single texture layer.
-            - list[str]: Blend multiple texture layers.
-            - list[int]: Create a solid color adjustment layer.
-            - list[dict]: Create a gradient adjustment layer.
-            - list[list[int]]: Blend multiple solid color adjustment layers.
-
-        Args:
-            group: Layer or group containing layers.
-            colors: Color definition for this frame layer generation.
-            masks: Masks used to blend this generated layer.
-        """
-        masks = masks or self.mask_layers
-        if isinstance(colors, str):
-            return self.create_blended_layer(
-                group=group,
-                colors=colors,
-                masks=masks)
-        if isinstance(colors, list):
-            if all(isinstance(c, str) for c in colors):
-                return self.create_blended_layer(
-                    group=group,
-                    colors=colors,
-                    masks=masks)
-            if all(isinstance(c, int) for c in colors):
-                return psd.create_color_layer(
-                    color=colors,
-                    layer=group,
-                    docref=self.docref)
-            if all(isinstance(c, dict) for c in colors):
-                return psd.create_gradient_layer(
-                    colors=colors,
-                    layer=group,
-                    docref=self.docref)
-            if all(isinstance(c, list) for c in colors):
-                return self.create_blended_solid_color(
-                    group=group,
-                    colors=colors,
-                    masks=masks)
-        self.log(f"Couldn't generate colors for frame element: '{group.name}'")
 
     """
     * Loading Files
@@ -653,12 +528,12 @@ class SplitTemplate (BaseTemplate):
                 ScaledTextField(
                     layer = self.text_layer_name[i],
                     contents = self.layout.name[i],
-                    reference = self.name_reference
+                    reference = self.name_reference[i]
                 ),
                 ScaledTextField(
                     layer = self.text_layer_type[i],
                     contents = self.layout.type_line[i],
-                    reference = self.type_reference
+                    reference = self.type_reference[i]
                 )])
 
     def rules_text_and_pt_layers(self) -> None:

@@ -257,7 +257,7 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
             gap=spacing if not uniform_gap else None)
 
         # Adjust text to avoid loyalty badge
-        if self.layout.loyalty:
+        if self.layout.loyalty and self.loyalty_reference:
             psd.clear_reference_vertical_multi(
                 text_layers=self.ability_layers,
                 ref=self.textbox_reference,
