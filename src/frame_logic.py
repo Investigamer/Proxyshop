@@ -124,7 +124,7 @@ def is_multicolor_string(text: str) -> bool:
     """
     if not text:
         return False
-    if 1 > len(text) < 6:
+    if 1 < len(text) < 6:
         return bool(''.join(sorted(text)) in color_lookup.get(len(text), []))
     return False
 
