@@ -21,7 +21,7 @@ from src.enums.settings import (
     BorderlessTextbox,
     ModernClassicCrown,
     CollectorMode)
-from src.frame_logic import contains_frame_colors
+from src.frame_logic import is_multicolor_string
 from src.helpers import get_line_count, LayerEffects
 from src.layouts import TokenLayout
 from src.templates._core import NormalTemplate
@@ -1112,7 +1112,16 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     @property
     def post_text_methods(self):
         """Add post-text adjustments method."""
-        return [*super().post_text_methods, self.text_adjustments]
+        funcs = []
+        if self.size != BorderlessTextbox.Tall:
+            funcs.append(self.textbox_positioning)
+        if self.is_token:
+            funcs.append(self.token_adjustments)
+        if self.is_textless:
+            funcs.append(self.textless_adjustments)
+        if self.is_nickname:
+            funcs.append(self.nickname_adjustments)
+        return [*super().post_text_methods, *funcs, self.text_layer_fx]
 
     """
     * Settings
@@ -1502,7 +1511,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             # Use identity for hybrid OR color enabled multicolor
             colors=self.identity if self.is_hybrid or (self.is_multicolor and self.multicolor_pinlines) else (
                 # Use pinlines if not a color code
-                self.pinlines if not contains_frame_colors(self.pinlines) else LAYERS.GOLD),
+                self.pinlines if not is_multicolor_string(self.pinlines) else LAYERS.GOLD),
             color_map=self.crown_color_map,
             location_map=self.gradient_location_map)
 
@@ -1513,7 +1522,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             # Use identity for hybrid OR color enabled multicolor
             colors=self.identity if self.is_hybrid or (self.is_multicolor and self.multicolor_pinlines) else (
                 # Use pinlines if not a color code
-                self.pinlines if not contains_frame_colors(self.pinlines) else LAYERS.GOLD),
+                self.pinlines if not is_multicolor_string(self.pinlines) else LAYERS.GOLD),
             color_map=self.pinline_color_map,
             location_map=self.gradient_location_map)
 
@@ -1544,7 +1553,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     def textbox_group(self) -> Optional[LayerSet]:
         """Optional[LayerSet]: Textbox group if not a 'Textless' render."""
         if self.is_textless:
-            return None
+            return
         return super().textbox_group
 
     """
@@ -1557,12 +1566,12 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if self.is_creature:
             # Is a creature, Flipside P/T?
             return LAYERS.RULES_TEXT_CREATURE_FLIP if (
-                    self.is_transform and self.is_flipside_creature
+                self.is_transform and self.is_flipside_creature
             ) else LAYERS.RULES_TEXT_CREATURE
 
         # Not a creature, Flipside P/T?
         return LAYERS.RULES_TEXT_NONCREATURE_FLIP if (
-                self.is_transform and self.is_flipside_creature
+            self.is_transform and self.is_flipside_creature
         ) else LAYERS.RULES_TEXT_NONCREATURE
 
     @auto_prop_cached
@@ -1766,37 +1775,14 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
     * Frame Layer Methods
     """
 
-    def enable_frame_layers(self) -> None:
-        """Add Nickname and Token layers."""
-        super().enable_frame_layers()
-
-        # Nickname -> Solid color or gradient layer
-        if self.is_nickname:
-            self.generate_layer(
-                group=self.nickname_group,
-                colors=self.twins_colors)
-
-        # Enable Token shadow
-        if self.is_token:
-            psd.getLayer(LAYERS.TOKEN, self.text_group).visible = True
-
     def enable_crown(self) -> None:
-        """Allows toggling of crown layer textures and adopting 'Nickname' effects on Nickname cards."""
-
-        # Crown -> Solid color / gradient adjustment layer
-        self.crown_group.visible = True
-        self.generate_layer(
-            group=self.crown_group,
-            colors=self.crown_colors)
+        """Allow modifying crown texture based on setting."""
+        super().enable_crown()
 
         # Remove crown textures if disabled
         if not self.crown_texture_enabled:
             for n in ["Shading", "Highlight", "Overlay"]:
                 psd.getLayer(n, self.crown_group.parent).visible = False
-
-        # Change to nickname effects if needed
-        if self.is_nickname:
-            psd.copy_layer_fx(self.nickname_fx, self.crown_group.parent)
 
     """
     * Text Layer Methods
@@ -1847,9 +1833,17 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
                     ))
 
     def rules_text_and_pt_layers(self) -> None:
-        """Call to super if card isn't a 'Textless' render."""
-        if not self.is_textless:
-            return super().rules_text_and_pt_layers()
+        """Skip this step for 'Textless' renders."""
+        if self.is_textless:
+            return
+        super().rules_text_and_pt_layers()
+
+    """
+    * Post Text Methods
+    """
+
+    def textless_adjustments(self) -> None:
+        """Actions taken if this is a 'Textless' render."""
 
         # Make positioning adjustments
         if self.is_type_shifted:
@@ -1860,7 +1854,8 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if self.is_pt_enabled:
             psd.align_all(
                 layer=self.text_layer_pt,
-                ref=self.pt_group)
+                ref=psd.getLayer(LAYERS.PT_BOX, [
+                    self.pt_group, LAYERS.SHAPE]))
             self.text.append(
                 TextField(
                     layer=self.text_layer_pt,
@@ -1871,38 +1866,55 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if self.expansion_symbol_layer:
             self.expansion_symbol_layer.translate(10, 0)
 
-    """
-    * Post Text Methods
-    """
+    def token_adjustments(self) -> None:
+        """Actions taken if this is a 'Token' card."""
 
-    def text_adjustments(self) -> None:
-        """Handles all specialized text adjustments for a variety of render settings."""
+        # Change name font and center it
+        self.text_layer_name.textItem.font = CON.font_artist
+        psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
 
-        # Align typeline, symbol, and indicator
-        if self.size != BorderlessTextbox.Tall:
+        # Add name plate shadow
+        psd.getLayer(LAYERS.TOKEN, self.text_group).visible = True
 
-            # Get the delta between the highest box and the target box
-            shape = psd.getLayer(LAYERS.TALL, [self.pinlines_group, LAYERS.SHAPE, LAYERS.TYPE_LINE])
-            shape_center = psd.get_layer_dimensions(shape)[Dimensions.CenterY]
-            delta = psd.get_layer_dimensions(self.pinlines_shapes[1])[Dimensions.CenterY] - shape_center
-            self.text_layer_type.translate(0, delta)
+    def nickname_adjustments(self) -> None:
+        """Actions taken if this is a 'Nickname' render."""
 
-            # Shift expansion symbol
-            if CFG.symbol_enabled and self.expansion_symbol_layer:
-                self.expansion_symbol_layer.translate(0, delta)
-
-            # Shift indicator
-            if self.is_type_shifted:
-                self.indicator_group.parent.translate(0, delta)
-
-        # Token adjustments
-        if self.is_token:
-            self.text_layer_name.textItem.font = CON.font_artist
-            psd.align_horizontal(self.text_layer_name, self.twins_shapes[0])
-
-        # Nickname adjustments
+        # Nickname plate -> Solid color or gradient layer
         if self.is_nickname:
-            psd.align_vertical(self.text_layer_name, self.nickname_shape)
+            self.generate_layer(
+                group=self.nickname_group,
+                colors=self.twins_colors)
+
+        # Center the name
+        psd.align_vertical(self.text_layer_name, self.nickname_shape)
+
+        # Copy effects to legendary crown
+        if self.is_legendary:
+            psd.copy_layer_fx(self.nickname_fx, self.crown_group.parent)
+
+    def textbox_positioning(self) -> None:
+        """Reposition various elements when textbox size isn't 'Tall' (the default)."""
+
+        # Get the delta between the highest box and the target box
+        shape = psd.getLayer(LAYERS.TALL, [
+            self.pinlines_group,
+            LAYERS.SHAPE,
+            LAYERS.TYPE_LINE])
+        dims_ref = psd.get_layer_dimensions(shape)
+        dims_obj = psd.get_layer_dimensions(self.pinlines_shapes[1])
+        delta = dims_obj[Dimensions.CenterY] - dims_ref[Dimensions.CenterY]
+        self.text_layer_type.translate(0, delta)
+
+        # Shift expansion symbol
+        if CFG.symbol_enabled and self.expansion_symbol_layer:
+            self.expansion_symbol_layer.translate(0, delta)
+
+        # Shift indicator
+        if self.is_type_shifted:
+            self.indicator_group.parent.translate(0, delta)
+
+    def text_layer_fx(self) -> None:
+        """Handles all specialized text adjustments for a variety of render settings."""
 
         # Add drop shadow if enabled and allowed
         if self.is_drop_shadow:
@@ -1974,7 +1986,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
         if not self.is_textless:
             self.text_layer_rules.textItem.color = color
 
-        # PT if card is creature
+        # PT if card is a non-vehicle creature
         if self.is_pt_enabled and not self.is_vehicle:
             self.text_layer_pt.textItem.color = color
 

@@ -162,13 +162,12 @@ def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
     Returns:
         int: Width of the layer in pixels.
     """
-    try:
+    with suppress(Exception):
         # Try getting bounds no effects
         d = get_layer_action_ref(layer)
         bounds = d.getObjectValue(sID('boundsNoEffects'))
-    except PS_EXCEPTIONS:
-        bounds = layer.bounds
-    return bounds.getInteger(sID('right')) - bounds.getInteger(sID('left'))
+        return bounds.getInteger(sID('right')) - bounds.getInteger(sID('left'))
+    return get_layer_width(layer)
 
 
 def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
@@ -180,13 +179,12 @@ def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
     Returns:
         int: Height of the layer in pixels.
     """
-    try:
+    with suppress(Exception):
         # Try getting bounds no effects
         d = get_layer_action_ref(layer)
         bounds = d.getObjectValue(sID('boundsNoEffects'))
-    except PS_EXCEPTIONS:
-        bounds = layer.bounds
-    return bounds.getInteger(sID('bottom')) - bounds.getInteger(sID('top'))
+        return bounds.getInteger(sID('bottom')) - bounds.getInteger(sID('top'))
+    return get_layer_height(layer)
 
 
 """

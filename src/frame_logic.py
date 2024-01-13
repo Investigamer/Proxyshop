@@ -89,7 +89,8 @@ color_lookup = {
         LAYERS.BRGW,
         LAYERS.RGWU,
         LAYERS.GWUB
-    ]}
+    ]},
+    5: {'BGRUW': LAYERS.WUBRG}
 }
 
 # Basic Land Types
@@ -112,6 +113,23 @@ hybrid_symbols = ['W/U', 'U/B', 'B/R', 'R/G', 'G/W', 'W/B', 'B/G', 'G/U', 'U/R',
 
 
 @cache
+def is_multicolor_string(text: str) -> bool:
+    """Checks if a string is a multicolor frame color string e.g. WU -> WUBRG.
+
+    Args:
+        text: String of color letters, or other string.
+
+    Returns:
+        True if the string is a 2-5 character color combination.
+    """
+    if not text:
+        return False
+    if 1 < len(text) < 6:
+        return bool(''.join(sorted(text)) in color_lookup.get(len(text), []))
+    return False
+
+
+@cache
 def contains_frame_colors(text: str) -> bool:
     """Checks if a string contains only frame color characters.
 
@@ -123,14 +141,11 @@ def contains_frame_colors(text: str) -> bool:
     """
     if not text:
         return False
-    LT = len(text)
-    if LT == 1:
-        return False
-    if LT > 5:
-        return False
-    if LT == 5:
-        return bool(text == LAYERS.WUBRG)
-    return bool(''.join(sorted(text)) in color_lookup.get(LT, []))
+    if text in colors or text in LAYERS.WUBRG:
+        return True
+    if 1 > len(text) < 5:
+        return bool(''.join(sorted(text)) in color_lookup.get(len(text), []))
+    return False
 
 
 def get_ordered_colors(text: Union[str, Iterable]) -> str:

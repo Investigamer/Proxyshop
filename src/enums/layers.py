@@ -74,6 +74,7 @@ class LAYERS (StrEnum):
     ONE_LINE = 'One Line'
     FULL = 'Full'
     NORMAL = 'Normal'
+    SNOW = 'Snow'
 
     # Borders
     BORDER = 'Border'
@@ -178,6 +179,7 @@ class LAYERS (StrEnum):
     TOKEN = 'Token'
 
     # Planeswalker
+    PLANESWALKER = 'Planeswalker'
     FIRST_ABILITY = 'First Ability'
     SECOND_ABILITY = 'Second Ability'
     THIRD_ABILITY = 'Third Ability'

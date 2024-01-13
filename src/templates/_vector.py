@@ -11,10 +11,6 @@
 from typing import Optional, Union
 
 # Third Party Imports
-from photoshop.api import (
-    ElementPlacement,
-    SolidColor
-)
 from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -24,9 +20,7 @@ from src.enums.layers import LAYERS
 from src.enums.mtg import (
     crown_color_map,
     indicator_color_map,
-    pinline_color_map
-)
-from src.frame_logic import contains_frame_colors
+    pinline_color_map)
 import src.helpers as psd
 from src.templates import NormalTemplate
 from src.utils.properties import auto_prop_cached
@@ -103,11 +97,6 @@ class VectorTemplate (NormalTemplate):
             group.parent.visible = True
         return group
 
-    @auto_prop_cached
-    def mask_group(self) -> Optional[LayerSet]:
-        """Group containing masks used to blend and adjust various layers."""
-        return psd.getLayerSet(LAYERS.MASKS, self.docref)
-
     """
     * Color Maps
     """
@@ -141,7 +130,7 @@ class VectorTemplate (NormalTemplate):
 
     @auto_prop_cached
     def indicator_colors(self) -> list[list[int]]:
-        """Must be returned as list of SolidColor objects."""
+        """list[list[int]]: Must be returned as list of RGB/CMYK color notations."""
         return [
             self.indicator_color_map.get(c, [0, 0, 0])
             for c in self.layout.color_indicator[::-1]
@@ -222,11 +211,6 @@ class VectorTemplate (NormalTemplate):
     """
 
     @auto_prop_cached
-    def mask_layers(self) -> list[ArtLayer]:
-        """List of layers containing masks used to blend multicolored layers."""
-        return [psd.getLayer(LAYERS.HALF, self.mask_group)]
-
-    @auto_prop_cached
     def indicator_masks(self) -> list[ArtLayer]:
         """List of layers containing masks used to build the Color Indicator."""
         if len(self.layout.color_indicator) == 2:
@@ -288,159 +272,6 @@ class VectorTemplate (NormalTemplate):
             - None: Skip this mask.
         """
         return []
-
-    """
-    * Utility Methods
-    """
-
-    def create_blended_layer(
-        self,
-        group: LayerSet,
-        colors: Union[None, str, list[str]] = None,
-        masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
-    ):
-        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
-
-        Args:
-            group: Group to look for the color layers within.
-            colors: Color layers to look for.
-            masks: Masks to use for blending the layers.
-        """
-        # Establish our masks
-        if not masks:
-            masks = self.mask_layers
-
-        # Establish our colors
-        colors = colors or self.identity or self.pinlines
-        if isinstance(colors, str) and not contains_frame_colors(colors):
-            # Received a color string that isn't a frame color combination
-            colors = [colors]
-        elif len(colors) >= self.color_limit:
-            # Received too big a color combination, revert to pinlines
-            colors = [self.pinlines]
-        elif isinstance(colors, str):
-            # Convert string of colors to list
-            colors = list(colors)
-
-        # Single layer
-        if len(colors) == 1:
-            layer = psd.getLayer(colors[0], group)
-            layer.visible = True
-            return
-
-        # Enable each layer color
-        layers: list[ArtLayer] = []
-        for i, color in enumerate(colors):
-
-            # Make layer visible
-            layer = psd.getLayer(color, group)
-            layer.visible = True
-
-            # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(masks) >= i:
-                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
-
-            # Add to the layer list
-            layers.append(layer)
-
-    @staticmethod
-    def create_blended_solid_color(
-        group: LayerSet,
-        colors: list[SolidColor],
-        masks: Optional[list[Union[ArtLayer, LayerSet]]] = None
-    ) -> None:
-        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
-
-        Args:
-            group: Group to look for the color layers within.
-            colors: Color layers to look for.
-            masks: Masks to use for blending the layers.
-        """
-        # Ensure masks is a list
-        masks = masks or []
-
-        # Enable each layer color
-        layers: list[ArtLayer] = []
-        for i, color in enumerate(colors):
-            layer = psd.smart_layer(psd.create_color_layer(color, group))
-
-            # Position the new layer and add a mask to previous, if previous layer exists
-            if layers and len(masks) >= i:
-                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
-                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
-            layers.append(layer)
-
-    def generate_layer(
-        self, group: Union[ArtLayer, LayerSet],
-        colors: Union[list[list[int]], list[int], list[dict], list[str], str],
-        masks: Optional[list[ArtLayer]] = None
-    ) -> Optional[ArtLayer]:
-        """Takes information about a frame layer group and routes it to the correct
-        generation function which blends rasterized layers, blends solid color layers, or
-        generates a solid color/gradient adjustment layer.
-
-        Notes:
-            The result for a given 'colors' schema:
-            - str: Enable a single texture layer.
-            - list[str]: Blend multiple texture layers.
-            - list[int]: Create a solid color adjustment layer.
-            - list[dict]: Create a gradient adjustment layer.
-            - list[list[int]]: Blend multiple solid color adjustment layers.
-
-        Args:
-            group: Layer or group containing layers.
-            colors: Color definition for this frame layer generation.
-            masks: Masks used to blend this generated layer.
-        """
-        # Assign a generator task based on colors value
-        if isinstance(colors, str):
-            # Hex color
-            if colors.startswith('#'):
-                return psd.create_color_layer(
-                    color=colors,
-                    layer=group,
-                    docref=self.docref)
-            # Blended texture layers
-            return self.create_blended_layer(
-                group=group,
-                colors=colors,
-                masks=masks)
-        if isinstance(colors, list):
-            if all(isinstance(c, str) for c in colors):
-                # Hex colors
-                if colors[0].startswith('#'):
-                    return psd.create_color_layer(
-                        color=colors,
-                        layer=group,
-                        docref=self.docref)
-                # Blended texture layers
-                return self.create_blended_layer(
-                    group=group,
-                    colors=colors,
-                    masks=masks)
-            if all(isinstance(c, int) for c in colors):
-                # RGB/CMYK adjustment layer
-                return psd.create_color_layer(
-                    color=colors,
-                    layer=group,
-                    docref=self.docref)
-            if all(isinstance(c, dict) for c in colors):
-                # Gradient adjustment layer
-                return psd.create_gradient_layer(
-                    colors=colors,
-                    layer=group,
-                    docref=self.docref)
-            if all(isinstance(c, list) for c in colors):
-                # Blended RGB/CMYK adjustment layers
-                return self.create_blended_solid_color(
-                    group=group,
-                    colors=colors,
-                    masks=masks)
-
-        # Failed to match a recognized color notation
-        if group:
-            self.log(f"Couldn't generate frame element: '{group.name}'")
 
     """
     * Frame Layer Methods
