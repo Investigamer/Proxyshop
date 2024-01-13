@@ -3,7 +3,7 @@
 * Handles parsing render spec file, aka text files that contain a set of configurations and cards to render
 """
 # Standard Library Imports
-import os
+import glob
 import re as regex
 from pathlib import Path
 from typing import Dict, TypedDict, Optional, Any
@@ -43,6 +43,7 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
 
     # Extract just the spec name
     file_name = file_path.stem
+    parent_dir = str(file_path.parent)
 
     # Load all the content and get rid of empty lines and comments
     spec_lines = open(file_path, 'r').read().splitlines()
@@ -74,27 +75,34 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
                 continue
 
         parts = list(map(str.strip, l.split('|')))
-        full_line_spec = parts[0]
+        spec_base = parts[0]
+
+        if '*' in spec_base:
+            specs = glob.glob(spec_base, root_dir=parent_dir, recursive=True)
+            specs = [s for s in specs if not s.endswith('.txt')]
+        else:
+            specs = [spec_base]
+
         used_configs = parts[1:]
         for c in used_configs:
             if c in configs:
-                spec_info = configs[c]['info']
-                full_line_spec += f' {spec_info}'
+                config_spec = configs[c]['info']
             else:
-                full_line_spec += f' {c}'
+                config_spec = c
+            specs = [s + f' {config_spec}' for s in specs]
 
         def append_card(card_spec):
             # Pretend this is a file and parse that
-            full_card_path = file_path.with_stem(card_spec)
+            full_card_path = file_path.parent.joinpath(card_spec)
             cards.append(parse_card_info(full_card_path))
         
         # If part of a group we need to just accumulate
         if groups:
             if l.startswith('}'):
                 # The group ended, so we assign this configuration to all the cards in it
-                full_line_spec = full_line_spec[1:].strip()
+                group_spec = specs[0][1:].strip()
                 ended_group = groups.pop()
-                ended_group = [c + f' {full_line_spec}' for c in ended_group]
+                ended_group = [c + f' {group_spec}' for c in ended_group]
 
                 if groups:
                     # Replace special variables
@@ -113,9 +121,10 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
                         append_card(card)
             else:
                 # Append the card to the group
-                groups[-1].append(full_line_spec)
+                groups[-1].extend(specs)
         else:
-            append_card(full_line_spec)
+            for card_spec in specs: 
+                append_card(card_spec)
 
     # Return dictionary
     return {
