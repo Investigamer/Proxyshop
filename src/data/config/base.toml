@@ -69,12 +69,6 @@ desc = """Forces Proxyshop to always used the Default Expansion Symbol chosen ab
 type = "bool"
 default = 0
 
-[SYMBOLS."Symbol.Stroke.Size"]
-title = "Default Expansion Symbol Outline"
-desc = """Changes the default thickness of the expansion symbol outline in font mode."""
-type = "numeric"
-default = 6
-
 ###
 # * Watermark Settings
 ###

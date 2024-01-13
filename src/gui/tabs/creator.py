@@ -83,7 +83,7 @@ class CreatorLayout(GridLayout, GlobalAccess):
         """
         for t in self._types:
             if spinner.text in self._templates['map'][t]:
-                self._templates_selected[t] = self.selected_template['map'][t][spinner.text]
+                self._templates_selected[t] = self._templates['map'][t][spinner.text]
             else:
                 # Notify the user one face type isn't supported
                 face = 'Front' if 'back' in t else 'Back'
@@ -92,9 +92,9 @@ class CreatorLayout(GridLayout, GlobalAccess):
 
     def render(self) -> None:
         """Initiate a custom card render operation."""
-        scryfall = self.format_scryfall_data(
-            self.get_card_data())
-        self.main.render_custom(self._templates_selected, scryfall)
+        scryfall = self.format_card_data(self.get_card_data())
+        template = self._templates_selected[scryfall.get('layout', 'normal')]
+        self.main.render_custom(template, scryfall)
 
     """
     * Data Utils

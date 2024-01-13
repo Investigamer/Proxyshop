@@ -69,7 +69,6 @@ class AppConfig:
         self.symbol_enabled = self.file.getboolean('BASE.SYMBOLS', 'Enable.Expansion.Symbol', fallback=True)
         self.symbol_default = self.file.get('BASE.SYMBOLS', 'Default.Symbol', fallback='MTG')
         self.symbol_force_default = self.file.getboolean('BASE.SYMBOLS', 'Force.Default.Symbol', fallback=False)
-        self.symbol_stroke = self.file.getint('BASE.SYMBOLS', 'Symbol.Stroke.Size', fallback=6)
 
         # BASE - WATERMARKS
         self.watermark_mode = self.get_option('BASE.WATERMARKS', 'Watermark.Mode', WatermarkMode)

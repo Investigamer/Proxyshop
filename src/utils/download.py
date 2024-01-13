@@ -10,7 +10,6 @@ from typing import Callable, Optional
 
 # Third Party Imports
 import requests
-from memory_profiler import profile
 
 # Local Imports
 from src.utils.compression import unpack_archive
@@ -47,7 +46,6 @@ def get_temporary_file(path: Path, ext: str = '.drive') -> tuple[Path, int]:
     return Path(file), 0
 
 
-@profile
 def download_file(
     file: Path,
     res: requests.Response,
@@ -71,11 +69,17 @@ def download_file(
     path = path or file
     total = int(res.headers.get("Content-Length") or 1)
     current = file.stat().st_size
-    try:
 
-        # Open the temporary file and write each chunk
-        with open(file, "ab") as f:
+    # Open the temporary file and write each chunk
+    with open(file, "ab") as f:
+        try:
             for chunk in res.iter_content(chunk_size=chunk_size):
+                if not chunk:
+                    raise OSError('Bad chunk detected!')
+                if res.status_code != 200:
+                    raise requests.RequestException(
+                        request=res.request,
+                        response=res)
                 f.write(chunk)
 
                 # Execute progress callback if provided
@@ -83,11 +87,11 @@ def download_file(
                     current += int(chunk_size)
                     callback(current, total)
 
-    # Download failure
-    except Exception as e:
-        print(f'Download failed: {file}\n{e}')
-        return False
-    del res
+        # Download failure
+        except Exception as e:
+            print(f'Download failed: {file}\n{e}')
+            return False
+        del res
 
     # Rename the temporary file, unpack it
     try:

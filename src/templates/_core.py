@@ -29,6 +29,7 @@ from src.enums.mtg import (
     watermark_color_map,
     basic_watermark_color_map)
 import src.helpers as psd
+from src.frame_logic import is_multicolor_string
 from src.text_layers import (
     TextField,
     ScaledTextField,
@@ -447,6 +448,11 @@ class BaseTemplate:
             return LAYERS.ARTIFACT
         return self.layout.background
 
+    @auto_prop_cached
+    def color_limit(self) -> int:
+        """int: Number of colors where frame elements will no longer split (becomes gold)."""
+        return 3
+
     """
     * Layer Groups
     """
@@ -480,6 +486,14 @@ class BaseTemplate:
             return psd.getLayerSet(face, [self.text_group, LAYERS.TRANSFORM])
         if self.is_mdfc:
             return psd.getLayerSet(f'{LAYERS.MDFC} {face}', self.text_group)
+        return
+
+    @auto_prop_cached
+    def mask_group(self) -> Optional[LayerSet]:
+        """LayerSet: Group containing masks used to blend and adjust various layers."""
+        with suppress(Exception):
+            return self.docref.layerSets[LAYERS.MASKS]
+        return
 
     """
     * Text Layers
@@ -635,6 +649,19 @@ class BaseTemplate:
     def pt_reference(self) -> ReferenceLayer:
         """ArtLayer: Reference used to check rules text overlap with the PT Box."""
         return psd.get_reference_layer(LAYERS.PT_REFERENCE, self.text_group)
+
+    """
+    * Blending Masks
+    """
+
+    @auto_prop_cached
+    def mask_layers(self) -> list[ArtLayer]:
+        """List of layers containing masks used to blend multicolored layers."""
+        if not self.mask_group:
+            return []
+        if mask := psd.getLayer(LAYERS.HALF, self.mask_group):
+            return [mask]
+        return []
 
     """
     * Processing Layout Data
@@ -944,9 +971,10 @@ class BaseTemplate:
             ref=self.text_group,
             placement=ElementPlacement.PlaceAfter,
             docref=self.docref)
-        psd.frame_layer_by_height(
+        psd.frame_layer(
             layer=wm,
             ref=self.textbox_reference.dims,
+            smallest=True,
             scale=wm_details.get('scale', 80))
 
         # Apply opacity, blending, and effects
@@ -1174,6 +1202,177 @@ class BaseTemplate:
         self.console.update(msg_warn(message), exception=error)
 
     """
+    * Layer Generator Utilities
+    * These methods create layers dynamically by blending rasterized layers or solid color
+    adjustment layers together using masks.
+    """
+
+    def create_blended_layer(
+        self,
+        group: LayerSet,
+        colors: Union[None, str, list[str]] = None,
+        masks: Optional[list[ArtLayer]] = None,
+        **kwargs
+    ):
+        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
+
+        Args:
+            group: Group to look for the color layers within.
+            colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
+        """
+        # Ensure masks is a list
+        masks = masks or []
+
+        # Establish our colors
+        colors = colors or self.identity or self.pinlines
+        if isinstance(colors, str) and not is_multicolor_string(colors):
+            # Received a color string that isn't a frame color combination
+            colors = [colors]
+        elif len(colors) >= self.color_limit:
+            # Received too big a color combination, revert to pinlines
+            colors = [self.pinlines]
+        elif isinstance(colors, str):
+            # Convert string of colors to list
+            colors = list(colors)
+
+        # Single layer
+        if len(colors) == 1:
+            layer = psd.getLayer(colors[0], group)
+            layer.visible = True
+            return
+
+        # Enable each layer color
+        layers: list[ArtLayer] = []
+        for i, color in enumerate(colors):
+
+            # Make layer visible
+            layer = psd.getLayer(color, group)
+            if 'blend_mode' in kwargs:
+                layer.blendMode = kwargs['blend_mode']
+            layer.visible = True
+
+            # Position the new layer and add a mask to previous, if previous layer exists
+            if layers and len(masks) >= i:
+                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
+                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
+
+            # Add to the layer list
+            layers.append(layer)
+
+    @staticmethod
+    def create_blended_solid_color(
+        group: LayerSet,
+        colors: list[SolidColor],
+        masks: Optional[list[Union[ArtLayer, LayerSet]]] = None,
+        **kwargs
+    ) -> None:
+        """Either enable a single frame layer or create a multicolor layer using a gradient mask.
+
+        Args:
+            group: Group to look for the color layers within.
+            colors: Color layers to look for.
+            masks: Masks to use for blending the layers.
+
+        Keyword Args:
+            blend_mode (BlendMode): Sets the blend mode of the generated solid color layers.
+        """
+        # Ensure masks is a list
+        masks = masks or []
+
+        # Enable each layer color
+        layers: list[ArtLayer] = []
+        for i, color in enumerate(colors):
+            layer = psd.smart_layer(psd.create_color_layer(color, group))
+            if 'blend_mode' in kwargs:
+                layer.blendMode = kwargs['blend_mode']
+
+            # Position the new layer and add a mask to previous, if previous layer exists
+            if layers and len(masks) >= i:
+                layer.move(layers[i - 1], ElementPlacement.PlaceAfter)
+                psd.copy_layer_mask(masks[i - 1], layers[i - 1])
+            layers.append(layer)
+
+    def generate_layer(
+        self, group: Union[ArtLayer, LayerSet],
+        colors: Union[list[list[int]], list[int], list[dict], list[str], str],
+        masks: Optional[list[ArtLayer]] = None,
+        **kwargs
+    ) -> Optional[ArtLayer]:
+        """Takes information about a frame layer group and routes it to the correct
+        generation function which blends rasterized layers, blends solid color layers, or
+        generates a solid color/gradient adjustment layer.
+
+        Notes:
+            The result for a given 'colors' schema:
+            - str: Enable a single texture layer.
+            - list[str]: Blend multiple texture layers.
+            - list[int]: Create a solid color adjustment layer.
+            - list[dict]: Create a gradient adjustment layer.
+            - list[list[int]]: Blend multiple solid color adjustment layers.
+
+        Args:
+            group: Layer or group containing layers.
+            colors: Color definition for this frame layer generation.
+            masks: Masks used to blend this generated layer.
+        """
+        # Assign a generator task based on colors value
+        if isinstance(colors, str):
+            # Hex color
+            if colors.startswith('#'):
+                return psd.create_color_layer(
+                    color=colors,
+                    layer=group,
+                    docref=self.docref,
+                    **kwargs)
+            # Blended texture layers
+            return self.create_blended_layer(
+                group=group,
+                colors=colors,
+                masks=masks,
+                **kwargs)
+        if isinstance(colors, list):
+            if all(isinstance(c, str) for c in colors):
+                # Hex colors
+                if colors[0].startswith('#'):
+                    return psd.create_color_layer(
+                        color=colors,
+                        layer=group,
+                        docref=self.docref,
+                        **kwargs)
+                # Blended texture layers
+                return self.create_blended_layer(
+                    group=group,
+                    colors=colors,
+                    masks=masks,
+                    **kwargs)
+            if all(isinstance(c, int) for c in colors):
+                # RGB/CMYK adjustment layer
+                return psd.create_color_layer(
+                    color=colors,
+                    layer=group,
+                    docref=self.docref,
+                    **kwargs)
+            if all(isinstance(c, dict) for c in colors):
+                # Gradient adjustment layer
+                return psd.create_gradient_layer(
+                    colors=colors,
+                    layer=group,
+                    docref=self.docref,
+                    **kwargs)
+            if all(isinstance(c, list) for c in colors):
+                # Blended RGB/CMYK adjustment layers
+                return self.create_blended_solid_color(
+                    group=group,
+                    colors=colors,
+                    masks=masks,
+                    **kwargs)
+
+        # Failed to match a recognized color notation
+        if group:
+            self.log(f"Couldn't generate frame element: '{group.name}'")
+
+    """
     * Extendable Methods
     * These methods are called during the execution chain but must be written in the child class.
     """
@@ -1253,18 +1452,18 @@ class BaseTemplate:
             warning=True)
 
         # Add watermark
-        if CFG.watermark_mode is not WatermarkMode.Disabled and not self.is_basic_land:
+        if CFG.enable_basic_watermark and self.is_basic_land:
+            # Basic land watermark
+            if not self.run_tasks(
+                    funcs=[self.create_basic_watermark],
+                    message="Unable to generate basic land watermark!"
+            ):
+                return False
+        elif CFG.watermark_mode is not WatermarkMode.Disabled:
             # Normal watermark
             if not self.run_tasks(
                 funcs=[self.create_watermark],
                 message="Unable to generate watermark!"
-            ):
-                return False
-        elif CFG.enable_basic_watermark and self.is_basic_land:
-            # Basic land watermark
-            if not self.run_tasks(
-                funcs=[self.create_basic_watermark],
-                message="Unable to generate basic land watermark!"
             ):
                 return False
 

@@ -21,7 +21,6 @@ copy:
     # Base directories and files
     base:
         paths:
-        - ['src', 'img']
         - ['templates', 'tools']
         files:
         - ['LICENSE.md']
@@ -37,10 +36,18 @@ copy:
         - 'build'
         - 'hexproof'
         - 'scryfall'
+        - 'mtgjson'
         - 'config_ini'
         exclude_files:
-        - 'version_tracker.json'
         - 'user.yml'
+        - 'versions.yml'
+
+    # Copy img directory
+    img:
+        paths:
+        - ['src', 'img']
+        exclude_dirs:
+        - 'symbols'
 
     # Copy plugins directory
     plugins:
