@@ -2,6 +2,7 @@
 * CORE PROXYSHOP TEMPLATES
 """
 # Standard Library Imports
+import os
 import os.path as osp
 from contextlib import suppress
 from pathlib import Path
@@ -257,6 +258,10 @@ class BaseTemplate:
             self.output_directory,
             sanitize_filename(name)
         ).with_suffix(f'.{CFG.output_file_type}')
+
+        if CFG.maintain_folder_structure and self.art_file.is_relative_to(PATH.ART):
+            relative_path = self.art_file.parent.relative_to(PATH.ART)
+            path = path.parent / relative_path / path.name
 
         # Are we overwriting duplicate names?
         if not CFG.overwrite_duplicate:
@@ -1509,6 +1514,12 @@ class BaseTemplate:
         # Manual edit step?
         if CFG.exit_early and not ENV.TEST_MODE:
             self.console.await_choice(self.event)
+
+        # Make sure output folder exists
+        if CFG.maintain_folder_structure:
+            output_folder = self.output_file_name.parent
+            if not osp.exists(output_folder):
+                os.makedirs(output_folder)
 
         # Save the document
         if not self.run_tasks(

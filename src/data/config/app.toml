@@ -22,6 +22,12 @@ desc = """Choose how the rendered card images are named. See the README for adva
 type = "string"
 default = "#name (#frame<, #suffix>) [#set] {#num}"
 
+[FILES."Maintain.Folder.Structure"]
+title = "Maintain Folder Structure"
+desc = """Choose whether to flatten all images into the `out` folder or maintain the folder structure of the `art` folder."""
+type = "bool"
+default = 1
+
 [FILES."Overwrite.Duplicate"]
 title = "Overwrite Duplicates"
 desc = """Overwrite rendered files with identical file names."""
