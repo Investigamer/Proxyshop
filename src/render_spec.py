@@ -3,6 +3,7 @@
 * Handles parsing render spec file, aka text files that contain a set of configurations and cards to render
 """
 # Standard Library Imports
+import os
 import glob
 import re as regex
 from pathlib import Path
@@ -77,11 +78,25 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
         parts = list(map(str.strip, l.split('|')))
         spec_base = parts[0]
 
+        def append_config(card, config):
+            return (card[0] + f' {config}', card[1])
+
+        def append_card(card_spec):
+            spec, path = card_spec
+            # Pretend this is a file and parse that
+            full_card_path = file_path.parent.joinpath(spec)
+            card_info = parse_card_info(full_card_path)
+            if path is not None:
+                card_info['additional_cfg']['art'] = path
+            cards.append(card_info)
+
         if '*' in spec_base:
             specs = glob.glob(spec_base, root_dir=parent_dir, recursive=True)
-            specs = [s for s in specs if not s.endswith('.txt')]
+            specs = [(s.split('.')[0], s) for s in specs if not s.endswith('.txt')]
+        elif os.path.exists(spec_base):
+            specs = [(spec_base.split('.')[0], spec_base)]
         else:
-            specs = [spec_base]
+            specs = [(spec_base, None)]
 
         used_configs = parts[1:]
         for c in used_configs:
@@ -89,20 +104,15 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
                 config_spec = configs[c]['info']
             else:
                 config_spec = c
-            specs = [s + f' {config_spec}' for s in specs]
-
-        def append_card(card_spec):
-            # Pretend this is a file and parse that
-            full_card_path = file_path.parent.joinpath(card_spec)
-            cards.append(parse_card_info(full_card_path))
+            specs = [append_config(s, config_spec) for s in specs]
         
         # If part of a group we need to just accumulate
         if groups:
             if l.startswith('}'):
                 # The group ended, so we assign this configuration to all the cards in it
-                group_spec = specs[0][1:].strip()
+                group_spec = specs[0][0][1:].strip()
                 ended_group = groups.pop()
-                ended_group = [c + f' {group_spec}' for c in ended_group]
+                ended_group = [append_config(c, group_spec) for c in ended_group]
 
                 if groups:
                     # Replace special variables
