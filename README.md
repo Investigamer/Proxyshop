@@ -285,7 +285,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
     - Vittorio Masia
     - iDerp
     - Tupinambá (Pedro Neves)
-- Andrew Gioia for the [Keyrune](https://github.com/andrewgioia/keyrune) project that enables high quality expansion symbols.
+- Andrew Gioia for his various font projects which have been of use for Proxyshop in the past.
 - John Prime, Haven King, and members of [CCGHQ](https://www.slightlymagic.net/forum/viewtopic.php?f=15&t=7010) for providing expansion symbol SVG's.
 - Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api).
 - Wizards of the Coast and all the talented artists who make Magic the Gathering a reality.

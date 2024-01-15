@@ -453,6 +453,8 @@ class AppPlugin:
         # Re-format templates dict for TemplateDetails
         self._templates: dict[str, ManifestTemplateDetails] = {}
         for t, temps in templates.items():
+            if t not in layout_map_types:
+                continue
             for name, details in temps.items():
                 # Add new file
                 file_name = details.get('file', '')
@@ -1002,6 +1004,8 @@ def get_template_map(templates: list[AppTemplate]) -> dict[str, TemplateCategory
     for template in templates:
         for t, class_map in template.map.items():
             for name, details in class_map.items():
+                if t not in layout_map_types:
+                    continue
                 cat = str(layout_map_types[t])
 
                 # Ensure name is unique
