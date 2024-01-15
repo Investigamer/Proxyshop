@@ -11,7 +11,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
-from src.enums.mtg import pinline_color_map
+from src.enums.mtg import pinlines_color_map
 import src.helpers as psd
 from src.layouts import BattleLayout
 from src.templates._core import BaseTemplate
@@ -178,7 +178,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
             self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
-            color_map=self.pinline_color_map,
+            color_map=self.pinlines_color_map,
             location_map={2: [.4543, .5886]}
         )
 
@@ -203,8 +203,8 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     """
 
     @auto_prop_cached
-    def pinline_color_map(self) -> dict:
-        colors = pinline_color_map.copy()
+    def pinlines_color_map(self) -> dict:
+        colors = pinlines_color_map.copy()
         colors.update({
             'W': [246, 247, 241],
             'U': [0, 131, 193],

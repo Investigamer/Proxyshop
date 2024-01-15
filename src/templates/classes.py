@@ -10,7 +10,7 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
-from src.enums.mtg import pinline_color_map
+from src.enums.mtg import pinlines_color_map
 import src.helpers as psd
 from src.layouts import ClassLayout
 from src.templates._core import NormalTemplate
@@ -401,8 +401,8 @@ class UniversesBeyondClassTemplate(ClassVectorTemplate):
     template_suffix = 'Universes Beyond'
 
     # Color Maps
-    pinline_color_map = {
-        **pinline_color_map.copy(),
+    pinlines_color_map = {
+        **pinlines_color_map.copy(),
         'W': [246, 247, 241],
         'U': [0, 131, 193],
         'B': [44, 40, 33],
