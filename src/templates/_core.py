@@ -698,7 +698,11 @@ class BaseTemplate:
         """Path to the art file to load."""
         art_file = self.layout.file.get('additional_cfg', {}).get('art', None)
         if art_file is not None:
-            return self.layout.art_file.with_name(art_file)
+            art_file = Path(art_file)
+            if art_file.is_absolute():
+                return art_file
+            else:
+                return self.layout.art_file.parent / art_file
         else:
             return self.layout.art_file
 

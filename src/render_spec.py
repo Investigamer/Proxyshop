@@ -83,8 +83,8 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
 
         def append_card(card_spec):
             spec, path = card_spec
-            # Pretend this is a file and parse that
-            full_card_path = file_path.parent.joinpath(spec)
+            # Pretend this is a file right next to the spec and parse that
+            full_card_path = file_path.parent / Path(spec).name
             card_info = parse_card_info(full_card_path)
             if path is not None:
                 card_info['additional_cfg']['art'] = path
