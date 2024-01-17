@@ -16,7 +16,7 @@ import src.helpers as psd
 from src.layouts import BattleLayout
 from src.templates._core import BaseTemplate
 from src.templates._vector import VectorTemplate
-from src.text_layers import TextField, CreatureFormattedTextArea
+from src.text_layers import FormattedTextArea
 from src.utils.properties import auto_prop_cached
 
 """
@@ -112,7 +112,7 @@ class BattleMod (BaseTemplate):
 
         # Rules Text and Power / Toughness
         self.text.extend([
-            CreatureFormattedTextArea(
+            FormattedTextArea(
                 layer = self.text_layer_rules,
                 contents = self.layout.oracle_text,
                 flavor = self.layout.flavor_text,

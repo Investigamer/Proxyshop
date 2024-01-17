@@ -681,6 +681,10 @@ class FormattedTextArea (FormattedTextField):
     """
 
     @cached_property
+    def pt_reference(self) -> Optional[ReferenceLayer]:
+        return self.kwargs.get('pt_reference', None)
+
+    @cached_property
     def divider(self) -> Optional[Union[ArtLayer, LayerSet]]:
         """Divider layer, if provided and flavor text exists."""
         if (divider := self.kwargs.get('divider')) and all([self.flavor_text, self.contents, CFG.flavor_divider]):
@@ -811,29 +815,6 @@ class FormattedTextArea (FormattedTextField):
         if self.divider:
             self.insert_divider()
 
-
-class CreatureFormattedTextArea (FormattedTextArea):
-    """FormattedTextArea which also respects the bounds of creature card's power/toughness boxes.
-
-    * Moves the combined text upward to allow it to clear any Power/Toughness boxes indicated by the
-    provided P/T reference layer(s).
-    """
-
-    """
-    * Properties
-    """
-
-    @cached_property
-    def pt_reference(self) -> Optional[ReferenceLayer]:
-        return self.kwargs.get('pt_reference', None)
-
-    """
-    * Methods
-    """
-
-    def execute(self):
-        super().execute()
-
         # Shift vertically if the text overlaps the PT box
         if self.pt_reference:
 
@@ -858,5 +839,4 @@ FormattedTextLayer = Union[
     FormattedTextArea,
     FormattedTextField,
     ScaledWidthTextField,
-    CreatureFormattedTextArea
 ]

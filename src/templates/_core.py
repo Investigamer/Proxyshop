@@ -35,8 +35,7 @@ from src.text_layers import (
     ScaledTextField,
     FormattedTextArea,
     FormattedTextField,
-    FormattedTextLayer,
-    CreatureFormattedTextArea)
+    FormattedTextLayer)
 from src.enums.adobe import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import (
@@ -630,14 +629,18 @@ class BaseTemplate:
         return psd.get_reference_layer(self.art_frame) or psd.get_reference_layer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
-    def name_reference(self) -> ArtLayer:
+    def name_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, name uses Mana Cost as a reference to check collision against."""
+        if self.is_basic_land:
+            return
         return self.text_layer_mana
 
     @auto_prop_cached
-    def type_reference(self) -> ArtLayer:
+    def type_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, typeline uses the expansion symbol to check collision against,
         otherwise fallback to the expansion symbols reference layer."""
+        if self.is_basic_land:
+            return
         return self.expansion_symbol_layer or self.expansion_reference
 
     @auto_prop_cached
@@ -646,8 +649,10 @@ class BaseTemplate:
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
 
     @auto_prop_cached
-    def pt_reference(self) -> ReferenceLayer:
+    def pt_reference(self) -> Optional[ReferenceLayer]:
         """ArtLayer: Reference used to check rules text overlap with the PT Box."""
+        if not self.is_creature:
+            return
         return psd.get_reference_layer(LAYERS.PT_REFERENCE, self.text_group)
 
     """
@@ -1569,20 +1574,13 @@ class NormalTemplate(StarterTemplate):
     def rules_text_and_pt_layers(self) -> None:
         """Add rules and power/toughness text."""
         self.text.extend([
-            CreatureFormattedTextArea(
+            FormattedTextArea(
                 layer=self.text_layer_rules,
                 contents=self.layout.oracle_text,
                 flavor=self.layout.flavor_text,
                 reference=self.textbox_reference,
                 divider=self.divider_layer,
                 pt_reference=self.pt_reference,
-                centered=self.is_centered
-            ) if self.is_creature else FormattedTextArea(
-                layer=self.text_layer_rules,
-                contents=self.layout.oracle_text,
-                flavor=self.layout.flavor_text,
-                reference=self.textbox_reference,
-                divider=self.divider_layer,
                 centered=self.is_centered
             ),
             TextField(
