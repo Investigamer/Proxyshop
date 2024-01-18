@@ -62,7 +62,7 @@ ManifestTemplateMap = dict[str, dict[str, list[str]]]
 TemplateTypeMap = dict[str, dict[str, TemplateDetails]]
 
 """Map of templates selected for each template type."""
-TemplateSelectedMap = dict[str, TemplateDetails]
+TemplateSelectedMap = dict[str, Optional[TemplateDetails]]
 
 
 class ManifestTemplateDetails(TypedDict):
@@ -330,20 +330,20 @@ class AppPlugin:
     """
 
     @auto_prop_cached
-    def py_module(self) -> str:
+    def py_module(self) -> tuple[str, Path]:
         """str: Path to the recognized python module for this plugin."""
         if (self._root / '__init__.py').is_file():
             # Init file in root of the plugin
-            return f'plugins.{self._root.stem}'
+            return f'plugins.{self._root.name}', Path(self._root, '__init__.py')
         if (self._root / 'templates.py').is_file():
             # Templates.py file in root of the plugin
-            return f'plugins.{self._root.stem}.templates'
+            return f'plugins.{self._root.name}.templates', Path(self._root, 'templates.py')
         if (self._root / 'py' / '__init__.py').is_file():
             # Init file in 'py' directory of the plugin
-            return f'plugins.{self._root.stem}.py'
+            return f'plugins.{self._root.name}.py', Path(self._root, 'py', '__init__.py')
         if (self._root / 'py' / 'templates.py').is_file():
             # 'templates.py' file in py directory of the plugin
-            return f'plugins.{self._root.stem}.py.templates'
+            return f'plugins.{self._root.name}.py.templates', Path(self._root, 'py', 'templates.py')
         raise ModuleNotFoundError(f"Couldn't find a module path for Plugin: '{self.name}'")
 
     @auto_prop_cached
@@ -737,7 +737,7 @@ class AppTemplate:
         # Try loading plugin module
         try:
             module = get_loaded_module(
-                module_path=self.plugin.py_module,
+                module=self.plugin.py_module,
                 hotswap=self.env.FORCE_RELOAD)
             return getattr(module, class_name)
         except Exception as e:
