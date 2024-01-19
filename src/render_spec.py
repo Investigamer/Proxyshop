@@ -4,10 +4,11 @@
 """
 # Standard Library Imports
 import os
+import re
 import glob
 import re as regex
 from pathlib import Path
-from typing import Dict, TypedDict, Optional, Any
+from typing import Dict, TypedDict
 
 # Local Imports
 from src.cards import CardDetails, parse_card_info
@@ -83,6 +84,11 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
 
         def append_card(card_spec):
             spec, path = card_spec
+            # Make sure the extension doesn't contain a ']' as that implies
+            # we have something without extension using a config that contains
+            # something with extension, e.g. [art=file.png]
+            if not re.match(r"\.[^\]]+$", spec):
+                spec += '.png'
             # Pretend this is a file right next to the spec and parse that
             full_card_path = file_path.parent / Path(spec).name
             card_info = parse_card_info(full_card_path)
@@ -114,17 +120,20 @@ def parse_render_spec(file_path: Path) -> RenderSpec:
                 ended_group = groups.pop()
                 ended_group = [append_config(c, group_spec) for c in ended_group]
 
+                def expand_variable(card, variable, value):
+                    return (card[0].replace(variable, str(value)), card[1])
+                
                 if groups:
                     # Replace special variables
-                    ended_group = [c.replace('${GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
-                    ended_group = [c.replace('${INNER_GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+                    ended_group = [expand_variable(c, '${GROUP_INDEX}', i) for (i, c) in enumerate(ended_group)]
+                    ended_group = [expand_variable(c, '${INNER_GROUP_INDEX}', i) for (i, c) in enumerate(ended_group)]
                 
                     # If this was a nested group we just put these into the outer group
                     groups[-1].extend(ended_group)
                 else:
                     # Replace special variables
-                    ended_group = [c.replace('${GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
-                    ended_group = [c.replace('${OUTER_GROUP_INDEX}', str(i)) for (i, c) in enumerate(ended_group)]
+                    ended_group = [expand_variable(c, '${GROUP_INDEX}', i) for (i, c) in enumerate(ended_group)]
+                    ended_group = [expand_variable(c, '${OUTER_GROUP_INDEX}', i) for (i, c) in enumerate(ended_group)]
 
                     # Otherwise append to the render spec
                     for card in ended_group:
