@@ -13,8 +13,9 @@ from src import CFG, ENV
 from src.enums.layers import LAYERS
 import src.helpers as psd
 from src.templates import TransformMod, NormalTemplate, ExtendedMod
-from . import pencilsketch, sketch
 
+# Plugin Imports
+from .actions import sketch, pencilsketch
 
 """
 * Template Classes
