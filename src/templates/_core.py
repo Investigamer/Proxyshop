@@ -2,6 +2,7 @@
 * CORE PROXYSHOP TEMPLATES
 """
 # Standard Library Imports
+import os
 import os.path as osp
 from contextlib import suppress
 from pathlib import Path
@@ -257,6 +258,10 @@ class BaseTemplate:
             sanitize_filename(name)
         ).with_suffix(f'.{CFG.output_file_type}')
 
+        if CFG.maintain_folder_structure and self.art_file.is_relative_to(PATH.ART):
+            relative_path = self.art_file.parent.relative_to(PATH.ART)
+            path = path.parent / relative_path / path.name
+
         # Are we overwriting duplicate names?
         if not CFG.overwrite_duplicate:
             path = get_unique_filename(path)
@@ -386,7 +391,7 @@ class BaseTemplate:
     @auto_prop_cached
     def is_art_vertical(self) -> bool:
         """bool: Returns True if art provided is vertically oriented, False if it is horizontal."""
-        with Image.open(self.layout.art_file) as image:
+        with Image.open(self.art_file) as image:
             width, height = image.size
         if height > (width * 1.1):
             # Vertical orientation
@@ -693,6 +698,19 @@ class BaseTemplate:
     * Loading Artwork
     """
 
+    @auto_prop_cached
+    def art_file(self) -> Path:
+        """Path to the art file to load."""
+        art_file = self.layout.file.get('additional_cfg', {}).get('art', None)
+        if art_file is not None:
+            art_file = Path(art_file)
+            if art_file.is_absolute():
+                return art_file
+            else:
+                return self.layout.art_file.parent / art_file
+        else:
+            return self.layout.art_file
+
     @property
     def art_action(self) -> Optional[Callable]:
         """Function that is called to perform an action on the imported art."""
@@ -708,25 +726,28 @@ class BaseTemplate:
 
         # Check for fullart test image
         if ENV.TEST_MODE and self.is_fullart:
-            self.layout.art_file = PATH.SRC_IMG / "test-fa.jpg"
+            self.art_file = PATH.SRC_IMG / "test-fa.jpg"
 
         # Paste the file into the art
         self.active_layer = self.art_layer
         if self.art_action:
             psd.paste_file(
                 layer=self.art_layer,
-                path=self.layout.art_file,
+                path=self.art_file,
                 action=self.art_action,
                 action_args=self.art_action_args,
                 docref=self.docref)
         else:
             psd.import_art(
                 layer=self.art_layer,
-                path=self.layout.art_file,
+                path=self.art_file,
                 docref=self.docref)
 
         # Frame the artwork
-        psd.frame_layer(self.active_layer, self.art_reference)
+        if self.panorama_mode_enabled:
+            psd.frame_panorama(self.active_layer, self.art_reference, self.panorama_position, self.panorama_size)
+        else:
+            psd.frame_layer(self.active_layer, self.art_reference)
 
         # Perform content aware fill if needed
         if self.is_content_aware_enabled:
@@ -1062,7 +1083,9 @@ class BaseTemplate:
     @try_photoshop
     def color_border(self) -> None:
         """Color this card's border based on given setting."""
-        if self.border_color != BorderColor.Black:
+        if self.panorama_is_horizontal:
+            self.border_group.visible = False
+        elif self.border_color != BorderColor.Black:
             psd.apply_fx(self.border_group, [{
                 'type': 'color-overlay',
                 'color': psd.get_color(self.border_color)
@@ -1500,6 +1523,12 @@ class BaseTemplate:
         # Manual edit step?
         if CFG.exit_early and not ENV.TEST_MODE:
             self.console.await_choice(self.event)
+
+        # Make sure output folder exists
+        if CFG.maintain_folder_structure:
+            output_folder = self.output_file_name.parent
+            if not osp.exists(output_folder):
+                os.makedirs(output_folder)
 
         # Save the document
         if not self.run_tasks(

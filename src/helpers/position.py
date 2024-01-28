@@ -240,6 +240,40 @@ def space_layers_apart(layers: list[Union[ArtLayer, LayerSet]], gap: Union[int, 
 """
 
 
+def frame_panorama(
+    layer: Union[ArtLayer, LayerSet],
+    reference: Union[ArtLayer, LayerSet, dict],
+    panorama_position: [int, int],
+    panorama_size: [int, int],
+    anchor: AnchorPosition = AnchorPosition.TopLeft
+):
+    """
+    Scale and position a layer within the bounds of a reference layer to make a borderless panorama.
+    @param layer: Layer to scale and position.
+    @param reference: Reference frame to position within.
+    @param anchor: Anchor position for scaling the layer.
+    """
+    # Get layer and full reference dimensions
+    art_dim = get_layer_dimensions(layer)
+    ref_dim = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    ref_dim['width'] = ref_dim['width'] * panorama_size[0]
+    ref_dim['height'] = ref_dim['height'] * panorama_size[1]
+
+    # Scale the layer to fit either the largest dimension
+    scale = 100 * max((ref_dim['width'] / art_dim['width']), (ref_dim['height'] / art_dim['height']))
+    layer.resize(scale, scale, anchor)
+
+    # Align the original layer on the left
+    alignments = [Dimensions.Left, Dimensions.CenterY]
+    align(alignments, layer, ref_dim)
+    layer.translate(0, ref_dim['height'] / panorama_size[1])
+
+    # Move the layer according to the given index
+    ref_dim = reference if isinstance(reference, dict) else get_layer_dimensions(reference)
+    layer.translate(-ref_dim['width'] * panorama_position[0], 0)
+    layer.translate(0, -ref_dim['height'] * panorama_position[1])
+
+
 def frame_layer(
     layer: Union[ArtLayer, LayerSet],
     ref: Union[ArtLayer, LayerSet, type[LayerDimensions]],

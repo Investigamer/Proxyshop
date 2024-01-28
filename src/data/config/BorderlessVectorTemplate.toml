@@ -20,14 +20,26 @@ desc = """When disabled, removes textures from Legendary Crown to give it a more
 type = "bool"
 default = 1
 
+[FRAME."Panorama.Mode"]
+title = "Panorama Mode"
+desc = """Renders N cards, where N is the amount of times the artwork can be split horizontally to fit into the frame. The resulting cards, when cropped, make a seamless panorama."""
+type = "bool"
+default = 0
+
 [TEXT]
 title = "Text Options"
 
 [TEXT.Nickname]
 title = "Use Nickname"
-desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually."""
+desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify in the image name as [nick=...]."""
 type = "bool"
 default = 0
+
+[TEXT."Nickname.In.Oracle"]
+title = "Nickname in Oracle"
+desc = """When enabled, cards that are rendered with a nickname will replace the card name in their oracle text with their nickname."""
+type = "bool"
+default = 1
 
 [TEXT."Drop.Shadow"]
 title = "Text Drop Shadow"

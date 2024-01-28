@@ -39,6 +39,9 @@ class AppConfig:
         self.output_file_name = self.file.get(
             section='APP.FILES', option='Output.File.Name',
             fallback='#name (#frame<, #suffix>) [#set] {#num}')
+        self.maintain_folder_structure = self.file.getboolean(
+            section='APP.FILES', option='Maintain.Folder.Structure',
+            fallback=True)
 
         # APP - DATA
         self.lang = self.file.get('APP.DATA', 'Scryfall.Language', fallback='en')

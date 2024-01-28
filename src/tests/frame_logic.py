@@ -82,8 +82,11 @@ def test_case(card_name: str, card_data: FrameData) -> Optional[tuple[str, Frame
         # Check if a set code was provided
         set_code = None
         if all([n in card_name for n in ['[', ']']]):
-            set_code = Reg.PATH_SET.search(card_name).group(1)
-            card_name = card_name.replace(f'[{set_code}]', '').strip()
+            set_or_cfg = Reg.PATH_SET_OR_CFG.search(card_name)
+            for cfg in set_or_cfg.groups():
+                card_name = card_name.replace(f'[{cfg}]', '').strip()
+                if "=" not in cfg:
+                    set_code = cfg
 
         # Pull Scryfall data
         scryfall = get_card_data(

@@ -57,6 +57,7 @@ from src.layouts import (
     CardLayout,
     layout_map,
     assign_layout,
+    flatten_cards,
     join_dual_card_layouts)
 from src.templates import BaseTemplate
 from src.utils.adobe import PhotoshopHandler
@@ -430,9 +431,12 @@ class ProxyshopGUIApp(App):
         # Run through each file, assigning layout
         with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
             cards = pool.map(assign_layout, files)
+            
+            # Flatten results, which may contain lists
+            cards = flatten_cards(list(cards))
 
         # Join dual card layouts
-        cards = join_dual_card_layouts(list(cards))
+        cards = join_dual_card_layouts(cards)
 
         # Remove failed strings
         layouts: dict[str, dict[str, list[CardLayout]]] = {}

@@ -2,7 +2,7 @@
 * Card Layout Data
 """
 # Standard Library Imports
-from typing import Optional, Match, Union, Type
+from typing import Optional, Match, Union, Type, Any
 from os import path as osp
 from pathlib import Path
 
@@ -14,6 +14,7 @@ from src.enums.mtg import LayoutType, LayoutScryfall
 from src.utils.properties import auto_prop_cached, auto_prop
 from src.utils.regex import Reg
 from src.cards import parse_card_info, CardDetails, FrameDetails, process_card_data
+from src.render_spec import parse_render_spec
 from src.enums.mtg import Rarity, TransformIcons, planeswalkers_tall
 from src.enums.settings import CollectorMode, WatermarkMode
 from src.api.scryfall import get_cards_oracle
@@ -38,8 +39,7 @@ from src.utils.strings import (
 * Layout Processing
 """
 
-
-def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
+def assign_layout(filename: Path) -> Union[str, 'CardLayout', list['CardLayout']]:
     """Assign layout object to a card.
 
     Args:
@@ -49,31 +49,66 @@ def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
         - {collector number}
 
     Returns:
-        Layout object for this card.
+        Layout objects for this file (single object if it's a card, list of objects if it's a render spec).
     """
-    # Get basic card information
-    card = parse_card_info(filename)
-    name_failed = osp.basename(str(card.get('file', 'None')))
 
-    # Get scryfall data for the card
-    scryfall = get_card_data(card, cfg=CFG, logger=CONSOLE)
-    if not scryfall:
-        return msg_error(name_failed, reason="Scryfall search failed")
-    scryfall = process_card_data(scryfall, card)
+    if Path(filename).suffix == ".txt":
+        # .txt files declare a render spec, open and unwrap these seperately
+        spec = parse_render_spec(filename)
+        cards = spec['cards']
+    else:
+        # Otherwise it's a regular old card ...
+        # Get basic card information
+        cards = [parse_card_info(filename)]
 
-    # Instantiate layout object
-    if scryfall.get('layout', 'None') in layout_map:
-        try:
-            layout = layout_map[scryfall['layout']](scryfall, card)
-        except Exception as e:
-            # Couldn't instantiate layout object
-            CONSOLE.log_exception(e)
-            return msg_error(name_failed, reason="Layout generation failed")
-        if not ENV.TEST_MODE:
-            CONSOLE.update(f"{msg_success('FOUND:')} {str(layout)}")
-        return layout
-    # Couldn't find an appropriate layout
-    return msg_error(name_failed, reason="Layout incompatible")
+    def assign_layout_impl(card):
+        name_failed = osp.basename(str(card.get('file', 'None')))
+
+        # Get scryfall data for the card
+        scryfall = get_card_data(card, cfg=CFG, logger=CONSOLE)
+        if not scryfall:
+            return msg_error(name_failed, reason="Scryfall search failed")
+        scryfall = process_card_data(scryfall, card)
+
+        # Instantiate layout object
+        if scryfall.get('layout', 'None') in layout_map:
+            try:
+                layout = layout_map[scryfall['layout']](scryfall, card)
+            except Exception as e:
+                # Couldn't instantiate layout object
+                CONSOLE.log_exception(e)
+                return msg_error(name_failed, reason="Layout generation failed")
+            if not ENV.TEST_MODE:
+                CONSOLE.update(f"{msg_success('FOUND:')} {str(layout)}")
+            return layout
+
+        # Couldn't find an appropriate layout
+        return msg_error(name_failed, reason="Layout incompatible")
+    
+    # Assign layouts and return
+    layouts = list(map(assign_layout_impl, cards))
+    if len(layouts) == 1:
+        return layouts[0]
+    return layouts
+
+
+def flatten_cards(cards: list[Union[str, 'CardLayout', list['CardLayout']]]) -> list[str, 'CardLayout']:
+    """Utility that flattens a list of return values from assign_layout into a list of cards.
+    
+    Args:
+        cards: A list of values returned from assign_layout
+    
+    Returns:
+        A list of layout objects
+    """
+
+    def flatten_impl(list_or_obj):
+        if isinstance(list_or_obj, list):
+            return [nested_element for element in list_or_obj for nested_element in flatten_impl(element)]
+        else:
+            return [list_or_obj]
+
+    return flatten_impl(cards)
 
 
 def join_dual_card_layouts(layouts: list[Union[str, 'CardLayout']]):
