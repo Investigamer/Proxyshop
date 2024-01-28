@@ -14,7 +14,7 @@ from photoshop.api._layerSet import LayerSet
 from src import CFG, CON
 from src.utils.adobe import ReferenceLayer
 from src.utils.properties import auto_prop_cached
-from src.enums.mtg import pinline_color_map, MagicIcons
+from src.enums.mtg import pinlines_color_map, MagicIcons
 from src.enums.adobe import Dimensions
 from src.enums.settings import (
     BorderlessColorMode,
@@ -549,7 +549,7 @@ class EtchedTemplate (VectorTemplate):
 
     # Color Maps
     pinlines_color_map = {
-        **pinline_color_map.copy(),
+        **pinlines_color_map.copy(),
         'W': [252, 254, 255],
         'Land': [136, 120, 98],
         'Artifact': [194, 210, 221],
@@ -844,8 +844,8 @@ class UniversesBeyondTemplate (VectorTransformMod, VectorTemplate):
     template_suffix = 'Universes Beyond'
 
     # Color Maps
-    pinline_color_map = {
-        **pinline_color_map.copy(),
+    pinlines_color_map = {
+        **pinlines_color_map.copy(),
         'W': [246, 247, 241],
         'U': [0, 131, 193],
         'B': [44, 40, 33],
@@ -959,8 +959,8 @@ class LOTRTemplate (VectorTemplate):
     enabled_shapes = []
 
     # Color Maps
-    pinline_color_map = {
-        **pinline_color_map.copy(),
+    pinlines_color_map = {
+        **pinlines_color_map.copy(),
         'W': [230, 220, 185],
         'U': [72, 142, 191],
         'B': [126, 128, 127],
@@ -971,7 +971,7 @@ class LOTRTemplate (VectorTemplate):
         'Artifact': [210, 219, 227],
         'Colorless': [210, 219, 227]}
     dark_color_map = {
-        **pinline_color_map.copy(),
+        **pinlines_color_map.copy(),
         'W': [134, 123, 105],
         'U': [44, 51, 103],
         'B': [44, 43, 39],
@@ -992,7 +992,7 @@ class LOTRTemplate (VectorTemplate):
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
             self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
-            color_map=self.pinline_color_map)
+            color_map=self.pinlines_color_map)
 
     @auto_prop_cached
     def twins_colors(self) -> Union[SolidColor, list[dict]]:
@@ -1482,7 +1482,7 @@ class BorderlessVectorTemplate (VectorBorderlessMod, VectorMDFCMod, VectorTransf
             colors=self.identity if self.is_hybrid or (self.is_multicolor and self.multicolor_pinlines) else (
                 # Use pinlines if not a color code
                 self.pinlines if not is_multicolor_string(self.pinlines) else LAYERS.GOLD),
-            color_map=self.pinline_color_map,
+            color_map=self.pinlines_color_map,
             location_map=self.gradient_location_map)
 
     """
@@ -1957,7 +1957,7 @@ class ClassicModernTemplate(VectorTransformMod, VectorMDFCMod, VectorTemplate):
     is_vehicle = False
 
     # Color Maps
-    pinline_color_map = {**pinline_color_map.copy(), "Land": "#604a33"}
+    pinlines_color_map = {**pinlines_color_map.copy(), "Land": "#604a33"}
 
     """
     * Bool

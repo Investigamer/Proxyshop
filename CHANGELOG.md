@@ -1,3 +1,268 @@
+## v1.13.0 (2024-01-17)
+
+### Feat
+
+- **helpers/adjustments**: Allow passing a blend mode when generating a solid color or gradient layer in Vector templates
+- **updater**: Reload all template lists in the GUI anytime 1 or more download is performed in the updater popup as soon as the popup is dismissed
+- **VectorTemplate**: Implement new middleman "generate_layers" to simplify vector template workflow, assigning a generator function based on color notation. Add new helpful properties and finalize official vector template architecture. Deploy these features to class and saga vector templates and implement new ReferenceLayer positioning methodology
+- **Classic-Template**: New setting 'Left Align Collector Info', choose to have collector info aligned left on the bottom of the card
+- **gui**: Add execution time tracking for test mode, check for cancellation via checking the last known thread event, improve formatting, only use template class return to verify whether card was successful
+- **clear_reference_vertical**: New function to shift rules text above the PT box, much faster execution time. Refactored alignment and framing functions to improve performance and support new ReferenceLayer implementation
+- **AppConstants**: Implement new standards for mapping mana symbols to characters and colors using SymbolColorMap and other color schemas. Dramatically improve execution time by only reloading changed values using `tracked_prop`
+- **tracked_prop**: Implement new property that allows caching and tracking changes for a class property
+- **ReferenceLayer**: Implement new ReferenceLayer object which acts as a wrapper for an ArtLayer who's bounds never change to allow caching of dimensions and other positioning information and improve execution time
+- **helpers/descriptors**: Add new Photoshop helper module providing utilities for working with action descriptors and descriptor getters
+- **helpers/selection**: Introduce new Photoshop helper module for making and modifying selections
+- **schemas**: Implement Schema classes with pydantic for reusable color maps, font maps, etc for template plugins
+- **GUI**: Clicking settings button on a template will now highlight the broom icon in other tabs for that template, clearing settings with broom will now disable the broom on other tabs as well
+- **settings**: New setting: Output File Name, control the name scheme of saved renders
+- **fonts**: Lay the groundwork for per-text-item custom font definitions by the user
+- **AppTemplate,AppPlugin**: Create new loader module and classes AppTemplate and AppPlugin for global management and loading of installed plugins and templates
+- **api**: Add api modules for google drive and amazon s3
+- **gui**: Add new _state module for managing the global application state for the Proxyshop GUI
+- **tools**: New GUI tool buttons: Compress target renders, compress arts
+- **state**: Establish _state module for managing objects relevant to the global app state, import initialized objects at top level from src init
+- **api**: Implement integration of the new Hexproof API for set data and symbol resources
+- **hexproof.io**: Implement usage of a live API to pull Amazon S3/Google Drive API keys
+- **M15Template**: Add new extendable template "M15Template" which includes the Nyx and Companion cosmetic features removed from NormalTemplate
+- **core**: Integrate new 'frame_suffix' class attribute, governing master frame type e.g. Normal, Fullart, Extended, Classic
+- **docs**: Implement automatic docs deployment with mkdocs, serve docs site with GitHub Pages
+- **GUI**: Drag and drop files or folders into the Proxyshop window to immediately render those images!
+- **templates**: Implement new CosmeticMod feature allowing for quick cosmetic behavioral addons, e.g. NyxMod, CompanionMod, ExtendedMod, FullartMod, BorderlessMod
+- **create_basic_watermark**: Implement new extendable template class method: create_basic_watermark, governs the automatic generation of mana watermark in the textbox of Basic Land cards
+- **settings,watermarks**: Finalize implementing new Watermark settings: Watermark Mode, Default Watermark, and Enable Basic Watermark. Deprecate old JSON settings files
+- **settings**: Implement new ConfigManager to handle state of user settings and changes to template settings, define fallbacks across all settings
+- **settings**: Define schema for more intuitive settings definitions using TOML
+- **utils/dicts**: Introduce new utils module for handling dictionaries
+- **env**: Implement new Env class and globally importable ENV object for managing the environment variable state of the app
+- **tests**: Implement TOML data files for all current test cases, add and organize all tests suites to headless CLI, roll all test data files into /src/data/tests
+- **properties**: Implement new decorators module containing new property decorators: auto_prop, auto_prop_cached. Both are useful for creating more flexible cached properties in layout and template classes
+- **AdventureVectorTemplate**: New template: Adventure (vectorized), cleaner lines, redrawn shapes with support for multi-color and hybrid adventure cards in 800 DPI
+- **create_basic_watermark**: Implement new template class step to generate Basic Land watermark in textbox
+
+### Fix
+
+- **docstring**: Fix docstrings inside dict being misinterpretted on some Python configurations
+- **loader**: Ensure incorrect template type keys fail silently
+- **frame_logic**: Fix logical typo from previous commit for `is_multicolor_string`
+- **build**: Ensure symbols are no longer shipped with built release (pulled from hexproof.io on first launch)
+- **BorderlessVectorTemplate**: Fix a variety of issues with Borderless vector template PT, textless, token, etc settings and adjustments
+- **helpers/bounds**: Fix bounds no effects fallback error
+- **creator**: Fix creator failing to initiate a render operation due to incorrect variable
+- **updater**: Prevent updater from consuming too much memory by calling garbage collection after each 7z extraction, prevent some silent download failures
+- **plugins**: Ensure plugins can use relative imports, prefer new PluginName/py/__init__.py structure for python files
+- **console**: Improve GUI console formatting in the event of an error occurring during or before the render queue
+- **is_promo**: Improve promo star logic consistency
+- **expansion_symbol**: Ensure symbol is correctly disabled via setting
+- **downloads**: Try to improve memory footprint of template downloading and attempt to prevent crashes
+- **build**: Ensure build command version is properly relayed and adopted in environment vars by generating a __VERSION__ module at compile time
+- **plugins**: Ensure correct import is used for compiled version, add memory profiler to dev deps
+- **build**: Fix errors caused by build path syntax
+- **cli**: Fix pathing for compression cli, ensure headless mode
+- **MutateLayout,SplitLayout,NormalLayout**: Fix oracle text issue on Mutate, fix watermark issue for SplitLayout and NormalLayout, add missing PlaneswalkerLayout to layout map, implement new `watermark_basic` property mapping basic watermarks to the proper name
+- **env**: Ensure environment variables are loaded preferring OS environ -> .env file -> defaults
+- **scryfall**: Fix scryfall error with language parameter, prevent potential errors with multiface card data
+- **gui/tabs/tools**: Ensure showcase files are saved to the correct directory, and buttons are added to the toggle list
+- **layouts**: Prevent infinite recursion error when getting "set" for tokens, prevent watermark error on split cards
+- **meld**: Fix issue with fetching meld faces via URI endpoint
+- **PhotoshopHandler**: Allow error dialog env check
+- **download**: Return correct path to NamedTemporaryFile
+- **gui,api,utils**: Fix various GUI bugs, data ful dump bug, hexproof api bug
+- **scryfall**: Fix pop call on set data
+- **transform**: Temporary fix to allow case "Argoth, Sanctum of Nature" to render with regular green textbox on TransformTemplate
+- **main**: Rework render methods to prevent permanent lockout in wrapper
+- **rarity**: Recognize "Masterpiece" cards as "Mythic" appearance for special rarity case
+- **BorderlessVectorTemplate**: Ensure non-colored vehicle artifacts can still recieve vehicle colors
+- **text_logic**: Cover non-italics text case: Davros, Dalek Creator
+- **main.py**: Switch test art to jpg to align with recent change
+- **VectorTemplate**: Allow legendary crown to be generated on templates without a crown group
+
+### Refactor
+
+- **CreatureFormattedTextArea**: Deprecated CFTA class, move PT reference check into FormattedTextArea
+- **settings**: Remove deprecated setting "Symbol Stroke Size"
+- **tests/utility**: Update utility test script
+- **templates/split,templates/planeswalker**: Fix issue with split template list variable, update watermark methodology, remove repeated methods now in BaseTemplate class, update Planeswalker loyalty reference prerequisites
+- **generate_layer**: Move layer generator utilities and mask_layers/mask_group to BaseTemplate, fix improper logic when deciding between basic land watermark and regular watermark
+- **BaseTemplate**: New properties: name_reference, type_reference, update 'dfc_group' property, remove 'face_type' property. Add thread cancellation check between each text layer execute call. Ensure run_task returns a single boolean and update check syntax. General formatting improvements
+- **normal**: Apply new VectorTemplate features to all 'normal' vector templates, move some properties to static properties, general housekeeping
+- **prototype**: Improve prototype template workflow following PSD structural changes
+- **planeswalker**: Apply new ReferenceLayer functionality and ability layer positioning upgrades to Planeswalkers, use new DFC group naming scheme
+- **battle,leveler,mutate,planar**: Change PT nomenclature to defense in Battle template, other minor housekeeping stuff
+- **split**: Add layer generator functions to split pending a standardized SplitVectorMod
+- **templates/token**: Implement usage of 'ReferenceLayer' for scaled text layers
+- **transform,mdfc**: Implement new layer group structure: Transform->Front, Transform->Back, MDFC Front, MDFC Back
+- **helpers/layers,helpers/masks**: Add new mask helper funcs `create_mask`, `enter_rgb_channel`, `enter_mask_channel`, `copy_to_mask`
+- **helpers/document**: Add new helper func `paste_to_document`, pastes pixels in the current clipboard to the active layer
+- **helpers/text**: Remove remaining Photoshop related funcs from format_text to text helpers module
+- **console,enums,plugins**: Small housekeeping and formatting updates
+- **layers,masks**: Reformat and extend layers nomenclature, add 5 color values to mask map
+- **cards,layouts**: Relocate card text data funcs to cards module, reduce global object reliance in cards module, housekeeping in layouts
+- **helpers/selection**: Add new helper `select_canvas`
+- **templates/basic_land**: Housekeeping and final commit before deprecation
+- **templates/adventure**: Add support for theoretical flavor text in adventure side, use ReferenceLayer for adventure box reference
+- **enums/mtg**: Update TEXTBOX_REFERENCE, give former adjustment PT reference its own definition
+- **helpers/text**: Remove unnecessary activeLayer calls in text funcs, add optional docref params to some text funcs, update `replace_text_legacy` one more time pending final deprecation
+- **helpers/document**: Add cache purging to close_document funcs, add optional docref parameter to conversion funcs and replace NO_DIALOG vars
+- **templates/battle**: Implement post_text_methods mixin for handling document rotation at the end of rendering Battle templates. Also add `is_layout_battle` check
+- **templates/leveler**: Use ReferenceLayer class for Leveler textbox_reference objects to improve performance
+- **templates/mutate**: Remove flavor text from mutate ability FormattedTextArea, add pre-processing to allow removal of reminder text in the mutate ability
+- **helpers/document,utils/adobe,gui/app**: Allow optional reference document to be passed to all document saving, closing, and resetting commands. Set app-level error dialog support at initialization and rework GUI close_document method
+- **helpers/document**: Allow docref to be passed to saving and loading funcs, minor changes to improve performance
+- **helpers/text**: Move some funcs from `format_text` module to `helpers/text`, make multiple performance improvements across the board to action descriptor code in text functions. Implement `set_composer_single_line`, `set_composer_every_line`, `set_size_and_leading`
+- **helpers/layers**: New helper util: `get_reference_layer` for retrieving a ReferenceLayer object similar to getLayer. Remove relocated selection funcs
+- **api/hexproof**: Refactor `get_watermark_svg` for simplicity
+- **cards**: Extended Planeswalkers -> 'Borderless', update Transform Planeswalker classes -> 'TF'. Fix card data processing issue on Meld cards. Allow switching to 'include_extras' when Scryfall search fails
+- **try_photoshop**: Move `try_photoshop` decorator from template class to exceptions util module
+- **test_execution_time**: Refactor execution time testing utility
+- **previews**: Rename planeswalker image previews to match new nomenclature
+- **test_mode**: Update test mode GUI to new standards
+- **.gitignore**: Add versions.yml to gitignore
+- **_loader**: Support both manifest.yml and .yaml, improve logic for auto-generating template name in updater, fix legacy plugin JSON support
+- **enums/mtg**: Add layout maps for auto-generating template names in updater
+- **gui/app**: Fix various rendering bugs, change screenshot output filename
+- **gui/popup/updater**: Move mark_updated logic to AppTemplate class
+- **gui/tabs/creator**: Improve readability and code structure
+- **helpers/position**: Prevent type error with instance check on TypedDict
+- **gui**: Update GUI ID's and formatting in KV files
+- **gui/_state**: Support an on_load call for any GUI element given the GlobalAccess class
+- **plugins**: Update plugin manifest files to new standards
+- **img**: Deprecate unused preview images
+- **kv**: Fix kv imports, rename main layout container ProxyshopPanels -> AppContainer
+- **console,_state**: Add cookies file to PATH, ensure console loads config and environment object dynamically
+- **pyproject,poetry**: Remove unnecessary version source from project file, write new lock, remove relocated constants module, push new requirements.txt
+- **symbols,templates**: Remove deprecated yml files, remove deprecated __version__ tracker, remove deprecated settings enum
+- **format_text**: Reformat docstrings, have SymbolMapper loaded once, unless custom template chooses to reload the symbol map
+- **gui**: Move main GUI app to gui/app.py, add builder calls and kivy config to gui/_state.py
+- **gui/console**: Ensure console loadsd config and environment objects dynamically rather than via imports
+- **gui**: Formally remove deprecated gui modules and sort relevant layout objects into tabs and popups. Tabs are: main, creator, tools. Rename testing app "dev" to "test"
+- **helpers/design,helpers/document**: Allow generative fill to fallback on content aware fill. Update content aware fill with latest adobe code dump
+- **helpers/bounds,helpers/position**: Add new types for layer bounds and positioning, add new helper funcs: frame_layer_by_height, frame_layer_by_width
+- **helpers**: Update APP object, docstrings, imports, and types in various helpers modules
+- **layouts**: Update layout logic to utilize new hexproof API data for card count and symbol details, define layout map using new LayoutScryfall enums, use LayoutType enum for card_class
+- **templates**: Update properties, formatting, and imports for remaining templates
+- **SplitTemplate**: Update split template logic for new watermark, svg symbol, and artwork logic
+- **BaseTemplate**: Deprecate symbol font mode from template logic, implement new layout data processing step and pre_render_methods mixin method list
+- **tests**: Rework test funcs, move test commands to the commands module
+- **src/types**: Deprecate types submodule in favor of declaring types in their relevant modules
+- **utils/build**: Use Path objects for copy procedures, add Dist config types, add new docs generation scripts
+- **utils/download**: Remove relocated google drive and amazon download funcs, moved to their own api submodules
+- **utils/fonts**: Remove Photoshop app object references from font utils, require app to be passed as parameters
+- **utils**: Remove deprecated or relocated utils modules
+- **utils/exceptions**: Add new exception case decorators, move Scryfall error to new scryfall API submodules
+- **utils/strings**: Add utils for URL and version strings, reformat docstrings
+- **utils/files**: Add dict mapping data file extensions to their respective types, improve data loading and dumping funcs, add util top get current app version
+- **compression**: Refactor compression utilities to be more broad file-based instead of template-based, add automatic unpacking of multiple archive types
+- **photoshop->adobe**: Rename photoshop enums module to adobe to avoid conflicts
+- **utils**: Reformat utils files, add new regex patterns, update modual loading behavior
+- **cli**: Connect CLI to the new commands module
+- **settings**: Change symbol mode to 'enable' toggle, as per deprecation of symbol font mode
+- **mtg**: Add enums for layout types, categories, and maps for these values
+- **API_URL**: New enums for tracking API urls and request headers
+- **spec**: Add hooks to spec files and reformat for readability
+- **expansion_symbol**: Remove unused yml routes
+- **expansion_symbol**: Deprecate expansion_symbol font helpers
+- **tests/template_renders**: Remove previously deprecated snow category from template render test cases
+- **manifest**: Implement new template manifest standard `manifest.yml` where app templates will now be defined
+- **cards**: Add new cards module as a middleman for pulling and processing card data based art file name
+- **tests**: Add new testing module for Scryfall request testing
+- **utils**: Add properties util for creating utility decorator funcs and classes
+- **plugins**: Rename MrTeferi -> Investigamer, establish py module within each plugin as the recognized way to organize python files in plugins (template classes loaded in init)
+- **build**: Change dist to yml format, create hooks submodule for hooks executed during build process, add hook for freezing app version at runtime
+- **gui**: Add tabs and popup submodules to src/gui/ as a home for tab panels and popup windows for the GUI application
+- **gui**: Create new utils submodule within src/gui/ as a home for various kivy GUI utilities
+- **PhotoshopHandler**: Create new adobe utils module for the PhotoshopHandler class and other adobe utils
+- **expansion_symbol**: Deprecate expansion symbol test pending removal of font mode
+- **cli**: Move all CLI command groups to the `src/commands/` module
+- **env**: Add missing environment variables to .env.dist
+- **fonts**: Deprecated left over fonts that were previously marked for deprecation
+- **utils/image**: Convert image to RGB to prevent potential errors
+- **docs**: Improve docs formatting and generate new md files
+- **symbols**: Remove set and watermark symbols from repository, pending integration with separate `mtg-vectors` repository and hexproof API
+- **project**: Add yarl to dependencies, add new symbols and hexproof directories to gitignore
+- **app_templates.json**: Final commit before deprecating in favor of 'templates.yml'
+- **symbol_routes.yml**: Final commit before deprecating symbol library
+- **helper/colors**: New helper func - get_text_item_color
+- **constants,data**: Prefer file extension 'yml' for YAML data files, rename adventure vector to normal-vector.psd, template will eventually provide many types supported
+- **get_basic_land**: Remove deprecated function for generating fake Scryfall data for basic lands
+- **text_file_name**: Initial commit of test cases for upcoming filename unit test
+- **data_types**: Adds support for yaml loaded as 'yml' file
+- **utils/strings**: New utility func: str_to_bool_safe, returns a default value if error occurs
+- **CosmeticMod**: Integrate cosmetic mods where required in classes, planeswalker, saga, token
+- **VectorTemplate**: Update hollow crown step for new optional cosmetic system
+- **basic_land**: Final commit of changes to basic land classes before deprecation
+- **docs,requirements**: Updated requirements to include hashes (apparently this is necessary in many cases), updated cover photo linkage in README and docs
+- **docs-deploy**: Allow docs deploy workflow to be initiated manually
+- **README**: More slight formatting fixes
+- **template_manifest**: Initial commit of new template manifest YAML schema
+- **template-types**: Deprecate "Miracle" and "Snow" type, join into "Normal". TODO: Integrate as merely cosmetic modifiers over the next couple releases
+- **env**: Move Kivy config to env module
+- **utils/dicts**: Add utils for grabbing first or last entry in dict
+- **custom_symbols**: Don't track custom_symbols in repo, generated on first startup
+- **BorderlessVectorTemplate**: Rollout initial support for new basic land watermark system, ensure basic lands are not de facto textless cards, switch to new font_artist Font definition for token titles
+- **templates/basic_land**: Remove basic_land.py import pending full deprecation of basic_land template type
+- **constants**: Prefer Path objects over str paths, implement use of data file loaders and dumpers for getting symbol, watermark, and version tracker libraries. Remove relocated data structures, refactor core pathing definitions
+- **utils/files.py**: Rework data file handling funcs to catch plausible errors and use direct pathing, implement TOML schema interpretation and validation for Kivy settings panels
+- **main,loader**: Rename src.core -> src.loader, prefer Path objects over str paths, introduce new config object into TemplateDetails
+- **layouts**: Move watermark SVG resolving to layouts, add watermark_raw, watermark_svg, first_print, is_snow, is_miracle properties, rename other_face -> adventure on AdventureLayout
+- **WatermarkMode**: Add enum for upcoming "Watermark Mode" setting, move default watermark config definitions to 'watermarks.yaml'
+- **enums/mtg**: Add mana_symbol_map, rarity_gradient_map, main_color_map, rename basic_land_color_map -> basic_watermark_color_map
+- **Path**: Prefer use of Path over os.path.join, simplify get_rgb_from_hex
+- **helpers/document**: Catch JPEG save error arising from setting FormatOptionsType to OptimizedBaseline, prefer Path objects over str paths
+- **utils/decorators**: New decorator `suppress_and_return`, supress all exceptions on decorated function and return fallback value
+- **env**: Replace use of distutils' strtobool with new str_to_bool func, distutils to be removed from Python standard library
+- **Path**: Prefer the use of 'Path' objects over string paths where possible
+- **utils/scryfall**: Deprecate basic land logic, implement data loader/dumper, add utils: get_cards_paged, get_cards_oracle, fix collector number syntax using leading zeroes, refactor set data logic
+- **utils/strings**: Implement `str_to_bool` util for checking truth value of string
+- **poetry**: Update poetry config, pull photoshop-python-api from my fork, update mypy req
+- **symbols**: Renamed watermark symbol versions for use with new "symbols as watermark" feature
+- **symbols**: Add missing set symbols: SPG, RVR, REX, PIP, LCI, LCC. Rename JGP to J20
+- **env,build**: Update dist.toml and .env.dist
+- **layouts**: Introduced: is_front, is_alt_lang, collector_number_raw, symbol_svg. Renamed: symbol -> symbol_font, filename -> art_file, levels_x_y_text -> middle_text, levels_z_plus_text -> bottom_text. Switched from @cached_property to @auto_prop_cached, @property/property.setter to @auto_prop
+- **enums/layers**: Remove deprecated dataclass
+- **enums/mtg,enums/settings**: Add special tall Planeswalker cases to mtg enums, update CollectorPromo enums and move from classproperty to enum_class_prop for Default value
+- **utils/strings**: New util funcs: get_line, get_lines, strip_lines. Useful for modifying multiline strings
+- **build**: Move build CLI to build module, phase in new ENV object
+- **compression**: Move compression related file utilities and cli commands to new module
+- **tools**: Commit PSD tools to repo
+- **LevelerMod**: Change naming conventions of some Leveler layout items
+- **layout**: Implement change from 'filename' -> 'art_file' for value of art file path stored in layout
+- **gitignore**: Allow psd tools to be checked into repo
+- **helpers/effects**: New helper util: apply_fx_bevel, enabling bevel layer fx
+- **utils/files**: Add new data file utils: load_data_file, dump_data_file -- add supporting map and type for toml, json, and yaml data files
+- **enums/layers**: Add new layer terminology for adventure cards
+- **helpers/colors**: Add new helper utils: apply_rgb_from_list, apply_cmyk_from_list -- route previous color apply funcs to these
+- **frame_logic**: Add new shortened hybrid check: check_hybrid_mana_cost
+- **layers,bounds**: Add new helper util: select_bounds, route select_layer_bounds to select_bounds
+- **helpers/document**: New helper util: save_document_psb
+- **AdventureLayout**: Add adventure colors and color identity
+- **types/adobe**: Add Bevel layer fx type
+- **watermark**: use remastered ravnica guild watermarks
+- **basic_land_color_map**: Add color map for basic land watermarks
+- **main**: Group render queue by template PSD to prevent unnecessary document cycling and improve batch render time
+- **img**: Move preview images to src/img/previews, add Classi Modern preview images, compress test images
+
+### Perf
+
+- **text_layers,format_text**: Implement ReferenceLayer usage in TextItem classes, implement new PT reference methodology, add doc_selection property for maintaining selection object, deprecate format_text module
+- **helpers/position**: Relocate pw loyalty nudging func to position helper, dramatically improve performance with dimension caching and remembering font size, improve other positioning func performance
+- **helpers/colors**: Prefer use of list[int] color notation over SolidColor to improve performance
+- **helpers/adjustments**: Make small performance improvements to adjustment layer generating funcs, improve type definitions
+- **templates/token**: Make small performance gain with ReferenceLayer objects, add post_text_methods mixin
+- **templates/split**: Implement new dimensions and positioning standards for Split templates for performance improvement, update artwork, symbol, and watermark loading funcs
+- **templates/saga**: Implement new dimensions and positioning standards with Saga templates for performance gains, add is_layout_saga check
+- **templates/planeswalker**: Implement new dimensions and positioning standards with PW text for huge performance gains, update 'Extended' planeswalker classes with new 'Borderless' nomenclature. Add PlaneswalkerMod class
+- **templates/normal**: Move static color maps to class attributes, implement dynamic bevel thickness for basic watermark on Borderless, implement ReferenceLayer for textbox references, implement the new single-reference PT adjustment on Masterpiece template to serve as a testing ground before final deployment
+- **templates/classes**: Implement new ref dimensions and positioning stanadards to improve performance
+- **templates/_core**: Rework mixin method chain, implement numerous new improvements in positioning, text layers, file importing, etc, update docstrings with stronger type documentation, add support for kwargs in run_tasks, general debloating and refactoring
+- **text_layers**: Dramatically improve performance of the `format_text` step, update `validate` step to handle making the layer visible and active, use ReferenceLayer for reference objects to cache dimensions info, update docstrings, add new piecemeal methods for pre-scaling, post-scaling, and positioning
+- **helpers/colors**: Improve performance of color object routing, fix potential failure caused by non-SolidColor object, remove support for dict notation (pointless)
+- **helpers/design**: Improve performance of content aware fill and generative fill funcs
+- **helpers/bounds**: Add piecemeal funcs for getting height or width to save on execution time where not all dimensions are required, make other performance improvements
+- **helpers/layers,helpers/selection**: Improve performance of layer selecting and smart layer funcs, move more selection based funcs to helpers/selection
+- **format_text**: Implement use of new symbol mapping for improved performance, make performance improvements across text formatting, positioning, and resizing funcs
+- **tools**: Improve showcase generation speed by passing docref to each document action
+
 ## v1.12.0 (2023-10-01)
 
 ### Feat

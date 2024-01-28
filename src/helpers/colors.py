@@ -11,7 +11,7 @@ from photoshop.api._artlayer import ArtLayer, TextItem
 # Local Imports
 from src import APP, CON
 from src.enums.layers import LAYERS
-from src.enums.mtg import pinline_color_map
+from src.enums.mtg import pinlines_color_map
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
@@ -320,7 +320,7 @@ def get_pinline_gradient(
     """
     # Establish the color_map
     if not color_map:
-        color_map = pinline_color_map
+        color_map = pinlines_color_map
 
     # Establish the location map
     if not location_map:

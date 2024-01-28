@@ -304,7 +304,16 @@ class ProxyshopGUIApp(App):
         """
 
         def wrapper(self, *args):
+            # Never render on two threads at once
+            if self._render_lock.locked():
+                return
+
+            # Lock the render thread
             with self._render_lock:
+                # Disable buttons / clear console on enter
+                self.reset(disable_buttons=True, clear_console=True)
+
+                # Ensure Photoshop is responsive
                 while check := self.app.refresh_app():
                     if not self.console.await_choice(
                             thr=Event(),
@@ -314,8 +323,7 @@ class ProxyshopGUIApp(App):
                         # Cancel this operation
                         return
 
-                # Disable buttons / clear console on enter
-                self.reset(disable_buttons=True, clear_console=True)
+                # Call the function
                 result = func(self, *args)
 
                 # Enable buttons / close document on exit
@@ -937,7 +945,7 @@ class ProxyshopGUIApp(App):
         if check:
             self.con.reload()
         message = msg_error(error) if error else msg_success(
-            'Updated was applied!' if check else 'Using latest data!')
+            'Update was applied!' if check else 'Using latest data!')
         self.console.update(f"Hexproof API Data ... {message}")
 
         # Check if API keys are valid

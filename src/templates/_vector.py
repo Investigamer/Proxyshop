@@ -20,7 +20,7 @@ from src.enums.layers import LAYERS
 from src.enums.mtg import (
     crown_color_map,
     indicator_color_map,
-    pinline_color_map)
+    pinlines_color_map)
 import src.helpers as psd
 from src.templates import NormalTemplate
 from src.utils.properties import auto_prop_cached
@@ -102,9 +102,9 @@ class VectorTemplate (NormalTemplate):
     """
 
     @auto_prop_cached
-    def pinline_color_map(self) -> dict:
+    def pinlines_color_map(self) -> dict:
         """Maps color values for the Pinlines."""
-        return pinline_color_map.copy()
+        return pinlines_color_map.copy()
 
     @auto_prop_cached
     def crown_color_map(self) -> dict:
@@ -125,7 +125,7 @@ class VectorTemplate (NormalTemplate):
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
             self.identity if 1 < len(self.identity) < self.color_limit else self.pinlines,
-            color_map=self.pinline_color_map
+            color_map=self.pinlines_color_map
         )
 
     @auto_prop_cached
