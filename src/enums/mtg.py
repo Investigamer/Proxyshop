@@ -355,7 +355,7 @@ basic_watermark_color_map = {
     'Snow': [255, 255, 255]
 }
 
-pinline_color_map = {
+pinlines_color_map = {
     # Default pinline colors
     'W': [246, 246, 239],
     'U': [0, 117, 190],

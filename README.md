@@ -18,7 +18,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 # 🛠️Requirements
 - Photoshop (2017-2024 Supported)
 - Windows (currently incompatible with Mac/Linux)
-- [The Photoshop templates](https://drive.google.com/drive/u/0/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3) (Can be downloaded in the app)
+- [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
 - Required fonts (included in `fonts/`):
     - **Beleren Proxy Bold** — For Card Name, Typeline, Power/Toughness
     - **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
@@ -105,7 +105,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 
 # 🐍 Setup Guide (Python Environment)
 Setting up the Python environment for Proxyshop is intended for advanced users, contributors, and anyone who wants to get their hands dirty making a plugin or custom template for the app!
-1.  Install Poetry using one of these methods.
+1. Install Poetry using one of these methods.
     ```shell
     # Install pipx, then install poetry with pipx (Recommended)
     python -m pip install --user pipx
@@ -121,11 +121,11 @@ Setting up the Python environment for Proxyshop is intended for advanced users, 
     # Install using scoop
     scoop install poetry
     ```
-2.  Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***.
+2. Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***.
     ```shell
     git clone https://github.com/MrTeferi/Proxyshop.git
     ```
-3.  Navigate to the **root directory** and install the Proxyshop project with poetry.
+3. Navigate to the **root directory** and install the Proxyshop project with poetry.
     ```shell
     # Move to the Proxyshop repository we just cloned
     cd Proxyshop
@@ -137,9 +137,8 @@ Setting up the Python environment for Proxyshop is intended for advanced users, 
     poetry install
     ```
 4. Install the fonts included in the `fonts/` folder. Do not delete these, even after you install them (some are used by the GUI).
-5. **_Optional_**: Currently, the Python version of Proxyshop cannot download templates using the **Update** button, because our API keys are not made public. If you wish to download the Proxyshop templates, [follow this guide](#-download-templates-manually) to download them manually.
-6. Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
-7.  Run the app.
+5. Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
+6. Run the app.
     ```bash
     # OPTION 1) Execute via poetry
     poetry run main.py
@@ -148,7 +147,7 @@ Setting up the Python environment for Proxyshop is intended for advanced users, 
     poetry shell
     py main.py
     ```
-8. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
+7. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
 
 # 💾 Download Templates Manually
 If you wish to download the templates manually, visit [this link](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3):
@@ -285,7 +284,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
     - Vittorio Masia
     - iDerp
     - Tupinambá (Pedro Neves)
-- Andrew Gioia for the [Keyrune](https://github.com/andrewgioia/keyrune) project that enables high quality expansion symbols.
+- Andrew Gioia for his various font projects which have been of use for Proxyshop in the past.
 - John Prime, Haven King, and members of [CCGHQ](https://www.slightlymagic.net/forum/viewtopic.php?f=15&t=7010) for providing expansion symbol SVG's.
 - Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api).
 - Wizards of the Coast and all the talented artists who make Magic the Gathering a reality.

@@ -129,12 +129,12 @@ vertical-mode.psd:
   id: '1ytlBqIywu7gyTrgM9-hKj-apKe6v18Ek'
   desc: "A powerful Vector template that can render both Saga and Class cards in Normal and Universes Beyond treatment."
   templates:
-    Normal:
-      SagaVectorTemplate: saga
-      ClassVectorTemplate: class
     Universes Beyond:
       UniversesBeyondSagaTemplate: saga
       UniversesBeyondClassTemplate: class
+    Normal:
+      SagaVectorTemplate: saga
+      ClassVectorTemplate: class
 
 split.psd:
   id: '1J8CFOqxxiopOMBbEmNjayNJvGsH6uyvn'

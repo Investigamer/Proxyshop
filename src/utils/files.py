@@ -8,7 +8,7 @@ import shutil
 from configparser import ConfigParser
 from contextlib import suppress
 from pathlib import Path
-from typing import Optional, TypedDict, Callable, Union
+from typing import Optional, TypedDict, Callable, Union, Iterator
 from threading import Lock
 
 # Third Party Imports
@@ -143,11 +143,12 @@ def load_data_file(
 
     # Pull the parser and insert user config into kwargs
     parser: DataFileType = data_types.get(path.suffix.lower(), {}).copy()
-    kwargs = parser['load_kw'].update(config) if config else parser['load_kw']
+    if config:
+        parser['load_kw'].update(config)
 
     # Attempt to load data
     with util_file_lock, suppress(Exception), open(path, 'r', encoding='utf-8') as f:
-        data = parser['load'](f, **kwargs) or {}
+        data = parser['load'](f, **parser['load_kw']) or {}
         return data
     raise OSError(f"Unable to load data from data file:\n{str(path)}")
 
@@ -174,11 +175,12 @@ def dump_data_file(
 
     # Pull the parser and insert user config into kwargs
     parser: DataFileType = data_types.get(path.suffix.lower(), {}).copy()
-    kwargs = parser['dump_kw'].update(config) if config else parser['dump_kw']
+    if config:
+        parser['dump_kw'].update(config)
 
     # Attempt to dump data
     with suppress(Exception), util_file_lock, open(path, 'w', encoding='utf-8') as f:
-        parser['dump'](obj, f, **kwargs)
+        parser['dump'](obj, f, **parser['dump_kw'])
         return
     raise OSError(f"Unable to dump data from data file:\n{str(path)}")
 
@@ -412,6 +414,20 @@ def get_unique_filename(path: Path) -> Path:
         path = path.with_stem(f'{stem} ({i})')
         i += 1
     return path
+
+
+def get_subdirs(path: Path) -> Iterator[Path]:
+    """Yields each subdirectory of a given folder.
+
+    Args:
+        path: Path to the folder to iterate over.
+
+    Yields:
+        A subdirectory of the given folder.
+    """
+    for dir_path, dir_names, filenames in os.walk(path):
+        for dirname in dir_names:
+            yield Path(dir_path) / dirname
 
 
 """

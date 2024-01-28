@@ -36,8 +36,7 @@ from src.text_layers import (
     ScaledTextField,
     FormattedTextArea,
     FormattedTextField,
-    FormattedTextLayer,
-    CreatureFormattedTextArea)
+    FormattedTextLayer)
 from src.enums.adobe import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import (
@@ -403,7 +402,7 @@ class BaseTemplate:
     @auto_prop_cached
     def is_content_aware_enabled(self) -> bool:
         """bool: Governs whether content aware fill should be performed during the art loading step."""
-        if self.is_fullart and [n not in self.art_reference.name for n in ['Full', 'Borderless']]:
+        if self.is_fullart and all([n not in self.art_reference.name for n in ['Full', 'Borderless']]):
             # By default, fill when we want a fullart image but didn't receive one
             return True
         return False
@@ -635,14 +634,18 @@ class BaseTemplate:
         return psd.get_reference_layer(self.art_frame) or psd.get_reference_layer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
-    def name_reference(self) -> ArtLayer:
+    def name_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, name uses Mana Cost as a reference to check collision against."""
+        if self.is_basic_land:
+            return
         return self.text_layer_mana
 
     @auto_prop_cached
-    def type_reference(self) -> ArtLayer:
+    def type_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, typeline uses the expansion symbol to check collision against,
         otherwise fallback to the expansion symbols reference layer."""
+        if self.is_basic_land:
+            return
         return self.expansion_symbol_layer or self.expansion_reference
 
     @auto_prop_cached
@@ -651,8 +654,10 @@ class BaseTemplate:
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
 
     @auto_prop_cached
-    def pt_reference(self) -> ReferenceLayer:
+    def pt_reference(self) -> Optional[ReferenceLayer]:
         """ArtLayer: Reference used to check rules text overlap with the PT Box."""
+        if not self.is_creature:
+            return
         return psd.get_reference_layer(LAYERS.PT_REFERENCE, self.text_group)
 
     """
@@ -783,9 +788,9 @@ class BaseTemplate:
 
         # Paste the scan into a new layer
         if layer := psd.import_art_into_new_layer(
-            path=scryfall_scan,
-            name="Scryfall Reference",
-            docref=self.docref
+                path=scryfall_scan,
+                name="Scryfall Reference",
+                docref=self.docref
         ):
             # Rotate the layer if necessary
             if rotate:
@@ -1123,8 +1128,8 @@ class BaseTemplate:
 
         # Connection with Photoshop couldn't be established, try again?
         if not self.console.await_choice(
-            self.event, get_photoshop_error_message(check),
-            end="Hit Continue to try again, or Cancel to end the operation.\n\n"
+                self.event, get_photoshop_error_message(check),
+                end="Hit Continue to try again, or Cancel to end the operation.\n\n"
         ):
             # Cancel the operation
             raise OSError(check)
@@ -1156,12 +1161,12 @@ class BaseTemplate:
             self.console.update(text)
 
     def run_tasks(
-        self,
-        funcs: list[Callable],
-        message: str,
-        warning: bool = False,
-        args: Union[Iterable[Any], None] = None,
-        kwargs: Optional[dict] = None,
+            self,
+            funcs: list[Callable],
+            message: str,
+            warning: bool = False,
+            args: Union[Iterable[Any], None] = None,
+            kwargs: Optional[dict] = None,
     ) -> bool:
         """Run a list of functions, checking for thread cancellation and exceptions on each.
 
@@ -1231,11 +1236,11 @@ class BaseTemplate:
     """
 
     def create_blended_layer(
-        self,
-        group: LayerSet,
-        colors: Union[None, str, list[str]] = None,
-        masks: Optional[list[ArtLayer]] = None,
-        **kwargs
+            self,
+            group: LayerSet,
+            colors: Union[None, str, list[str]] = None,
+            masks: Optional[list[ArtLayer]] = None,
+            **kwargs
     ):
         """Either enable a single frame layer or create a multicolor layer using a gradient mask.
 
@@ -1285,10 +1290,10 @@ class BaseTemplate:
 
     @staticmethod
     def create_blended_solid_color(
-        group: LayerSet,
-        colors: list[SolidColor],
-        masks: Optional[list[Union[ArtLayer, LayerSet]]] = None,
-        **kwargs
+            group: LayerSet,
+            colors: list[SolidColor],
+            masks: Optional[list[Union[ArtLayer, LayerSet]]] = None,
+            **kwargs
     ) -> None:
         """Either enable a single frame layer or create a multicolor layer using a gradient mask.
 
@@ -1317,10 +1322,10 @@ class BaseTemplate:
             layers.append(layer)
 
     def generate_layer(
-        self, group: Union[ArtLayer, LayerSet],
-        colors: Union[list[list[int]], list[int], list[dict], list[str], str],
-        masks: Optional[list[ArtLayer]] = None,
-        **kwargs
+            self, group: Union[ArtLayer, LayerSet],
+            colors: Union[list[list[int]], list[int], list[dict], list[str], str],
+            masks: Optional[list[ArtLayer]] = None,
+            **kwargs
     ) -> Optional[ArtLayer]:
         """Takes information about a frame layer group and routes it to the correct
         generation function which blends rasterized layers, blends solid color layers, or
@@ -1434,30 +1439,30 @@ class BaseTemplate:
         """
         # Preliminary Photoshop check
         if not self.run_tasks(
-            funcs=[self.check_photoshop],
-            message="Unable to reach Photoshop!"
+                funcs=[self.check_photoshop],
+                message="Unable to reach Photoshop!"
         ):
             return False
 
         # Pre-process layout data
         if not self.run_tasks(
-            funcs=self.pre_render_methods,
-            message="Pre-processing layout data failed!"
+                funcs=self.pre_render_methods,
+                message="Pre-processing layout data failed!"
         ):
             return False
 
         # Load in the PSD template
         if not self.run_tasks(
-            funcs=[self.app.load],
-            message="PSD template failed to load!",
-            args=[str(self.layout.template_file)]
+                funcs=[self.app.load],
+                message="PSD template failed to load!",
+                args=[str(self.layout.template_file)]
         ):
             return False
 
         # Load in artwork and frame it
         if not self.run_tasks(
-            funcs=[self.load_artwork],
-            message="Unable to load artwork!"
+                funcs=[self.load_artwork],
+                message="Unable to load artwork!"
         ):
             return False
 
@@ -1485,33 +1490,33 @@ class BaseTemplate:
         elif CFG.watermark_mode is not WatermarkMode.Disabled:
             # Normal watermark
             if not self.run_tasks(
-                funcs=[self.create_watermark],
-                message="Unable to generate watermark!"
+                    funcs=[self.create_watermark],
+                    message="Unable to generate watermark!"
             ):
                 return False
 
         # Enable layers to build our frame
         if not self.run_tasks(
-            funcs=self.frame_layer_methods,
-            message="Enabling layers failed!"
+                funcs=self.frame_layer_methods,
+                message="Enabling layers failed!"
         ):
             return False
 
         # Format text layers
         if not self.run_tasks(
-            funcs=[
-                *self.text_layer_methods,
-                self.format_text_layers,
-                *self.post_text_methods
-            ],
-            message="Formatting text layers failed!"
+                funcs=[
+                    *self.text_layer_methods,
+                    self.format_text_layers,
+                    *self.post_text_methods
+                ],
+                message="Formatting text layers failed!"
         ):
             return False
 
         # Specific hooks
         if not self.run_tasks(
-            funcs=self.hooks,
-            message="Encountered an error during triggered hooks step!"
+                funcs=self.hooks,
+                message="Encountered an error during triggered hooks step!"
         ):
             return False
 
@@ -1527,16 +1532,16 @@ class BaseTemplate:
 
         # Save the document
         if not self.run_tasks(
-            funcs=[self.save_mode],
-            message="Error during file save process!",
-            kwargs={'path': self.output_file_name, 'docref': self.docref}
+                funcs=[self.save_mode],
+                message="Error during file save process!",
+                kwargs={'path': self.output_file_name, 'docref': self.docref}
         ):
             return False
 
         # Post save methods
         if not self.run_tasks(
-            funcs=self.post_save_methods,
-            message="Image saved, but an error was encountered during the post-save step!"
+                funcs=self.post_save_methods,
+                message="Image saved, but an error was encountered during the post-save step!"
         ):
             return False
 
@@ -1547,7 +1552,7 @@ class BaseTemplate:
         return True
 
 
-class StarterTemplate (BaseTemplate):
+class StarterTemplate(BaseTemplate):
     """Utility Template between Base and Normal in complexity.
 
     Notes:
@@ -1560,22 +1565,22 @@ class StarterTemplate (BaseTemplate):
         """Add essential text layers: Mana cost, Card name, Typeline."""
         self.text.extend([
             FormattedTextField(
-                layer = self.text_layer_mana,
-                contents = self.layout.mana_cost
+                layer=self.text_layer_mana,
+                contents=self.layout.mana_cost
             ),
             ScaledTextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name,
-                reference = self.name_reference
+                layer=self.text_layer_name,
+                contents=self.layout.name,
+                reference=self.name_reference
             ),
             ScaledTextField(
-                layer = self.text_layer_type,
-                contents = self.layout.type_line,
-                reference = self.type_reference
+                layer=self.text_layer_type,
+                contents=self.layout.type_line,
+                reference=self.type_reference
             )])
 
 
-class NormalTemplate (StarterTemplate):
+class NormalTemplate(StarterTemplate):
     """Utility Template containing the most common "batteries included" functionality.
 
     Notes:
@@ -1598,25 +1603,18 @@ class NormalTemplate (StarterTemplate):
     def rules_text_and_pt_layers(self) -> None:
         """Add rules and power/toughness text."""
         self.text.extend([
-            CreatureFormattedTextArea(
-                layer = self.text_layer_rules,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                reference = self.textbox_reference,
-                divider = self.divider_layer,
-                pt_reference = self.pt_reference,
-                centered = self.is_centered
-            ) if self.is_creature else FormattedTextArea(
-                layer = self.text_layer_rules,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                reference = self.textbox_reference,
-                divider = self.divider_layer,
-                centered = self.is_centered
+            FormattedTextArea(
+                layer=self.text_layer_rules,
+                contents=self.layout.oracle_text,
+                flavor=self.layout.flavor_text,
+                reference=self.textbox_reference,
+                divider=self.divider_layer,
+                pt_reference=self.pt_reference,
+                centered=self.is_centered
             ),
             TextField(
-                layer = self.text_layer_pt,
-                contents = f"{self.layout.power}/{self.layout.toughness}"
+                layer=self.text_layer_pt,
+                contents=f"{self.layout.power}/{self.layout.toughness}"
             ) if self.is_creature else None
         ])
 
@@ -1674,7 +1672,7 @@ class NormalTemplate (StarterTemplate):
         self.crown_shadow_layer.visible = True
 
 
-class NormalEssentialsTemplate (NormalTemplate):
+class NormalEssentialsTemplate(NormalTemplate):
     """
     * Original extendable class for creating an M15 Style template without Nyx or Companion layers.
     * DEPRECATED, left here for backwards compatibility.

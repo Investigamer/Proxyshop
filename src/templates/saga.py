@@ -13,7 +13,7 @@ from src.enums.layers import LAYERS
 from src.enums.mtg import (
     saga_banner_color_map,
     saga_stripe_color_map,
-    pinline_color_map)
+    pinlines_color_map)
 import src.helpers as psd
 from src.layouts import SagaLayout
 from src.templates import VectorNyxMod
@@ -527,8 +527,8 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
     template_suffix = 'Universes Beyond'
 
     # Color Maps
-    pinline_color_map = {
-        **pinline_color_map.copy(),
+    pinlines_color_map = {
+        **pinlines_color_map.copy(),
         'W': [246, 247, 241],
         'U': [0, 131, 193],
         'B': [44, 40, 33],

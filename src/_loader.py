@@ -9,6 +9,7 @@ from contextlib import suppress
 import os
 from pathlib import Path
 from traceback import print_tb
+from types import ModuleType
 from typing import Optional, TypedDict, NotRequired, Any, Callable
 
 # Third Party Imports
@@ -31,7 +32,7 @@ from src.utils.files import (
     verify_config_fields,
     ensure_path_exists,
     copy_config_or_verify)
-from src.utils.modules import get_loaded_module, get_local_module
+from src.utils.modules import get_local_module, import_package, import_module_from_path
 from src.utils.properties import auto_prop_cached
 from src.utils.strings import normalize_ver
 
@@ -62,7 +63,7 @@ ManifestTemplateMap = dict[str, dict[str, list[str]]]
 TemplateTypeMap = dict[str, dict[str, TemplateDetails]]
 
 """Map of templates selected for each template type."""
-TemplateSelectedMap = dict[str, TemplateDetails]
+TemplateSelectedMap = dict[str, Optional[TemplateDetails]]
 
 
 class ManifestTemplateDetails(TypedDict):
@@ -282,6 +283,7 @@ class AppPlugin:
         _manifest (Path): Path to the plugin's manifest file.
         _templates (dict[str, TemplateDetails]): Data loaded from manifest file.
         _info (PluginMetadata): Top level table from the manifest file containing the plugin's metadata.
+        _module (ModuleType): This plugin's loaded Python module.
 
     Raises:
         FileNotFoundError: If the plugin path or manifest file couldn't be found.
@@ -310,8 +312,8 @@ class AppPlugin:
         # Load the manifest data
         self.load_manifest() if self._manifest.suffix.lower() != '.json' else self.load_manifest_json()
 
-        # Ensure plugin has a valid module path
-        _ = self.py_module
+        # Attempt to load this plugin's module
+        self.load_module()
 
         # Load templates
         self.load_templates()
@@ -328,23 +330,6 @@ class AppPlugin:
     """
     * Pathing
     """
-
-    @auto_prop_cached
-    def py_module(self) -> str:
-        """str: Path to the recognized python module for this plugin."""
-        if (self._root / '__init__.py').is_file():
-            # Init file in root of the plugin
-            return f'plugins.{self._root.stem}'
-        if (self._root / 'templates.py').is_file():
-            # Templates.py file in root of the plugin
-            return f'plugins.{self._root.stem}.templates'
-        if (self._root / 'py' / '__init__.py').is_file():
-            # Init file in 'py' directory of the plugin
-            return f'plugins.{self._root.stem}.py'
-        if (self._root / 'py' / 'templates.py').is_file():
-            # 'templates.py' file in py directory of the plugin
-            return f'plugins.{self._root.stem}.py.templates'
-        raise ModuleNotFoundError(f"Couldn't find a module path for Plugin: '{self.name}'")
 
     @auto_prop_cached
     def path_config(self) -> Path:
@@ -419,6 +404,20 @@ class AppPlugin:
         return self._info.get('version', '0.1.0')
 
     """
+    * Module Details
+    """
+
+    @auto_prop_cached
+    def module_path(self) -> Path:
+        """Path: The path to this plugin's Python module."""
+        return Path(self._root, 'py')
+
+    @auto_prop_cached
+    def module_name(self) -> str:
+        """str: The name of this plugin's Python module, e.g. 'plugins.MyPlugin.py'."""
+        return f'{self._root.name}.py'
+
+    """
     * Plugin Methods
     """
 
@@ -453,6 +452,8 @@ class AppPlugin:
         # Re-format templates dict for TemplateDetails
         self._templates: dict[str, ManifestTemplateDetails] = {}
         for t, temps in templates.items():
+            if t not in layout_map_types:
+                continue
             for name, details in temps.items():
                 # Add new file
                 file_name = details.get('file', '')
@@ -489,6 +490,37 @@ class AppPlugin:
                 env=self.env,
                 data=data,
                 plugin=self)
+
+    def load_module(self, hotswap: bool = False) -> None:
+        """Load the plugin's Python module."""
+
+        # Generate a 'py' module if it doesn't exist
+        if not self.module_path.is_dir():
+            self.module_path.mkdir(mode=777, parents=True, exist_ok=True)
+
+        # Check if root has init
+        root_init = self._root / '__init__.py'
+        has_root_init = bool(root_init.is_file())
+        if not has_root_init:
+            with open(root_init, 'w', encoding='utf-8') as f:
+                f.write('')
+        import_module_from_path(
+            name=self._root.stem,
+            path=root_init,
+            hotswap=hotswap)
+        if not has_root_init:
+            os.remove(root_init)
+
+        # Ensure init file in py module
+        if not Path(self.module_path, '__init__.py').is_file():
+            with open(Path(self.module_path, '__init__.py'), 'w', encoding='utf-8') as f:
+                f.write('from .templates import *')
+
+        # Attempt to load this module
+        self._module = import_package(
+            name=self.module_name,
+            path=self.module_path,
+            hotswap=hotswap)
 
     def get_template_list(self) -> list['AppTemplate']:
         """list[AppTemplate]: Returns a list of AppTemplate's pulled from this plugin."""
@@ -734,10 +766,9 @@ class AppTemplate:
 
         # Try loading plugin module
         try:
-            module = get_loaded_module(
-                module_path=self.plugin.py_module,
-                hotswap=self.env.FORCE_RELOAD)
-            return getattr(module, class_name)
+            if self.env.FORCE_RELOAD:
+                self.plugin.load_module(hotswap=True)
+            return getattr(self.plugin._module, class_name)
         except Exception as e:
             # Failed to load module
             print_tb(e.__traceback__)
@@ -940,10 +971,13 @@ def get_all_plugins(con: AppConstants, env: AppEnvironment) -> dict[str, AppPlug
 
     # Load all plugins and plugin templates
     for folder in [p for p in PATH.PLUGINS.iterdir() if p.is_dir()]:
+        if folder.stem.startswith('__') or folder.stem.startswith('!'):
+            continue
         try:
             plugin = AppPlugin(con=con, env=env, path=folder)
             plugins[plugin.name] = plugin
         except Exception as e:
+            print_tb(e.__traceback__)
             print(e)
     return dict(sorted(plugins.items()))
 
@@ -1002,6 +1036,8 @@ def get_template_map(templates: list[AppTemplate]) -> dict[str, TemplateCategory
     for template in templates:
         for t, class_map in template.map.items():
             for name, details in class_map.items():
+                if t not in layout_map_types:
+                    continue
                 cat = str(layout_map_types[t])
 
                 # Ensure name is unique
