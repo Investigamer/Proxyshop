@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "proxyshop"
-version = "1.13.0"
+version = "1.13.1"
 description = "Photoshop automation tool for generating high quality Magic the Gathering card renders."
 authors = ["Investigamer <freethoughtleft@gmail.com>"]
 license = "MPL-2.0"
@@ -59,7 +59,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.commitizen]
-version = "1.13.0"
+version = "1.13.1"
 changelog_start_rev = '1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
