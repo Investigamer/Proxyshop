@@ -1,8 +1,18 @@
 """
 * GUI Utility Form Elements
 """
+from threading import Thread
+
 # Third Party Imports
+from kivy.metrics import sp
+from kivy.properties import get_color_from_hex
 from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
+from kivy.properties import StringProperty
+
+# Local Imports
+from src.enums.mtg import Rarity
+from src.gui.utils.layouts import HoverButton, get_font
 
 """
 * Utility Input classes
@@ -11,6 +21,8 @@ from kivy.uix.textinput import TextInput
 
 class InputItem(TextInput):
     """Track hint text in perpetuity, add QOL key binds."""
+    multiline = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.clicked = False
@@ -83,23 +95,100 @@ class ValidatedInput(InputItem):
 
 class FourNumInput(ValidatedInput):
     """Utility definition, 4 numeric characters with whitelisted operators."""
+    multiline = False
+
     def __init__(self, **kwargs):
         super().__init__(max_len=4, numeric=True, whitelist=["*", "X", "Y", "+", "-"], **kwargs)
 
 
 class ThreeNumInput(ValidatedInput):
     """Utility definition, 3 numeric characters with whitelisted operators."""
+    multiline = False
+
     def __init__(self, **kwargs):
         super().__init__(max_len=3, numeric=True, whitelist=["*", "X", "Y", "+", "-"], **kwargs)
 
 
 class FourCharInput(ValidatedInput):
     """Utility definition, 4 of any kind of characters."""
+    multiline = False
+
     def __init__(self, **kwargs):
         super().__init__(max_len=4, **kwargs)
 
 
 class Range100NumInput(ValidatedInput):
     """Utility definition, number between 1 and 100."""
+    multiline = False
+
     def __init__(self, **kwargs):
         super().__init__(numeric=True, numeric_range=[1, 100], **kwargs)
+
+
+class VerticalCenteredInput(ValidatedInput):
+    """Utility definition for vertically centering the input field."""
+    padding_x = 0, 0
+
+    def on_size(self, *args):
+        """Adjust padding to achieve vertical centering."""
+        left, right = self.padding_x
+        self.padding = left, self.height / 2.0 - (self.line_height / 2.0) * len(self._lines), right, 0
+        super().on_size(*args)
+
+
+class SetCodeInput(VerticalCenteredInput, FourCharInput):
+    """QOL definition for set code string input."""
+    hint_text = StringProperty('SET')
+    halign = 'center'
+
+
+class CollectorInput(VerticalCenteredInput, FourNumInput):
+    """QOL definition for collector number string input."""
+    hint_text = StringProperty('001')
+    halign = 'center'
+
+
+class PTInput(VerticalCenteredInput, ThreeNumInput):
+    """QOL definition for power or toughness text."""
+    hint_text = StringProperty('1')
+    halign = 'center'
+
+
+"""
+* Spinner Classes
+"""
+
+
+class RaritySpinner(Spinner):
+    """Select from a list of card rarities."""
+    values = [n.title() for n in Rarity]
+    text_autoupdate = True
+
+
+"""
+* Button Classes
+"""
+
+
+class RenderCustomButton(HoverButton):
+    font_name = get_font('Beleren Small Caps.ttf')
+    font_size = sp(16)
+    press_action = None
+    options = [
+        "Do it!",
+        "Game on!",
+        "Make it!",
+        "Let's go!"
+    ]
+
+    def __init__(self, **kwargs):
+        bg_color = get_color_from_hex('#376aa3')
+        super().__init__(
+            background_color=bg_color,
+            text='Render',
+            **kwargs)
+
+    def on_press(self):
+        """Process action in separate thread if action is defined."""
+        if self.press_action is not None:
+            Thread(target=self.press_action, daemon=True).start()

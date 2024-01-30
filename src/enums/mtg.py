@@ -4,10 +4,10 @@
 # Standard Library Imports
 from typing import Union
 
-from src.utils.regex import Reg
 # Local Imports
 from src.utils.schema import DictSchema, Schema
 from src.utils.strings import StrEnum
+from src.utils.regex import Reg
 
 """
 * Card Layout Nomenclature
