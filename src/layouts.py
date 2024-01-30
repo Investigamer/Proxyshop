@@ -185,7 +185,7 @@ class NormalLayout:
     @auto_prop_cached
     def set_data(self) -> dict:
         """Set data from the current hexproof.io data file."""
-        return CON.set_data.get(self.scryfall.get('set', 'mtg'), {})
+        return CON.set_data.get(self.scryfall.get('set', 'mtg').lower(), {})
 
     @auto_prop_cached
     def set_type(self) -> str:
@@ -322,8 +322,10 @@ class NormalLayout:
     @auto_prop_cached
     def symbol_code(self) -> str:
         """Code used to match a symbol to this card's set. Provided by hexproof.io."""
+        if CFG.symbol_force_default:
+            return CFG.symbol_default.upper()
         code = self.set_data.get('code_symbol', 'DEFAULT').upper()
-        return CFG.symbol_default.upper() if code == 'DEFAULT' or CFG.symbol_force_default else code
+        return CFG.symbol_default.upper() if code == 'DEFAULT' else code
 
     @auto_prop_cached
     def lang(self) -> str:
@@ -334,7 +336,7 @@ class NormalLayout:
     def rarity(self) -> str:
         """Card rarity, interprets 'special' rarities based on card data."""
         return self.rarity_raw if self.rarity_raw in [
-            Rarity.C, Rarity.U, Rarity.R, Rarity.M
+            Rarity.C, Rarity.U, Rarity.R, Rarity.M, Rarity.T
         ] else get_special_rarity(self.rarity_raw, self.scryfall)
 
     @auto_prop_cached
@@ -417,6 +419,12 @@ class NormalLayout:
         path = (PATH.SRC_IMG_SYMBOLS / 'set' / self.symbol_code / self.rarity_letter).with_suffix('.svg')
         if path.is_file():
             return path
+
+        # Revert to mythic for special rarities
+        if self.rarity not in [Rarity.C, Rarity.U, Rarity.R, Rarity.M]:
+            path = (PATH.SRC_IMG_SYMBOLS / 'set' / self.symbol_code / 'M').with_suffix('.svg')
+            if path.is_file():
+                return path
 
         # Revert to default symbol or None
         path = (PATH.SRC_IMG_SYMBOLS / 'set' / 'DEFAULT' / self.rarity_letter).with_suffix('.svg')
