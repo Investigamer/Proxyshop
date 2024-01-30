@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor as Pool, as_completed
 from photoshop.api._document import Document
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 
 # Local Imports
 from src._state import PATH
@@ -19,6 +20,7 @@ from src.gui._state import GlobalAccess
 from src.utils.image import downscale_image
 from src.utils.exceptions import get_photoshop_error_message
 from src.helpers import import_art, reset_document, save_document_jpeg, close_document
+from src.utils.properties import auto_prop_cached
 
 
 class ToolsPanel(BoxLayout, GlobalAccess):
@@ -28,15 +30,15 @@ class ToolsPanel(BoxLayout, GlobalAccess):
         """PSD tool paths."""
         Showcase: Path = PATH.TEMPLATES / 'tools' / 'showcase.psd'
 
-    def on_load(self, *args) -> None:
-        """Add toggle buttons."""
-        self.main.toggle_buttons.extend([
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """Add tool buttons."""
+        return [
             self.ids.generate_showcases_target,
             self.ids.generate_showcases,
             self.ids.compress_renders,
             self.ids.compress_renders_target,
-            self.ids.compress_arts
-        ])
+            self.ids.compress_arts]
 
     @staticmethod
     def process_wrapper(func) -> Callable:

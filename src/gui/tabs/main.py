@@ -4,6 +4,7 @@
 # Standard Library Imports
 import os
 from pathlib import Path
+from typing import Optional
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -23,6 +24,7 @@ from src.gui.utils import (
     DynamicTabItem,
     HoverButton)
 from src.utils.files import remove_config_file
+from src.utils.properties import auto_prop_cached
 
 """
 * Template Modules
@@ -33,13 +35,14 @@ class MainPanel(BoxLayout, GlobalAccess):
     """Main panel to the 'Render Cards' tab."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "main.kv"))
 
-    def on_load(self, *args) -> None:
-        """Add toggle buttons."""
-        self.main.toggle_buttons.extend([
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """Add render and settings buttons."""
+        return [
             self.ids.rend_targ_btn,
             self.ids.rend_all_btn,
             self.ids.app_settings_btn
-        ])
+        ]
 
 
 class TemplateModule(DynamicTabPanel, GlobalAccess):
@@ -129,7 +132,7 @@ class TemplateList(BoxLayout, GlobalAccess):
         for name in self.templates['names']:
 
             # Get details for each type
-            templates: dict[str, type[TemplateDetails]] = {
+            templates: dict[str, Optional[type[TemplateDetails]]] = {
                 t: self.templates['map'][t].get(name) for t in self.types}
 
             # Is template installed?
