@@ -136,7 +136,7 @@ def copy_directory(
         return set(ignored)
 
     # Copy the directory
-    copytree(src, dst, ignore=_ignore)
+    copytree(src, dst, ignore=_ignore, dirs_exist_ok=True)
 
 
 def copy_app_files(config: DistConfig) -> None:
