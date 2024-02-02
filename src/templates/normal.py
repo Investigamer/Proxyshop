@@ -442,7 +442,7 @@ class ClassicTemplate(NormalTemplate):
             psd.enable_vector_mask(self.pinlines_layer.parent)
 
     """
-    * Text Layer Methods
+    * Collector Info Methods
     """
 
     def collector_info_basic(self) -> None:
@@ -451,11 +451,6 @@ class ClassicTemplate(NormalTemplate):
         # Artist and set layers
         artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
         info = psd.getLayer(LAYERS.SET, self.legal_group)
-
-        # Disable Set layer if Artist Only mode is enabled
-        if CFG.collector_mode == CollectorMode.ArtistOnly:
-            info.visible = False
-            return
 
         # Fill optional collector star
         if self.is_collector_promo:
@@ -497,6 +492,24 @@ class ClassicTemplate(NormalTemplate):
         if self.is_align_collector_left:
             psd.align_left(artist, ref=self.collector_reference.dims)
             psd.align_left(info, ref=self.collector_reference.dims)
+
+    def collector_info_artist_only(self) -> None:
+        """Called to generate 'Artist Only' collector info."""
+
+        # Collector layers
+        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
+
+        # Insert artist name
+        psd.replace_text(artist, "Artist", self.layout.artist)
+
+        # Align collector info to the left
+        if self.is_align_collector_left:
+            psd.align_left(artist, ref=self.collector_reference.dims)
+
+    """
+    * Text Layer Methods
+    """
 
     def rules_text_and_pt_layers(self):
         """Does not require a separate text area definition for Creature cards."""
