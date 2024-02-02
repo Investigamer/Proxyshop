@@ -819,6 +819,7 @@ class BaseTemplate:
 
         # Disable Set layer if Artist Only mode is enabled
         if CFG.collector_mode == CollectorMode.ArtistOnly:
+            psd.replace_text(artist_layer, "Artist", self.layout.artist)
             set_layer.visible = False
             return
 
