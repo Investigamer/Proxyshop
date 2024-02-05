@@ -413,6 +413,88 @@ class ClassicTemplate(NormalTemplate):
         return psd.getLayer(LAYERS.EXTENDED, LAYERS.MASKS)
 
     """
+    * Layout Data Methods
+    """
+
+    def process_layout_data(self) -> None:
+        """Remove rarity letter from collector data."""
+        super().process_layout_data()
+        self.layout.collector_data = self.layout.collector_data[:-2] if (
+                '/' in self.layout.collector_data
+        ) else self.layout.collector_data[2:]
+
+    """
+    * Collector Info Methods
+    """
+
+    def collector_info(self) -> None:
+        """Format and add the collector info at the bottom."""
+
+        # Which collector info mode?
+        if CFG.collector_mode in [
+            CollectorMode.Default, CollectorMode.Modern
+        ] and self.layout.collector_data:
+            layers = self.collector_info_authentic()
+        elif CFG.collector_mode == CollectorMode.ArtistOnly:
+            layers = self.collector_info_artist_only()
+        else:
+            layers = self.collector_info_basic()
+
+        # Shift collector text
+        if self.is_align_collector_left:
+            [psd.align_left(n, ref=self.collector_reference.dims) for n in layers]
+
+    def collector_info_basic(self) -> list[ArtLayer]:
+        """Called to generate basic collector info."""
+
+        # Get artist and info layers
+        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        info = psd.getLayer(LAYERS.SET, self.legal_group)
+
+        # Fill optional promo star
+        if self.is_collector_promo:
+            psd.replace_text(info, "•", MagicIcons.COLLECTOR_STAR)
+
+        # Apply the collector info
+        if self.layout.lang != 'en':
+            psd.replace_text(info, 'EN', self.layout.lang.upper())
+        psd.replace_text(artist, "Artist", self.layout.artist)
+        psd.replace_text(info, 'SET', self.layout.set)
+        return [artist, info]
+
+    def collector_info_authentic(self) -> list[ArtLayer]:
+        """Classic presents authentic collector info differently."""
+
+        # Hide basic 'Set' layer
+        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
+
+        # Get artist and info layers, reveal info layer
+        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        info = psd.getLayer(LAYERS.COLLECTOR, self.legal_group)
+        info.visible = True
+
+        # Fill optional promo star
+        if self.is_collector_promo:
+            psd.replace_text(info, "•", MagicIcons.COLLECTOR_STAR)
+
+        # Apply the collector info
+        psd.replace_text(artist, 'Artist', self.layout.artist)
+        psd.replace_text(info, 'SET', self.layout.set)
+        psd.replace_text(info, 'NUM', self.layout.collector_data)
+        return [artist, info]
+
+    def collector_info_artist_only(self) -> list[ArtLayer]:
+        """Called to generate 'Artist Only' collector info."""
+
+        # Collector layers
+        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
+
+        # Apply the collector info
+        psd.replace_text(artist, "Artist", self.layout.artist)
+        return [artist]
+
+    """
     * Frame Layer Methods
     """
 
@@ -440,72 +522,6 @@ class ClassicTemplate(NormalTemplate):
             # Enable extended mask on Pinlines
             psd.enable_mask(self.pinlines_layer.parent)
             psd.enable_vector_mask(self.pinlines_layer.parent)
-
-    """
-    * Collector Info Methods
-    """
-
-    def collector_info_basic(self) -> None:
-        """Called to generate basic collector info."""
-
-        # Artist and set layers
-        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
-        info = psd.getLayer(LAYERS.SET, self.legal_group)
-
-        # Fill optional collector star
-        if self.is_collector_promo:
-            psd.replace_text(info, "•", MagicIcons.COLLECTOR_STAR)
-
-        # Fill language, artist, and set
-        if self.layout.lang != 'en':
-            psd.replace_text(info, 'EN', self.layout.lang.upper())
-        psd.replace_text(artist, "Artist", self.layout.artist)
-        psd.replace_text(info, 'SET', self.layout.set)
-
-        # Align collector info to the left
-        if self.is_align_collector_left:
-            psd.align_left(artist, ref=self.collector_reference.dims)
-            psd.align_left(info, ref=self.collector_reference.dims)
-
-    def collector_info_authentic(self) -> None:
-        """Classic presents authentic collector info differently."""
-
-        # Hide basic 'Set' layer
-        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
-
-        # Get artist and collector info layer, reveal info layer
-        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
-        info = psd.getLayer(LAYERS.COLLECTOR, self.legal_group)
-        info.visible = True
-
-        # Establish the collector number
-        number = self.layout.collector_data[:-2] if (
-                '/' in self.layout.collector_data
-        ) else self.layout.collector_data[2:]
-
-        # Apply the collector info
-        psd.replace_text(artist, 'Artist', self.layout.artist)
-        psd.replace_text(info, 'SET', self.layout.set)
-        psd.replace_text(info, 'NUM', number)
-
-        # Align collector info to the left
-        if self.is_align_collector_left:
-            psd.align_left(artist, ref=self.collector_reference.dims)
-            psd.align_left(info, ref=self.collector_reference.dims)
-
-    def collector_info_artist_only(self) -> None:
-        """Called to generate 'Artist Only' collector info."""
-
-        # Collector layers
-        artist = psd.getLayer(LAYERS.ARTIST, self.legal_group)
-        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
-
-        # Insert artist name
-        psd.replace_text(artist, "Artist", self.layout.artist)
-
-        # Align collector info to the left
-        if self.is_align_collector_left:
-            psd.align_left(artist, ref=self.collector_reference.dims)
 
     """
     * Text Layer Methods
