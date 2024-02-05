@@ -17,13 +17,19 @@ from src.utils.compression import compress_7z, compress_7z_all
 """
 
 
-@click.group()
+@click.group(
+    name='compress',
+    help='Command utilities for compressing files.'
+)
 def compress_cli():
     """File utilities CLI."""
     pass
 
 
-@compress_cli.command()
+@compress_cli.command(
+    name='template',
+    help='Compress a Photoshop template file (PSD/PSB).'
+)
 @click.argument('template')
 @click.argument('plugin', required=False)
 def compress_template(template: str, plugin: Optional[str] = None) -> None:
@@ -41,7 +47,10 @@ def compress_template(template: str, plugin: Optional[str] = None) -> None:
     compress_7z(path)
 
 
-@compress_cli.command()
+@compress_cli.command(
+    name='plugin',
+    help='Compress all Photoshop template files (PSD/PSB) in a given plugin.'
+)
 @click.argument('plugin')
 def compress_plugin(plugin: str) -> None:
     """Compress all templates in a specific plugin.
@@ -56,7 +65,10 @@ def compress_plugin(plugin: str) -> None:
     compress_7z_all(path)
 
 
-@compress_cli.command()
+@compress_cli.command(
+    name='all',
+    help='Compress all Photoshop template files (PSD/PSB) in the entire app, plugins optional.'
+)
 @click.option('-P', '--plugins', is_flag=True, default=False, help="Compress built-in plugins as well.")
 def compress_all(plugins: bool = False) -> None:
     """Compress all templates.
