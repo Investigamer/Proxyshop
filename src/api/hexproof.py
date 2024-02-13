@@ -17,7 +17,7 @@ from backoff import on_exception, expo
 from src import CON, CONSOLE, PATH
 from src.enums.api import API_URL, HEADERS
 from src.utils.compression import unpack_zip
-from src.utils.exceptions import log_on_exception
+from src.utils.exceptions import log_on_exception, return_on_exception
 from src.utils.files import dump_data_file
 from src.utils.strings import get_bullet_points
 
@@ -107,6 +107,7 @@ def hexproof_request_wrapper(logr: Any = None) -> Callable:
     logr = logr or CONSOLE
 
     def decorator(func):
+        @return_on_exception({})
         @log_on_exception(logr)
         @sleep_and_retry
         @hexproof_rate_limit
@@ -145,7 +146,7 @@ def get_error(
 """
 
 
-@hexproof_request_wrapper()
+@hexproof_request_wrapper('')
 def get_api_key(key: str) -> str:
     """Get an API key from https://api.hexproof.io.
 
