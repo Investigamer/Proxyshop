@@ -350,6 +350,16 @@ class BaseTemplate:
         """bool: Enables miracle cosmetic elements."""
         return self.layout.is_miracle
 
+    @property
+    def is_token(self) -> bool:
+        """bool: Enables token cosmetic elements."""
+        return self.layout.is_token
+
+    @property
+    def is_emblem(self) -> bool:
+        """bool: Enables emblem cosmetic elements."""
+        return self.layout.is_emblem
+
     """
     * Cached Properties
     * Calculated in BaseTemplate class

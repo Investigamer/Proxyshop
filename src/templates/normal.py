@@ -22,7 +22,6 @@ from src.enums.settings import (
     CollectorMode)
 from src.frame_logic import is_multicolor_string
 from src.helpers import get_line_count, LayerEffects
-from src.layouts import TokenLayout
 from src.templates._core import NormalTemplate
 from src.templates._cosmetic import ExtendedMod, FullartMod, NyxMod, VectorBorderlessMod, CompanionMod
 from src.templates._vector import VectorTemplate
@@ -1307,11 +1306,6 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         return super().is_basic_land
 
     @auto_prop_cached
-    def is_token(self) -> bool:
-        """Return True if this is a Token card."""
-        return bool(isinstance(self.layout, TokenLayout))
-
-    @auto_prop_cached
     def is_textless(self) -> bool:
         """Return True if this a textless render."""
         if not any([self.layout.oracle_text, self.layout.flavor_text, self.is_basic_land]):
@@ -1337,13 +1331,11 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
             and "\n" not in self.layout.oracle_text
             and not (
                 # Not centered if using a small textbox with Flipside PT
-                    self.is_flipside_creature and self.is_front and self.size in [
-                BorderlessTextbox.Automatic,
-                BorderlessTextbox.Medium,
-                BorderlessTextbox.Short
-            ]
-            )
-        )
+                self.is_flipside_creature and self.is_front and self.size in [
+                    BorderlessTextbox.Automatic,
+                    BorderlessTextbox.Medium,
+                    BorderlessTextbox.Short
+                ]))
 
     @auto_prop_cached
     def is_pt_enabled(self) -> bool:
