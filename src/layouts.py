@@ -10,7 +10,7 @@ from pathlib import Path
 from src import CFG, CON, CONSOLE, ENV, PATH
 from src.api.hexproof import get_watermark_svg, get_watermark_svg_from_set
 from src.enums.layers import LAYERS
-from src.enums.mtg import LayoutType, LayoutScryfall
+from src.enums.mtg import LayoutType, LayoutScryfall, CardTypes, CardTypesSuper
 from src.utils.properties import auto_prop_cached, auto_prop
 from src.utils.regex import Reg
 from src.cards import parse_card_info, CardDetails, FrameDetails, process_card_data
@@ -31,7 +31,8 @@ from src.utils.strings import (
     msg_success,
     strip_lines,
     get_line,
-    get_lines)
+    get_lines
+)
 
 
 """
@@ -47,6 +48,7 @@ def assign_layout(filename: Path) -> Union[str, 'CardLayout']:
         - (artist name)
         - [set code]
         - {collector number}
+        - $creator name
 
     Returns:
         Layout object for this card.
@@ -282,6 +284,20 @@ class NormalLayout:
         return (self.oracle_text or '') + (self.flavor_text or '')
 
     @auto_prop_cached
+    def power(self) -> str:
+        """Creature power, if provided."""
+        return self.card.get('power', '')
+
+    @auto_prop_cached
+    def toughness(self) -> str:
+        """Creature toughness, if provided."""
+        return self.card.get('toughness', '')
+
+    """
+    * Card Types
+    """
+
+    @auto_prop_cached
     def type_line(self) -> str:
         """Card type line, supports alternate language source."""
         return self.card.get('printed_type_line', self.type_line_raw) if self.is_alt_lang else self.type_line_raw
@@ -292,14 +308,28 @@ class NormalLayout:
         return self.card.get('type_line', '')
 
     @auto_prop_cached
-    def power(self) -> str:
-        """Creature power, if provided."""
-        return self.card.get('power', '')
+    def types_raw(self) -> list[str]:
+        """List of types extracted from the raw typeline."""
+        return self.type_line_raw.replace(' —', '').split(' ')
 
     @auto_prop_cached
-    def toughness(self) -> str:
-        """Creature toughness, if provided."""
-        return self.card.get('toughness', '')
+    def types(self) -> list[str]:
+        """Main cards types represented, e.g. Sorcery, Instant, Creature, etc."""
+        return [n for n in self.types_raw if n in CardTypes]
+
+    @auto_prop_cached
+    def supertypes(self) -> list[str]:
+        """Supertypes represented, e.g. Basic, Legendary, Snow, etc."""
+        return [n for n in self.types_raw if n in CardTypesSuper]
+
+    @auto_prop_cached
+    def subtypes(self) -> list[str]:
+        """Subtypes represented, e.g. Elf, Human, Goblin, etc."""
+        return [
+            n for n in self.types_raw
+            if n not in self.supertypes
+            and n not in self.types
+        ]
 
     """
     * Color Info
@@ -576,9 +606,22 @@ class NormalLayout:
     """
 
     @auto_prop_cached
+    def is_token(self) -> bool:
+        """bool: True if card is a Token or Emblem."""
+        return bool('Token' in self.type_line_raw or self.is_emblem)
+
+    @auto_prop_cached
+    def is_emblem(self) -> bool:
+        """bool: True on card is an Emblem."""
+        return bool('Emblem' in self.type_line_raw)
+
+    @auto_prop_cached
     def is_nyx(self) -> bool:
         """True if card has Nyx enchantment background texture."""
-        return "nyxtouched" in self.frame_effects
+        if 'nyxtouched' in self.frame_effects:
+            return True
+        # Nyxtouched often not provided, check for 'Enchantment Creature'
+        return bool(self.is_creature and 'Enchantment' in self.type_line_raw)
 
     @auto_prop_cached
     def is_companion(self) -> bool:
@@ -1420,7 +1463,6 @@ class SplitLayout(NormalLayout):
 
 class TokenLayout(NormalLayout):
     """Token card layout for token game pieces."""
-    card_class: str = LayoutType.Token
 
     @property
     def display_name(self) -> str:
@@ -1486,6 +1528,8 @@ PlaneswalkerLayouts = Union[
 
 """Maps Scryfall layout names to their respective layout class."""
 layout_map: dict[str, Type[CardLayout]] = {
+
+    # Definitions supported by Scryfall natively
     LayoutScryfall.Normal: NormalLayout,
     LayoutScryfall.Split: SplitLayout,
     LayoutScryfall.Transform: TransformLayout,
@@ -1502,7 +1546,12 @@ layout_map: dict[str, Type[CardLayout]] = {
     LayoutScryfall.Token: TokenLayout,
     LayoutScryfall.Emblem: TokenLayout,
 
-    # TODO: Not fully Implemented
+    # Definitions added to Scryfall data in postprocessing
+    LayoutScryfall.Planeswalker: PlaneswalkerLayout,
+    LayoutScryfall.PlaneswalkerMDFC: PlaneswalkerMDFCLayout,
+    LayoutScryfall.PlaneswalkerTransform: PlaneswalkerTransformLayout,
+
+    # TODO: Supported by Scryfall, not implemented
     LayoutScryfall.Flip: TransformLayout,
     LayoutScryfall.Scheme: NormalLayout,
     LayoutScryfall.Vanguard: NormalLayout,
@@ -1512,8 +1561,4 @@ layout_map: dict[str, Type[CardLayout]] = {
     LayoutScryfall.ArtSeries: TokenLayout,
     LayoutScryfall.ReversibleCard: TransformLayout,
 
-    # Definitions added to Scryfall data in postprocessing
-    LayoutScryfall.Planeswalker: PlaneswalkerLayout,
-    LayoutScryfall.PlaneswalkerMDFC: PlaneswalkerMDFCLayout,
-    LayoutScryfall.PlaneswalkerTransform: PlaneswalkerTransformLayout
 }
