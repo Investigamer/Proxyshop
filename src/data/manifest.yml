@@ -64,7 +64,6 @@ borderless-vector.psd:
       - transform_back
       - mdfc_front
       - mdfc_back
-      - token
 
 miracle.psd:
   id: '1WXfMLkIk4S75210k1l7Z9B6gpol4RqHj'
@@ -201,7 +200,7 @@ pw-mdfc-back-extended.psd:
 
 token.psd:
   id: '1oWzk6MSv5wQMVJJE3VossKWs1BylBvKP'
-  templates: { Normal: { TokenTemplate: token } }
+  templates: { Chilli Token: { TokenTemplate: normal } }
 
 planar.psd:
   id: '1MGSgSkvUGe6M8-TEI8cMby_eU3i1uR_E'
