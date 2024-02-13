@@ -295,7 +295,10 @@ class AppConstants:
             symbol character strings and colors to their Scryfall symbol string."""
         return {sym: (n, get_symbol_colors(sym, n, self.mana_colors)) for sym, n in self.mana_symbols.items()}
 
-    def build_symbol_map(self, colors: Optional[SymbolColorMap], symbols: Optional[dict[str, str]]) -> None:
+    def build_symbol_map(
+            self, colors: Optional[SymbolColorMap] = None,
+            symbols: Optional[dict[str, str]] = None
+    ) -> None:
         """Establishes a new `symbol_color_map` using a provided color map and symbol map.
 
         Args:
