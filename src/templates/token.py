@@ -1,5 +1,6 @@
 """
 * Templates: Token
+* Treated as 'Normal' templates, separated for better organization.
 """
 # Standard Library Imports
 from typing import Optional
@@ -34,9 +35,6 @@ class TokenTemplate(FullartMod, StarterTemplate):
 
     Modifies:
         * Only supports a singular frame layer which is the Background layer.
-
-    Todo:
-        * Merge into 'Normal' category and give it a new name.
     """
     frame_suffix = 'Token'
 
@@ -54,8 +52,8 @@ class TokenTemplate(FullartMod, StarterTemplate):
     """
 
     @auto_prop_cached
-    def background_layer(self) -> Optional[ArtLayer]:
-        # Background is based on Legendary toggle as well as Creature toggle
+    def background_layer(self) -> ArtLayer:
+        """ArtLayer: Background governed by Legendary and creature checks."""
         return psd.getLayer(self.layout.pinlines, [
             LAYERS.FRAME,
             LAYERS.LEGENDARY if self.is_legendary else LAYERS.NON_LEGENDARY,
@@ -69,17 +67,23 @@ class TokenTemplate(FullartMod, StarterTemplate):
     @auto_prop_cached
     def textbox_group(self) -> LayerSet:
         """A group containing background, text, and reference based upon oracle text requirements."""
-        if not self.layout.oracle_text and not self.layout.flavor_text:
-            # No Rules Text
+
+        # Decide the textbox size
+        group = LAYERS.ONE_LINE
+        if not any([self.layout.oracle_text, self.layout.flavor_text]):
+            # No card text
             group = LAYERS.NONE
-        elif not any(is_multiline([self.layout.oracle_text, self.layout.flavor_text])) and (
-            not self.layout.oracle_text or not self.layout.flavor_text
-        ) and len(self.layout.rules_text) <= 50:
-            # One Line Rules Text
-            group = LAYERS.ONE_LINE
-        else:
-            # Full Sized Rules Text
+        if all([self.layout.oracle_text, self.layout.flavor_text]):
+            # Both rules and flavor text
             group = LAYERS.FULL
+        if any(is_multiline([self.layout.oracle_text, self.layout.flavor_text])):
+            # Multi-line text
+            group = LAYERS.FULL
+        if len(self.layout.oracle_text) > 50:
+            # Long rules text
+            group = LAYERS.FULL
+
+        # Enable and return group
         group = psd.getLayerSet(group, LAYERS.TEXTBOX)
         group.visible = True
         return group
@@ -87,11 +91,6 @@ class TokenTemplate(FullartMod, StarterTemplate):
     """
     * References
     """
-
-    @property
-    def art_reference(self) -> ArtLayer:
-        """Only one frame for art reference."""
-        return psd.getLayer(LAYERS.ART_FRAME)
 
     @auto_prop_cached
     def textbox_reference(self) -> ReferenceLayer:
@@ -121,7 +120,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
 
     @auto_prop_cached
     def text_layer_rules(self) -> Optional[ArtLayer]:
-        """Full textbox group has both creature and noncreature option."""
+        """Full textbox group has both creature and non-creature option."""
         if self.textbox_group.name == LAYERS.FULL:
             return psd.getLayer(
                 LAYERS.RULES_TEXT_CREATURE if (
@@ -148,14 +147,14 @@ class TokenTemplate(FullartMod, StarterTemplate):
         """Don't include the mana cost in basic text layers."""
         self.text.extend([
             text_classes.ScaledWidthTextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name,
-                reference = self.name_reference
+                layer=self.text_layer_name,
+                contents=self.layout.name,
+                reference=self.name_reference
             ),
             text_classes.ScaledWidthTextField(
-                layer = self.text_layer_type,
-                contents = self.layout.type_line,
-                reference = self.type_reference
+                layer=self.text_layer_type,
+                contents=self.layout.type_line,
+                reference=self.type_reference
             )
         ])
 
@@ -175,7 +174,8 @@ class TokenTemplate(FullartMod, StarterTemplate):
                     flavor=self.layout.flavor_text,
                     reference=self.textbox_reference,
                     scale_height=False,
-                    scale_width=True
+                    scale_width=True,
+                    centered=True
                 )
             )
         elif self.textbox_group.name == LAYERS.FULL:
@@ -185,13 +185,13 @@ class TokenTemplate(FullartMod, StarterTemplate):
                     contents=self.layout.oracle_text,
                     color=psd.rgb_white(),
                     flavor=self.layout.flavor_text,
-                    reference=self.textbox_reference
+                    reference=self.textbox_reference,
+                    centered=True
                 )
             )
 
         # PT Layer
         if self.is_creature:
-
             # Enable cutout
             psd.enable_vector_mask(self.textbox_group.parent)
             self.text.append(
