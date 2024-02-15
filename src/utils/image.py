@@ -14,7 +14,7 @@ from PIL.Image import Resampling
 
 
 def downscale_image(path: Path, **kwargs) -> bool:
-    """Downscale an image to max width of MAX_WIDTH.
+    """Downscale an image using provided keyword arguments.
 
     Args:
         path: Path to the image.
