@@ -16,7 +16,7 @@ import src.helpers as psd
 from src.layouts import BattleLayout
 from src.templates._core import BaseTemplate
 from src.templates._vector import VectorTemplate
-from src.text_layers import FormattedTextArea
+from src.text_layers import FormattedTextArea, TextField
 from src.utils.properties import auto_prop_cached
 
 """

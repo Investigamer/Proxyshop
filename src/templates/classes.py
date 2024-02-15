@@ -357,7 +357,7 @@ class ClassVectorTemplate (VectorNyxMod, ClassMod, VectorTemplate):
     """
 
     @auto_prop_cached
-    def pinlines_mask(self) -> list[ArtLayer, ArtLayer]:
+    def pinlines_mask(self) -> list[Union[ArtLayer, LayerSet]]:
         """Mask hiding pinlines effects inside textbox and art frame."""
         return [
             psd.getLayer(
