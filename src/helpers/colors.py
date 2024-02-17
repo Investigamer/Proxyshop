@@ -256,11 +256,10 @@ def apply_color(
         color_type: Color action descriptor type, defaults to 'color'.
     """
     if isinstance(color, list):
-        # List notation
+        # RGB / CMYK list notation
         if len(color) < 4:
             return apply_rgb_from_list(action, color, color_type)
-        else:
-            return apply_cmyk_from_list(action, color, color_type)
+        return apply_cmyk_from_list(action, color, color_type)
     if isinstance(color, SolidColor):
         if color.model == ColorModel.RGBModel:
             # RGB SolidColor object
