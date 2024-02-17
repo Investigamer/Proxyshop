@@ -257,10 +257,10 @@ def apply_color(
     """
     if isinstance(color, list):
         # List notation
-        return apply_rgb_from_list(
-            action, color, color_type
-        ) if len(color) < 4 else apply_cmyk_from_list(
-            action, color, color_type)
+        if len(color) < 4:
+            return apply_rgb_from_list(action, color, color_type)
+        else:
+            return apply_cmyk_from_list(action, color, color_type)
     if isinstance(color, SolidColor):
         if color.model == ColorModel.RGBModel:
             # RGB SolidColor object
