@@ -311,8 +311,8 @@ class AppConstants:
         if symbols:
             self.mana_symbols = symbols
         self.symbol_map = {
-            n: (sym, get_symbol_colors(sym, n, self.mana_colors))
-            for n, sym in self.mana_symbols.items()}
+            sym: (n, get_symbol_colors(sym, n, self.mana_colors))
+            for sym, n in self.mana_symbols.items()}
 
     """
     * Tracked Properties: Masks and Gradients
