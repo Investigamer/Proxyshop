@@ -324,13 +324,21 @@ def generate_italics(card_text: str) -> list[str]:
     """
     italic_text = []
 
-    # Find and add reminder text
+    # Find each reminder text block
     end_index = 0
     while True:
+
+        # Find parenthesis enclosed string, otherwise break
         start_index = card_text.find("(", end_index)
         if start_index < 0:
             break
         end_index = card_text.find(")", start_index + 1) + 1
+        if end_index < 1:
+            break
+
+        # Ignore nested parenthesis case, e.g. Alpha cards like "Rock Hydra"
+        if end_index != len(card_text) and card_text[end_index] != "\n":
+            continue
         italic_text.append(card_text[start_index:end_index])
 
     # Determine whether to look for ability words
