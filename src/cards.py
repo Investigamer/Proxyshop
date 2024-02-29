@@ -331,6 +331,12 @@ def generate_italics(card_text: str) -> list[str]:
         if start_index < 0:
             break
         end_index = card_text.find(")", start_index + 1) + 1
+
+        # Only consider this a reminder text if it appears at the end of a paragraph, otherwise it's part
+        # of the card text itself: in fact, older sets used to have text in parentheses (e.g. Alpha)
+        if end_index != len(card_text) and card_text[end_index] != "\n":
+            continue
+
         italic_text.append(card_text[start_index:end_index])
 
     # Determine whether to look for ability words
