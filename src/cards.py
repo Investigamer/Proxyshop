@@ -332,8 +332,7 @@ def generate_italics(card_text: str) -> list[str]:
             break
         end_index = card_text.find(")", start_index + 1) + 1
 
-        # Only consider this a reminder text if it appears at the end of a paragraph, otherwise it's part
-        # of the card text itself: in fact, older sets used to have text in parentheses (e.g. Alpha)
+        # Ignore nested parenthesis case, e.g. Alpha cards like "Rock Hydra"
         if end_index != len(card_text) and card_text[end_index] != "\n":
             continue
 
