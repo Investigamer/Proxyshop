@@ -1126,7 +1126,7 @@ class StargazingTemplate (NormalTemplate):
     Stargazing template from Theros: Beyond Death showcase cards. The layer structure of this template and
     NormalTemplate are largely identical, but this template only has Nyx backgrounds and no companion layers.
     """
-    template_file_name = "stargazing.psd"
+    template_file_name = "stargazing"
     template_suffix = "Stargazing"
 
     @property
@@ -1146,7 +1146,7 @@ class InventionTemplate (NormalTemplate):
     """
     Kaladesh Invention template. No special layers for lands, colorless, companion, or nyx.
     """
-    template_file_name = "masterpiece.psd"
+    template_file_name = "masterpiece"
     template_suffix = "Masterpiece"
 
     @cached_property
@@ -1184,7 +1184,7 @@ class ExpeditionTemplate (NormalTemplate):
     Zendikar Rising Expedition template. Masks pinlines for legendary cards, has a single static background layer,
     doesn't support color indicator, companion, or nyx layers.
     """
-    template_file_name = "znrexp.psd"
+    template_file_name = "znrexp-davidianstyle"
     template_suffix = "Expedition"
 
     @cached_property
@@ -1216,7 +1216,7 @@ class SnowTemplate (NormalTemplate):
     A snow template with textures from Kaldheim's snow cards.
     Doesn't support Nyx or Companion layers.
     """
-    template_file_name = "snow.psd"
+    template_file_name = "snow"
     template_suffix = "Snow"
 
     @property
@@ -1232,7 +1232,7 @@ class MiracleTemplate (NormalTemplate):
     """
     A template for miracle cards. Doesn't support creatures, Nyx, or Companion.
     """
-    template_file_name = "miracle.psd"
+    template_file_name = "miracle"
 
     @property
     def is_creature(self) -> bool:
@@ -1283,7 +1283,7 @@ class TransformFrontTemplate (TransformBackTemplate):
     """
     Template for the front faces of transform cards.
     """
-    template_file_name = "tf-front.psd"
+    template_file_name = "tf-front"
     dfc_layer_group = con.layers.TF_FRONT
 
     @cached_property
@@ -1419,7 +1419,7 @@ class MutateTemplate (NormalTemplate):
     the textbox. It also doesn't include layers for Nyx backgrounds or Companion crowns, but no mutate
     cards exist that would require these layers.
     """
-    template_file_name = "mutate.psd"
+    template_file_name = "mutate"
 
     def __init__(self, layout):
 
@@ -1453,7 +1453,7 @@ class PrototypeTemplate (NormalTemplate):
     of additional text layers for prototype text, mana cost, and power/toughness.
     Doesn't support Nyx backgrounds or Companion crowns.
     """
-    template_file_name = "prototype.psd"
+    template_file_name = "prototype"
 
     def __init__(self, layout):
 
@@ -1931,7 +1931,7 @@ class PlaneswalkerTemplate (StarterTemplate):
     """
     Planeswalker template - 3 or 4 loyalty abilities.
     """
-    template_file_name = "pw.psd"
+    template_file_name = "pw"
 
     def __init__(self, layout):
 
@@ -2306,7 +2306,7 @@ class PlaneswalkerMDFCBackExtendedTemplate (PlaneswalkerMDFCBackTemplate):
     An extended version of Planeswalker MDFC Back template.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-mdfc-back-extended.psd"
+    template_file_name = "pw-mdfc-back-extended"
     template_suffix = "Extended"
 
     @cached_property
@@ -2323,7 +2323,7 @@ class PlaneswalkerMDFCFrontExtendedTemplate (PlaneswalkerMDFCFrontTemplate):
     An extended version of Planeswalker MDFC Front template.
     No background, fill empty area for art layer.
     """
-    template_file_name = "pw-mdfc-front-extended.psd"
+    template_file_name = "pw-mdfc-front-extended"
     template_suffix = "Extended"
 
     @cached_property
