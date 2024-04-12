@@ -1079,7 +1079,7 @@ class NormalExtendedTemplate (NormalTemplate):
      An extended-art version of the normal template. The layer structure of this template and
      NormalTemplate are identical.
     """
-    template_file_name = "normal-extended"
+    template_file_name = "normal-extended-davidianstyle"
     template_suffix = "Extended"
 
 
@@ -1087,7 +1087,7 @@ class NormalFullartTemplate (NormalTemplate):
     """
     Normal full art template (Also called "Universes Beyond")
     """
-    template_file_name = "normal-fullart"
+    template_file_name = "normal-fullart-davidianstyle"
     template_suffix = "Fullart"
 
 class WomensDayTemplate (NormalTemplate):
@@ -1095,7 +1095,7 @@ class WomensDayTemplate (NormalTemplate):
     The showcase template first used on the Women's Day Secret Lair. Doesn't have any background layers, needs a
     layer mask on the pinlines group when card is legendary, and doesn't support companions.
     """
-    template_file_name = "womensday"
+    template_file_name = "womensday-davidianstyle"
     template_suffix = "Showcase"
 
     @cached_property
@@ -2513,7 +2513,7 @@ class BasicLandUnstableTemplate (BasicLandTemplate):
     Basic land template for the borderless basics from Unstable.
     Doesn't have expansion symbol.
     """
-    template_file_name = "basic-unstable"
+    template_file_name = "basic-unstable-davidianstyle"
     template_suffix = "Unstable"
 
     def create_expansion_symbol(self, centered=False):
