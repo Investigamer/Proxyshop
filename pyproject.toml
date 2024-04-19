@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "proxyshop"
-version = "1.13.0"
+version = "1.13.1"
 description = "Photoshop automation tool for generating high quality Magic the Gathering card renders."
 authors = ["Investigamer <freethoughtleft@gmail.com>"]
 license = "MPL-2.0"
@@ -9,6 +9,9 @@ homepage = "https://github.com/MrTeferi/Proxyshop"
 repository = "https://github.com/MrTeferi/Proxyshop"
 documentation = "https://github.com/MrTeferi/Proxyshop/wiki"
 keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photoshop", "magic the gathering", "playtest"]
+
+[[tool.poetry.packages]]
+include = 'src/../'
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
@@ -54,15 +57,18 @@ mkdocs-git-revision-date-plugin = "^0.3.2"
 mkdocstrings = {extras = ["python"], version = "^0.23.0"}
 memory-profiler = "^0.61.0"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.commitizen]
-version = "1.13.0"
+version = "1.13.1"
 changelog_start_rev = '1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
     "pyproject.toml:version"
 ]
+
+[tool.poetry.scripts]
+proxyshop = 'main:launch_cli'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

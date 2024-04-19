@@ -20,8 +20,7 @@ from kivy.uix.tabbedpanel import (
     TabbedPanelHeader,
     TabbedPanelStrip,
     TabbedPanel,
-    StripLayout
-)
+    StripLayout)
 from kivy.utils import get_color_from_hex
 
 # Local Imports

@@ -21,7 +21,7 @@ from src.utils.properties import auto_prop_cached
 """
 
 
-class LevelerMod (NormalTemplate):
+class LevelerMod(NormalTemplate):
     """
     * Modifier for Level-Up cards introduced in Rise of the Eldrazi.
 
@@ -145,31 +145,31 @@ class LevelerMod (NormalTemplate):
         self.text.extend([
             # Level 2
             text_classes.TextField(
-                layer = self.text_layer_level_middle,
-                contents = self.layout.middle_level
+                layer=self.text_layer_level_middle,
+                contents=self.layout.middle_level
             ),
             text_classes.TextField(
-                layer = self.text_layer_pt_middle,
-                contents = self.layout.middle_power_toughness
+                layer=self.text_layer_pt_middle,
+                contents=self.layout.middle_power_toughness
             ),
             text_classes.FormattedTextArea(
-                layer = self.text_layer_rules_x_y,
-                contents = self.layout.middle_text,
-                reference = self.textbox_reference_x_y
+                layer=self.text_layer_rules_x_y,
+                contents=self.layout.middle_text,
+                reference=self.textbox_reference_x_y
             ),
             # Level 3
             text_classes.TextField(
-                layer = self.text_layer_level_bottom,
-                contents = self.layout.bottom_level
+                layer=self.text_layer_level_bottom,
+                contents=self.layout.bottom_level
             ),
             text_classes.TextField(
-                layer = self.text_layer_pt_bottom,
-                contents = self.layout.bottom_power_toughness
+                layer=self.text_layer_pt_bottom,
+                contents=self.layout.bottom_power_toughness
             ),
             text_classes.FormattedTextArea(
-                layer = self.text_layer_rules_z,
-                contents = self.layout.bottom_text,
-                reference = self.textbox_reference_z
+                layer=self.text_layer_rules_z,
+                contents=self.layout.bottom_text,
+                reference=self.textbox_reference_z
             )
         ])
 

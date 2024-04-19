@@ -20,7 +20,7 @@ from src.enums.mtg import (
     mana_symbol_map,
     CardFonts,
     SymbolColorMap,
-    SymbolColor,
+    ColorObject,
     get_symbol_colors)
 from src.utils.exceptions import return_on_exception
 from src.utils.files import dump_data_file, load_data_file, get_app_version
@@ -290,12 +290,15 @@ class AppConstants:
         return SymbolColorMap()
 
     @tracked_prop
-    def symbol_map(self) -> dict[str, tuple[str, list[SymbolColor]]]:
-        """dict[str, tuple[str, list[SymbolColor]]]: Uses the symbol map and mana_colors to map
+    def symbol_map(self) -> dict[str, tuple[str, list[ColorObject]]]:
+        """dict[str, tuple[str, list[ColorObject]]]: Uses the symbol map and mana_colors to map
             symbol character strings and colors to their Scryfall symbol string."""
         return {sym: (n, get_symbol_colors(sym, n, self.mana_colors)) for sym, n in self.mana_symbols.items()}
 
-    def build_symbol_map(self, colors: Optional[SymbolColorMap], symbols: Optional[dict[str, str]]) -> None:
+    def build_symbol_map(
+            self, colors: Optional[SymbolColorMap] = None,
+            symbols: Optional[dict[str, str]] = None
+    ) -> None:
         """Establishes a new `symbol_color_map` using a provided color map and symbol map.
 
         Args:
@@ -308,8 +311,8 @@ class AppConstants:
         if symbols:
             self.mana_symbols = symbols
         self.symbol_map = {
-            n: (sym, get_symbol_colors(sym, n, self.mana_colors))
-            for n, sym in self.mana_symbols.items()}
+            sym: (n, get_symbol_colors(sym, n, self.mana_colors))
+            for sym, n in self.mana_symbols.items()}
 
     """
     * Tracked Properties: Masks and Gradients

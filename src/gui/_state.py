@@ -15,6 +15,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.button import Button
+from kivy.metrics import dp
+from kivy.core.window import Window
 
 # Local Imports
 from src._config import AppConfig
@@ -66,7 +68,16 @@ class GlobalAccess(Layout):
 
     def on_load(self, *args) -> None:
         """Fired when object is loaded into the GUI."""
-        pass
+        self.main.toggle_buttons.extend(self.toggle_buttons)
+
+    """
+    * Utility Properties
+    """
+
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """Buttons that should be toggled during a locked operation."""
+        return []
 
     """
     * Global Object Properties
@@ -110,12 +121,18 @@ class GlobalAccess(Layout):
 
 def load_kv_config():
     """Loads app-wide Kivy configuration."""
-    # App configuration
+
+    # Kivy configuration
     Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
     Config.remove_option('input', 'wm_touch')
     Config.remove_option('input', 'wm_pen')
     Config.set('kivy', 'log_level', 'error')
     Config.write()
+
+    # Window configuration
+    Window.minimum_width = dp(650)
+    Window.minimum_height = dp(540)
+    Window.size = (dp(840), dp(720))
 
 
 def register_kv_classes():

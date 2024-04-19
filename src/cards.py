@@ -13,7 +13,7 @@ import yarl
 # Local Imports
 from src._config import AppConfig
 from src.api import scryfall
-from src.enums.mtg import TransformIcons, SymbolColor, non_italics_abilities
+from src.enums.mtg import TransformIcons, ColorObject, non_italics_abilities
 from src.utils.regex import Reg
 from src.utils.strings import normalize_str, msg_warn
 
@@ -25,7 +25,7 @@ from src.utils.strings import normalize_str, msg_warn
 CardItalicString = tuple[int, int]
 
 # (Start index, list of colors for each character)
-CardSymbolString = tuple[int, list[SymbolColor]]
+CardSymbolString = tuple[int, list[ColorObject]]
 
 
 class CardDetails(TypedDict):
@@ -239,7 +239,7 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
 
 def locate_symbols(
     text: str,
-    symbol_map: dict[str, tuple[str, list[SymbolColor]]],
+    symbol_map: dict[str, tuple[str, list[ColorObject]]],
     logger: Optional[Any] = None
 ) -> tuple[str, list[CardSymbolString]]:
     """Locate symbols in the input string, replace them with the proper characters from the mana font,
@@ -282,7 +282,7 @@ def locate_symbols(
 def locate_italics(
     st: str,
     italics_strings: list,
-    symbol_map: dict[str, tuple[str, list[SymbolColor]]],
+    symbol_map: dict[str, tuple[str, list[ColorObject]]],
     logger: Optional[Any] = None
 ) -> list[CardItalicString]:
     """Locate all instances of italic strings in the input string and record their start and end indices.
@@ -339,13 +339,21 @@ def generate_italics(card_text: str) -> list[str]:
     """
     italic_text = []
 
-    # Find and add reminder text
+    # Find each reminder text block
     end_index = 0
     while True:
+
+        # Find parenthesis enclosed string, otherwise break
         start_index = card_text.find("(", end_index)
         if start_index < 0:
             break
         end_index = card_text.find(")", start_index + 1) + 1
+        if end_index < 1:
+            break
+
+        # Ignore nested parenthesis case, e.g. Alpha cards like "Rock Hydra"
+        if end_index != len(card_text) and card_text[end_index] != "\n":
+            continue
         italic_text.append(card_text[start_index:end_index])
 
     # Determine whether to look for ability words

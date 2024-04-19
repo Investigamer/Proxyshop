@@ -6,6 +6,7 @@ import os
 
 # Third Party Imports
 from kivy.lang import Builder
+from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
@@ -66,10 +67,10 @@ class CreatorLayout(GridLayout, GlobalAccess):
         # Call super
         super().__init__(**kwargs)
 
-    def on_load(self, *args) -> None:
-        """Add render button to toggle buttons."""
-        self.main.toggle_buttons.append(
-            self.ids.render_custom)
+    @auto_prop_cached
+    def toggle_buttons(self) -> list[Button]:
+        """Add render button."""
+        return [self.ids.render_btn]
 
     """
     * Template Utils

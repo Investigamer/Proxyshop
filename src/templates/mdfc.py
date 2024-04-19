@@ -97,12 +97,12 @@ class MDFCMod(BaseTemplate):
         # Add mdfc text layers
         self.text.extend([
             FormattedTextField(
-                layer = self.text_layer_mdfc_right,
-                contents = self.layout.other_face_right),
+                layer=self.text_layer_mdfc_right,
+                contents=self.layout.other_face_right),
             ScaledTextField(
-                layer = self.text_layer_mdfc_left,
-                contents = self.layout.other_face_left,
-                reference = self.text_layer_mdfc_right)])
+                layer=self.text_layer_mdfc_left,
+                contents=self.layout.other_face_left,
+                reference=self.text_layer_mdfc_right)])
 
         # Front and back side layers
         if self.is_front:
@@ -136,5 +136,5 @@ class VectorMDFCMod(MDFCMod, VectorTemplate):
 """
 
 
-class MDFCTemplate (MDFCMod, NormalTemplate):
+class MDFCTemplate(MDFCMod, NormalTemplate):
     """Raster template for Modal Double Faced cards introduced in Zendikar Rising."""

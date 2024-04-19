@@ -8,13 +8,15 @@ from enum import Enum, EnumMeta
 from functools import cached_property
 import html
 import string
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Iterator
 import unicodedata
 from urllib import parse
 
 # Third Party Imports
 import yarl
 
+from src.utils.properties import enum_class_prop
+# Local Imports
 from src.utils.regex import Reg
 
 # Maps strings to boolean values
@@ -41,6 +43,10 @@ STR_BOOL_MAP = {
 class StrEnumMeta(EnumMeta):
     """Metaclass for StrEnum."""
 
+    def __iter__(cls) -> Iterator[str]:
+        for n in cls._value2member_map_.keys():
+            yield n
+
     def __contains__(cls, item: str) -> bool:
         return item in cls._value2member_map_
 
@@ -55,7 +61,7 @@ class StrEnum(str, Enum, metaclass=StrEnumMeta):
     def value(self) -> str:
         return str(self._value_)
 
-    @cached_property
+    @enum_class_prop
     def Default(self) -> str:
         return "default"
 

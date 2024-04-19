@@ -22,7 +22,7 @@ from src.utils.properties import auto_prop_cached
 """
 
 
-class AdventureMod (NormalTemplate):
+class AdventureMod(NormalTemplate):
     """A modifier class which adds functionality required by Adventure cards, introduced in Throne of Eldraine.
 
     Adds:
@@ -84,28 +84,27 @@ class AdventureMod (NormalTemplate):
     """
 
     def text_layers_adventure(self):
-
         # Add adventure text layers
         self.text.extend([
             text_classes.FormattedTextField(
-                layer = self.text_layer_mana_adventure,
-                contents = self.layout.mana_adventure
+                layer=self.text_layer_mana_adventure,
+                contents=self.layout.mana_adventure
             ),
             text_classes.ScaledTextField(
-                layer = self.text_layer_name_adventure,
-                contents = self.layout.name_adventure,
-                reference = self.text_layer_mana_adventure,
+                layer=self.text_layer_name_adventure,
+                contents=self.layout.name_adventure,
+                reference=self.text_layer_mana_adventure,
             ),
             text_classes.FormattedTextArea(
-                layer = self.text_layer_rules_adventure,
-                contents = self.layout.oracle_text_adventure,
-                reference = self.textbox_reference_adventure,
-                flavor = self.layout.flavor_text_adventure,
-                centered = False
+                layer=self.text_layer_rules_adventure,
+                contents=self.layout.oracle_text_adventure,
+                reference=self.textbox_reference_adventure,
+                flavor=self.layout.flavor_text_adventure,
+                centered=False
             ),
             text_classes.TextField(
-                layer = self.text_layer_type_adventure,
-                contents = self.layout.type_line_adventure
+                layer=self.text_layer_type_adventure,
+                contents=self.layout.type_line_adventure
             )
         ])
 

@@ -26,7 +26,7 @@ from photoshop.api.text_item import TextItem
 # Local Imports
 from src import APP, CFG, CON, CONSOLE
 from src.cards import generate_italics, locate_symbols, locate_italics, CardItalicString, CardSymbolString
-from src.enums.mtg import CardFonts, SymbolColor
+from src.enums.mtg import CardFonts, ColorObject
 from src.helpers import select_layer
 from src.helpers.bounds import get_layer_dimensions, LayerDimensions, get_layer_width
 from src.helpers.colors import apply_color, get_text_item_color
@@ -114,7 +114,7 @@ class TextField:
         return self.kwargs.get('font_bold')
 
     @cached_property
-    def kw_symbol_map(self) -> dict[str, tuple[str, list[SymbolColor]]]:
+    def kw_symbol_map(self) -> dict[str, tuple[str, list[ColorObject]]]:
         """Symbol map to use for formatting mana symbols."""
         return self.kwargs.get('symbol_map', CON.symbol_map)
 
@@ -575,7 +575,7 @@ class FormattedTextField (TextField):
                     main_range.putObject(textStyle, textStyle, main_style)
                     main_list.putObject(styleRange, main_range)
 
-        # Paragraph formatting
+        # Modal choice formatting
         if self.is_modal or self.is_flavor_text:
             para_range.putInteger(idFrom, 0)
             para_range.putInteger(idTo, len(self.input))

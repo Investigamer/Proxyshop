@@ -355,6 +355,16 @@ class BaseTemplate:
         """bool: Enables miracle cosmetic elements."""
         return self.layout.is_miracle
 
+    @property
+    def is_token(self) -> bool:
+        """bool: Enables token cosmetic elements."""
+        return self.layout.is_token
+
+    @property
+    def is_emblem(self) -> bool:
+        """bool: Enables emblem cosmetic elements."""
+        return self.layout.is_emblem
+
     """
     * Cached Properties
     * Calculated in BaseTemplate class
@@ -820,9 +830,13 @@ class BaseTemplate:
         if self.layout.creator and self.text_layer_creator:
             self.text_layer_creator.textItem.contents = self.layout.creator
 
-        # Use realistic collector information?
-        if CFG.collector_mode in [CollectorMode.Default, CollectorMode.Modern] and self.layout.collector_data:
+        # Which collector info mode?
+        if CFG.collector_mode in [
+            CollectorMode.Default, CollectorMode.Modern
+        ] and self.layout.collector_data:
             return self.collector_info_authentic()
+        elif CFG.collector_mode == CollectorMode.ArtistOnly:
+            return self.collector_info_artist_only()
         return self.collector_info_basic()
 
     def collector_info_basic(self) -> None:
@@ -837,11 +851,6 @@ class BaseTemplate:
         if self.border_color != BorderColor.Black:
             set_TI.color = self.RGB_BLACK
             artist_layer.textItem.color = self.RGB_BLACK
-
-        # Disable Set layer if Artist Only mode is enabled
-        if CFG.collector_mode == CollectorMode.ArtistOnly:
-            set_layer.visible = False
-            return
 
         # Fill optional collector star
         if self.is_collector_promo:
@@ -883,6 +892,20 @@ class BaseTemplate:
         top.contents = self.layout.collector_data
         psd.replace_text(bottom, "SET", self.layout.set)
         psd.replace_text(bottom, "Artist", self.layout.artist)
+
+    def collector_info_artist_only(self) -> None:
+        """Called to generate 'Artist Only' collector info."""
+
+        # Collector layers
+        artist_layer = psd.getLayer(LAYERS.ARTIST, self.legal_group)
+        psd.getLayer(LAYERS.SET, self.legal_group).visible = False
+
+        # Correct color for non-black border
+        if self.border_color != BorderColor.Black:
+            artist_layer.textItem.color = self.RGB_BLACK
+
+        # Insert artist name
+        psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
     """
     * Expansion Symbol

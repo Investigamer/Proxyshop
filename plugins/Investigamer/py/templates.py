@@ -233,6 +233,7 @@ class ColorshiftedTemplate (NormalTemplate):
     """
 
     def collector_info(self):
+
         # Artist and set layer
         artist_layer = psd.getLayer(LAYERS.ARTIST, self.legal_group)
         psd.replace_text(artist_layer, "Artist", self.layout.artist)

@@ -13,6 +13,7 @@ class DictSchema(Schema):
     """Dictionary schema class."""
 
     def __new__(cls, **data):
+        """Return new instance as a dictionary."""
         new = super().__new__(cls)
         new.__init__(**data)
         return new.model_dump()

@@ -195,8 +195,8 @@ def get_color_identity_nonland(
     mana_cost: str,
     type_line: str,
     oracle_text: str,
-    color_indicator: str,
-    color_list: str
+    color_indicator: list[str],
+    color_list: list[str]
 ) -> str:
     """Get the assumed color identity of Non-Land card based on a priority list of factors.
 

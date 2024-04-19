@@ -4,10 +4,13 @@
 # Standard Library Imports
 from typing import Union
 
-from src.utils.regex import Reg
+# Third Party Imports
+from photoshop.api import SolidColor
+
 # Local Imports
 from src.utils.schema import DictSchema, Schema
 from src.utils.strings import StrEnum
+from src.utils.regex import Reg
 
 """
 * Card Layout Nomenclature
@@ -55,7 +58,6 @@ class LayoutType(StrEnum):
     Prototype = 'prototype'
     Saga = 'saga'
     Split = 'split'
-    Token = 'token'
     TransformBack = 'transform_back'
     TransformFront = 'transform_front'
 
@@ -109,7 +111,6 @@ layout_map_category: dict[LayoutCategory, list[LayoutType]] = {
     LayoutCategory.Leveler: [LayoutType.Leveler],
     LayoutCategory.Split: [LayoutType.Split],
     LayoutCategory.Battle: [LayoutType.Battle],
-    LayoutCategory.Token: [LayoutType.Token],
     LayoutCategory.Planar: [LayoutType.Planar]
 }
 
@@ -159,6 +160,40 @@ layout_map_types_display = {
             f'{named} Back' if 'back' in raw else named)
     ) for raw, named in layout_map_types.items()
 }
+
+
+"""
+* Card Typeline Types
+"""
+
+
+class CardTypes(StrEnum):
+    """Represents main card types."""
+    Artifact = 'Artifact'
+    Battle = 'Battle'
+    Conspiracy = 'Conspiracy'
+    Creature = 'Creature'
+    Enchantment = 'Enchantment'
+    Instant = 'Instant'
+    Land = 'Land'
+    Phenomenon = 'Phenomenon'
+    Plane = 'Plane'
+    Planeswalker = 'Planeswalker'
+    Scheme = 'Scheme'
+    Sorcery = 'Sorcery'
+    Tribal = 'Tribal'
+    Vanguard = 'Vanguard'
+
+
+class CardTypesSuper(StrEnum):
+    """Represents card supertypes."""
+    Basic = 'Basic'
+    Elite = 'Elite'
+    Host = 'Host'
+    Legendary = 'Legendary'
+    Ongoing = 'Ongoing'
+    Snow = 'Snow'
+    World = 'World'
 
 
 """
@@ -286,23 +321,32 @@ planeswalkers_tall = [
 * Colors & Gradient Maps
 """
 
-# Represents a color mapped to a symbol
-SymbolColor = Union[str, list[int]]
+# Represents a color value
+ColorObject = Union[str, list[int], type[SolidColor]]
 
 
-class ColorSchema(DictSchema):
+class ColorMap(DictSchema):
     """Defines RGB or CMYK color values mapped to string keys."""
-    # TODO: Finish this
+    W: ColorObject = [246, 246, 239]
+    U: ColorObject = [0, 117, 190]
+    B: ColorObject = [39, 38, 36]
+    R: ColorObject = [239, 56, 39]
+    G: ColorObject = [0, 123, 67]
+    Gold: ColorObject = [246, 210, 98]
+    Land: ColorObject = [174, 151, 135]
+    Artifact: ColorObject = [230, 236, 242]
+    Colorless: ColorObject = [230, 236, 242]
+    Vehicle: ColorObject = [77, 45, 5]
 
 
 class ManaColors(DictSchema):
     """Defines the mana colors for a specific symbol map (inner, outer, hybrid)."""
-    C: SymbolColor = [204, 194, 193]
-    W: SymbolColor = [255, 251, 214]
-    U: SymbolColor = [170, 224, 250]
-    B: SymbolColor = [204, 194, 193]
-    R: SymbolColor = [249, 169, 143]
-    G: SymbolColor = [154, 211, 175]
+    C: ColorObject = [204, 194, 193]
+    W: ColorObject = [255, 251, 214]
+    U: ColorObject = [170, 224, 250]
+    B: ColorObject = [204, 194, 193]
+    R: ColorObject = [249, 169, 143]
+    G: ColorObject = [154, 211, 175]
 
     def __new__(cls, **data):
         d = super().__new__(cls, **data)
@@ -312,23 +356,23 @@ class ManaColors(DictSchema):
 
 class ManaColorsInner(ManaColors):
     """Default mana colors."""
-    C: SymbolColor = [0, 0, 0]
-    W: SymbolColor = [0, 0, 0]
-    U: SymbolColor = [0, 0, 0]
-    B: SymbolColor = [0, 0, 0]
-    R: SymbolColor = [0, 0, 0]
-    G: SymbolColor = [0, 0, 0]
+    C: ColorObject = [0, 0, 0]
+    W: ColorObject = [0, 0, 0]
+    U: ColorObject = [0, 0, 0]
+    B: ColorObject = [0, 0, 0]
+    R: ColorObject = [0, 0, 0]
+    G: ColorObject = [0, 0, 0]
 
 
 class SymbolColorMap(Schema):
     """Color map schema."""
-    primary: SymbolColor = [0, 0, 0]
-    secondary: SymbolColor = [255, 255, 255]
-    colorless: SymbolColor = [204, 194, 193]
-    colors: dict[str, SymbolColor] = ManaColors()
-    hybrid: dict[str, SymbolColor] = ManaColors(B=[159, 146, 143])
-    colors_inner: dict[str, SymbolColor] = ManaColorsInner()
-    hybrid_inner: dict[str, SymbolColor] = ManaColorsInner()
+    primary: ColorObject = [0, 0, 0]
+    secondary: ColorObject = [255, 255, 255]
+    colorless: ColorObject = [204, 194, 193]
+    colors: dict[str, ColorObject] = ManaColors()
+    hybrid: dict[str, ColorObject] = ManaColors(B=[159, 146, 143])
+    colors_inner: dict[str, ColorObject] = ManaColorsInner()
+    hybrid_inner: dict[str, ColorObject] = ManaColorsInner()
 
 
 watermark_color_map = {
@@ -525,7 +569,7 @@ class MagicIcons:
 """
 
 
-def get_symbol_colors(symbol: str, chars: str, color_map: SymbolColorMap) -> list[SymbolColor]:
+def get_symbol_colors(symbol: str, chars: str, color_map: SymbolColorMap) -> list[ColorObject]:
     """Determines the colors of a symbol (represented as Scryfall string) and returns an array Symbol colors.
 
     Args:

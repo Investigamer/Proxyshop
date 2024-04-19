@@ -15,7 +15,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 
 </div>
 
-# 🛠️Requirements
+# 🛠️ Requirements
 - Photoshop (2017-2024 Supported)
 - Windows (currently incompatible with Mac/Linux)
 - [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
@@ -162,7 +162,11 @@ If you wish to download the templates manually, visit [this link](https://drive.
 
 
 # 💌 How can I support Proxyshop?
-Feel free to [join our discord](http://discord.gg/magicproxies) and participate in the `#Proxyshop` channel where we are constantly brainstorming and testing new features, dropping beta releases, and sharing new plugins and templates. Also, please consider supporting [our Patreon](http://patreon.com/mpcfill) which pays for S3 + Cloudfront hosting of Proxyshop templates and allows us the freedom to work on the app, as well as other applications like MPC Autofill, MTG Art Downloader, and more!
+Feel free to [join our discord](http://discord.gg/magicproxies) and participate in the `#Proxyshop` channel where we are constantly brainstorming and 
+testing new features, dropping beta releases, and sharing new plugins and templates. Also, please consider supporting 
+[our Patreon](http://patreon.com/mpcfill) which pays for S3 + Cloudfront hosting of Proxyshop templates and allows us the freedom to work on the app, 
+as well as other applications like MPC Autofill, MTG Art Downloader, and more! If Patreon isn't your thing, you can also buy 
+me a coffee [via Paypal](https://www.paypal.com/donate/?hosted_button_id=D96NBC6ZAJ8H6). Thanks so much to our awesome supporters!
 
 # ❓ FAQ
 <details markdown="1">
