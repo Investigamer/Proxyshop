@@ -1081,6 +1081,8 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
 
     def __init__(self, layout, **kwargs):
+        super().__init__(layout, **kwargs)
+
         if not CFG.exit_early:
             CFG.exit_early = self.is_nickname and not self.nickname
 
@@ -1094,8 +1096,6 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
                 layout.oracle_text = layout.oracle_text.replace(original_short_name, nick_short_name)
             else:
                 layout.oracle_text = layout.oracle_text.replace(layout.name, self.nickname)
-
-        super().__init__(layout, **kwargs)
 
     # Color Maps
     light_color_map = {
