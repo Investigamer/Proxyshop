@@ -39,13 +39,14 @@ def time_function(func: Callable) -> Callable:
 
 def test_execution_time(
     funcs: list[tuple[Callable, list[Any]]],
-    iterations=1000,
+    iterations: int = 1000,
     reset_func: Optional[Callable] = None
 ) -> None:
     """Test the execution time of a new function against an older function.
 
     Args:
-        funcs: List of funcs to test execution time for, along with their args.
+        funcs: List of tuples containing a func to test and args to pass to it.
+        iterations: Number of calls to each function to perform.
         reset_func: Optional function to call to reset app state between actions.
     """
     # Track results

@@ -1,8 +1,8 @@
 """
 * Helpers: Bounds and Dimensions
 """
-from contextlib import suppress
 # Standard Library Imports
+from contextlib import suppress
 from typing import Union, TypedDict
 
 # Third Party Imports

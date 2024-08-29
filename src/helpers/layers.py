@@ -22,7 +22,6 @@ from src.utils.exceptions import PS_EXCEPTIONS
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-
 """
 * Types
 """
@@ -190,6 +189,9 @@ def create_new_layer(layer_name: Optional[str] = None) -> ArtLayer:
 
 def merge_layers(layers: list[ArtLayer] = None, name: Optional[str] = None) -> ArtLayer:
     """Merge a set of layers together.
+
+    Todo:
+        Check if this can merge layer groups with layers.
 
     Args:
         layers: Layers to be merged, uses active if not provided.
@@ -403,7 +405,7 @@ def select_layer_add(
     APP.executeAction(sID('select'), desc1, NO_DIALOG)
 
 
-def select_layers(layers: list[ArtLayer, LayerSet]) -> None:
+def select_layers(layers: list[Union[ArtLayer, LayerSet]]) -> None:
     """Makes a list of layers active (selected) in the layer panel.
 
     Args:

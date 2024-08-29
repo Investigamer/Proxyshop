@@ -10,6 +10,7 @@ from typing import Optional, Any, Callable
 # Third Party Imports
 from photoshop.api import PhotoshopPythonAPIError
 from win32api import FormatMessage
+from omnitils.logs import logger
 
 """
 * Enums
@@ -73,6 +74,8 @@ def log_on_exception(logr: Any = None) -> Callable:
     Returns:
         Wrapped function.
     """
+    logr = logr or logger
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # Final exception catch
@@ -96,6 +99,7 @@ def return_on_exception(response: Optional[Any] = None) -> Callable:
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
+            # Final exception catch
             with suppress(Exception):
                 return func(*args, **kwargs)
             return response

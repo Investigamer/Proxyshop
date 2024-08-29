@@ -16,6 +16,10 @@ sID = APP.stringIDToTypeID
 cID = APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
+"""
+* Working With Actions
+"""
+
 
 def run_action(action_set: str, action: str) -> None:
     """Runs a Photoshop action.

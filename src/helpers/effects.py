@@ -18,7 +18,6 @@ from src.enums.adobe import Stroke
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-
 """
 * Types
 """

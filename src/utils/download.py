@@ -51,7 +51,7 @@ def download_file(
     res: requests.Response,
     path: Path = None,
     callback: Optional[Callable] = None,
-    chunk_size = 1024 * 1024
+    chunk_size: int = 1024 * 1024
 ) -> bool:
     """Download file from streamed response as a temporary file, then rename to its final path.
 

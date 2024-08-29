@@ -191,11 +191,12 @@ def dump_data_file(
 
 
 def verify_config_fields(ini_file: Path, data_file: Path) -> None:
-    """
-    Validate that all settings fields present in a given json data are present in config file.
-    If any are missing, add them and return
-    @param ini_file: Config file to verify contains the proper fields.
-    @param data_file: Data file containing config fields to check for, JSON or TOML.
+    """Validate that all settings fields present in a given json data are present in config file. If any are missing,
+    add them and return.
+
+    Args:
+        ini_file: Config file to verify contains the proper fields.
+        data_file: Data file containing config fields to check for, JSON or TOML.
     """
     # Track data and changes
     data, changed = {}, False
@@ -243,10 +244,13 @@ def verify_config_fields(ini_file: Path, data_file: Path) -> None:
 
 
 def parse_kivy_config_json(raw: list[dict]) -> list[dict]:
-    """
-    Parse config JSON data for use with Kivy settings panel.
-    @param raw: Raw loaded JSON data.
-    @return: Properly parsed data safe for use with Kivy.
+    """Parse config JSON data for use with Kivy settings panel.
+
+    Args:
+        raw: Raw loaded JSON data.
+
+    Returns:
+        Properly parsed data safe for use with Kivy.
     """
     # Remove unsupported keys
     for row in raw:
@@ -256,10 +260,13 @@ def parse_kivy_config_json(raw: list[dict]) -> list[dict]:
 
 
 def parse_kivy_config_toml(raw: dict) -> list[dict]:
-    """
-    Parse config TOML data for use with Kivy settings panel.
-    @param raw: Raw loaded TOML data.
-    @return: Properly parsed data safe for use with Kivy.
+    """Parse config TOML data for use with Kivy settings panel.
+
+    Args:
+        raw: Raw loaded TOML data.
+
+    Returns:
+        Properly parsed data safe for use with Kivy.
     """
 
     # Process __CONFIG__ header if present
@@ -303,10 +310,13 @@ def parse_kivy_config_toml(raw: dict) -> list[dict]:
 
 
 def get_kivy_config_from_schema(config: Path) -> str:
-    """
-    Return valid JSON data for use with Kivy settings panel.
-    @param config: Path to config schema file, JSON or TOML.
-    @return: Json string dump of validated data.
+    """Return valid JSON data for use with Kivy settings panel.
+
+    Args:
+        config: Path to config schema file, JSON or TOML.
+
+    Returns:
+        Json string dump of validated data.
     """
     # Need to load data as JSON
     raw = load_data_file(config)
@@ -318,11 +328,12 @@ def get_kivy_config_from_schema(config: Path) -> str:
 
 
 def copy_config_or_verify(path_from: Path, path_to: Path, data_file: Path) -> None:
-    """
-    Copy one config to another, or verify it if it exists.
-    @param path_from: Path to the file to be copied.
-    @param path_to: Path to the file to create, if it doesn't exist.
-    @param data_file: Data schema file to use for validating an existing INI file.
+    """Copy one config to another, or verify it if it exists.
+
+    Args:
+        path_from: Path to the file to be copied.
+        path_to: Path to the file to create, if it doesn't exist.
+        data_file: Data schema file to use for validating an existing INI file.
     """
     if os.path.isfile(path_to):
         return verify_config_fields(path_to, data_file)
@@ -330,9 +341,13 @@ def copy_config_or_verify(path_from: Path, path_to: Path, data_file: Path) -> No
 
 
 def remove_config_file(ini_file: str) -> bool:
-    """
-    Check if config file exists, then remove it.
-    @return: True if removed, False if not.
+    """Check if config file exists, then remove it.
+
+    Args:
+        ini_file: Path to an ini file.
+
+    Returns:
+        True if removed, False if not.
     """
     if os.path.isfile(ini_file):
         with suppress(Exception):
@@ -342,11 +357,16 @@ def remove_config_file(ini_file: str) -> bool:
 
 
 def get_config_object(path: Union[str, os.PathLike, list[Union[str, os.PathLike]]]) -> ConfigParser:
-    """
-    Returns a ConfigParser object using a valid ini path.
-    @param path: Path to ini config file.
-    @return: ConfigParser object.
-    @raise: ValueError if valid ini file wasn't received.
+    """Returns a ConfigParser object using a valid ini path.
+
+    Args:
+        path: Path to ini config file.
+
+    Returns:
+        ConfigParser object.
+
+    Raises:
+        ValueError: If valid ini file wasn't received.
     """
     config = ConfigParser(allow_no_value=True)
     config.optionxform = str

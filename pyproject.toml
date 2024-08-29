@@ -5,25 +5,30 @@ description = "Photoshop automation tool for generating high quality Magic the G
 authors = ["Investigamer <freethoughtleft@gmail.com>"]
 license = "MPL-2.0"
 readme = "README.md"
-homepage = "https://github.com/MrTeferi/Proxyshop"
-repository = "https://github.com/MrTeferi/Proxyshop"
-documentation = "https://github.com/MrTeferi/Proxyshop/wiki"
 keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photoshop", "magic the gathering", "playtest"]
+
+[tool.poetry.urls]
+Changelog = "https://github.com/Investigamer/Proxyshop/blob/main/CHANGELOG.md"
+Discord = "https://discord.gg/magicproxies"
+Documentation = "https://investigamer.github.io/Proxyshop"
+Issues = "https://github.com/Investigamer/Proxyshop/issues"
+Source = "https://github.com/Investigamer/Proxyshop"
+Sponsor = "https://patreon.com/mpcfill"
 
 [[tool.poetry.packages]]
 include = 'src/../'
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.10,<3.13"
 photoshop-python-api = { git = "https://github.com/MrTeferi/photoshop-python-api.git" }
 requests = "^2.28.1"
 asynckivy = "^0.5.4"
-Pillow = "^9.4.0"
-kivy = "^2.2.0"
+Pillow = "^10.3.0"
+kivy = "^2.3.0"
 typing-extensions = "^4.5.0"
 ratelimit = "^2.2.1"
 backoff = "^2.2.1"
-pathvalidate = "^2.5.2"
+pathvalidate = "^3.2.0"
 fonttools = "^4.39.3"
 pyyaml = "^6.0"
 py7zr = "^0.20.5"
@@ -33,11 +38,12 @@ click = "^8.1.7"
 tomli = "^2.0.1"
 yarl = "^1.9.3"
 pydantic = "^2.5.2"
+omnitils = "^1.2.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 mypy = "^1.6.0"
-commitizen = "^2.39.1"
+commitizen = "^3.12.0"
 setuptools = "^67.6.0"
 matplotlib = "^3.7.2"
 psd-tools = "^1.9.28"
@@ -57,6 +63,10 @@ mkdocs-git-revision-date-plugin = "^0.3.2"
 mkdocstrings = {extras = ["python"], version = "^0.23.0"}
 memory-profiler = "^0.61.0"
 
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.commitizen]
 version = "1.13.2"
 changelog_start_rev = '1.2.0'
@@ -68,7 +78,3 @@ version_files = [
 
 [tool.poetry.scripts]
 proxyshop = 'main:launch_cli'
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

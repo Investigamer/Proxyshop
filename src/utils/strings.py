@@ -15,9 +15,8 @@ from urllib import parse
 # Third Party Imports
 import yarl
 
-from src.utils.properties import enum_class_prop
 # Local Imports
-from src.utils.regex import Reg
+from src.utils.properties import enum_class_prop
 
 # Maps strings to boolean values
 STR_BOOL_MAP = {
@@ -107,7 +106,7 @@ class URLEnum(Enum, metaclass=URLEnumMeta):
 
 
 def decode_url(url: str) -> yarl.URL:
-    """Unescapes and decodes a provided URL, then creates a URL object.
+    """Unescapes and decodes a URL string and returns it as a URL object.
 
     Args:
         url: URL string to format.
@@ -234,7 +233,7 @@ def normalize_ver(st: str) -> str:
     Returns:
         Normalized version string.
     """
-    return Reg.VERSION.sub('', st)
+    return ''.join([n for n in st if n in '.0123456789'])
 
 
 def str_to_bool(st: str) -> bool:

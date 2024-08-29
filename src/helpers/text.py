@@ -30,7 +30,6 @@ from src.utils.exceptions import PS_EXCEPTIONS
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-
 """
 * Text Utils
 """
