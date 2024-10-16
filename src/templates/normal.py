@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 from typing import Optional, Union
+from re import sub
 
 # Third Party Imports
 from photoshop.api import AnchorPosition, SolidColor
@@ -12,7 +13,7 @@ from photoshop.api._layerSet import LayerSet
 # Local Imports
 from src import CFG, CON
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
+from src.utils.properties import auto_prop, auto_prop_cached
 from src.enums.mtg import pinlines_color_map, MagicIcons
 from src.enums.adobe import Dimensions
 from src.enums.settings import (
@@ -1080,9 +1081,21 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     """Borderless template first used in the Womens Day Secret Lair, redone with vector shapes."""
 
     def __init__(self, layout, **kwargs):
-        if not CFG.exit_early:
-            CFG.exit_early = self.is_nickname
         super().__init__(layout, **kwargs)
+
+        if not CFG.exit_early:
+            CFG.exit_early = self.is_nickname and not self.nickname
+
+        if self.is_nickname_in_oracle:
+            if 'Legendary' in layout.type_line and ',' in layout.name:
+                original_short_name = sub(r"\,.*", "", layout.name).strip()
+                layout.oracle_text = layout.oracle_text.replace(layout.name, original_short_name)
+                
+                nick_short_name = sub(r"\,.*", "", self.nickname).strip()
+                layout.oracle_text = layout.oracle_text.replace(original_short_name, self.nickname, 1)
+                layout.oracle_text = layout.oracle_text.replace(original_short_name, nick_short_name)
+            else:
+                layout.oracle_text = layout.oracle_text.replace(layout.name, self.nickname)
 
     # Color Maps
     light_color_map = {
@@ -1315,7 +1328,17 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
     @auto_prop_cached
     def is_nickname(self) -> bool:
         """Return True if this a nickname render."""
-        return CFG.get_setting(section="TEXT", key="Nickname", default=False)
+        return CFG.get_setting(section="TEXT", key="Nickname", default=False) or self.nickname is not None
+
+    @auto_prop_cached
+    def is_nickname_in_oracle(self) -> bool:
+        """Return True if this is a nickname render that should put its nickname into the oracle text."""
+        return self.nickname is not None and CFG.get_setting(section="TEXT", key="Nickname.In.Oracle", default=True)
+
+    @auto_prop_cached
+    def nickname(self) -> str | None:
+        """Return the nick name, if available."""
+        return self.layout.file.get('additional_cfg', {}).get('nick', None)
 
     @auto_prop_cached
     def is_multicolor(self) -> bool:
@@ -1538,10 +1561,18 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         """Card name text layer, allow support for Nickname."""
         if self.is_nickname:
             layer = psd.getLayer(LAYERS.NICKNAME, self.text_group)
-            super().text_layer_name.textItem.contents = "ENTER NAME HERE"
             layer.visible = True
             return layer
         return super().text_layer_name
+
+    @auto_prop_cached
+    def text_layer_nickname(self) -> Optional[ArtLayer]:
+        """Card nickname text layer, allow support for Nickname."""
+        if self.nickname:
+            layer = psd.getLayer(LAYERS.NAME, self.text_group)
+            layer.textItem.contents = "ENTER NAME HERE"
+            return layer
+        return None
 
     """
     * References
@@ -1754,17 +1785,29 @@ class BorderlessVectorTemplate(VectorBorderlessMod, VectorMDFCMod, VectorTransfo
         ])
 
         # Add nickname or regular name
-        self.text.append(
-            ScaledTextField(
-                layer=self.text_layer_name,
-                contents=self.layout.name,
-                reference=self.name_reference
-            ) if not self.is_nickname else
-            ScaledWidthTextField(
-                layer=self.text_layer_name,
-                contents=self.layout.name,
-                reference=self.nickname_shape
-            ))
+        if not self.is_nickname:
+            self.text.append(
+                ScaledTextField(
+                    layer=self.text_layer_name,
+                    contents=self.layout.name,
+                    reference=self.text_layer_mana
+                ))
+        else:
+            self.text.append(
+                    ScaledWidthTextField(
+                    layer=self.text_layer_name,
+                    contents=self.layout.name,
+                    reference=self.nickname_shape
+                ))
+
+            # If nickname is not entered by user add that too
+            if self.text_layer_nickname is not None:
+                self.text.append(
+                    ScaledTextField(
+                        layer=self.text_layer_nickname,
+                        contents=self.nickname,
+                        reference=self.text_layer_mana
+                    ))
 
     def rules_text_and_pt_layers(self) -> None:
         """Skip this step for 'Textless' renders."""
