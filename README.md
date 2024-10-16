@@ -1,6 +1,6 @@
 <div align="center" markdown="1" style="font-size: large;">
 
-![Showcase Image](/src/img/cover-photo.png)
+![Showcase Image](src/img/cover-photo.png)
 Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
 Inspired by Chilli-Axe's [original Photoshop automation scripts](https://github.com/chilli-axe/mtg-photoshop-automation).
 If you need help with this app or wish to troubleshoot an issue, [please join our discord](https://discord.gg/magicproxies)!
@@ -104,61 +104,42 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     - **800 DPI**: Downscales card images above 800 DPI to a maximum of 800 DPI. Most Proxyshop templates are 1200 DPI which is much higher than anyone really needs. Most printing services do not print above 800 DPI. (**Recommended**: On)
 
 # 🐍 Setup Guide (Python Environment)
-Setting up the Python environment for Proxyshop is intended for advanced users, contributors, and anyone who wants to get their hands dirty making a plugin or custom template for the app!
-1. Install Poetry using one of these methods.
-    ```shell
-    # Install pipx, then install poetry with pipx (Recommended)
+Setting up the Python environment for Proxyshop is intended for advanced users, contributors, and anyone who wants to 
+get their hands dirty making a plugin or custom template for the app! This guide assumes you already have Python installed.
+See the badge above for supported Python versions.
+1. Install Poetry with pipx.
+    ```bash
+    # Install pipx and poetry
     python -m pip install --user pipx
     python -m pipx ensurepath
     pipx install poetry
-    
-    # Install using Powershell
-    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-    
-    # Install using WSL (Windows Subsystem for Linux)
-    curl -sSL https://install.python-poetry.org | python3 -
-    
-    # Install using scoop
-    scoop install poetry
     ```
-2. Clone Proxyshop somewhere on your system, we'll call this repository the ***root directory***.
-    ```shell
+2. Clone Proxyshop somewhere on your system, we'll call this the ***root directory***.
+    ```bash
     git clone https://github.com/MrTeferi/Proxyshop.git
     ```
-3. Navigate to the **root directory** and install the Proxyshop project with poetry.
-    ```shell
-    # Move to the Proxyshop repository we just cloned
-    cd Proxyshop
-    
-    # OPTIONAL: Configure poetry to setup the environment locally
-    poetry config virtualenvs.in-project true
-    
-    # Install the Proxyshop project
+3. Navigate to the **root directory** and install the project environment.
+    ```bash
+    cd proxyshop
     poetry install
     ```
-4. Install the fonts included in the `fonts/` folder. Do not delete these, even after you install them (some are used by the GUI).
+4. Install the fonts included in the `fonts/` folder. Do not delete these after install, some are used by the GUI.
 5. Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
 6. Run the app.
     ```bash
     # OPTION 1) Execute via poetry
     poetry run main.py
     
-    # OPTION 2) Enter the poetry environment, then execute normally
+    # OPTION 2) Enter the poetry environment, then execute with cli
     poetry shell
-    py main.py
+    proxyshop gui
     ```
 7. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
 
 # 💾 Download Templates Manually
-If you wish to download the templates manually, visit [this link](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3):
-- Right-click the **Zipped** folder and hit **Download**.
-- This will download all Proxyshop templates, Google Drive may split this download into multiple zip files.
-- Once the zips are downloaded, move them into the `templates/` folder. Select them all, Right-click -> 7-Zip -> Extract here.
-- Once extracted, you will have a lot of `.7z` archive files, this is because we compress PSD templates to reduce their hosting footprint.
-- Once again, select the `.7z` archives, and extract using the same process.
-- You will also notice two folders: `MrTeferi/` and `SilvanMTG/`
-- Copy the contents of these folders to: `plugins/MrTeferi/templates/` and `plugins/SilvanMTG/templates/`
-- Once again, extract those `.7z` archives using the same process as before. All done!
+If you wish to download the templates manually, visit [this link](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3). These archives must be extracted to the `/templates` 
+directory. The archives found within the **Investigamer** and **SilvanMTG** drive folders must be extracted to 
+`/plugins/Investigamer/templates` and `/plugins/SilvanMTG/templates` respectively.
 
 
 # 💌 How can I support Proxyshop?
