@@ -6,23 +6,14 @@ import click
 
 # Local Imports
 from src import CONSOLE, PATH
-from src.tests import frame_logic, text_logic
+from src.commands.test import frame_logic, text_logic
 
 """
-* TEST COMMANDS
+* Commands
 """
 
 
-@click.group(
-    name='test', chain=True,
-    help='Commands that test app functionality.')
-def test_cli():
-    """Cli interface for test funcs."""
-    pass
-
-
-@test_cli.command(
-    name='logic.frame',
+@click.command(
     short_help='Test Scryfall data frame logic analysis across a variety of card cases.',
     help='Test Scryfall data frame logic analysis across a variety of card cases. Frame analysis '
          'is used to determine what colors and textures should be used on a given card.')
@@ -51,14 +42,31 @@ def test_frame_logic(target: bool = False):
     frame_logic.test_target_case(cases[case])
 
 
-@test_cli.command(
-    name='logic.text',
+@click.command(
     short_help='Test Scryfall data text logic analysis across a variety of card cases.',
     help='Test Scryfall data text logic analysis across a variety of card cases. Text analysis is used to '
          'decide what text should be italicized when rendering the card.')
 def test_text_logic():
     """Run Text Logic test on all cases."""
     text_logic.test_all_cases()
+
+
+"""
+* Command Groups
+"""
+
+
+@click.group(
+    name='test', chain=True,
+    help='Commands that test app functionality.',
+    commands={
+        'logic.frame': test_frame_logic,
+        'logic.text': test_text_logic
+    }
+)
+def test_cli():
+    """Cli interface for test funcs."""
+    pass
 
 
 # Export CLI
