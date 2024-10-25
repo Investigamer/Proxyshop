@@ -7,7 +7,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 
 
 ![Photoshop](https://img.shields.io/badge/photoshop-CC_2017+-informational?style=plastic)
-![Python](https://img.shields.io/badge/python-3.9_|_3.10_|_3.11-blue?style=plastic)
+![Python](https://img.shields.io/badge/python-3.10_|_3.11_|_3.12-blue?style=plastic)
 [![Discord](https://img.shields.io/discord/889831317066358815?style=plastic&label=discord&color=brightgreen)](https://discord.gg/magicproxies)
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/MrTeferi/Proxyshop?style=plastic&label=commits&color=brightgreen)
 [![Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dmpcfill%26type%3Dpatrons&style=plastic&color=red&logo=none)](https://patreon.com/mpcfill)

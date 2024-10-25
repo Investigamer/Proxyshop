@@ -1,3 +1,11 @@
+###
+# * Italics Test Cases
+# * Keys
+#   - result: A list of italics strings that should be matched for this case.
+#   - scenario: Human readable name to reference this scenario in CLI.
+#   - test: Complete oracle text to test. Must replace \n characters with \r.
+###
+
 [""]
 result = []
 scenario = "Empty Text"
@@ -72,3 +80,13 @@ text = "Choose one —\r• Break Their Chains — Destroy target artifact.\r•
 result = []
 scenario = "Emdash Mid-Paragraph"
 text = "Menace\rAt the beginning of your end step, create a 3/3 black Dalek artifact creature token with menace if an opponent lost 3 or more life this turn. Then each opponent who lost 3 or more life this turn faces a villainous choice — You draw a card, or that player discards a card."
+
+["Galadriel, Gift Giver"]
+result = ["""(It's an artifact with "{2}, {T}, Sacrifice this artifact: You gain 3 life.")""", """(It's an artifact with "{T}, Sacrifice this artifact: Add one mana of any color.")"""]
+scenario = "Multiple Reminder Text"
+text = """Whenever Galadriel, Gift-Giver enters or attacks, choose one —\r• Put a +1/+1 counter on another target creature.\r• Create a Food token. (It's an artifact with "{2}, {T}, Sacrifice this artifact: You gain 3 life.")\r• Create a Treasure token. (It's an artifact with "{T}, Sacrifice this artifact: Add one mana of any color.")"""
+
+["Ensnared by the Mara"]
+result = []
+scenario = "Non-Italic Emdash"
+text = """Each opponent faces a villainous choice — They exile cards from the top of their library until they exile a nonland card, then you may cast that card without paying its mana cost, or that player exiles the top four cards of their library and Ensnared by the Mara deals damage equal to the total mana value of those exiled cards to that player."""
