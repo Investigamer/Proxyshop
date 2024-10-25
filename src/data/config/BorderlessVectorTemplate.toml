@@ -93,3 +93,9 @@ title = "Multicolor Pinlines"
 desc = """When enabled, the Pinlines and Legendary Crown on multicolor cards will use blended colors instead of Gold."""
 type = "bool"
 default = 1
+
+[COLORS."Nickname"]
+title = "Colored Nickname Plate"
+desc = """When enabled, the Nickname plate under the title bar will be colored instead of plain black."""
+type = "bool"
+default = 0
