@@ -5,6 +5,7 @@
 import os
 from pathlib import Path
 from typing import Optional
+from functools import cached_property
 
 # Kivy Imports
 from kivy.lang import Builder
@@ -23,8 +24,6 @@ from src.gui.utils import (
     DynamicTabPanel,
     DynamicTabItem,
     HoverButton)
-from src.utils.files import remove_config_file
-from src.utils.properties import auto_prop_cached
 
 """
 * Template Modules
@@ -35,7 +34,7 @@ class MainPanel(BoxLayout, GlobalAccess):
     """Main panel to the 'Render Cards' tab."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "main.kv"))
 
-    @auto_prop_cached
+    @cached_property
     def toggle_buttons(self) -> list[Button]:
         """Add render and settings buttons."""
         return [
@@ -276,7 +275,13 @@ class TemplateResetDefaultButton(HoverButton, GlobalAccess):
 
     async def reset_default(self) -> None:
         """Removes the INI config file containing customized settings for a specific template class."""
-        if remove_config_file(self.parent.config.template_path_ini):
-            self.console.update(f"Reset template '{self.parent.name}' to global settings!")
+        _file, removed = self.parent.config.template_path_ini, False
+        if _file and _file.is_file():
+            try:
+                os.remove(_file)
+                self.console.update(f"Reset template '{self.parent.name}' to global settings!")
+            except (PermissionError, OSError, FileNotFoundError):
+                self.console.update(f"Unable to reset settings: '{self.parent.name}'\n"
+                                    f"Likely a file permission error!")
         for row in self.parent.config.gui_elements:
             row.default_settings_button_check()
