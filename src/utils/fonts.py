@@ -16,9 +16,7 @@ from fontTools.ttLib import TTFont, TTLibError
 from packaging.version import parse
 
 # Local Imports
-from src.enums.adobe import LayerContainer
-from src.utils.adobe import PhotoshopHandler
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import LayerContainer, PhotoshopHandler, PS_EXCEPTIONS
 
 # Precompile font version pattern
 REG_FONT_VER: re.Pattern = re.compile(r"\b(\d+\.\d+)\b")
