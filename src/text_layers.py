@@ -26,7 +26,7 @@ from photoshop.api.text_item import TextItem
 # Local Imports
 from src import APP, CFG, CON, CONSOLE
 from src.cards import generate_italics, locate_symbols, locate_italics, CardItalicString, CardSymbolString
-from src.enums.mtg import CardFonts, ColorObject
+from src.enums.mtg import CardFonts
 from src.helpers import select_layer
 from src.helpers.bounds import get_layer_dimensions, LayerDimensions, get_layer_width
 from src.helpers.colors import apply_color, get_text_item_color
@@ -40,8 +40,8 @@ from src.helpers.text import (
     scale_text_to_height,
     scale_text_left_overlap,
     scale_text_right_overlap)
+from src.schema.colors import ColorObject
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
 
 # QOL Definitions
 sID = APP.stringIDToTypeID
@@ -371,7 +371,7 @@ class FormattedTextField (TextField):
     * Flavor Text and Indexes
     """
 
-    @auto_prop_cached
+    @cached_property
     def flavor_text(self) -> str:
         return self.kwargs.get('flavor', '').replace('\n', '\r')
 
