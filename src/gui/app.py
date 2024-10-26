@@ -7,13 +7,14 @@ import json
 from io import BytesIO
 from pathlib import Path
 from time import perf_counter
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 import win32clipboard as clipboard
 from datetime import datetime as dt
+from functools import cached_property
 from threading import Event, Thread, Lock
 from multiprocessing import cpu_count
 from typing import Union, Optional, Callable
-from concurrent.futures import ThreadPoolExecutor
 
 # Third-party Imports
 import requests
@@ -32,11 +33,12 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 import asynckivy as ak
+from omnitils.files import load_data_file
 
 # Local Imports
 from src._state import AppConstants, AppEnvironment, PATH
 from src._config import AppConfig
-from src.api.hexproof import update_hexproof_cache, get_api_key
+from src.console import get_bullet_points, msg_bold, msg_error, msg_info, msg_success, msg_warn
 from src.enums.mtg import layout_map_types
 from src.gui.console import GUIConsole, ConsoleOutput
 from src.gui.popup.settings import SettingsPopup
@@ -54,22 +56,15 @@ from src.gui.tabs.main import TemplateRow, MainPanel
 from src.gui.tabs.tools import ToolsPanel
 from src.gui.test import TestApp
 from src.layouts import (
-    CardLayout,
     layout_map,
     assign_layout,
-    join_dual_card_layouts)
+    join_dual_card_layouts,
+    NormalLayout)
 from src.templates import BaseTemplate
-from src.utils.adobe import PhotoshopHandler
-from src.utils.properties import auto_prop_cached
-from src.utils.exceptions import get_photoshop_error_message, PS_EXCEPTIONS
-from src.utils.files import load_data_file
+from src.utils.adobe import get_photoshop_error_message, PhotoshopHandler, PS_EXCEPTIONS
+from src.utils.hexapi import update_hexproof_cache, get_api_key
 from src.utils.fonts import check_app_fonts
-from src.utils.strings import (
-    get_bullet_points,
-    msg_success,
-    msg_error,
-    msg_warn,
-    msg_info, msg_bold)
+
 
 """
 * App Tab Containers
@@ -214,42 +209,42 @@ class ProxyshopGUIApp(App):
     * Rendering Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def _render_lock(self) -> Lock:
         """Lock: Thread locking mechanism for render operations."""
         return Lock()
 
-    @auto_prop_cached
+    @cached_property
     def _dropped_files(self) -> list[Path]:
         """list[Path]: Tracks files dragged and dropped onto the app window."""
         return []
 
-    @auto_prop_cached
+    @cached_property
     def plugins(self) -> dict[str, AppPlugin]:
         """dict[str, AppPlugin]: Tracks all plugins loaded by the app currently."""
         return self._plugins
 
-    @auto_prop_cached
+    @cached_property
     def templates(self) -> list[AppTemplate]:
         """list[AppTemplate]: List of all templates available to the app."""
         return self._templates
 
-    @auto_prop_cached
+    @cached_property
     def template_map(self) -> dict[str, TemplateCategoryMap]:
         """dict[str, TemplateCategoryMap]: Dictionary of category mapped templates available to the app."""
         return self._template_map
 
-    @auto_prop_cached
+    @cached_property
     def templates_selected(self) -> TemplateSelectedMap:
         """TemplateSelectedMap: Tracks the templates currently selected for each type by the user."""
         return self._templates_selected
 
-    @auto_prop_cached
+    @cached_property
     def templates_default(self) -> TemplateSelectedMap:
         """TemplateSelectedMap: Tracks the default template selections for every template type."""
         return self._templates_default
 
-    @auto_prop_cached
+    @cached_property
     def current_render(self) -> BaseTemplate:
         """BaseTemplate: Tracks the current template class being used for rendering."""
         return self._current_render
@@ -283,7 +278,7 @@ class ProxyshopGUIApp(App):
     * UI Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def toggle_buttons(self) -> list[Button]:
         """list[Button]: UI buttons to toggle when disable_buttons or enable_buttons is called."""
         return [self.console.update_btn]
@@ -435,7 +430,7 @@ class ProxyshopGUIApp(App):
         cards = join_dual_card_layouts(list(cards))
 
         # Remove failed strings
-        layouts: dict[str, dict[str, list[CardLayout]]] = {}
+        layouts: dict[str, dict[str, list[NormalLayout]]] = {}
         failed: list[str] = []
         for c in cards:
 
@@ -715,7 +710,7 @@ class ProxyshopGUIApp(App):
             self.console.update(f'Average time: {avg} seconds')
 
     def start_render(
-        self, card: CardLayout,
+        self, card: NormalLayout,
         template: TemplateDetails,
         loaded_class: type[BaseTemplate],
         reload_config: bool = False,
@@ -810,8 +805,8 @@ class ProxyshopGUIApp(App):
 
             # Select the template for its respective types
             for t in obj.types:
-                if obj.template_map.get(t):
-                    self.templates_selected[t] = obj.template_map[t]
+                if _template := obj.template_map.get(t):
+                    self.templates_selected[t] = _template
 
             # Enable all other buttons in this template list
             for name, button in GUI.template_btn[btn.parent.category].items():

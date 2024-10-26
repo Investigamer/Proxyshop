@@ -5,6 +5,7 @@ CONSOLE MODULES
 import os
 import time
 import traceback
+from functools import cached_property
 from threading import Thread, Event, Lock
 from typing import Optional, Any
 from datetime import datetime as dt
@@ -20,7 +21,6 @@ from src._config import AppConfig
 from src._state import AppEnvironment, PATH
 from src.gui._state import get_root_app
 from src.gui.utils import HoverButton
-from src.utils.properties import auto_prop_cached
 
 
 class GUIConsole(BoxLayout):
@@ -46,7 +46,7 @@ class GUIConsole(BoxLayout):
         if not self.env.TEST_MODE:
             self.size_hint = (1, .58)
 
-    @auto_prop_cached
+    @cached_property
     def main(self) -> Any:
         """ProxyshopGUIApp: Get the running application."""
         return get_root_app()
@@ -55,22 +55,22 @@ class GUIConsole(BoxLayout):
     * Console GUI Objects
     """
 
-    @auto_prop_cached
+    @cached_property
     def output(self) -> 'ConsoleOutput':
         """Label where console output is stored."""
         return self.ids.console_output
 
-    @auto_prop_cached
+    @cached_property
     def continue_btn(self) -> HoverButton:
         """Button that continues to the next render operation."""
         return self.ids.continue_btn
 
-    @auto_prop_cached
+    @cached_property
     def cancel_btn(self) -> HoverButton:
         """Button that cancels the current render operation."""
         return self.ids.cancel_btn
 
-    @auto_prop_cached
+    @cached_property
     def update_btn(self) -> HoverButton:
         """Button that launches the updater popup."""
         return self.ids.update_btn
@@ -145,7 +145,7 @@ class GUIConsole(BoxLayout):
             log.write("============================================================================\n")
             log.write(f"> {self.time}\n")
             log.write("============================================================================\n")
-            traceback.print_exception(error, file=log)
+            traceback.print_exception(error, file=log)  # noqa
 
     def clear(self) -> None:
         """Clear the console output."""

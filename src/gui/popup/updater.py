@@ -15,8 +15,8 @@ from kivy.uix.label import Label
 # Local Imports
 from src._state import PATH
 from src._loader import AppTemplate, check_for_updates
+from src.console import msg_success, msg_error, msg_italics
 from src.gui._state import GlobalAccess, GUI
-from src.utils.strings import msg_success, msg_error, msg_italics
 
 """
 * GUI Classes

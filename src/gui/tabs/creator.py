@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 import os
+from functools import cached_property
 
 # Third Party Imports
 from kivy.lang import Builder
@@ -14,9 +15,8 @@ from kivy.uix.tabbedpanel import TabbedPanelItem, TabbedPanel
 # Local Imports
 from src._state import PATH
 from src._loader import TemplateCategoryMap, TemplateSelectedMap
+from src.console import msg_bold
 from src.gui._state import GlobalAccess
-from src.utils.properties import auto_prop_cached
-from src.utils.strings import msg_bold
 
 """
 * Layout Classes
@@ -27,7 +27,7 @@ class CreatorPanel(TabbedPanel, GlobalAccess):
     """Panel tab the 'Creator' tab which renders custom cards."""
     Builder.load_file(os.path.join(PATH.SRC_DATA_KV, "creator.kv"))
 
-    @auto_prop_cached
+    @cached_property
     def creator_tabs(self) -> list[type['CreatorLayout']]:
         """Defined creator tabs."""
         return [
@@ -67,7 +67,7 @@ class CreatorLayout(GridLayout, GlobalAccess):
         # Call super
         super().__init__(**kwargs)
 
-    @auto_prop_cached
+    @cached_property
     def toggle_buttons(self) -> list[Button]:
         """Add render button."""
         return [self.ids.render_btn]

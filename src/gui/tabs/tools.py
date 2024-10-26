@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 import os
+from functools import cached_property
 from pathlib import Path
 from typing import Callable
 from threading import Event
@@ -13,14 +14,13 @@ from photoshop.api._document import Document
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from omnitils.img import downscale_image_by_width
 
 # Local Imports
 from src._state import PATH
 from src.gui._state import GlobalAccess
-from src.utils.image import downscale_image
-from src.utils.exceptions import get_photoshop_error_message
+from src.utils.adobe import get_photoshop_error_message
 from src.helpers import import_art, reset_document, save_document_jpeg, close_document
-from src.utils.properties import auto_prop_cached
 
 
 class ToolsPanel(BoxLayout, GlobalAccess):
@@ -30,7 +30,7 @@ class ToolsPanel(BoxLayout, GlobalAccess):
         """PSD tool paths."""
         Showcase: Path = PATH.TEMPLATES / 'tools' / 'showcase.psd'
 
-    @auto_prop_cached
+    @cached_property
     def toggle_buttons(self) -> list[Button]:
         """Add tool buttons."""
         return [
@@ -143,10 +143,10 @@ class ToolsPanel(BoxLayout, GlobalAccess):
         with Pool(max_workers=(os.cpu_count() - 1) or 1) as executor:
             quality = self.ids.compress_quality.text
             tasks = [executor.submit(
-                downscale_image, img, **{
+                downscale_image_by_width, img, **{
+                    'max_width': 2176 if self.ids.compress_dpi.active else 3264,
                     'optimize': True,
                     'quality': int(quality) if quality.isnumeric() else 95,
-                    'max_width': 2176 if self.ids.compress_dpi.active else 3264
                 }) for img in images]
             [n.result() for n in as_completed(tasks)]
 
