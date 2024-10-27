@@ -2,6 +2,7 @@
 * Templates: Transform / Ixalan
 """
 # Standard Library Imports
+from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -15,7 +16,6 @@ import src.helpers as psd
 from src.templates._core import BaseTemplate, NormalTemplate
 from src.templates._vector import VectorTemplate
 from src.text_layers import TextField
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
@@ -31,21 +31,21 @@ class TransformMod(BaseTemplate):
         * Transform icon, inherited from BaseTemplate, is made visible.
 
     Modifies:
-        * Rules text layer has 2 new options: a creature and noncreature option with flipside PT cutout.
-        * PT, name, and type text are all white UNLESS this is an eldrazi, e.g. Eldritch Moon transform cards.
+        * Rules text layer has 2 new options: a creature and non-creature option with flipside PT cutout.
+        * PT, name, and type text are all white UNLESS this is an Eldrazi, e.g. Eldritch Moon transform cards.
     """
 
     """
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def frame_layer_methods(self) -> list[Callable]:
         """Add Transform frame layers step."""
         funcs = [self.enable_transform_layers] if self.is_transform else []
         return super().frame_layer_methods + funcs
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Transform text layers step."""
         funcs = [self.text_layers_transform] if self.is_transform else []
@@ -55,7 +55,7 @@ class TransformMod(BaseTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         """Supports noncreature and creature, with or without flipside PT."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
@@ -68,7 +68,7 @@ class TransformMod(BaseTemplate):
     * Transform Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_flipside_pt(self) -> Optional[ArtLayer]:
         """Flipside power/toughness layer for front face Transform cards."""
         return psd.getLayer(LAYERS.FLIPSIDE_POWER_TOUGHNESS, self.text_group)
@@ -161,7 +161,7 @@ class VectorTransformMod(TransformMod, VectorTemplate):
                 self.text_layer_pt.textItem.color = psd.rgb_white()
 
 
-class IxalanMod (NormalTemplate):
+class IxalanMod(NormalTemplate):
     """Ixalan Mod for back face Ixalan transform lands.
 
     Modifies:
@@ -179,7 +179,7 @@ class IxalanMod (NormalTemplate):
     * Expansion Symbol
     """
 
-    @auto_prop_cached
+    @cached_property
     def expansion_symbol_alignments(self) -> list[Dimensions]:
         """Expansion symbol is entirely centered."""
         return [Dimensions.CenterX, Dimensions.CenterY]
@@ -188,7 +188,7 @@ class IxalanMod (NormalTemplate):
     * Layer Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
         """Uses pinline color for background choice layer."""
         return psd.getLayer(self.pinlines, LAYERS.BACKGROUND)
@@ -209,11 +209,11 @@ class IxalanMod (NormalTemplate):
         """No mana cost layer, no scaled typeline."""
         self.text.extend([
             TextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name),
+                layer=self.text_layer_name,
+                contents=self.layout.name),
             TextField(
-                layer = self.text_layer_type,
-                contents = self.layout.type_line)
+                layer=self.text_layer_type,
+                contents=self.layout.type_line)
         ])
 
 
@@ -222,10 +222,10 @@ class IxalanMod (NormalTemplate):
 """
 
 
-class TransformTemplate (TransformMod, NormalTemplate):
+class TransformTemplate(TransformMod, NormalTemplate):
     """Template for double faced Transform cards introduced in Innistrad block."""
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         """Does not support colored land layers."""
         if self.is_land and self.pinlines != LAYERS.LAND:
@@ -235,3 +235,28 @@ class TransformTemplate (TransformMod, NormalTemplate):
 
 class IxalanTemplate(IxalanMod, NormalTemplate):
     """Template for the back face lands for transforming cards from Ixalan block."""
+
+    @classmethod
+    def get_template_route(cls, layout, **kwargs) -> BaseTemplate:
+        """Reroute for multicolor cards, front cards, and non-land and/or creature cards.
+
+        Args:
+            layout: The card layout object.
+
+        Returns:
+            Initialized template class object.
+        """
+        if any([
+            len(layout.identity) > 1,
+            not layout.is_land,
+            layout.is_front,
+            layout.is_creature
+        ]):
+            # Redirect to regular Transform template
+            return cls.redirect_template(
+                template_class=TransformTemplate,
+                template_file='tf-front.psd' if layout.is_front else 'tf-back.psd',
+                layout=layout,
+                **kwargs)
+        # Route normally
+        return super().get_template_route(layout, **kwargs)

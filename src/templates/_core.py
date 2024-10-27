@@ -4,6 +4,7 @@
 # Standard Library Imports
 import os.path as osp
 from contextlib import suppress
+from functools import cached_property
 from pathlib import Path
 from threading import Event
 from typing import Optional, Callable, Any, Union, Iterable
@@ -20,22 +21,14 @@ from photoshop.api import (
     SolidColor,
     BlendMode)
 from PIL import Image
+from omnitils.files import get_unique_filename
 
 # Local Imports
 from src import APP, CON, CONSOLE, CFG, ENV, PATH
+from src.utils.scryfall import get_card_scan
 from src.cards import strip_reminder_text
-from src.enums.mtg import (
-    MagicIcons,
-    watermark_color_map,
-    basic_watermark_color_map)
-import src.helpers as psd
-from src.frame_logic import is_multicolor_string
-from src.text_layers import (
-    TextField,
-    ScaledTextField,
-    FormattedTextArea,
-    FormattedTextField,
-    FormattedTextLayer)
+from src.console import msg_error, msg_warn
+from src.enums.mtg import MagicIcons
 from src.enums.adobe import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import (
@@ -44,15 +37,25 @@ from src.enums.settings import (
     CollectorPromo,
     WatermarkMode,
     BorderColor)
-from src.enums.adobe import LayerContainer
+from src.enums.mtg import CardTextPatterns
+from src.frame_logic import is_multicolor_string
+import src.helpers as psd
 from src.helpers.effects import LayerEffects
-from src.utils.adobe import PhotoshopHandler, ReferenceLayer
-from src.utils.properties import auto_prop_cached
-from src.utils.exceptions import PS_EXCEPTIONS, get_photoshop_error_message, try_photoshop
-from src.utils.files import get_unique_filename
-from src.utils.regex import Reg
-from src.api.scryfall import get_card_scan
-from src.utils.strings import msg_warn, msg_error
+from src.schema.adobe import EffectColorOverlay, EffectGradientOverlay, EffectBevel
+from src.schema.colors import watermark_color_map, basic_watermark_color_map, ColorObject, GradientColor
+from src.text_layers import (
+    TextField,
+    ScaledTextField,
+    FormattedTextArea,
+    FormattedTextField,
+    FormattedTextLayer)
+from src.utils.adobe import (
+    get_photoshop_error_message,
+    LayerContainer,
+    PhotoshopHandler,
+    PS_EXCEPTIONS,
+    ReferenceLayer,
+    try_photoshop)
 
 """
 * Template Classes
@@ -74,6 +77,50 @@ class BaseTemplate:
         # Setup manual properties
         self.layout = layout
         self._text = []
+
+    """
+    * Template Class Routing
+    """
+
+    def __new__(cls, layout, **kwargs) -> 'BaseTemplate':
+        """Governs which class is called to instantiate a new object."""
+        return cls.get_template_route(layout, **kwargs)
+
+    @staticmethod
+    def redirect_template(
+        template_class: type['BaseTemplate'],
+        template_file: Union[str, Path],
+        layout,
+        **kwargs
+    ) -> 'BaseTemplate':
+        """Reroutes template initialization to another template class and PSD file.
+
+        Args:
+            template_class: Template class to reroute to.
+            template_file: Filename of the PSD to load with this template class.
+            layout: The card layout object.
+
+        Returns:
+            Initialized template class object.
+        """
+        if isinstance(template_file, Path):
+            layout.template_file = template_file
+        elif isinstance(template_file, str):
+            layout.template_file = layout.template_file.with_name(template_file)
+        return template_class(layout, **kwargs)
+
+    @classmethod
+    def get_template_route(cls, layout, **kwargs) -> 'BaseTemplate':
+        """Overwrite this method to reroute a template class to another class under a set of
+        conditions. See the 'IxalanTemplate' class for an example.
+
+        Args:
+            layout: The card layout object.
+
+        Returns:
+            Initialized template class object.
+        """
+        return super().__new__(cls)
 
     """
     * Enabled Method Lists
@@ -145,12 +192,12 @@ class BaseTemplate:
     * App Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def event(self) -> Event:
         """Event: Threading Event used to signal thread cancellation."""
         return Event()
 
-    @auto_prop_cached
+    @cached_property
     def console(self) -> type[CONSOLE]:
         """type[CONSOLE]: Console output object used to communicate with the user."""
         return CONSOLE
@@ -160,14 +207,14 @@ class BaseTemplate:
         """PhotoshopHandler: Photoshop Application object used to communicate with Photoshop."""
         return APP
 
-    @auto_prop_cached
+    @cached_property
     def docref(self) -> Optional[Document]:
         """Optional[Document]: This template's document open in Photoshop."""
         if doc := psd.get_document(osp.basename(self.layout.template_file)):
             return doc
         return
 
-    @auto_prop_cached
+    @cached_property
     def doc_selection(self) -> Selection:
         """Selection: Active document selection object."""
         return self.docref.selection
@@ -190,12 +237,12 @@ class BaseTemplate:
     * SolidColor objects
     """
 
-    @auto_prop_cached
+    @cached_property
     def RGB_BLACK(self) -> SolidColor:
         """SolidColor: A solid color object with RGB [0, 0, 0]."""
         return psd.rgb_black()
 
-    @auto_prop_cached
+    @cached_property
     def RGB_WHITE(self) -> SolidColor:
         """SolidColor: A solid color object with RGB [255, 255, 255]."""
         return psd.rgb_white()
@@ -204,7 +251,7 @@ class BaseTemplate:
     * File Saving
     """
 
-    @auto_prop_cached
+    @cached_property
     def save_mode(self) -> Callable:
         """Callable: Function called to save the rendered image."""
         if CFG.output_file_type == OutputFileType.PNG:
@@ -213,7 +260,7 @@ class BaseTemplate:
             return psd.save_document_psd
         return psd.save_document_jpeg
 
-    @auto_prop_cached
+    @cached_property
     def output_directory(self) -> Path:
         """PathL Directory to save the rendered image."""
         if ENV.TEST_MODE:
@@ -222,7 +269,7 @@ class BaseTemplate:
             return path
         return PATH.OUT
 
-    @auto_prop_cached
+    @cached_property
     def output_file_name(self) -> Path:
         """Path: The formatted filename for the rendered image."""
         name, tag_map = CFG.output_file_name, {
@@ -237,7 +284,7 @@ class BaseTemplate:
         }
 
         # Replace conditional tags
-        for n in Reg.PATH_CONDITION.findall(name):
+        for n in CardTextPatterns.PATH_CONDITION.findall(name):
             case_new, case = n, f'<{n}>'
             for tag, val in tag_map.items():
                 if tag in case and not val:
@@ -365,12 +412,12 @@ class BaseTemplate:
     * Calculated in BaseTemplate class
     """
 
-    @auto_prop_cached
+    @cached_property
     def is_basic_land(self) -> bool:
         """bool: Governs Basic Land watermark and other Basic Land behavior."""
         return self.layout.is_basic_land
 
-    @auto_prop_cached
+    @cached_property
     def is_centered(self) -> bool:
         """bool: Governs whether rules text is centered."""
         return bool(
@@ -378,22 +425,22 @@ class BaseTemplate:
             and len(self.layout.oracle_text) <= 70
             and "\n" not in self.layout.oracle_text)
 
-    @auto_prop_cached
+    @cached_property
     def is_name_shifted(self) -> bool:
         """bool: Governs whether to use the shifted name text layer."""
         return bool(self.is_transform or self.is_mdfc)
 
-    @auto_prop_cached
+    @cached_property
     def is_type_shifted(self) -> bool:
         """bool: Governs whether to use the shifted typeline text layer."""
         return bool(self.layout.color_indicator)
 
-    @auto_prop_cached
+    @cached_property
     def is_flipside_creature(self) -> bool:
         """bool: Governs double faced cards where opposing side is a creature."""
         return bool(self.layout.other_face_power and self.layout.other_face_toughness)
 
-    @auto_prop_cached
+    @cached_property
     def is_art_vertical(self) -> bool:
         """bool: Returns True if art provided is vertically oriented, False if it is horizontal."""
         with Image.open(self.layout.art_file) as image:
@@ -404,7 +451,7 @@ class BaseTemplate:
         # Horizontal orientation
         return False
 
-    @auto_prop_cached
+    @cached_property
     def is_content_aware_enabled(self) -> bool:
         """bool: Governs whether content aware fill should be performed during the art loading step."""
         if self.is_fullart and all([n not in self.art_reference.name for n in ['Full', 'Borderless']]):
@@ -412,7 +459,7 @@ class BaseTemplate:
             return True
         return False
 
-    @auto_prop_cached
+    @cached_property
     def is_collector_promo(self) -> bool:
         """bool: Governs whether to use promo star in collector info."""
         if CFG.collector_promo == CollectorPromo.Always:
@@ -435,29 +482,29 @@ class BaseTemplate:
         """str: Vertical orientation frame to use for positioning the art."""
         return LAYERS.FULL_ART_FRAME
 
-    @auto_prop_cached
+    @cached_property
     def twins(self) -> str:
         """str: Name of the Twins layer, also usually the PT layer."""
         return self.layout.twins
 
-    @auto_prop_cached
+    @cached_property
     def pinlines(self) -> str:
         """str: Name of the Pinlines layer."""
         return self.layout.pinlines
 
-    @auto_prop_cached
+    @cached_property
     def identity(self) -> str:
         """str: Color identity of the card, e.g. WU."""
         return self.layout.identity
 
-    @auto_prop_cached
+    @cached_property
     def background(self) -> str:
         """str: Name of the Background layer."""
         if not self.is_vehicle and self.layout.background == LAYERS.VEHICLE:
             return LAYERS.ARTIFACT
         return self.layout.background
 
-    @auto_prop_cached
+    @cached_property
     def color_limit(self) -> int:
         """int: Number of colors where frame elements will no longer split (becomes gold)."""
         return 3
@@ -466,12 +513,12 @@ class BaseTemplate:
     * Layer Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def legal_group(self) -> LayerSet:
         """LayerSet: Group containing artist credit, collector info, and other legal details."""
         return self.docref.layerSets[LAYERS.LEGAL]
 
-    @auto_prop_cached
+    @cached_property
     def border_group(self) -> Optional[Union[LayerSet, ArtLayer]]:
         """Optional[Union[LayerSet, ArtLayer]]: Group, or sometimes a layer, containing the card border."""
         if group := psd.getLayerSet(LAYERS.BORDER, self.docref):
@@ -480,14 +527,14 @@ class BaseTemplate:
             return layer
         return
 
-    @auto_prop_cached
+    @cached_property
     def text_group(self) -> Optional[LayerSet]:
         """Optional[LayerSet]: Text and icon group, contains rules text and necessary symbols."""
         with suppress(Exception):
             return self.docref.layerSets[LAYERS.TEXT_AND_ICONS]
         return self.docref
 
-    @auto_prop_cached
+    @cached_property
     def dfc_group(self) -> Optional[LayerSet]:
         """Optional[LayerSet]: Group containing double face elements."""
         face = LAYERS.FRONT if self.is_front else LAYERS.BACK
@@ -497,7 +544,7 @@ class BaseTemplate:
             return psd.getLayerSet(f'{LAYERS.MDFC} {face}', self.text_group)
         return
 
-    @auto_prop_cached
+    @cached_property
     def mask_group(self) -> Optional[LayerSet]:
         """LayerSet: Group containing masks used to blend and adjust various layers."""
         with suppress(Exception):
@@ -508,12 +555,12 @@ class BaseTemplate:
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_creator(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Proxy creator name text layer."""
         return psd.getLayer(LAYERS.CREATOR, self.legal_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Card name text layer."""
         if self.is_name_shifted:
@@ -523,12 +570,12 @@ class BaseTemplate:
             return name
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_mana(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Card mana cost text layer."""
         return psd.getLayer(LAYERS.MANA_COST, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_type(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Card typeline text layer."""
         if self.is_type_shifted:
@@ -538,19 +585,19 @@ class BaseTemplate:
             return typeline
         return psd.getLayer(LAYERS.TYPE_LINE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Card rules text layer."""
         if self.is_creature:
             return psd.getLayer(LAYERS.RULES_TEXT_CREATURE, self.text_group)
         return psd.getLayer(LAYERS.RULES_TEXT_NONCREATURE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_pt(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Card power and toughness text layer."""
         return psd.getLayer(LAYERS.POWER_TOUGHNESS, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def divider_layer(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Divider layer between rules text and flavor text."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
@@ -567,19 +614,19 @@ class BaseTemplate:
         """ArtLayer: Layer the art image is imported into."""
         return psd.getLayer(LAYERS.DEFAULT, self.docref)
 
-    @auto_prop_cached
+    @cached_property
     def twins_layer(self) -> Optional[ArtLayer]:
         """Name and title boxes layer."""
         return psd.getLayer(self.twins, LAYERS.TWINS)
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_layer(self) -> Optional[ArtLayer]:
         """Pinlines (and textbox) layer."""
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
-    @auto_prop_cached
+    @cached_property
     def background_layer(self) -> Optional[ArtLayer]:
         """Background texture layer."""
         # Try finding Vehicle background
@@ -591,7 +638,7 @@ class BaseTemplate:
         # All other backgrounds
         return psd.getLayer(self.background, LAYERS.BACKGROUND)
 
-    @auto_prop_cached
+    @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
         """Power and toughness box layer."""
         # Test for Vehicle PT support
@@ -602,24 +649,24 @@ class BaseTemplate:
                 return layer
         return psd.getLayer(self.twins, LAYERS.PT_BOX)
 
-    @auto_prop_cached
+    @cached_property
     def crown_layer(self) -> Optional[ArtLayer]:
         """Legendary crown layer."""
         return psd.getLayer(self.pinlines, LAYERS.LEGENDARY_CROWN)
 
-    @auto_prop_cached
+    @cached_property
     def crown_shadow_layer(self) -> Union[ArtLayer, LayerSet, None]:
         """Legendary crown hollow shadow layer."""
         return psd.getLayer(LAYERS.HOLLOW_CROWN_SHADOW, self.docref)
 
-    @auto_prop_cached
+    @cached_property
     def color_indicator_layer(self) -> Optional[ArtLayer]:
         """Color indicator icon layer."""
         if self.layout.color_indicator:
             return psd.getLayer(self.layout.color_indicator, LAYERS.COLOR_INDICATOR)
         return
 
-    @auto_prop_cached
+    @cached_property
     def transform_icon_layer(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Transform icon layer."""
         return psd.getLayer(self.layout.transform_icon, self.dfc_group)
@@ -628,7 +675,7 @@ class BaseTemplate:
     * Reference Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def art_reference(self) -> ReferenceLayer:
         """ReferenceLayer: Reference frame used to scale and position the art layer."""
         # Check if art is vertically oriented, or forced vertical, and for valid vertical frame
@@ -638,14 +685,14 @@ class BaseTemplate:
         # Check for normal art frame
         return psd.get_reference_layer(self.art_frame) or psd.get_reference_layer(LAYERS.ART_FRAME)
 
-    @auto_prop_cached
+    @cached_property
     def name_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, name uses Mana Cost as a reference to check collision against."""
         if self.is_basic_land:
             return
         return self.text_layer_mana
 
-    @auto_prop_cached
+    @cached_property
     def type_reference(self) -> Optional[ArtLayer]:
         """ArtLayer: By default, typeline uses the expansion symbol to check collision against,
         otherwise fallback to the expansion symbols reference layer."""
@@ -653,12 +700,12 @@ class BaseTemplate:
             return
         return self.expansion_symbol_layer or self.expansion_reference
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference(self) -> ReferenceLayer:
         """ReferenceLayer: Reference frame used to scale and position the rules text layer."""
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def pt_reference(self) -> Optional[ReferenceLayer]:
         """ArtLayer: Reference used to check rules text overlap with the PT Box."""
         if not self.is_creature:
@@ -669,7 +716,7 @@ class BaseTemplate:
     * Blending Masks
     """
 
-    @auto_prop_cached
+    @cached_property
     def mask_layers(self) -> list[ArtLayer]:
         """List of layers containing masks used to blend multicolored layers."""
         if not self.mask_group:
@@ -713,49 +760,74 @@ class BaseTemplate:
         """Args to pass to art_action."""
         return
 
-    def load_artwork(self) -> None:
-        """Loads the specified art file into the specified layer."""
+    def load_artwork(
+        self,
+        art_file: Optional[str | Path] = None,
+        art_layer: Optional[ArtLayer] = None,
+        art_reference: Optional[ReferenceLayer] = None
+    ) -> None:
+        """Loads the specified art file into the specified layer.
 
-        # Check for fullart test image
+        Args:
+            art_file: Optional path (as str or Path) to art file. Will use `self.layout.art_file`
+                if not provided.
+            art_layer: Optional `ArtLayer` where art image should be placed when imported. Will use `self.art_layer`
+                property if not provided.
+            art_reference: Optional `ReferenceLayer` that should be used to position and scale the imported
+                image. Will use `self.art_reference` property if not provided.`
+        """
+
+        # Set default values
+        art_file = art_file or self.layout.art_file
+        art_layer = art_layer or self.art_layer
+        art_reference = art_reference or self.art_reference
+
+        # Check for full-art test image
         if ENV.TEST_MODE and self.is_fullart:
-            self.layout.art_file = PATH.SRC_IMG / "test-fa.jpg"
+            art_file = PATH.SRC_IMG / "test-fa.jpg"
 
-        # Paste the file into the art
-        self.active_layer = self.art_layer
+        # Import art file
         if self.art_action:
+            # Use action pipeline
             psd.paste_file(
-                layer=self.art_layer,
-                path=self.layout.art_file,
+                layer=art_layer,
+                path=art_file,
                 action=self.art_action,
                 action_args=self.art_action_args,
                 docref=self.docref)
         else:
+            # Use traditional pipeline
             psd.import_art(
-                layer=self.art_layer,
-                path=self.layout.art_file,
+                layer=art_layer,
+                path=art_file,
                 docref=self.docref)
 
         # Frame the artwork
-        psd.frame_layer(self.active_layer, self.art_reference)
+        psd.frame_layer(
+            layer=self.active_layer,
+            ref=art_reference)
 
         # Perform content aware fill if needed
         if self.is_content_aware_enabled:
 
             # Perform a generative fill
             if CFG.generative_fill:
-                docref = psd.generative_fill_edges(
-                    layer=self.art_layer,
+                if _doc_generated := psd.generative_fill_edges(
+                    layer=art_layer,
                     feather=CFG.feathered_fill,
-                    close_doc=not CFG.select_variation,
-                    docref=self.docref)
-                if docref:
+                    close_doc=bool(not CFG.select_variation),
+                    docref=self.docref
+                ):
+                    # Document reference was returned, await user intervention
                     self.console.await_choice(
                         self.event, msg="Select a Generative Fill variation, then click Continue ...")
-                    docref.close(SaveOptions.SaveChanges)
+                    _doc_generated.close(SaveOptions.SaveChanges)
                 return
 
             # Perform a content aware fill
-            psd.content_aware_fill_edges(self.art_layer, CFG.feathered_fill)
+            psd.content_aware_fill_edges(
+                layer=art_layer,
+                feather=CFG.feathered_fill)
 
     def paste_scryfall_scan(self, rotate: bool = False, visible: bool = True) -> Optional[ArtLayer]:
         """Downloads the card's scryfall scan, pastes it into the document next to the active layer,
@@ -895,12 +967,12 @@ class BaseTemplate:
         """Alignments used for positioning the expansion symbol"""
         return [Dimensions.Right, Dimensions.CenterY]
 
-    @auto_prop_cached
+    @cached_property
     def expansion_symbol_layer(self) -> Optional[ArtLayer]:
         """Expansion symbol layer, value set during the `load_expansion_symbol` method."""
         return
 
-    @auto_prop_cached
+    @cached_property
     def expansion_reference(self) -> Optional[ArtLayer]:
         """Expansion symbol reference layer"""
         return psd.getLayer(LAYERS.EXPANSION_REFERENCE, self.text_group)
@@ -941,17 +1013,17 @@ class BaseTemplate:
     * Watermark
     """
 
-    @auto_prop_cached
+    @cached_property
     def watermark_blend_mode(self) -> BlendMode:
         """Blend mode to use on the Watermark layer."""
         return BlendMode.ColorBurn
 
-    @auto_prop_cached
+    @cached_property
     def watermark_color_map(self) -> dict:
         """Maps color values for Watermark."""
         return watermark_color_map.copy()
 
-    @auto_prop_cached
+    @cached_property
     def watermark_colors(self) -> list[SolidColor]:
         """Colors to use for the Watermark."""
         if self.pinlines in self.watermark_color_map:
@@ -960,22 +1032,28 @@ class BaseTemplate:
             return [self.watermark_color_map.get(c, self.RGB_WHITE) for c in self.identity]
         return []
 
-    @auto_prop_cached
+    @cached_property
     def watermark_fx(self) -> list[LayerEffects]:
         """Defines the layer effects to use for the Watermark."""
         if len(self.watermark_colors) == 1:
-            return [{
-                'type': 'color-overlay', 'opacity': 100,
-                'color': self.watermark_colors[0]
-            }]
+            return [EffectColorOverlay(
+                opacity=100,
+                color=self.watermark_colors[0]
+            )]
         if len(self.watermark_colors) == 2:
-            return [{
-                'type': 'gradient-overlay', 'rotation': 0,
-                'colors': [
-                    {'color': self.watermark_colors[0], 'location': 0, 'midpoint': 50},
-                    {'color': self.watermark_colors[1], 'location': 4096, 'midpoint': 50}
+            return [EffectGradientOverlay(
+                rotation=0,
+                colors=[
+                    GradientColor(
+                        color=self.watermark_colors[0],
+                        location=0,
+                        midpoint=50),
+                    GradientColor(
+                        color=self.watermark_colors[1],
+                        location=4096,
+                        midpoint=50)
                 ]
-            }]
+            )]
         return []
 
     def create_watermark(self) -> None:
@@ -1014,27 +1092,31 @@ class BaseTemplate:
     * Basic Land Watermark
     """
 
-    @auto_prop_cached
+    @cached_property
     def basic_watermark_color_map(self) -> dict:
         """Maps color values for Basic Land Watermark."""
         return basic_watermark_color_map.copy()
 
-    @auto_prop_cached
+    @cached_property
     def basic_watermark_color(self) -> SolidColor:
         """Color to use for the Basic Land Watermark."""
         return psd.get_color(self.basic_watermark_color_map[self.layout.pinlines])
 
-    @auto_prop_cached
+    @cached_property
     def basic_watermark_fx(self) -> list[LayerEffects]:
         """Defines the layer effects used on the Basic Land Watermark."""
         return [
-            {
-                'type': 'color-overlay', 'opacity': 100, 'color': self.basic_watermark_color},
-            {
-                'type': 'bevel', 'size': 28, 'softness': 14, 'depth': 100,
-                'shadow_opacity': 72, 'highlight_opacity': 70,
-                'rotation': 45, 'altitude': 22
-            }
+            EffectColorOverlay(
+                opacity=100,
+                color=self.basic_watermark_color),
+            EffectBevel(
+                highlight_opacity=70,
+                shadow_opacity=72,
+                softness=14,
+                rotation=45,
+                altitude=22,
+                depth=100,
+                size=28)
         ]
 
     def create_basic_watermark(self) -> None:
@@ -1075,7 +1157,7 @@ class BaseTemplate:
     * Border
     """
 
-    @auto_prop_cached
+    @cached_property
     def border_color(self) -> str:
         """Use 'black' unless an alternate color and a valid border group is provided."""
         if CFG.border_color != BorderColor.Black and self.border_group:
@@ -1086,10 +1168,7 @@ class BaseTemplate:
     def color_border(self) -> None:
         """Color this card's border based on given setting."""
         if self.border_color != BorderColor.Black:
-            psd.apply_fx(self.border_group, [{
-                'type': 'color-overlay',
-                'color': psd.get_color(self.border_color)
-            }])
+            psd.apply_fx(self.border_group, [EffectColorOverlay(color=psd.get_color(self.border_color))])
 
     """
     * Formatted Text Layers
@@ -1148,7 +1227,7 @@ class BaseTemplate:
     * Tasks and Logging
     """
 
-    def log(self, text: str, e: Union[Exception] = None) -> None:
+    def log(self, text: str, e: Optional[Exception] = None) -> None:
         """Writes a message to console if test mode isn't enabled, logs an exception if provided.
 
         Args:
@@ -1187,8 +1266,8 @@ class BaseTemplate:
 
         # Execute each function
         for func in funcs:
+            # Check if thread was cancelled
             if self.event.is_set():
-                # Thread operation has been cancelled
                 return False
             try:
                 # Run the task
@@ -1199,6 +1278,9 @@ class BaseTemplate:
                     self.raise_error(message=message, error=e)
                     return False
                 self.raise_warning(message=message, error=e)
+            # Once again, check if thread was cancelled
+            if self.event.is_set():
+                return False
         return True
 
     def raise_error(self, message: str, error: Optional[Exception] = None) -> None:
@@ -1291,7 +1373,7 @@ class BaseTemplate:
     @staticmethod
     def create_blended_solid_color(
             group: LayerSet,
-            colors: list[SolidColor],
+            colors: list[ColorObject],
             masks: Optional[list[Union[ArtLayer, LayerSet]]] = None,
             **kwargs
     ) -> None:
@@ -1323,7 +1405,7 @@ class BaseTemplate:
 
     def generate_layer(
             self, group: Union[ArtLayer, LayerSet],
-            colors: Union[list[list[int]], list[int], list[dict], list[str], str],
+            colors: Union[str, ColorObject, list[ColorObject], list[dict]],
             masks: Optional[list[ArtLayer]] = None,
             **kwargs
     ) -> Optional[ArtLayer]:
@@ -1333,11 +1415,13 @@ class BaseTemplate:
 
         Notes:
             The result for a given 'colors' schema:
-            - str: Enable a single texture layer.
+            - str: Enable and/or blend one or more texture layers, unless string is a hex color, in which
+                case create a solid color adjustment layer.
             - list[str]: Blend multiple texture layers.
             - list[int]: Create a solid color adjustment layer.
             - list[dict]: Create a gradient adjustment layer.
             - list[list[int]]: Blend multiple solid color adjustment layers.
+            - list[SolidColor]: Blend multiple solid color adjustment layers.
 
         Args:
             group: Layer or group containing layers.
@@ -1346,49 +1430,66 @@ class BaseTemplate:
         """
         # Assign a generator task based on colors value
         if isinstance(colors, str):
-            # Hex color
+            # Example: '#FFFFFF'
+            # Single adjustment layer
             if colors.startswith('#'):
                 return psd.create_color_layer(
                     color=colors,
                     layer=group,
                     docref=self.docref,
                     **kwargs)
-            # Blended texture layers
+            # Example: 'Land'
+            # Single or blended texture layers
             return self.create_blended_layer(
                 group=group,
                 colors=colors,
                 masks=masks,
                 **kwargs)
-        if isinstance(colors, list):
+        elif isinstance(colors, SolidColor):
+            # Example: SolidColor
+            # Single adjustment layer
+            return psd.create_color_layer(
+                color=colors,
+                layer=group,
+                docref=self.docref,
+                **kwargs
+            )
+        elif isinstance(colors, list):
             if all(isinstance(c, str) for c in colors):
-                # Hex colors
-                if colors[0].startswith('#'):
-                    return psd.create_color_layer(
-                        color=colors,
-                        layer=group,
-                        docref=self.docref,
+                # Example: ['#000000', '#FFFFFF', ...]
+                # Blended RGB/CMYK adjustment layers
+                if colors[0].startswith('#'):  # noqa
+                    return self.create_blended_solid_color(
+                        group=group,
+                        colors=colors,
+                        masks=masks,
                         **kwargs)
+                # Example: ['W', 'U']
                 # Blended texture layers
                 return self.create_blended_layer(
                     group=group,
                     colors=colors,
                     masks=masks,
                     **kwargs)
-            if all(isinstance(c, int) for c in colors):
+            elif all(isinstance(c, int) for c in colors):
+                # Example: [r, g, b]
                 # RGB/CMYK adjustment layer
                 return psd.create_color_layer(
                     color=colors,
                     layer=group,
                     docref=self.docref,
                     **kwargs)
-            if all(isinstance(c, dict) for c in colors):
+            elif all(isinstance(c, dict) for c in colors):
+                # Example: [GradientColor, GradientColor, ...]
                 # Gradient adjustment layer
                 return psd.create_gradient_layer(
                     colors=colors,
                     layer=group,
                     docref=self.docref,
                     **kwargs)
-            if all(isinstance(c, list) for c in colors):
+            elif all(isinstance(c, (list, SolidColor)) for c in colors):
+                # Example 1: [[r, g, b], [r, g, b], ...]
+                # Example 2: [SolidColor, SolidColor, ...]
                 # Blended RGB/CMYK adjustment layers
                 return self.create_blended_solid_color(
                     group=group,
@@ -1439,30 +1540,30 @@ class BaseTemplate:
         """
         # Preliminary Photoshop check
         if not self.run_tasks(
-                funcs=[self.check_photoshop],
-                message="Unable to reach Photoshop!"
+            funcs=[self.check_photoshop],
+            message="Unable to reach Photoshop!"
         ):
             return False
 
         # Pre-process layout data
         if not self.run_tasks(
-                funcs=self.pre_render_methods,
-                message="Pre-processing layout data failed!"
+            funcs=self.pre_render_methods,
+            message="Pre-processing layout data failed!"
         ):
             return False
 
         # Load in the PSD template
         if not self.run_tasks(
-                funcs=[self.app.load],
-                message="PSD template failed to load!",
-                args=[str(self.layout.template_file)]
+            funcs=[self.app.load],
+            message="PSD template failed to load!",
+            args=[str(self.layout.template_file)]
         ):
             return False
 
         # Load in artwork and frame it
         if not self.run_tasks(
-                funcs=[self.load_artwork],
-                message="Unable to load artwork!"
+            funcs=[self.load_artwork],
+            message="Unable to load artwork!"
         ):
             return False
 
@@ -1483,40 +1584,40 @@ class BaseTemplate:
         if CFG.enable_basic_watermark and self.is_basic_land:
             # Basic land watermark
             if not self.run_tasks(
-                    funcs=[self.create_basic_watermark],
-                    message="Unable to generate basic land watermark!"
+                funcs=[self.create_basic_watermark],
+                message="Unable to generate basic land watermark!"
             ):
                 return False
         elif CFG.watermark_mode is not WatermarkMode.Disabled:
             # Normal watermark
             if not self.run_tasks(
-                    funcs=[self.create_watermark],
-                    message="Unable to generate watermark!"
+                funcs=[self.create_watermark],
+                message="Unable to generate watermark!"
             ):
                 return False
 
         # Enable layers to build our frame
         if not self.run_tasks(
-                funcs=self.frame_layer_methods,
-                message="Enabling layers failed!"
+            funcs=self.frame_layer_methods,
+            message="Enabling layers failed!"
         ):
             return False
 
         # Format text layers
         if not self.run_tasks(
-                funcs=[
-                    *self.text_layer_methods,
-                    self.format_text_layers,
-                    *self.post_text_methods
-                ],
-                message="Formatting text layers failed!"
+            funcs=[
+                *self.text_layer_methods,
+                self.format_text_layers,
+                *self.post_text_methods
+            ],
+            message="Formatting text layers failed!"
         ):
             return False
 
         # Specific hooks
         if not self.run_tasks(
-                funcs=self.hooks,
-                message="Encountered an error during triggered hooks step!"
+            funcs=self.hooks,
+            message="Encountered an error during triggered hooks step!"
         ):
             return False
 
@@ -1526,16 +1627,16 @@ class BaseTemplate:
 
         # Save the document
         if not self.run_tasks(
-                funcs=[self.save_mode],
-                message="Error during file save process!",
-                kwargs={'path': self.output_file_name, 'docref': self.docref}
+            funcs=[self.save_mode],
+            message="Error during file save process!",
+            kwargs={'path': self.output_file_name, 'docref': self.docref}
         ):
             return False
 
         # Post save methods
         if not self.run_tasks(
-                funcs=self.post_save_methods,
-                message="Image saved, but an error was encountered during the post-save step!"
+            funcs=self.post_save_methods,
+            message="Image saved, but an error was encountered during the post-save step!"
         ):
             return False
 
@@ -1585,7 +1686,7 @@ class NormalTemplate(StarterTemplate):
         - Extend this template for broad support of most typical card functionality.
     """
 
-    @auto_prop_cached
+    @cached_property
     def is_fullart(self) -> bool:
         """Colorless cards use Fullart reference."""
         return self.is_colorless
