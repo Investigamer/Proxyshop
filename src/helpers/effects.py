@@ -2,98 +2,23 @@
 * Helpers: Layer Effects
 """
 # Standard Library Imports
-from typing import Union, Optional, Literal, TypedDict, NotRequired
+from typing import Union, Optional
 
 # Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList, SolidColor
+from photoshop.api import DialogModes, ActionDescriptor, ActionReference, ActionList
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src import APP
-from src.helpers.colors import rgb_black, apply_color, get_color, add_color_to_gradient
+from src.helpers.colors import apply_color, get_color, add_color_to_gradient
 from src.enums.adobe import Stroke
+from src.schema.adobe import EffectBevel, EffectColorOverlay, EffectDropShadow, EffectGradientOverlay, EffectStroke, \
+    LayerEffects
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
-
-"""
-* Types
-"""
-
-
-class EffectStroke(TypedDict):
-    """Layer Effect: Stroke"""
-    type: Literal['stroke']
-    weight: NotRequired[int]
-    color: SolidColor
-    opacity: NotRequired[int]
-    style: Literal[
-        'in', 'insetFrame',
-        'out', 'outsetFrame',
-        'center', 'centeredFrame'
-    ]
-
-
-class EffectDropShadow(TypedDict):
-    """Layer Effect: Drop Shadow"""
-    type: Literal['drop-shadow']
-    opacity: NotRequired[Union[float, int]]
-    rotation: NotRequired[Union[float, int]]
-    distance: NotRequired[Union[float, int]]
-    spread: NotRequired[Union[float, int]]
-    size: NotRequired[Union[float, int]]
-    noise: NotRequired[Union[float, int]]
-
-
-class EffectGradientColor(TypedDict):
-    """An individual color within a EffectGradientOverlay."""
-    color: SolidColor
-    location: NotRequired[int]
-    midpoint: NotRequired[int]
-
-
-class EffectGradientOverlay(TypedDict):
-    """Layer Effect: Drop Shadow"""
-    type: Literal['gradient-overlay']
-    size: NotRequired[int]
-    scale: NotRequired[int]
-    rotation: NotRequired[int]
-    opacity: NotRequired[int]
-    colors: list[EffectGradientColor]
-
-
-class EffectColorOverlay(TypedDict):
-    """Layer Effect: Color Overlay"""
-    type: Literal['color-overlay']
-    opacity: NotRequired[Union[float, int]]
-    color: Union[SolidColor, list[int]]
-
-
-class EffectBevel(TypedDict):
-    """Layer Effect: Bevel"""
-    type: Literal['bevel']
-    highlight_opacity: NotRequired[Union[float, int]]
-    highlight_color: NotRequired[Union[SolidColor, list[int]]]
-    shadow_opacity: NotRequired[Union[float, int]]
-    shadow_color: NotRequired[Union[SolidColor, list[int]]]
-    rotation: NotRequired[Union[float, int]]
-    altitude: NotRequired[Union[float, int]]
-    depth: NotRequired[Union[float, int]]
-    size: NotRequired[Union[float, int]]
-    softness: NotRequired[Union[float, int]]
-
-
-# Type: Any layer effect
-LayerEffects = Union[
-    EffectBevel,
-    EffectColorOverlay,
-    EffectDropShadow,
-    EffectGradientOverlay,
-    EffectStroke
-]
-
 
 """
 * Blending Utilities
@@ -246,38 +171,64 @@ def apply_fx(layer: Union[ArtLayer, LayerSet], effects: list[LayerEffects]) -> N
 
     # Add each action from fx dictionary
     for fx in effects:
-        if fx['type'] == 'stroke':
-            apply_fx_stroke(fx_action, fx)
-        elif fx['type'] == 'drop-shadow':
-            apply_fx_drop_shadow(fx_action, fx)
-        elif fx['type'] == 'gradient-overlay':
-            apply_fx_gradient_overlay(fx_action, fx)
-        elif fx['type'] == 'color-overlay':
-            apply_fx_color_overlay(fx_action, fx)
-        elif fx['type'] == 'bevel':
+        if isinstance(fx, EffectBevel):
             apply_fx_bevel(fx_action, fx)
+        elif isinstance(fx, EffectColorOverlay):
+            apply_fx_color_overlay(fx_action, fx)
+        elif isinstance(fx, EffectDropShadow):
+            apply_fx_drop_shadow(fx_action, fx)
+        elif isinstance(fx, EffectGradientOverlay):
+            apply_fx_gradient_overlay(fx_action, fx)
+        elif isinstance(fx, EffectStroke):
+            apply_fx_stroke(fx_action, fx)
 
     # Apply all fx actions
     main_action.putObject(sID("to"), sID("layerEffects"), fx_action)
     APP.executeAction(sID("set"), main_action, NO_DIALOG)
 
 
-def apply_fx_stroke(action: ActionDescriptor, fx: EffectStroke) -> None:
-    """Adds stroke effect to layer effects action.
+def apply_fx_bevel(action: ActionDescriptor, fx: EffectBevel) -> None:
+    """Adds a bevel to layer effects action.
 
     Args:
         action: Pending layer effects action descriptor.
-        fx: Stroke effect properties.
+        fx: Bevel effect properties.
+    """
+    d1, d2 = ActionDescriptor(), ActionDescriptor()
+    d1.PutEnumerated(sID("highlightMode"), sID("blendMode"), sID("screen"))
+    apply_color(d1, fx.highlight_color, 'highlightColor')
+    d1.PutUnitDouble(sID("highlightOpacity"), sID("percentUnit"),  fx.highlight_opacity)
+    d1.PutEnumerated(sID("shadowMode"), sID("blendMode"), sID("multiply"))
+    apply_color(d1, fx.shadow_color, 'shadowColor')
+    d1.PutUnitDouble(sID("shadowOpacity"), sID("percentUnit"),  fx.shadow_opacity)
+    d1.PutEnumerated(sID("bevelTechnique"), sID("bevelTechnique"), sID("softMatte"))
+    d1.PutEnumerated(sID("bevelStyle"), sID("bevelEmbossStyle"), sID("outerBevel"))
+    d1.PutBoolean(sID("useGlobalAngle"), fx.global_light)
+    d1.PutUnitDouble(sID("localLightingAngle"), sID("angleUnit"),  fx.rotation)
+    d1.PutUnitDouble(sID("localLightingAltitude"), sID("angleUnit"),  fx.altitude)
+    d1.PutUnitDouble(sID("strengthRatio"), sID("percentUnit"),  fx.depth)
+    d1.PutUnitDouble(sID("blur"), sID("pixelsUnit"),  fx.size)
+    d1.PutEnumerated(sID("bevelDirection"), sID("bevelEmbossStampStyle"), sID("in"))
+    d1.PutObject(sID("transferSpec"), sID("shapeCurveType"),  d2)
+    d1.PutBoolean(sID("antialiasGloss"), False)
+    d1.PutUnitDouble(sID("softness"), sID("pixelsUnit"),  fx.softness)
+    d1.PutBoolean(sID("useShape"), False)
+    d1.PutBoolean(sID("useTexture"), False)
+    action.PutObject(sID("bevelEmboss"), sID("bevelEmboss"),  d1)
+
+
+def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> None:
+    """Adds a solid color overlay to layer effects action.
+
+    Args:
+        action: Pending layer effects action descriptor.
+        fx: Color Overlay effect properties.
     """
     d = ActionDescriptor()
-    d.putEnumerated(sID("style"), sID("frameStyle"), Stroke.position(fx.get('style', 'out')))
-    d.putEnumerated(sID("paintType"), sID("frameFill"), sID("solidColor"))
-    d.putEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
-    d.putUnitDouble(sID("opacity"), sID("percentUnit"), int(fx.get('opacity', 100)))
-    d.putUnitDouble(sID("size"), sID("pixelsUnit"), int(fx.get('weight', 6)))
-    apply_color(d, get_color(fx.get('color', [0, 0, 0])))
-    d.putBoolean(sID("overprint"), False)
-    action.putObject(sID("frameFX"), sID("frameFX"), d)
+    d.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
+    apply_color(d, fx.color)
+    d.PutUnitDouble(sID("opacity"), sID("percentUnit"), fx.opacity)
+    action.PutObject(sID("solidFill"), sID("solidFill"), d)
 
 
 def apply_fx_drop_shadow(action: ActionDescriptor, fx: EffectDropShadow) -> None:
@@ -290,14 +241,14 @@ def apply_fx_drop_shadow(action: ActionDescriptor, fx: EffectDropShadow) -> None
     d1 = ActionDescriptor()
     d2 = ActionDescriptor()
     d1.putEnumerated(sID("mode"), sID("blendMode"), sID("multiply"))
-    apply_color(d1, [0, 0, 0])
-    d1.putUnitDouble(sID("opacity"), sID("percentUnit"), float(fx.get('opacity', 100.000000)))
+    apply_color(d1, fx.color)
+    d1.putUnitDouble(sID("opacity"), sID("percentUnit"), fx.opacity)
     d1.putBoolean(sID("useGlobalAngle"), False)
-    d1.putUnitDouble(sID("localLightingAngle"), sID("angleUnit"), float(fx.get('rotation', 45.000000)))
-    d1.putUnitDouble(sID("distance"), sID("pixelsUnit"), float(fx.get('distance', 10.000000)))
-    d1.putUnitDouble(sID("chokeMatte"), sID("pixelsUnit"), float(fx.get('spread', 0.000000)))
-    d1.putUnitDouble(sID("blur"), sID("pixelsUnit"), float(fx.get('size', 0.000000)))
-    d1.putUnitDouble(sID("noise"), sID("percentUnit"), float(fx.get('noise', 0.000000)))
+    d1.putUnitDouble(sID("localLightingAngle"), sID("angleUnit"), fx.rotation)
+    d1.putUnitDouble(sID("distance"), sID("pixelsUnit"), fx.distance)
+    d1.putUnitDouble(sID("chokeMatte"), sID("pixelsUnit"), fx.spread)
+    d1.putUnitDouble(sID("blur"), sID("pixelsUnit"), fx.size)
+    d1.putUnitDouble(sID("noise"), sID("percentUnit"), fx.noise)
     d1.putBoolean(sID("antiAlias"), False)
     d2.putString(sID("name"), "Linear")
     d1.putObject(sID("transferSpec"), sID("shapeCurveType"), d2)
@@ -320,15 +271,15 @@ def apply_fx_gradient_overlay(action: ActionDescriptor, fx: EffectGradientOverla
     color_list = ActionList()
     transparency_list = ActionList()
     d1.putEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
-    d1.putUnitDouble(sID("opacity"), sID("percentUnit"),  int(fx.get('opacity', 100)))
+    d1.putUnitDouble(sID("opacity"), sID("percentUnit"),  fx.opacity)
     d2.putEnumerated(sID("gradientForm"), sID("gradientForm"), sID("customStops"))
-    d2.putDouble(sID("interfaceIconFrameDimmed"),  int(fx.get('size', 4096)))
-    for c in fx.get('colors', []):
+    d2.putDouble(sID("interfaceIconFrameDimmed"),  fx.size)
+    for c in fx.colors:
         add_color_to_gradient(
-            color_list,
-            get_color(c.get('color', [0, 0, 0])),
-            int(c.get('location', 0)),
-            int(c.get('midpoint', 50))
+            action_list=color_list,
+            color=get_color(c.color),
+            location=c.location,
+            midpoint=c.midpoint
         )
     d2.putList(sID("colors"),  color_list)
     d3.putUnitDouble(sID("opacity"), sID("percentUnit"),  100)
@@ -336,63 +287,37 @@ def apply_fx_gradient_overlay(action: ActionDescriptor, fx: EffectGradientOverla
     d3.putInteger(sID("midpoint"),  50)
     transparency_list.putObject(sID("transferSpec"),  d3)
     d4.putUnitDouble(sID("opacity"), sID("percentUnit"),  100)
-    d4.putInteger(sID("location"),  int(fx.get('size', 4096)))
+    d4.putInteger(sID("location"),  fx.size)
     d4.putInteger(sID("midpoint"),  50)
     transparency_list.putObject(sID("transferSpec"),  d4)
     d2.putList(sID("transparency"),  transparency_list)
     d1.putObject(sID("gradient"), sID("gradientClassEvent"),  d2)
-    d1.putUnitDouble(sID("angle"), sID("angleUnit"), int(fx.get('rotation', 45)))
+    d1.putUnitDouble(sID("angle"), sID("angleUnit"), fx.rotation)
     d1.putEnumerated(sID("type"), sID("gradientType"), sID("linear"))
     d1.putBoolean(sID("reverse"), False)
     d1.putBoolean(sID("dither"), False)
     d1.putEnumerated(cID("gs99"), sID("gradientInterpolationMethodType"), sID("classic"))
     d1.putBoolean(sID("align"), True)
-    d1.putUnitDouble(sID("scale"), sID("percentUnit"), int(fx.get('scale', 70)))
+    d1.putUnitDouble(sID("scale"), sID("percentUnit"), fx.scale)
     d5.putUnitDouble(sID("horizontal"), sID("percentUnit"),  0)
     d5.putUnitDouble(sID("vertical"), sID("percentUnit"),  0)
     d1.putObject(sID("offset"), sID("paint"),  d5)
     action.putObject(sID("gradientFill"), sID("gradientFill"),  d1)
 
 
-def apply_fx_color_overlay(action: ActionDescriptor, fx: EffectColorOverlay) -> None:
-    """Adds a solid color overlay to layer effects action.
+def apply_fx_stroke(action: ActionDescriptor, fx: EffectStroke) -> None:
+    """Adds stroke effect to layer effects action.
 
     Args:
         action: Pending layer effects action descriptor.
-        fx: Color Overlay effect properties.
+        fx: Stroke effect properties.
     """
     d = ActionDescriptor()
-    d.PutEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
-    apply_color(d, fx.get('color', rgb_black()))
-    d.PutUnitDouble(sID("opacity"), sID("percentUnit"), 100.000000)
-    action.PutObject(sID("solidFill"), sID("solidFill"), d)
-
-
-def apply_fx_bevel(action: ActionDescriptor, fx: EffectBevel) -> None:
-    """Adds a bevel to layer effects action.
-
-    Args:
-        action: Pending layer effects action descriptor.
-        fx: Bevel effect properties.
-    """
-    d1, d2 = ActionDescriptor(), ActionDescriptor()
-    d1.PutEnumerated(sID("highlightMode"), sID("blendMode"), sID("screen"))
-    apply_color(d1, fx.get('highlight_color', [255, 255, 255]), 'highlightColor')
-    d1.PutUnitDouble(sID("highlightOpacity"), sID("percentUnit"),  fx.get('highlight_opacity', 70))
-    d1.PutEnumerated(sID("shadowMode"), sID("blendMode"), sID("multiply"))
-    apply_color(d1, fx.get('shadow_color', [0, 0, 0]), 'shadowColor')
-    d1.PutUnitDouble(sID("shadowOpacity"), sID("percentUnit"),  fx.get('shadow_opacity', 72))
-    d1.PutEnumerated(sID("bevelTechnique"), sID("bevelTechnique"), sID("softMatte"))
-    d1.PutEnumerated(sID("bevelStyle"), sID("bevelEmbossStyle"), sID("outerBevel"))
-    d1.PutBoolean(sID("useGlobalAngle"), False)
-    d1.PutUnitDouble(sID("localLightingAngle"), sID("angleUnit"),  fx.get('rotation', 45))
-    d1.PutUnitDouble(sID("localLightingAltitude"), sID("angleUnit"),  fx.get('altitude', 22))
-    d1.PutUnitDouble(sID("strengthRatio"), sID("percentUnit"),  fx.get('depth', 100))
-    d1.PutUnitDouble(sID("blur"), sID("pixelsUnit"),  fx.get('size', 30))
-    d1.PutEnumerated(sID("bevelDirection"), sID("bevelEmbossStampStyle"), sID("in"))
-    d1.PutObject(sID("transferSpec"), sID("shapeCurveType"),  d2)
-    d1.PutBoolean(sID("antialiasGloss"), False)
-    d1.PutUnitDouble(sID("softness"), sID("pixelsUnit"),  fx.get('softness', 14))
-    d1.PutBoolean(sID("useShape"), False)
-    d1.PutBoolean(sID("useTexture"), False)
-    action.PutObject(sID("bevelEmboss"), sID("bevelEmboss"),  d1)
+    d.putEnumerated(sID("style"), sID("frameStyle"), Stroke.position(fx.style))
+    d.putEnumerated(sID("paintType"), sID("frameFill"), sID("solidColor"))
+    d.putEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
+    d.putUnitDouble(sID("opacity"), sID("percentUnit"), fx.opacity)
+    d.putUnitDouble(sID("size"), sID("pixelsUnit"), fx.weight)
+    apply_color(d, get_color(fx.color))
+    d.putBoolean(sID("overprint"), False)
+    action.putObject(sID("frameFX"), sID("frameFX"), d)
