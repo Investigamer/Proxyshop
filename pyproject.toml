@@ -20,9 +20,9 @@ include = 'src/../'
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-photoshop-python-api = { git = "https://github.com/MrTeferi/photoshop-python-api.git" }
+photoshop-python-api = "^0.22.4"
 requests = "^2.28.1"
-asynckivy = "^0.5.4"
+asynckivy = "^0.7.0"
 Pillow = "^10.3.0"
 kivy = "^2.3.0"
 typing-extensions = "^4.5.0"
@@ -31,14 +31,15 @@ backoff = "^2.2.1"
 pathvalidate = "^3.2.0"
 fonttools = "^4.39.3"
 pyyaml = "^6.0"
-py7zr = "^0.20.5"
 tqdm = "^4.65.0"
-python-dotenv = "^1.0.0"
 click = "^8.1.7"
 tomli = "^2.0.1"
 yarl = "^1.9.3"
 pydantic = "^2.5.2"
-omnitils = "^1.2.6"
+omnitils = "^1.4.4"
+dynaconf = {extras = ["yaml"], version = "^3.2.6"}
+hexproof = "^0.3.7"
+rich = "^13.8.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -69,7 +70,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.commitizen]
 version = "1.13.2"
-changelog_start_rev = '1.2.0'
+encoding = "utf-8"
+changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
 version_files = [
