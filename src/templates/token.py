@@ -3,9 +3,11 @@
 * Treated as 'Normal' templates, separated for better organization.
 """
 # Standard Library Imports
+from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
+from omnitils.strings import is_multiline
 from photoshop.api.application import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
@@ -17,8 +19,6 @@ from src.templates._core import StarterTemplate
 from src.templates._cosmetic import FullartMod
 import src.text_layers as text_classes
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
-from src.utils.strings import is_multiline
 
 """
 * Template Classes
@@ -51,7 +51,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
     * Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def background_layer(self) -> ArtLayer:
         """ArtLayer: Background governed by Legendary and creature checks."""
         return psd.getLayer(self.layout.pinlines, [
@@ -64,7 +64,7 @@ class TokenTemplate(FullartMod, StarterTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_group(self) -> LayerSet:
         """A group containing background, text, and reference based upon oracle text requirements."""
 
@@ -92,17 +92,17 @@ class TokenTemplate(FullartMod, StarterTemplate):
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference(self) -> ReferenceLayer:
         """Pull from the textbox group."""
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE, self.textbox_group)
 
-    @auto_prop_cached
+    @cached_property
     def type_line_reference(self) -> ReferenceLayer:
         """Reference to scale the TypeLine."""
         return psd.get_reference_layer(LAYERS.TYPE_LINE_REFERENCE, self.textbox_group)
 
-    @auto_prop_cached
+    @cached_property
     def name_reference(self) -> ReferenceLayer:
         """Reference to scale the Card Name"""
         if self.is_legendary:
@@ -113,12 +113,12 @@ class TokenTemplate(FullartMod, StarterTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_type(self) -> ArtLayer:
         """Pull from the textbox group."""
         return psd.getLayer(LAYERS.TYPE_LINE, self.textbox_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         """Full textbox group has both creature and non-creature option."""
         if self.textbox_group.name == LAYERS.FULL:

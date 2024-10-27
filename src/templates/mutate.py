@@ -2,6 +2,7 @@
 * Mutate Templates
 """
 # Standard Library
+from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -16,14 +17,13 @@ from src.layouts import MutateLayout
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
 """
 
 
-class MutateMod (NormalTemplate):
+class MutateMod(NormalTemplate):
     """
     * A modifier for mutate cards introduced in Ikoria: Lair of Behemoths.
 
@@ -35,7 +35,7 @@ class MutateMod (NormalTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Mutate text layers."""
         funcs = [self.text_layers_mutate] if isinstance(self.layout, MutateLayout) else []
@@ -45,7 +45,7 @@ class MutateMod (NormalTemplate):
     * Mutate Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_mutate(self) -> Optional[ArtLayer]:
         """Text layer containing the mutate text."""
         return psd.getLayer(LAYERS.MUTATE, self.text_group)
@@ -54,7 +54,7 @@ class MutateMod (NormalTemplate):
     * Mutate References
     """
 
-    @auto_prop_cached
+    @cached_property
     def mutate_reference(self) -> Optional[ReferenceLayer]:
         """Mutate textbox reference."""
         return psd.get_reference_layer(LAYERS.MUTATE_REFERENCE, self.text_group)
@@ -80,9 +80,9 @@ class MutateMod (NormalTemplate):
         # Add mutate text
         self.text.append(
             text_classes.FormattedTextArea(
-                layer = self.text_layer_mutate,
-                contents = self.layout.mutate_text,
-                reference = self.mutate_reference))
+                layer=self.text_layer_mutate,
+                contents=self.layout.mutate_text,
+                reference=self.mutate_reference))
 
 
 """
@@ -90,5 +90,5 @@ class MutateMod (NormalTemplate):
 """
 
 
-class MutateTemplate (MutateMod, NormalTemplate):
+class MutateTemplate(MutateMod, NormalTemplate):
     """Raster template for Mutate cards introduced in Ikoria: Lair of Behemoths."""

@@ -2,6 +2,7 @@
 * BATTLE TEMPLATES
 """
 # Standard Library
+from functools import cached_property
 from typing import Callable, Optional, Union
 
 # Third Party Imports
@@ -11,20 +12,19 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
-from src.enums.mtg import pinlines_color_map
 import src.helpers as psd
 from src.layouts import BattleLayout
+from src.schema.colors import pinlines_color_map
 from src.templates._core import BaseTemplate
 from src.templates._vector import VectorTemplate
 from src.text_layers import FormattedTextArea, TextField
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
 """
 
 
-class BattleMod (BaseTemplate):
+class BattleMod(BaseTemplate):
     """
     * A template modifier for Battle cards introduced in March of the Machine.
 
@@ -41,7 +41,7 @@ class BattleMod (BaseTemplate):
     * Layout Check
     """
 
-    @auto_prop_cached
+    @cached_property
     def is_layout_battle(self) -> bool:
         """bool: Checks if this card matches BattleLayout."""
         return isinstance(self.layout, BattleLayout)
@@ -50,13 +50,13 @@ class BattleMod (BaseTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Class text layers."""
         funcs = [self.text_layers_battle] if self.is_layout_battle else []
         return [*super().text_layer_methods, *funcs]
 
-    @auto_prop_cached
+    @cached_property
     def post_text_methods(self) -> list[Callable]:
         """Rotate card sideways."""
         funcs = [psd.rotate_counter_clockwise] if self.is_layout_battle else []
@@ -66,24 +66,24 @@ class BattleMod (BaseTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_name(self) -> Optional[ArtLayer]:
         """Doesn't need to be shifted."""
         return psd.getLayer(LAYERS.NAME, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         """Supports noncreature and creature, with or without flipside PT."""
         if self.is_transform and self.is_front and self.is_flipside_creature:
             return psd.getLayer(LAYERS.RULES_TEXT_FLIP, self.text_group)
         return psd.getLayer(LAYERS.RULES_TEXT, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_flipside_pt(self) -> Optional[ArtLayer]:
         """Flipside power/toughness layer for front face Transform cards."""
         return psd.getLayer(LAYERS.FLIPSIDE_POWER_TOUGHNESS, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_defense(self) -> Optional[ArtLayer]:
         """Battle defense number in bottom right corner."""
         return psd.getLayer(LAYERS.DEFENSE, self.text_group)
@@ -92,7 +92,7 @@ class BattleMod (BaseTemplate):
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def defense_reference(self) -> Optional[ArtLayer]:
         """Optional[ArtLayer]: Reference used to detect collision with the PT box."""
         return psd.getLayer(
@@ -113,13 +113,13 @@ class BattleMod (BaseTemplate):
         # Rules Text and Power / Toughness
         self.text.extend([
             FormattedTextArea(
-                layer = self.text_layer_rules,
-                contents = self.layout.oracle_text,
-                flavor = self.layout.flavor_text,
-                reference = self.textbox_reference,
-                divider = self.divider_layer,
-                pt_reference = self.defense_reference,
-                centered = self.is_centered
+                layer=self.text_layer_rules,
+                contents=self.layout.oracle_text,
+                flavor=self.layout.flavor_text,
+                reference=self.textbox_reference,
+                divider=self.divider_layer,
+                pt_reference=self.defense_reference,
+                centered=self.is_centered
             )])
 
     """
@@ -150,7 +150,7 @@ class BattleMod (BaseTemplate):
 """
 
 
-class BattleTemplate (BattleMod, VectorTemplate):
+class BattleTemplate(BattleMod, VectorTemplate):
     """Battle template using vector shape layers and automatic pinlines / multicolor generation."""
 
     """
@@ -173,7 +173,7 @@ class BattleTemplate (BattleMod, VectorTemplate):
     * Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_colors(self) -> Union[SolidColor, list[dict]]:
         """Must be returned as SolidColor or gradient notation."""
         return psd.get_pinline_gradient(
@@ -186,23 +186,23 @@ class BattleTemplate (BattleMod, VectorTemplate):
     * Shape Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_shape(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.NORMAL, [self.textbox_group, LAYERS.SHAPE])
 
-    @auto_prop_cached
+    @cached_property
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         return [self.textbox_shape]
 
 
-class UniversesBeyondBattleTemplate (BattleTemplate):
+class UniversesBeyondBattleTemplate(BattleTemplate):
     """Universes Beyond version of BattleTemplate."""
 
     """
     * Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_color_map(self) -> dict:
         colors = pinlines_color_map.copy()
         colors.update({
@@ -218,7 +218,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
         })
         return colors
 
-    @auto_prop_cached
+    @cached_property
     def twins_colors(self) -> Optional[str]:
         return f"{self.twins} Beyond"
 
@@ -226,7 +226,7 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_group(self) -> LayerSet:
         """Textbox Beyond group."""
         return psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond")
@@ -235,6 +235,6 @@ class UniversesBeyondBattleTemplate (BattleTemplate):
     * Shape Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_shape(self) -> Optional[ArtLayer]:
         return psd.getLayer(LAYERS.NORMAL, [self.textbox_group, LAYERS.SHAPE])

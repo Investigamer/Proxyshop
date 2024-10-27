@@ -2,6 +2,7 @@
 * PLANAR TEMPLATES
 """
 # Standard Library Imports
+from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
@@ -9,7 +10,6 @@ from photoshop.api.application import ArtLayer
 
 # Local Imports
 from src import CFG
-from src.utils.properties import auto_prop_cached
 from src.templates._core import StarterTemplate
 import src.text_layers as text_classes
 from src.enums.layers import LAYERS
@@ -21,7 +21,7 @@ import src.helpers as psd
 """
 
 
-class PlanarTemplate (StarterTemplate):
+class PlanarTemplate(StarterTemplate):
     """Planar template for Planar and Phenomenon cards introduced in the Planechase block.
 
     Todo:
@@ -32,11 +32,11 @@ class PlanarTemplate (StarterTemplate):
         CFG.exit_early = True
         super().__init__(layout, **kwargs)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_static_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.STATIC_ABILITY, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_chaos_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.CHAOS_ABILITY, self.text_group)
 
@@ -44,13 +44,13 @@ class PlanarTemplate (StarterTemplate):
         """No mana cost, don't scale name layer."""
         self.text.extend([
             text_classes.TextField(
-                layer = self.text_layer_name,
-                contents = self.layout.name
+                layer=self.text_layer_name,
+                contents=self.layout.name
             ),
             text_classes.ScaledTextField(
-                layer = self.text_layer_type,
-                contents = self.layout.type_line,
-                reference = self.type_reference
+                layer=self.text_layer_type,
+                contents=self.layout.type_line,
+                reference=self.type_reference
             )
         ])
 
@@ -62,8 +62,8 @@ class PlanarTemplate (StarterTemplate):
             # Insert oracle text into static ability layer and disable chaos ability & layer mask on textbox
             self.text.append(
                 text_classes.FormattedTextField(
-                    layer = self.text_layer_static_ability,
-                    contents = self.layout.oracle_text
+                    layer=self.text_layer_static_ability,
+                    contents=self.layout.oracle_text
                 )
             )
             psd.enable_mask(psd.getLayerSet(LAYERS.TEXTBOX))
@@ -76,12 +76,12 @@ class PlanarTemplate (StarterTemplate):
             linebreak_index = self.layout.oracle_text.rindex("\n")
             self.text.extend([
                 text_classes.FormattedTextField(
-                    layer = self.text_layer_static_ability,
-                    contents = self.layout.oracle_text[0:linebreak_index]
+                    layer=self.text_layer_static_ability,
+                    contents=self.layout.oracle_text[0:linebreak_index]
                 ),
                 text_classes.FormattedTextField(
-                    layer = self.text_layer_chaos_ability,
-                    contents = self.layout.oracle_text[linebreak_index+1:]
+                    layer=self.text_layer_chaos_ability,
+                    contents=self.layout.oracle_text[linebreak_index + 1:]
                 ),
             ])
 
