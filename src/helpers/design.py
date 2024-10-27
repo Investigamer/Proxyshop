@@ -24,7 +24,7 @@ from src import APP, CONSOLE
 from src.helpers.layers import select_layers, smart_layer, edit_smart_layer
 from src.helpers.colors import rgb_black, fill_layer_primary
 from src.helpers.selection import select_layer_pixels
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import PS_EXCEPTIONS
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID

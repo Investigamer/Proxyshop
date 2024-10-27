@@ -6,7 +6,6 @@ from contextlib import suppress
 from typing import Optional, Union, Iterable
 
 # Third Party Imports
-from comtypes.client.lazybind import Dispatch
 from photoshop.api import DialogModes, ActionDescriptor, ActionReference, BlendMode
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._document import Document
@@ -14,21 +13,11 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src import APP, ENV
-from src.enums.adobe import LayerContainer
-from src.utils.adobe import ReferenceLayer
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import LayerContainer, LayerContainerTypes, ReferenceLayer, PS_EXCEPTIONS
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
-
-"""
-* Types
-"""
-
-
-LayerContainerTypes = Union[LayerSet, Document, Dispatch]
-LayerObjectTypes = Union[ArtLayer, LayerSet, Dispatch]
 
 
 """
@@ -122,11 +111,13 @@ def getLayerSet(
         # LayerSet can't be located
         raise OSError(f"LayerSet invalid")
     except PS_EXCEPTIONS:
-        print(f'LayerSet "{name}" could not be found!')
-        if group and isinstance(group, LayerSet):
-            print(f"LayerSet reference used: {group.name}")
-        elif group and isinstance(group, str):
-            print(f"LayerSet reference used: {group}")
+        # LayerSet couldn't be found
+        if ENV.DEV_MODE:
+            print(f'LayerSet "{name}" could not be found!')
+            if group and isinstance(group, LayerSet):
+                print(f"LayerSet reference used: {group.name}")
+            elif group and isinstance(group, str):
+                print(f"LayerSet reference used: {group}")
     return
 
 
@@ -256,7 +247,7 @@ def group_layers(
     return APP.activeDocument.activeLayer
 
 
-def duplicate_group(name: str) -> Union[LayerSet]:
+def duplicate_group(name: str) -> LayerSet:
     """Duplicates current active layer set without renaming contents.
 
     Args:

@@ -14,7 +14,7 @@ from photoshop.api._layerSet import LayerSet
 from src import APP
 from src.helpers.descriptors import get_layer_action_ref
 from src.helpers.document import undo_action
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import PS_EXCEPTIONS
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID

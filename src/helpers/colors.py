@@ -11,15 +11,14 @@ from photoshop.api._artlayer import ArtLayer, TextItem
 # Local Imports
 from src import APP, CON
 from src.enums.layers import LAYERS
-from src.enums.mtg import pinlines_color_map
+from src.schema.colors import pinlines_color_map, ColorObject
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-
 """
-CONVERTING COLOR
+* Color Conversions
 """
 
 
@@ -28,6 +27,7 @@ def hex_to_rgb(color: str) -> list[int]:
 
     Args:
         color: Hexadecimal color code, e.g. #F5D676
+
     Returns:
         Color in RGB list notation.
     """
@@ -37,7 +37,7 @@ def hex_to_rgb(color: str) -> list[int]:
 
 
 """
-GETTING COLOR
+* Getting Color Objects
 """
 
 
@@ -126,7 +126,7 @@ def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
     return color
 
 
-def get_color(color: Union[SolidColor, list[int], str]) -> SolidColor:
+def get_color(color: ColorObject) -> SolidColor:
     """Automatically get either cmyk or rgb color given a range of possible input notations.
 
     Args:
@@ -183,123 +183,6 @@ def get_text_item_color(item: TextItem) -> SolidColor:
             return item.color
         print(f"Couldn't retrieve color of TextItem!")
     return rgb_black()
-
-
-"""
-APPLYING COLOR
-"""
-
-
-def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
-    """Applies RGB color to action descriptor from a list of values.
-
-    Args:
-        action: ActionDescriptor object.
-        color: List of integers for R, G, B.
-        color_type: Color action descriptor type, defaults to 'color'.
-    """
-    ad = ActionDescriptor()
-    ad.putDouble(sID("red"), color[0])
-    ad.putDouble(sID("green"), color[1])
-    ad.putDouble(sID("blue"), color[2])
-    action.putObject(sID(color_type), sID("RGBColor"), ad)
-
-
-def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
-    """Applies CMYK color to action descriptor from a list of values.
-
-    Args:
-        action: ActionDescriptor object.
-        color: List of integers for R, G, B.
-        color_type: Color action descriptor type, defaults to 'color'.
-    """
-    ad = ActionDescriptor()
-    ad.putDouble(sID("cyan"), color[0])
-    ad.putDouble(sID("magenta"), color[1])
-    ad.putDouble(sID("yellowColor"), color[2])
-    ad.putDouble(sID("black"), color[3])
-    action.putObject(sID(color_type), sID("CMYKColorClass"), ad)
-
-
-def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
-    """Apply RGB SolidColor object to action descriptor.
-
-    Args:
-        action: ActionDescriptor object.
-        c: SolidColor object matching RGB model.
-        color_type: Color action descriptor type, defaults to 'color'.
-    """
-    apply_rgb_from_list(action, [c.rgb.red, c.rgb.green, c.rgb.blue], color_type)
-
-
-def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
-    """Apply CMYK SolidColor object to action descriptor.
-
-    Args:
-        action: ActionDescriptor object.
-        c: SolidColor object matching CMYK model.
-        color_type: Color action descriptor type, defaults to 'color'.
-    """
-    apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
-
-
-def apply_color(
-    action: ActionDescriptor,
-    color: Union[list[int], SolidColor, str],
-    color_type: str = 'color'
-) -> None:
-    """Applies color to the specified action descriptor.
-
-    Args:
-        action: ActionDescriptor object.
-        color: RGB/CMYK SolidColor object, list of RGB/CMYK values, a hex string, or a named color.
-        color_type: Color action descriptor type, defaults to 'color'.
-    """
-    if isinstance(color, list):
-        # RGB / CMYK list notation
-        if len(color) < 4:
-            return apply_rgb_from_list(action, color, color_type)
-        return apply_cmyk_from_list(action, color, color_type)
-    if isinstance(color, SolidColor):
-        if color.model == ColorModel.RGBModel:
-            # RGB SolidColor object
-            return apply_rgb(action, color, color_type)
-        if color.model == ColorModel.CMYKModel:
-            # CMYK SolidColor object
-            return apply_cmyk(action, color, color_type)
-    if isinstance(color, str):
-        # Named or hex color
-        return apply_color(action, get_color(color), color_type)
-    raise ValueError(f"Received unsupported color object: {color}")
-
-
-def add_color_to_gradient(
-    action_list: ActionList,
-    color: SolidColor,
-    location: int,
-    midpoint: int
-) -> None:
-    """Adds a SolidColor to gradient at a given location, with a given midpoint.
-
-    Args:
-        action_list: Action list to add this color to.
-        color: SolidColor object.
-        location: Location of the color along the track.
-        midpoint: Percentage midpoint between this color and the next.
-    """
-    action = ActionDescriptor()
-    apply_color(action, color)
-    action.putEnumerated(sID("type"), sID("colorStopType"), sID("userStop"))
-    action.putInteger(sID("location"), location)
-    action.putInteger(sID("midpoint"), midpoint)
-    action_list.putObject(sID("colorStop"), action)
-
-
-def fill_layer_primary():
-    """Fill active layer using foreground color."""
-    desc1 = ActionDescriptor()
-    desc1.putEnumerated(sID("using"), sID("fillContents"), sID("foregroundColor"))
-    APP.executeAction(sID("fill"), desc1, NO_DIALOG)
 
 
 def get_pinline_gradient(
@@ -388,3 +271,120 @@ def get_pinline_gradient(
             }
         ]
     return color_map.get(colors, [0, 0, 0])
+
+
+"""
+* Applying Color Objects
+"""
+
+
+def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+    """Applies RGB color to action descriptor from a list of values.
+
+    Args:
+        action: ActionDescriptor object.
+        color: List of integers for R, G, B.
+        color_type: Color action descriptor type, defaults to 'color'.
+    """
+    ad = ActionDescriptor()
+    ad.putDouble(sID("red"), color[0])
+    ad.putDouble(sID("green"), color[1])
+    ad.putDouble(sID("blue"), color[2])
+    action.putObject(sID(color_type), sID("RGBColor"), ad)
+
+
+def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+    """Applies CMYK color to action descriptor from a list of values.
+
+    Args:
+        action: ActionDescriptor object.
+        color: List of integers for R, G, B.
+        color_type: Color action descriptor type, defaults to 'color'.
+    """
+    ad = ActionDescriptor()
+    ad.putDouble(sID("cyan"), color[0])
+    ad.putDouble(sID("magenta"), color[1])
+    ad.putDouble(sID("yellowColor"), color[2])
+    ad.putDouble(sID("black"), color[3])
+    action.putObject(sID(color_type), sID("CMYKColorClass"), ad)
+
+
+def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
+    """Apply RGB SolidColor object to action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        c: SolidColor object matching RGB model.
+        color_type: Color action descriptor type, defaults to 'color'.
+    """
+    apply_rgb_from_list(action, [c.rgb.red, c.rgb.green, c.rgb.blue], color_type)
+
+
+def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
+    """Apply CMYK SolidColor object to action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        c: SolidColor object matching CMYK model.
+        color_type: Color action descriptor type, defaults to 'color'.
+    """
+    apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
+
+
+def apply_color(
+    action: ActionDescriptor,
+    color: ColorObject,
+    color_type: str = 'color'
+) -> None:
+    """Applies color to the specified action descriptor.
+
+    Args:
+        action: ActionDescriptor object.
+        color: RGB/CMYK SolidColor object, list of RGB/CMYK values, a hex string, or a named color.
+        color_type: Color action descriptor type, defaults to 'color'.
+    """
+    if isinstance(color, list):
+        # RGB / CMYK list notation
+        if len(color) < 4:
+            return apply_rgb_from_list(action, color, color_type)
+        return apply_cmyk_from_list(action, color, color_type)
+    if isinstance(color, SolidColor):
+        if color.model == ColorModel.RGBModel:
+            # RGB SolidColor object
+            return apply_rgb(action, color, color_type)
+        if color.model == ColorModel.CMYKModel:
+            # CMYK SolidColor object
+            return apply_cmyk(action, color, color_type)
+    if isinstance(color, str):
+        # Named or hex color
+        return apply_color(action, get_color(color), color_type)
+    raise ValueError(f"Received unsupported color object: {color}")
+
+
+def add_color_to_gradient(
+    action_list: ActionList,
+    color: ColorObject,
+    location: int,
+    midpoint: int
+) -> None:
+    """Adds a SolidColor to gradient at a given location, with a given midpoint.
+
+    Args:
+        action_list: Action list to add this color to.
+        color: SolidColor object.
+        location: Location of the color along the track.
+        midpoint: Percentage midpoint between this color and the next.
+    """
+    action = ActionDescriptor()
+    apply_color(action, color)
+    action.putEnumerated(sID("type"), sID("colorStopType"), sID("userStop"))
+    action.putInteger(sID("location"), location)
+    action.putInteger(sID("midpoint"), midpoint)
+    action_list.putObject(sID("colorStop"), action)
+
+
+def fill_layer_primary():
+    """Fill active layer using foreground color."""
+    desc1 = ActionDescriptor()
+    desc1.putEnumerated(sID("using"), sID("fillContents"), sID("foregroundColor"))
+    APP.executeAction(sID("fill"), desc1, NO_DIALOG)

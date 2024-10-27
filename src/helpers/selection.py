@@ -17,7 +17,7 @@ from photoshop.api import (
 
 # Local Imports
 from src import APP
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import PS_EXCEPTIONS
 
 # Photoshop infrastructure
 cID, sID = APP.charIDtoTypeID, APP.stringIDToTypeID
