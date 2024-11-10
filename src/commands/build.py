@@ -10,29 +10,13 @@ import click
 # Local Imports
 from src.utils.build import build_release
 
-"""
-* Command Groups
-"""
-
-
-@click.group(
-    name='build',
-    help='Command utilities for building and managing release files.'
-)
-def build_cli() -> None:
-    """App build tools CLI."""
-    pass
-
 
 """
 * Commands
 """
 
 
-@build_cli.command(
-    name='app',
-    help='Build executable app release and distributable zip.'
-)
+@click.command(help='Build executable app release and distributable zip.')
 @click.argument('version', required=False)
 @click.option('-B', '--beta', is_flag=True, default=False, help="Build app as a Beta release.")
 @click.option('-C', '--console', is_flag=True, default=False, help="Build app with console enabled.")
@@ -47,6 +31,23 @@ def build_app(version: Optional[str] = None, beta: bool = False, console: bool =
         raw: Build app without creating zip if True.
     """
     build_release(version=version, beta=beta, console=console, zipped=not raw)
+
+
+"""
+* Command Groups
+"""
+
+
+@click.group(
+    name='build',
+    help='Command utilities for building and managing release files.',
+    commands=dict(
+        app=build_release
+    )
+)
+def build_cli() -> None:
+    """App build tools CLI."""
+    pass
 
 
 # Export CLI

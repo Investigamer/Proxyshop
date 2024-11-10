@@ -1,25 +1,34 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: "[BUG] - Bug name"
+name: Bug Report
+about: Report a bug encountered in Photoshop.
+title: "[BUG] - Bug Title"
 labels: bug
-assignees: MrTeferi
+assignees: Investigamer
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Bug Description
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. I did '...'
-2. I also '....'
-3. And also '...'
+A clear and concise description of the dysfunctional behavior encountered.
 
-**Your system:**
- - Proxyshop or Python version:
- - Windows version:
- - Photoshop version:
+## How to Reproduce
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+1. I did ...
+2. I also ...
+3. And also ...
+
+## System Details
+
+- Proxyshop version:
+- Photoshop version:
+- Using Python?:
+- If so, Python version:
+- Windows OS: (for example Win7, Win10, Win11, etc)
+
+## Screenshots
+
+If applicable, add screenshots to demonstrate the issue.
+
+## Logs
+
+If applicable, add logs to demonstrate the issue (check `Proxyshop/logs/failed.txt`).

@@ -17,7 +17,6 @@ from src.helpers.selection import select_canvas
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
-
 """
 * Copying Masks
 """

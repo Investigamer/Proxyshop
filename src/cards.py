@@ -8,14 +8,15 @@ from pathlib import Path
 from typing import Optional, Union, TypedDict, Any
 
 # Third Party Imports
+from omnitils.strings import normalize_str
 import yarl
 
 # Local Imports
 from src._config import AppConfig
-from src.api import scryfall
-from src.enums.mtg import TransformIcons, ColorObject, non_italics_abilities
-from src.utils.regex import Reg
-from src.utils.strings import normalize_str, msg_warn
+from src.console import msg_warn
+from src.enums.mtg import TransformIcons, non_italics_abilities, CardTextPatterns
+from src.schema.colors import ColorObject
+from src.utils import scryfall
 
 """
 * Types
@@ -123,10 +124,10 @@ def parse_card_info(file_path: Path) -> CardDetails:
     file_name = file_path.stem
 
     # Match pattern and format data
-    name_split = Reg.PATH_SPLIT.split(file_name)
-    artist = Reg.PATH_ARTIST.search(file_name)
-    number = Reg.PATH_NUM.search(file_name)
-    set_or_cfg = Reg.PATH_SET_OR_CFG.findall(file_name)
+    name_split = CardTextPatterns.PATH_SPLIT.split(file_name)
+    artist = CardTextPatterns.PATH_ARTIST.search(file_name)
+    number = CardTextPatterns.PATH_NUM.search(file_name)
+    set_or_cfg = CardTextPatterns.PATH_SET_OR_CFG.findall(file_name)
 
     code = None
     additional_cfg = {}
@@ -349,10 +350,6 @@ def generate_italics(card_text: str) -> list[str]:
         end_index = card_text.find(")", start_index + 1) + 1
         if end_index < 1:
             break
-
-        # Ignore nested parenthesis case, e.g. Alpha cards like "Rock Hydra"
-        if end_index != len(card_text) and card_text[end_index] != "\n":
-            continue
         italic_text.append(card_text[start_index:end_index])
 
     # Determine whether to look for ability words
@@ -360,9 +357,9 @@ def generate_italics(card_text: str) -> list[str]:
         return italic_text
 
     # Find and add ability words
-    for match in Reg.TEXT_ABILITY.findall(card_text):
-        # Cover "Davros, Dalek Creator" case
-        if match.count(' ') > 6:
+    for match in CardTextPatterns.TEXT_ABILITY.findall(card_text):
+        # Cover "villainous choice" case
+        if 'villainous' in match:
             continue
         # Cover "Mirrodin Besieged" case
         if f"• {match}" in card_text and "choose one" not in card_text.lower():
@@ -391,10 +388,10 @@ def strip_reminder_text(text: str) -> str:
         return text
 
     # Remove reminder text
-    text_stripped = Reg.TEXT_REMINDER.sub("", text)
+    text_stripped = CardTextPatterns.TEXT_REMINDER.sub("", text)
 
     # Remove any extra whitespace
-    text_stripped = Reg.EXTRA_SPACE.sub('', text_stripped).strip()
+    text_stripped = CardTextPatterns.EXTRA_SPACE.sub('', text_stripped).strip()
 
     # Return the stripped text if it isn't empty
     if text_stripped:

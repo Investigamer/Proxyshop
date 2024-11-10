@@ -7,6 +7,7 @@ import os
 from contextlib import suppress
 from ctypes import wintypes
 import os.path as osp
+import re
 from typing import Optional, TypedDict
 
 # Third Party Imports
@@ -15,10 +16,10 @@ from fontTools.ttLib import TTFont, TTLibError
 from packaging.version import parse
 
 # Local Imports
-from src.enums.adobe import LayerContainer
-from src.utils.adobe import PhotoshopHandler
-from src.utils.exceptions import PS_EXCEPTIONS
-from src.utils.regex import Reg
+from src.utils.adobe import LayerContainer, PhotoshopHandler, PS_EXCEPTIONS
+
+# Precompile font version pattern
+REG_FONT_VER: re.Pattern = re.compile(r"\b(\d+\.\d+)\b")
 
 """
 * Types
@@ -173,7 +174,7 @@ def get_font_details(path: str) -> Optional[tuple[str, FontDetails]]:
         with TTFont(path) as font:
             font_name = font['name'].getName(4, 3, 1, 1033).toUnicode()
             font_postscript = font['name'].getDebugName(6)
-            version_match = Reg.FONT_VERSION.search(font['name'].getDebugName(5))
+            version_match = REG_FONT_VER.search(font['name'].getDebugName(5))
             font_version = version_match.group(1).lstrip('0') if version_match else None
         return font_postscript, {'name': font_name, 'version': font_version}
     return

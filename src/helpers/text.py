@@ -24,12 +24,11 @@ from src.helpers.bounds import (
     get_textbox_width,
     get_width_no_effects)
 from src.helpers.document import pixels_to_points
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import PS_EXCEPTIONS
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
-
 
 """
 * Text Utils
@@ -307,7 +306,7 @@ def remove_leading_text(layer: ArtLayer, idx: int) -> None:
 def get_text_scale_factor(
     layer: Optional[ArtLayer] = None,
     axis: Optional[Union[str, list]] = 'yy',
-    text_key = None
+    text_key=None
 ) -> Union[int, float, list[Union[int, float]]]:
     """Get the scale factor of the document for changing text size.
 

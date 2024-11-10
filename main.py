@@ -14,7 +14,7 @@ def launch_cli():
     """Launch the app in CLI mode."""
 
     # Enable headless mode, remove cli marker
-    os.environ['HEADLESS'] = '1'
+    os.environ['PROXYSHOP_HEADLESS'] = '1'
     if 'cli' in sys.argv:
         sys.argv.remove('cli')
 
@@ -29,6 +29,7 @@ def launch_gui():
     """Launch the app in GUI mode."""
 
     # Local Imports
+    os.environ['PROXYSHOP_HEADLESS'] = '0'
     from src import (
         APP, CFG, CON, CONSOLE, ENV,
         PLUGINS, TEMPLATES, TEMPLATE_MAP, TEMPLATE_DEFAULTS)

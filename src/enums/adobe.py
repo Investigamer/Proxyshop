@@ -6,18 +6,10 @@ from enum import Enum
 from typing import Literal, Union
 
 # Third Party Imports
-from comtypes.client.lazybind import Dispatch
-from photoshop.api._document import Document
-from photoshop.api._artlayer import ArtLayer
-from photoshop.api._layerSet import LayerSet
+from omnitils.enums import StrConstant
 
 # Local Imports
 from src import APP
-from src.utils.strings import StrEnum
-
-# Common Layer Objects
-LayerContainer = LayerSet, Document, Dispatch
-LayerObject = LayerSet, ArtLayer, Dispatch
 
 """
 * Action Descriptors
@@ -33,7 +25,7 @@ class DescriptorEnum(Enum):
         return int(APP.stringIDToTypeID(self._value_))
 
 
-class Dimensions(StrEnum):
+class Dimensions(StrConstant):
     """Layer dimension descriptors."""
     Width = 'width'
     Height = 'height'

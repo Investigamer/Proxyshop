@@ -5,27 +5,28 @@
 # Standard Library Imports
 import os
 from contextlib import suppress
+from functools import cached_property
 from os import environ
 from pathlib import Path
 import sys
 from threading import Lock
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 # Third Party Imports
-from dotenv import dotenv_values
+from hexproof.hexapi import schema as Hexproof
+from omnitils.exceptions import return_on_exception
+from omnitils.files import load_data_file, dump_data_file
+from omnitils.metaclass import Singleton
+from omnitils.properties import tracked_prop
+from dynaconf import Dynaconf
 
 # Local Imports
 from src.enums.layers import LAYERS
 from src.enums.mtg import (
     mana_symbol_map,
-    CardFonts,
-    SymbolColorMap,
-    ColorObject,
-    get_symbol_colors)
-from src.utils.exceptions import return_on_exception
-from src.utils.files import dump_data_file, load_data_file, get_app_version
-from src.utils.properties import auto_prop_cached, Singleton, tracked_prop
-from src.utils.strings import str_to_bool_safe
+    CardFonts)
+from src.schema.colors import ColorObject, SymbolColorMap
+from src.utils.mtg import get_symbol_colors
 
 
 """
@@ -78,6 +79,7 @@ class PATH(DefinedPaths):
     FONTS = CWD / 'fonts'
     PLUGINS = CWD / 'plugins'
     TEMPLATES = CWD / 'templates'
+    PROJECT_FILE = CWD / 'pyproject.toml'
 
     # Source Level Directories
     SRC_IMG = SRC / 'img'
@@ -91,6 +93,8 @@ class PATH(DefinedPaths):
     SRC_DATA_CONFIG_INI = SRC_DATA / 'config_ini'
 
     # Data Level Files
+    SRC_DATA_ENV = SRC_DATA / 'env.yml'
+    SRC_DATA_ENV_DEFAULT = SRC_DATA / 'env.default.yml'
     SRC_DATA_WATERMARKS = SRC_DATA / 'watermarks.yml'
     SRC_DATA_MANIFEST = SRC_DATA / 'manifest.yml'
     SRC_DATA_HEXPROOF_SET = (SRC_DATA_HEXPROOF / 'set').with_suffix('.json')
@@ -126,67 +130,94 @@ class PATH(DefinedPaths):
 * App Environment
 """
 
-# Load environment variables
-DOTENV = dotenv_values(Path(PATH.CWD, '.env'))
-
 # KIVY Environment
 environ.setdefault('KIVY_LOG_MODE', 'PYTHON')
 environ.setdefault('KIVY_NO_FILELOG', '1')
-environ.setdefault('HEADLESS', '0')
 
 
-class AppEnvironment:
+class AppEnvironment(Dynaconf):
     """Tracking and modifying global environment behavior."""
-    __metaclass__ = Singleton
 
-    @auto_prop_cached
+    @staticmethod
+    def string_or_none(value: Any) -> Optional[str]:
+        """Casts a value as either a string OR None.
+
+        Args:
+            value: Value to be cast.
+
+        Returns:
+            A string or None.
+        """
+        if value in (None, 'null', 'None', ''):
+            return None
+        return str(value)
+
+    """
+    * File Hosting
+    """
+
+    @cached_property
+    def API_GOOGLE(self) -> str:
+        """str: Google Drive API key."""
+        return super().API_GOOGLE
+
+    @cached_property
+    def API_AMAZON(self) -> str:
+        """str: Amazon S3 cloudfront URL."""
+        return super().API_AMAZON
+
+    """
+    * Photoshop
+    """
+
+    @cached_property
+    def PS_ERROR_DIALOG(self) -> bool:
+        """bool: Whether Photoshop error dialogues are enabled."""
+        return super().PS_ERROR_DIALOG
+
+    @cached_property
+    def PS_VERSION(self) -> Optional[str]:
+        """str: Photoshop version to try and load, for use when multiple Photoshop versions are installed."""
+        if super().PS_VERSION not in ['', None]:
+            return super().PS_VERSION
+        return None
+
+    """
+    * Testing
+    """
+
+    @cached_property
+    def HEADLESS(self) -> bool:
+        """bool: Whether the app is running in headless mode."""
+        return super().HEADLESS
+
+    @cached_property
+    def DEV_MODE(self) -> bool:
+        """bool: Whether the app is running in developer mode."""
+        return super().DEV_MODE
+
+    @cached_property
+    def TEST_MODE(self) -> bool:
+        """bool: Whether the app is running in testing mode."""
+        return super().TEST_MODE
+
+    """
+    * Experimental
+    """
+
+    @cached_property
+    def FORCE_RELOAD(self) -> bool:
+        """bool: Whether to force plugin template modules to be reloaded on each new render sequence."""
+        return super().FORCE_RELOAD
+
+    @cached_property
     def VERSION(self) -> str:
         """str: Current app version."""
         if hasattr(sys, '_MEIPASS'):
-            # Use generated version module in Pyinstaller build
-            import __VERSION__
+            # Build with Pyinstaller generated module
+            import __VERSION__  # noqa
             return str(__VERSION__.version)
-        return environ.get('VERSION', get_app_version(PATH.CWD / 'pyproject.toml'))
-
-    @auto_prop_cached
-    def API_GOOGLE(self) -> str:
-        """str: Google Drive API key."""
-        return environ.get('GOOGLE_KEY', DOTENV.get('GOOGLE_KEY', ''))
-
-    @auto_prop_cached
-    def API_AMAZON(self) -> str:
-        """str: Amazon S3 cloudfront URL."""
-        return environ.get('AMAZON_KEY', DOTENV.get('AMAZON_KEY', ''))
-
-    @auto_prop_cached
-    def DEV_MODE(self) -> bool:
-        """bool: Whether the app is running in developer mode."""
-        return str_to_bool_safe(environ.get('DEV_MODE', DOTENV.get('DEV_MODE', str(not hasattr(sys, '_MEIPASS')))))
-
-    @auto_prop_cached
-    def TEST_MODE(self) -> bool:
-        """bool: Whether the app is running in testing mode."""
-        return str_to_bool_safe(environ.get('TEST_MODE', DOTENV.get('TEST_MODE', '0')))
-
-    @auto_prop_cached
-    def FORCE_RELOAD(self) -> bool:
-        """bool: Whether the for plugin template modules to be reloaded on each new render sequence."""
-        return str_to_bool_safe(environ.get('FORCE_RELOAD', DOTENV.get('FORCE_RELOAD', '0')))
-
-    @auto_prop_cached
-    def HEADLESS(self) -> bool:
-        """bool: Whether the app is running in headless mode."""
-        return str_to_bool_safe(environ.get('HEADLESS', DOTENV.get('HEADLESS', '0')))
-
-    @auto_prop_cached
-    def PS_ERROR_DIALOG(self) -> bool:
-        """bool: Whether Photoshop error dialogues are enabled."""
-        return str_to_bool_safe(environ.get('PS_ERROR_DIALOG', DOTENV.get('PS_ERROR_DIALOG', '0')))
-
-    @auto_prop_cached
-    def PS_VERSION(self) -> Optional[str]:
-        """str: Photoshop version to try and load, for use when multiple Photoshop versions are installed."""
-        return environ.get('PS_VERSION', DOTENV.get('PS_VERSION', None))
+        return super().VERSION
 
 
 """
@@ -370,7 +401,7 @@ class AppConstants:
         return self.get_set_data()
 
     @tracked_prop
-    def metadata(self) -> dict[str, dict]:
+    def metadata(self) -> dict[str, Hexproof.Meta]:
         """dict[str, dict]: Returns data pulled from Hexproof.io mapped to resources."""
         return self.get_meta_data()
 
@@ -420,10 +451,12 @@ class AppConstants:
         return load_data_file(PATH.SRC_DATA_HEXPROOF_SET)
 
     @return_on_exception({})
-    def get_meta_data(self) -> dict[str, dict]:
+    def get_meta_data(self) -> dict[str, Hexproof.Meta]:
         """dict: Loaded data from the 'meta' data file."""
         if not PATH.SRC_DATA_HEXPROOF_META.is_file():
             dump_data_file({}, PATH.SRC_DATA_HEXPROOF_META)
 
         # Import watermark library
-        return load_data_file(PATH.SRC_DATA_HEXPROOF_META)
+        return {
+            k: Hexproof.Meta(**v) for k, v in
+            load_data_file(PATH.SRC_DATA_HEXPROOF_META)}

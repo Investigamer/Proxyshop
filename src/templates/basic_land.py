@@ -3,6 +3,7 @@
 * Deprecated in v1.13.0
 """
 # Standard Library Imports
+from functools import cached_property
 from typing import Optional
 
 # Third Party Imports
@@ -10,7 +11,6 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.templates._cosmetic import BorderlessMod, FullartMod
-from src.utils.properties import auto_prop_cached
 from src.templates._core import BaseTemplate
 import src.helpers as psd
 
@@ -27,7 +27,7 @@ class BasicLandUnstableTemplate (BorderlessMod, BaseTemplate):
     * Layer Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_group(self) -> Optional[LayerSet]:
         return self.docref
 
@@ -49,14 +49,14 @@ class BasicLandUnstableTemplate (BorderlessMod, BaseTemplate):
 
 
 class BasicLandTherosTemplate (FullartMod, BaseTemplate):
-    """Fullart basic land template introduced in Theros: Beyond Death."""
+    """Fullart basic land template introduced in Theros: Beyond Death.
+
+    Todo:
+        Transition to 'Normal' type.
+    """
     template_suffix = 'Theros'
 
-    """
-    * Layer Groups
-    """
-
-    @auto_prop_cached
+    @cached_property
     def text_group(self) -> Optional[LayerSet]:
         """Text layers are in the document root."""
         return self.docref

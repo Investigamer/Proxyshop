@@ -308,7 +308,7 @@ def get_frame_details_land(card: dict) -> FrameDetails:
         "background": LAYERS.LAND,
         "pinlines": LAYERS.LAND,
         "twins": LAYERS.LAND,
-        "identity": LAYERS.LAND,
+        "identity": '',
         "is_colorless": False,
         "is_hybrid": False
     }
@@ -374,7 +374,7 @@ def get_frame_details_land(card: dict) -> FrameDetails:
                     result.update({
                         'pinlines': LAYERS.GOLD,
                         'twins': LAYERS.GOLD,
-                        'identity': LAYERS.GOLD
+                        'identity': LAYERS.WUBRG
                     })
                     return result
 
@@ -392,7 +392,7 @@ def get_frame_details_land(card: dict) -> FrameDetails:
                 result.update({
                     'pinlines': LAYERS.GOLD,
                     'twins': LAYERS.GOLD,
-                    'identity': LAYERS.GOLD
+                    'identity': LAYERS.WUBRG
                 })
                 return result
 
@@ -402,7 +402,7 @@ def get_frame_details_land(card: dict) -> FrameDetails:
             result.update({
                 'pinlines': LAYERS.GOLD,
                 'twins': LAYERS.GOLD,
-                'identity': LAYERS.GOLD
+                'identity': LAYERS.WUBRG
             })
             return result
 
@@ -504,8 +504,7 @@ def get_frame_details_nonland(card: dict) -> FrameDetails:
             result.update({
                 'twins': LAYERS.COLORLESS,
                 'background': LAYERS.COLORLESS,
-                'pinlines': LAYERS.COLORLESS,
-                'identity': LAYERS.COLORLESS
+                'pinlines': LAYERS.COLORLESS
             })
         # Return formatted Colorless card
         result['is_colorless'] = True

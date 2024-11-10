@@ -25,12 +25,11 @@ from photoshop.api._document import Document
 # Local Imports
 from src import APP
 from src.helpers.layers import create_new_layer
-from src.utils.exceptions import PS_EXCEPTIONS
+from src.utils.adobe import PS_EXCEPTIONS
 
 # QOL Definitions
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
-
 
 """
 * Document Hierarchy

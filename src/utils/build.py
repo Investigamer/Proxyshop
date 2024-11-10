@@ -18,10 +18,10 @@ from shutil import (
 
 # Third party imports
 import PyInstaller.__main__
+from omnitils.files import get_project_version, load_data_file, dump_data_file
 
 # Local Imports
 from src import PATH
-from src.utils.files import load_data_file, dump_data_file, get_app_version
 
 # Directory definitions
 SRC: Path = PATH.CWD
@@ -229,7 +229,7 @@ def build_release(
     make_directories(dist_config)
 
     # Use provided version or fallback to project defined
-    version = version or get_app_version((SRC / 'pyproject').with_suffix('.toml'))
+    version = version or get_project_version((SRC / 'pyproject').with_suffix('.toml'))
     generate_version_file(version)
 
     # Run Pyinstaller

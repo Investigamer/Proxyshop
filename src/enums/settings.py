@@ -1,9 +1,11 @@
 """
-SETTINGS ENUMS
+* Enums: Settings
 """
-# Local Imports
-from src.utils.properties import enum_class_prop
-from src.utils.strings import StrEnum
+# Standard Library Imports
+from functools import cached_property
+
+# Third Party Imports
+from omnitils.enums import StrConstant
 
 
 """
@@ -11,17 +13,17 @@ from src.utils.strings import StrEnum
 """
 
 
-class OutputFileType (StrEnum):
+class OutputFileType (StrConstant):
     JPG = "jpg"
     PNG = "png"
     PSD = "psd"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.JPG
 
 
-class ScryfallSorting (StrEnum):
+class ScryfallSorting (StrConstant):
     Released = "released"
     Set = "set"
     Rarity = "rarity"
@@ -30,16 +32,16 @@ class ScryfallSorting (StrEnum):
     EDHRec = "edhrec"
     Artist = "artist"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Released
 
 
-class ScryfallUnique (StrEnum):
+class ScryfallUnique (StrConstant):
     Prints = "prints"
     Arts = "arts"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Arts
 
@@ -49,45 +51,45 @@ class ScryfallUnique (StrEnum):
 """
 
 
-class CollectorMode (StrEnum):
+class CollectorMode (StrConstant):
     Normal = "default"
     Modern = "modern"
     Minimal = "minimal"
     ArtistOnly = "artist"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Normal
 
 
-class BorderColor (StrEnum):
+class BorderColor (StrConstant):
     Black = "black"
     White = "white"
     Silver = "silver"
     Gold = "gold"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Black
 
 
-class CollectorPromo (StrEnum):
+class CollectorPromo (StrConstant):
     Automatic = "automatic"
     Always = "always"
     Never = "never"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Automatic
 
 
-class WatermarkMode (StrEnum):
+class WatermarkMode (StrConstant):
     Disabled = "Disabled"
     Automatic = "Automatic"
     Fallback = "Fallback"
     Forced = "Forced"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Disabled
 
@@ -97,7 +99,7 @@ class WatermarkMode (StrEnum):
 """
 
 
-class BorderlessColorMode (StrEnum):
+class BorderlessColorMode (StrConstant):
     All = "All"
     Twins_And_PT = "Twins and PT"
     Textbox = "Textbox"
@@ -105,12 +107,12 @@ class BorderlessColorMode (StrEnum):
     PT = "PT Box"
     Disabled = "None"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Twins_And_PT
 
 
-class BorderlessTextbox (StrEnum):
+class BorderlessTextbox (StrConstant):
     Automatic = "Automatic"
     Textless = "Textless"
     Normal = "Normal"
@@ -118,7 +120,7 @@ class BorderlessTextbox (StrEnum):
     Short = "Short"
     Tall = "Tall"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Automatic
 
@@ -128,11 +130,11 @@ class BorderlessTextbox (StrEnum):
 """
 
 
-class ModernClassicCrown (StrEnum):
+class ModernClassicCrown (StrConstant):
     Pinlines = "Pinlines"
     TexturePinlines = "Texture Pinlines"
     TextureBackground = "Texture Background"
 
-    @enum_class_prop
+    @cached_property
     def Default(self) -> str:
         return self.Pinlines

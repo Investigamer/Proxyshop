@@ -2,6 +2,7 @@
 * Templates: Saga
 """
 # Standard Library Imports
+from functools import cached_property
 from typing import Optional, Union, Callable
 
 # Third Party Imports
@@ -10,19 +11,15 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src.enums.layers import LAYERS
-from src.enums.mtg import (
-    saga_banner_color_map,
-    saga_stripe_color_map,
-    pinlines_color_map)
 import src.helpers as psd
 from src.layouts import SagaLayout
+from src.schema.colors import pinlines_color_map, saga_banner_color_map, saga_stripe_color_map
 from src.templates import VectorNyxMod
 from src.templates._core import NormalTemplate
 from src.templates._vector import VectorTemplate
 from src.templates.transform import VectorTransformMod
 import src.text_layers as text_classes
 from src.utils.adobe import ReferenceLayer
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
@@ -57,19 +54,19 @@ class SagaMod (NormalTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Saga text layers."""
         funcs = [self.text_layers_saga] if self.is_layout_saga else []
         return [*super().text_layer_methods, *funcs]
 
-    @auto_prop_cached
+    @cached_property
     def frame_layer_methods(self) -> list[Callable]:
         """Add Saga text layers."""
         funcs = [self.frame_layers_saga] if self.is_layout_saga else []
         return [*super().frame_layer_methods, *funcs]
 
-    @auto_prop_cached
+    @cached_property
     def post_text_methods(self) -> list[Callable]:
         """Position Saga abilities, dividers, and icons."""
         funcs = [self.layer_positioning_saga] if self.is_layout_saga else []
@@ -79,7 +76,7 @@ class SagaMod (NormalTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def saga_group(self):
         return psd.getLayerSet(LAYERS.SAGA)
 
@@ -103,7 +100,7 @@ class SagaMod (NormalTemplate):
     def icon_layers(self, value):
         self._icons = value
 
-    @auto_prop_cached
+    @cached_property
     def ability_divider_layer(self) -> ArtLayer:
         return psd.getLayer(LAYERS.DIVIDER, self.saga_group)
 
@@ -111,11 +108,11 @@ class SagaMod (NormalTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_ability(self) -> ArtLayer:
         return psd.getLayer(LAYERS.TEXT, self.saga_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_reminder(self) -> ArtLayer:
         return psd.getLayer("Reminder Text", self.saga_group)
 
@@ -123,11 +120,11 @@ class SagaMod (NormalTemplate):
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def art_reference(self) -> ArtLayer:
         return psd.getLayer(LAYERS.ART_FRAME)
 
-    @auto_prop_cached
+    @cached_property
     def reminder_reference(self) -> ReferenceLayer:
         return psd.get_reference_layer("Description Reference", self.saga_group)
 
@@ -245,14 +242,14 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     * Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def saga_banner_colors(self) -> list[list[int]]:
         """Must be returned as list of RGB/CMYK integer lists."""
         if len(self.pinlines) == 2:
             return [self.saga_banner_color_map.get(c, [0, 0, 0]) for c in self.pinlines]
         return [self.saga_banner_color_map.get(self.pinlines, [0, 0, 0])]
 
-    @auto_prop_cached
+    @cached_property
     def saga_stripe_colors(self) -> list[int]:
         """Must be returned as an RGB/CMYK integer list."""
         if len(self.pinlines) == 2:
@@ -263,7 +260,7 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     * Blending Masks
     """
 
-    @auto_prop_cached
+    @cached_property
     def saga_banner_masks(self) -> list[ArtLayer]:
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BANNER])]
 
@@ -271,11 +268,11 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def saga_banner_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.BANNER, self.saga_group)
 
-    @auto_prop_cached
+    @cached_property
     def saga_stripe_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.STRIPE, self.saga_group)
 
@@ -283,21 +280,21 @@ class VectorSagaMod(SagaMod, VectorTemplate):
     * Shape Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def saga_stripe_shape(self) -> ArtLayer:
         """The stripe shape in the middle of the Saga banner."""
         return psd.getLayer(
             LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
             [self.saga_stripe_group, LAYERS.SHAPE])
 
-    @auto_prop_cached
+    @cached_property
     def saga_banner_shape(self) -> ArtLayer:
         """The overall Saga banner shape."""
         return psd.getLayer(
             LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
             [self.saga_banner_group, LAYERS.SHAPE])
 
-    @auto_prop_cached
+    @cached_property
     def saga_trim_shape(self) -> ArtLayer:
         """The gold trim on the Saga Banner."""
         return psd.getLayer(
@@ -336,7 +333,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Bool Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def is_name_shifted(self) -> bool:
         """bool: Back face TF icon is on right side."""
         return bool(self.is_transform and self.is_front)
@@ -345,12 +342,12 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def twins_colors(self) -> list[str]:
         """list[str]: Use Back face versions for back side Transform."""
         return [f'{self.twins} {LAYERS.BACK}'] if self.is_transform and not self.is_front else [self.twins]
 
-    @auto_prop_cached
+    @cached_property
     def textbox_colors(self) -> list[str]:
         """list[str]: Support back and front side textures."""
         if self.is_transform and not self.is_front:
@@ -365,7 +362,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         # Front -> Single color
         return [self.pinlines]
 
-    @auto_prop_cached
+    @cached_property
     def crown_colors(self) -> Union[list[int], list[dict]]:
         """Return RGB/CMYK integer list or Gradient dict notation for color adjustment layers."""
         return psd.get_pinline_gradient(
@@ -376,12 +373,12 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def crown_group(self) -> LayerSet:
         """Legendary crown group."""
         return psd.getLayerSet(LAYERS.SHAPE, LAYERS.LEGENDARY_CROWN)
 
-    @auto_prop_cached
+    @cached_property
     def textbox_group(self) -> LayerSet:
         """Must enable textbox group."""
         if group := psd.getLayerSet(LAYERS.TEXTBOX):
@@ -392,7 +389,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def border_layer(self) -> Optional[ArtLayer]:
         """Check for Legendary and/or front face Transform."""
         name = LAYERS.LEGENDARY if self.is_legendary else LAYERS.NORMAL
@@ -404,11 +401,11 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def art_reference(self) -> ArtLayer:
         return psd.getLayer(LAYERS.ART_FRAME + " Right")
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference(self) -> Optional[ReferenceLayer]:
         if self.is_front and self.is_flipside_creature:
             return psd.get_reference_layer(f"{LAYERS.TEXTBOX_REFERENCE} {LAYERS.TRANSFORM_FRONT}", self.saga_group)
@@ -418,11 +415,11 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Blending Masks
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_masks(self) -> list[ArtLayer]:
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.TEXTBOX])]
 
-    @auto_prop_cached
+    @cached_property
     def background_masks(self) -> list[ArtLayer]:
         return [psd.getLayer(LAYERS.HALF, [self.mask_group, LAYERS.BACKGROUND])]
 
@@ -430,7 +427,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Shape Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         """Add Legendary shape to pinlines shapes."""
         shapes = [psd.getLayerSet(LAYERS.LEGENDARY, [self.pinlines_group, LAYERS.SHAPE])] if self.is_legendary else []
@@ -443,14 +440,14 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
             ), *shapes
         ]
 
-    @auto_prop_cached
+    @cached_property
     def textbox_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         """Optional Textbox cutout shapes."""
         if self.is_transform and self.is_front:
             return [psd.getLayer(LAYERS.TRANSFORM_FRONT, [self.textbox_group, LAYERS.SHAPE])]
         return []
 
-    @auto_prop_cached
+    @cached_property
     def twins_shape(self) -> ArtLayer:
         """Allow for both front and back Transform twins."""
         if self.is_transform:
@@ -460,14 +457,14 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
         # Normal twins
         return psd.getLayer(LAYERS.NORMAL, [self.twins_group, LAYERS.SHAPE])
 
-    @auto_prop_cached
+    @cached_property
     def outline_shape(self) -> ArtLayer:
         """Outline for textbox and art area."""
         return psd.getLayer(
             LAYERS.TRANSFORM_FRONT if self.is_transform and self.is_front else LAYERS.NORMAL,
             LAYERS.OUTLINE)
 
-    @auto_prop_cached
+    @cached_property
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         """Add support for outline shape, multiple pinlines shapes, and saga shapes."""
         return [
@@ -485,7 +482,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
     * Blending Masks
     """
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_mask(self) -> list[ArtLayer]:
         """Mask hiding pinlines effects inside textbox and art frame."""
         return [
@@ -495,7 +492,7 @@ class SagaVectorTemplate(VectorNyxMod, VectorSagaMod, VectorTransformMod, Vector
             self.pinlines_group
         ]
 
-    @auto_prop_cached
+    @cached_property
     def enabled_masks(self) -> list[Union[dict, list, ArtLayer, LayerSet, None]]:
         """Support a pinlines mask."""
         return [self.pinlines_mask]
@@ -544,14 +541,14 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
     * Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_colors(self) -> list[str]:
         """Not separated by front/back face."""
         if 1 < len(self.identity) < self.color_limit:
             return [n for n in self.identity]
         return [self.pinlines]
 
-    @auto_prop_cached
+    @cached_property
     def twins_colors(self) -> Optional[str]:
         """Look for 'Beyond' variant texture."""
         return f'{self.twins} Beyond'
@@ -560,12 +557,12 @@ class UniversesBeyondSagaTemplate(SagaVectorTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def background_group(self) -> LayerSet:
         """Look for 'Beyond' variant group."""
         return psd.getLayerSet(f'{LAYERS.BACKGROUND} Beyond')
 
-    @auto_prop_cached
+    @cached_property
     def textbox_group(self) -> LayerSet:
         """Look for 'Beyond' variant group. Must be enabled."""
         if group := psd.getLayerSet(f"{LAYERS.TEXTBOX} Beyond"):

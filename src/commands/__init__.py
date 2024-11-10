@@ -42,7 +42,6 @@ def run_gui():
     exe_path = Path(sys.argv[0])
     if exe_path.suffix not in ['.py', '.exe']:
         exe_path = PATH.CWD / 'main.py'
-    os.environ.pop('HEADLESS')
     os.execv(sys.executable, ['python', exe_path])
 
 

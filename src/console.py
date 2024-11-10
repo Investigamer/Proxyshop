@@ -2,22 +2,28 @@
 * Console Module
 """
 # Standard Library
-import logging
 import os
 import time
 from threading import Lock, Event, Thread
 from datetime import datetime as dt
 from functools import cached_property
-from typing import Optional, Type
+from typing import Optional
+
+# Third Party Imports
+from omnitils.enums import StrConstant
+from omnitils.logs import logger, Logger
+from omnitils.metaclass import Singleton
 
 # Local Imports
 from src._config import AppConfig
 from src._state import AppEnvironment, PATH
-from src.utils.properties import Singleton
-from src.utils.strings import StrEnum
+
+"""
+* Enums
+"""
 
 
-class LogColors (StrEnum):
+class LogColors (StrConstant):
     """Logging message colors."""
     GRAY = '\x1b[97m'
     BLUE = '\x1b[38;5;39m'
@@ -29,125 +35,143 @@ class LogColors (StrEnum):
     RESET = '\x1b[0m'
 
 
-class LogFormats (StrEnum):
-    """Logging message formats."""
-    MSG = '%(message)s'
-    DATE = '%(asctime)s'
-    FILE = '%(filename)s: %(lineno)d'
-    DATE_MSG = f'[{DATE}] {MSG}'
-    FILE_MSG = f'[{FILE}] {MSG}'
-    DATE_FILE_MSG = f'[{DATE}] [{FILE}] {MSG}'
+class ConsoleMessages(StrConstant):
+    error = "#a84747"
+    warning = "#d4c53d"
+    success = "#59d461"
+    info = "#6bbcfa"
 
 
-class DateFormats (StrEnum):
-    """Logging date formats."""
-    MONTH = '%m'
-    DAY = '%d'
-    YEAR = '%Y'
-    HOUR = '%H'
-    MINUTE = '%M'
-    DATE = f'{MONTH}/{DAY}/{YEAR}'
-    TIME = f'{HOUR}:{MINUTE}'
-    DATE_TIME = f'{DATE} {TIME}'
+"""
+* Console Format Utils
+"""
 
 
-class LogFormatter(logging.Formatter):
-    """Loger interface formatter class."""
+def msg_bold(msg: str) -> str:
+    """Wraps a console string with a bold tag.
 
-    # Define log formats
-    def __init__(self, fmt: str, datefmt: str):
-        super().__init__(fmt, datefmt)
-        self.FORMATS = {
-            logging.DEBUG: LogColors.GRAY + fmt + LogColors.RESET,
-            logging.INFO: LogColors.BLUE + fmt + LogColors.RESET,
-            logging.WARNING: LogColors.YELLOW + fmt + LogColors.RESET,
-            logging.ERROR: LogColors.ORANGE + fmt + LogColors.RESET,
-            logging.CRITICAL: LogColors.RED_BOLD + fmt + LogColors.RESET
-        }
+    Args:
+        msg: Text to wrap in a bold tag.
 
-    def format(self, record: logging.LogRecord):
-        """Format a logging record using the appropriate color."""
-        log_format = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_format, self.datefmt)
-        return formatter.format(record)
+    Returns:
+        Wrapped message.
+    """
+    return f"[b]{msg}[/b]"
+
+
+def msg_italics(msg: str) -> str:
+    """Wraps a console string with an italics tag.
+
+    Args:
+        msg: Message to wrap in an italics tag.
+
+    Returns:
+        Wrapped message.
+    """
+    return f"[i]{msg}[/i]"
+
+
+def msg_error(msg: str, reason: Optional[str] = None) -> str:
+    """Adds a defined 'error' color tag to Proxyshop console message.
+
+    Args:
+        msg: String wrap in color tag.
+        reason: Reason for the error to include in the message, if provided.
+
+    Returns:
+        Formatted string.
+    """
+    msg = f'[color={ConsoleMessages.error}]{msg}[/color]'
+    return f"{msg_bold(msg)} - {msg_italics(reason)}" if reason else msg
+
+
+def msg_warn(msg: str, reason: Optional[str] = None) -> str:
+    """Adds a defined 'warning' color tag to Proxyshop console message.
+
+    Args:
+        msg: String to wrap in color tag.
+        reason: Reason for the warning to include in the message, if provided.
+
+    Returns:
+        Formatted string.
+    """
+    msg = f'[color={ConsoleMessages.warning}]{msg}[/color]'
+    return f"{msg_bold(msg)} - {msg_italics(reason)}" if reason else msg
+
+
+def msg_success(msg: str) -> str:
+    """Adds a defined 'success' color tag to Proxyshop console message.
+
+    Args:
+        msg: String to wrap in color tag.
+
+    Returns:
+        Formatted string.
+    """
+    return f'[color={ConsoleMessages.success}]{msg}[/color]'
+
+
+def msg_info(msg: str) -> str:
+    """Adds defined 'info' color tag to Proxyshop console message.
+
+    Args:
+        msg: String to wrap in color tag.
+
+    Returns:
+        Formatted string.
+    """
+    return f'[color={ConsoleMessages.info}]{msg}[/color]'
+
+
+def get_bullet_points(text: list[str], char: str = '•') -> str:
+    """Turns a list of strings into a joined bullet point list string.
+
+    Args:
+        text: List of strings.
+        char: Character to use as bullet.
+
+    Returns:
+        Joined string with bullet points and newlines.
+    """
+    if not text:
+        return ""
+    bullet = f"\n{char} "
+    return str(bullet + bullet.join(text))
+
+
+"""
+* Base Terminal Class
+"""
 
 
 class TerminalConsole:
     """Wrapper to return the correct global console object."""
     __metaclass__ = Singleton
 
-    # Logger formatting
-    _default_log_format = LogFormats.DATE_MSG
-    _default_date_format = DateFormats.DATE_TIME
-
     # Managing threaded operations
     await_lock = Lock()
     running = True
     waiting = False
+    continue_next_line = False
 
     def __init__(
         self,
         cfg: AppConfig,
-        env: AppEnvironment,
-        log_format: Optional[str] = None,
-        date_format: Optional[str] = None
+        env: AppEnvironment
     ):
+
         # Establish global objects
         self.cfg: AppConfig = cfg
         self.env: AppEnvironment = env
-
-        # Establish logging format
-        self._log_format = log_format or self._default_log_format
-        self._date_format = date_format or self._default_date_format
 
     """
     Logger Object Properties
     """
 
     @cached_property
-    def logger(self) -> logging.Logger:
+    def logger(self) -> Logger:
         """Logger interface handling console output."""
-        console_logger = logging.getLogger('console')
-        console_logger.setLevel(logging.DEBUG)
-        console_logger.addHandler(self._log_stream_handler)
-        return console_logger
-
-    @cached_property
-    def _log_formatter(self) -> LogFormatter:
-        """Logging Formatter interface handling color formatting in console output."""
-        return LogFormatter(self._log_format, self._date_format)
-
-    @cached_property
-    def _log_stream_handler(self) -> logging.StreamHandler:
-        """Logging stream handler."""
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(self._log_formatter)
-        return handler
-
-    @cached_property
-    def _log_file_handler(self) -> logging.FileHandler:
-        """Logging file handler."""
-        handler = logging.FileHandler(PATH.LOGS_ERROR)
-        handler.setLevel(logging.DEBUG)
-        return handler
-
-    @property
-    def level(self):
-        """Current log level. Supports NOTSET, DEBUG, INFO, WARN, ERROR, CRITICAL."""
-        return self.logger.level
-
-    @level.setter
-    def level(self, level: int):
-        self.logger.setLevel(level)
-
-    """
-    Logger Colors
-    """
-
-    @cached_property
-    def COLORS(self) -> Type[LogColors]:
-        return LogColors
+        return logger
 
     """
     Logger Object Methods
@@ -167,9 +191,6 @@ class TerminalConsole:
 
     def critical(self, *args, **kwargs):
         return self.logger.critical(*args, **kwargs)
-
-    def set_level(self, *args):
-        return self.logger.setLevel(*args)
 
     """
     Reusable Strings
@@ -193,7 +214,7 @@ class TerminalConsole:
     @property
     def time(self) -> str:
         """Current date and time in human-readable format."""
-        return dt.now().strftime(DateFormats.DATE_TIME)
+        return dt.now().strftime('%m-%d-%Y %H:%M')
 
     """
     Utility Methods
@@ -205,14 +226,7 @@ class TerminalConsole:
         Args:
             error: Exception object to log.
         """
-        div_main = "=" * 100
-        self.logger.removeHandler(self._log_stream_handler)
-        self.logger.exception(
-            f'The following exception occurred:\n'
-            f'{div_main}',
-            exc_info=error)
-        self.critical(div_main)
-        self.logger.addHandler(self._log_stream_handler)
+        self.logger.exception(error)
 
     @staticmethod
     def clear() -> None:
@@ -235,8 +249,19 @@ class TerminalConsole:
         @param exception: Exception object to log, if provided.
         @param end: String to append at the end of the message, adds a newline if not provided.
         """
-        # Add message to the output label
-        print(msg, end=end)
+
+        # Check if line is a continuation
+        if self.continue_next_line:
+            msg = '[>]' + msg
+            self.continue_next_line = False
+
+        # Check if line has alternate ending
+        if end.endswith('\n'):
+            msg = msg + end[:-1]
+        else:
+            msg = msg + end + '[>]'
+            self.continue_next_line = True
+        self.logger.info(msg)
         if exception:
             self.log_exception(exception)
 

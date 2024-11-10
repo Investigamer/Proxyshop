@@ -2,6 +2,7 @@
 * Adventure Templates
 """
 # Standard Library
+from functools import cached_property
 from typing import Callable, Optional, Union
 
 # Third Party Imports
@@ -15,7 +16,6 @@ from src.layouts import AdventureLayout
 from src.templates._vector import VectorTemplate
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
@@ -36,7 +36,7 @@ class AdventureMod(NormalTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers step."""
         funcs = [self.text_layers_adventure] if isinstance(self.layout, AdventureLayout) else []
@@ -46,27 +46,27 @@ class AdventureMod(NormalTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_name_adventure(self) -> Optional[ArtLayer]:
         """Name for the adventure side."""
         return psd.getLayer(LAYERS.NAME_ADVENTURE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_mana_adventure(self) -> Optional[ArtLayer]:
         """Mana cost for the adventure side."""
         return psd.getLayer(LAYERS.MANA_COST_ADVENTURE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_type_adventure(self) -> Optional[ArtLayer]:
         """Type line for the adventure side."""
         return psd.getLayer(LAYERS.TYPE_LINE_ADVENTURE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules_adventure(self) -> Optional[ArtLayer]:
         """Rules text for the adventure side."""
         return psd.getLayer(LAYERS.RULES_TEXT_ADVENTURE, self.text_group)
 
-    @auto_prop_cached
+    @cached_property
     def divider_layer_adventure(self) -> Optional[ArtLayer]:
         """Flavor divider for the adventure side."""
         return psd.getLayer(LAYERS.DIVIDER_ADVENTURE, self.text_group)
@@ -75,7 +75,7 @@ class AdventureMod(NormalTemplate):
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference_adventure(self) -> Optional[ArtLayer]:
         return psd.get_reference_layer(LAYERS.TEXTBOX_REFERENCE_ADVENTURE, self.text_group)
 
@@ -168,7 +168,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def frame_layer_methods(self) -> list[Callable]:
         """Add Adventure frame layers step."""
         funcs = [self.enable_adventure_layers] if isinstance(self.layout, AdventureLayout) else []
@@ -178,7 +178,7 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_group(self) -> LayerSet:
         """LayerSet: Use right page of storybook as main textbox group."""
         return psd.getLayerSet(LAYERS.RIGHT, self.adventure_group)
@@ -187,37 +187,37 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     * Adventure Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def adventure_group(self) -> LayerSet:
         """Adventure storybook group."""
         return psd.getLayerSet(LAYERS.STORYBOOK)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_pinlines_group(self) -> LayerSet:
         """Pinline at the bottom of adventure storybook."""
         return psd.getLayerSet(LAYERS.PINLINES, self.adventure_group)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_textbox_group(self) -> LayerSet:
         """Left side storybook page, contains adventure text."""
         return psd.getLayerSet(LAYERS.LEFT, self.adventure_group)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_name_group(self) -> LayerSet:
         """Plate to color for adventure name."""
         return psd.getLayerSet(LAYERS.ADVENTURE_NAME, self.adventure_group)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_typeline_group(self) -> LayerSet:
         """Plate to color for adventure typeline."""
         return psd.getLayerSet(LAYERS.ADVENTURE_TYPELINE, self.adventure_group)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_typeline_accent_group(self) -> LayerSet:
         """Plate to color for adventure typeline accent."""
         return psd.getLayerSet(LAYERS.ADVENTURE_TYPELINE_ACCENT, self.adventure_group)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_wings_group(self) -> LayerSet:
         """Group containing wings on each side of adventure storybook."""
         return psd.getLayerSet(LAYERS.WINGS, self.adventure_group)
@@ -226,27 +226,27 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     * Adventure Colors
     """
 
-    @auto_prop_cached
+    @cached_property
     def adventure_textbox_colors(self) -> str:
         """Colors to use for adventure textbox textures."""
         return self.layout.adventure_colors
 
-    @auto_prop_cached
+    @cached_property
     def adventure_name_colors(self) -> list[int]:
         """Colors to use for adventure name box."""
         return self.adventure_name_color_map.get(self.layout.adventure_colors)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_typeline_colors(self) -> list[int]:
         """Colors to use for adventure typeline box."""
         return self.adventure_typeline_color_map.get(self.layout.adventure_colors)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_typeline_accent_colors(self) -> list[int]:
         """Colors to use for adventure typeline accent box."""
         return self.adventure_typeline_accent_color_map.get(self.layout.adventure_colors)
 
-    @auto_prop_cached
+    @cached_property
     def adventure_wings_colors(self) -> Union[list[int], list[dict]]:
         """Colors to use for adventure wings."""
         return psd.get_pinline_gradient(
@@ -257,12 +257,12 @@ class AdventureVectorMod(AdventureMod, VectorTemplate):
     * Adventure Blending Masks
     """
 
-    @auto_prop_cached
+    @cached_property
     def adventure_textbox_masks(self) -> list[ArtLayer]:
         """Masks to use for adventure textbox texture blending."""
         return []
 
-    @auto_prop_cached
+    @cached_property
     def textbox_masks(self) -> list[ArtLayer]:
         return [psd.getLayer(LAYERS.HALF, [LAYERS.MASKS, LAYERS.RIGHT])]
 
@@ -321,11 +321,11 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def crown_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.LEGENDARY_CROWN, LAYERS.LEGENDARY_CROWN)
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_group(self) -> LayerSet:
         return psd.getLayerSet(LAYERS.PINLINES, LAYERS.PINLINES)
 
@@ -333,19 +333,19 @@ class AdventureVectorTemplate(AdventureVectorMod, VectorTemplate):
     * Shapes
     """
 
-    @auto_prop_cached
+    @cached_property
     def pinlines_legendary_shape(self) -> Optional[ArtLayer]:
         if self.is_legendary:
             return psd.getLayer(LAYERS.LEGENDARY, [self.pinlines_group, LAYERS.SHAPE])
         return
 
-    @auto_prop_cached
+    @cached_property
     def pt_shape(self) -> Optional[ArtLayer]:
         if self.is_creature:
             return psd.getLayer(LAYERS.SHAPE, LAYERS.PT_BOX)
         return
 
-    @auto_prop_cached
+    @cached_property
     def enabled_shapes(self) -> list[Union[ArtLayer, LayerSet, None]]:
         return [self.border_shape, self.pinlines_legendary_shape, self.pt_shape]
 

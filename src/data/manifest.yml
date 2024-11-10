@@ -110,7 +110,15 @@ mdfc-back.psd:
 
 ixalan.psd:
   id: '1e_VX3nJ5c6bZMObMLt5c1jJGiaaw5-4d'
-  templates: { Normal: { IxalanTemplate: ixalan } }
+  requires:
+    templates:
+      - tf-front.psd
+      - tf-back.psd
+  templates:
+    Ixalan:
+      IxalanTemplate:
+      - transform_back
+      - transform_front
 
 mutate.psd:
   id: '1A5YNZA9Z9eE_jdDIPFJCqp_AxcEiAcdL'

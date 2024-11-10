@@ -4,6 +4,10 @@
 # Standard Library Imports
 from typing import Optional
 
+# Third Party Imports
+from omnitils.metaclass import Singleton
+from omnitils.enums import StrConstant
+
 # Local Imports
 from src._state import AppEnvironment
 from src.enums.settings import (
@@ -16,8 +20,6 @@ from src.enums.settings import (
     WatermarkMode
 )
 from src._loader import ConfigManager
-from src.utils.properties import Singleton
-from src.utils.strings import StrEnum
 
 
 class AppConfig:
@@ -85,7 +87,7 @@ class AppConfig:
     * Setting Utils
     """
 
-    def get_option(self, section: str, key: str, enum_class: type[StrEnum], default: str = None) -> str:
+    def get_option(self, section: str, key: str, enum_class: type[StrConstant], default: str = None) -> str:
         """Returns the current value of an "options" setting if that option exists in its StrEnum class.
         Otherwise, returns the default value of that StrEnum class.
 

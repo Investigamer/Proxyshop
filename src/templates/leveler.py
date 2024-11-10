@@ -2,6 +2,7 @@
 * LEVELER TEMPLATES
 """
 # Standard Library
+from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -14,7 +15,6 @@ import src.helpers as psd
 from src.layouts import LevelerLayout
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
@@ -35,7 +35,7 @@ class LevelerMod(NormalTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers."""
         funcs = [self.text_layers_leveler] if isinstance(self.layout, LevelerLayout) else []
@@ -45,7 +45,7 @@ class LevelerMod(NormalTemplate):
     * Groups
     """
 
-    @auto_prop_cached
+    @cached_property
     def leveler_group(self) -> Optional[LayerSet]:
         """Group containing Leveler text layers."""
         return psd.getLayerSet("Leveler Text", self.text_group)
@@ -54,7 +54,7 @@ class LevelerMod(NormalTemplate):
     * Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
         return psd.getLayer(self.twins, LAYERS.PT_AND_LEVEL_BOXES)
 
@@ -62,11 +62,11 @@ class LevelerMod(NormalTemplate):
     * Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Level Up", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_pt(self) -> Optional[ArtLayer]:
         return psd.getLayer("Top Power / Toughness", self.leveler_group)
 
@@ -74,27 +74,27 @@ class LevelerMod(NormalTemplate):
     * Leveler Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules_x_y(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Levels X-Y", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_rules_z(self) -> Optional[ArtLayer]:
         return psd.getLayer("Rules Text - Levels Z+", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_level_middle(self) -> Optional[ArtLayer]:
         return psd.getLayer("Middle Level", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_level_bottom(self) -> Optional[ArtLayer]:
         return psd.getLayer("Bottom Level", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_pt_middle(self) -> Optional[ArtLayer]:
         return psd.getLayer("Middle Power / Toughness", self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_pt_bottom(self) -> Optional[ArtLayer]:
         return psd.getLayer("Bottom Power / Toughness", self.leveler_group)
 
@@ -102,7 +102,7 @@ class LevelerMod(NormalTemplate):
     * References
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference(self) -> Optional[ArtLayer]:
         return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
 
@@ -110,11 +110,11 @@ class LevelerMod(NormalTemplate):
     * Leveler References
     """
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference_x_y(self) -> Optional[ArtLayer]:
         return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level X-Y', self.leveler_group)
 
-    @auto_prop_cached
+    @cached_property
     def textbox_reference_z(self) -> Optional[ArtLayer]:
         return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Levels Z+', self.leveler_group)
 

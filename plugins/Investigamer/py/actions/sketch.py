@@ -2,7 +2,7 @@
 * Sketchify Action Module
 """
 # Third Party Imports
-import photoshop.api as ps
+from photoshop.api import ActionDescriptor, ActionList, ActionReference, DialogModes
 
 # Local Imports
 from src import APP
@@ -15,12 +15,12 @@ def run():
 	"""Trix old sketchify Steps."""
 
 	# Duplicate
-	def step1(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step1(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putProperty(cID('Lyr '), cID('Bckg'))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putString(cID('Nm  '), "Layer 1 copy")
@@ -28,68 +28,68 @@ def run():
 		APP.executeAction(cID('Dplc'), desc1, dialog_mode)
 
 	# Invert
-	def step2(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+	def step2(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		APP.executeAction(cID('Invr'), ActionDescriptor(), dialog_mode)
 
 	# Gaussian Blur
-	def step3(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
+	def step3(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
 		desc1.putUnitDouble(cID('Rds '), cID('#Pxl'), 65)
 		APP.executeAction(sID('gaussianBlur'), desc1, dialog_mode)
 
 	# Set
-	def step4(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step4(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('CDdg'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Make
-	def step5(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step5(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putClass(cID('AdjL'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
-		desc3 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
+		desc3 = ActionDescriptor()
 		desc3.putEnumerated(sID("presetKind"), sID("presetKindType"), sID("presetKindDefault"))
 		desc2.putObject(cID('Type'), cID('Lvls'), desc3)
 		desc1.putObject(cID('Usng'), cID('AdjL'), desc2)
 		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
-	def step6(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step6(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('AdjL'), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putEnumerated(sID("presetKind"), sID("presetKindType"), sID("presetKindCustom"))
-		list1 = ps.ActionList()
-		desc3 = ps.ActionDescriptor()
-		ref2 = ps.ActionReference()
+		list1 = ActionList()
+		desc3 = ActionDescriptor()
+		ref2 = ActionReference()
 		ref2.putEnumerated(cID('Chnl'), cID('Chnl'), cID('Cmps'))
 		desc3.putReference(cID('Chnl'), ref2)
-		list2 = ps.ActionList()
+		list2 = ActionList()
 		list2.putInteger(91)
 		list2.putInteger(255)
 		desc3.putList(cID('Inpt'), list2)
@@ -100,16 +100,16 @@ def run():
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Make
-	def step7(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step7(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putClass(cID('AdjL'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
-		desc3 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
+		desc3 = ActionDescriptor()
 		desc3.putEnumerated(sID("presetKind"), sID("presetKindType"), sID("presetKindDefault"))
 		desc3.putInteger(cID('Rd  '), 40)
 		desc3.putInteger(cID('Yllw'), 60)
@@ -118,7 +118,7 @@ def run():
 		desc3.putInteger(cID('Bl  '), 20)
 		desc3.putInteger(cID('Mgnt'), 80)
 		desc3.putBoolean(sID("useTint"), False)
-		desc4 = ps.ActionDescriptor()
+		desc4 = ActionDescriptor()
 		desc4.putDouble(cID('Rd  '), 225)
 		desc4.putDouble(cID('Grn '), 211)
 		desc4.putDouble(cID('Bl  '), 179)
@@ -128,40 +128,40 @@ def run():
 		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Set
-	def step8(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step8(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putProperty(cID('Chnl'), sID("selection"))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putEnumerated(cID('T   '), cID('Ordn'), cID('Al  '))
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Copy Merged
-	def step9(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		APP.executeAction(sID('copyMerged'), ps.ActionDescriptor(), dialog_mode)
+	def step9(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		APP.executeAction(sID('copyMerged'), ActionDescriptor(), dialog_mode)
 
 	# Paste
-	def step10(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
+	def step10(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
 		desc1.putEnumerated(cID('AntA'), cID('Annt'), cID('Anno'))
 		desc1.putClass(cID('As  '), cID('Pxel'))
 		APP.executeAction(cID('past'), desc1, dialog_mode)
 
 	# Filter Gallery
-	def step11(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
+	def step11(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
 		desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('GlwE'))
 		desc1.putInteger(cID('EdgW'), 1)
 		desc1.putInteger(cID('EdgB'), 20)
@@ -169,97 +169,98 @@ def run():
 		APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Invert
-	def step12(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		APP.executeAction(cID('Invr'), ps.ActionDescriptor(), dialog_mode)
+	def step12(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		APP.executeAction(cID('Invr'), ActionDescriptor(), dialog_mode)
 
-	# Set
-	def step13(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	# Blend mode "Multiply"
+	# Step 13 and Step 20
+	def blend_mode_multiply(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('Mltp'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
-	def step14(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step14(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 60)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
-	def step15(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step15(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putName(cID('Lyr '), "Black & White 1")
 		desc1.putReference(cID('null'), ref1)
 		desc1.putBoolean(cID('MkVs'), False)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(6)
 		desc1.putList(cID('LyrI'), list1)
 		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Make
-	def step16(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step16(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putClass(cID('Lyr '))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putInteger(cID('LyrI'), 8)
 		APP.executeAction(cID('Mk  '), desc1, dialog_mode)
 
 	# Select
-	def step17(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step17(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putName(cID('Lyr '), "Layer 2")
 		desc1.putReference(cID('null'), ref1)
 		desc1.putBoolean(cID('MkVs'), False)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(7)
 		desc1.putList(cID('LyrI'), list1)
 		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Fill
-	def step18(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
+	def step18(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
 		desc1.putEnumerated(cID('Usng'), cID('FlCn'), cID('BckC'))
 		APP.executeAction(cID('Fl  '), desc1, dialog_mode)
 
 	# Filter Gallery
-	def step19(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
+	def step19(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
 		desc1.putEnumerated(cID('GEfk'), cID('GEft'), cID('Txtz'))
 		desc1.putEnumerated(cID('TxtT'), cID('TxtT'), cID('TxSt'))
 		desc1.putInteger(cID('Scln'), 100)
@@ -269,146 +270,132 @@ def run():
 		APP.executeAction(1195730531, desc1, dialog_mode)
 
 	# Set
-	def step20(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step21(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
-		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('Mltp'))
-		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
-		APP.executeAction(cID('setd'), desc1, dialog_mode)
-
-	# Set
-	def step21(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
-		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
-		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 70)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
-	def step22(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step22(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putName(cID('Lyr '), "Black & White 1")
 		desc1.putReference(cID('null'), ref1)
 		desc1.putBoolean(cID('MkVs'), False)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(6)
 		desc1.putList(cID('LyrI'), list1)
 		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Set
-	def step23(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step23(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 50)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Select
-	def step24(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step24(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putName(cID('Lyr '), "Background")
 		desc1.putReference(cID('null'), ref1)
 		desc1.putBoolean(cID('MkVs'), False)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(1)
 		desc1.putList(cID('LyrI'), list1)
 		APP.executeAction(cID('slct'), desc1, dialog_mode)
 
 	# Duplicate
-	def step25(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step25(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
 		desc1.putString(cID('Nm  '), "top adjustment")
 		desc1.putInteger(cID('Vrsn'), 5)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(35)
 		desc1.putList(cID('Idnt'), list1)
 		APP.executeAction(cID('Dplc'), desc1, dialog_mode)
 
 	# Move
-	def step26(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step26(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		ref2 = ps.ActionReference()
+		ref2 = ActionReference()
 		ref2.putIndex(cID('Lyr '), 7)
 		desc1.putReference(cID('T   '), ref2)
 		desc1.putBoolean(cID('Adjs'), False)
 		desc1.putInteger(cID('Vrsn'), 5)
-		list1 = ps.ActionList()
+		list1 = ActionList()
 		list1.putInteger(35)
 		desc1.putList(cID('LyrI'), list1)
 		APP.executeAction(cID('move'), desc1, dialog_mode)
 
 	# Set
-	def step27(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step27(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putUnitDouble(cID('Opct'), cID('#Prc'), 40)
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Set
-	def step28(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		desc1 = ps.ActionDescriptor()
-		ref1 = ps.ActionReference()
+	def step28(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		desc1 = ActionDescriptor()
+		ref1 = ActionReference()
 		ref1.putEnumerated(cID('Lyr '), cID('Ordn'), cID('Trgt'))
 		desc1.putReference(cID('null'), ref1)
-		desc2 = ps.ActionDescriptor()
+		desc2 = ActionDescriptor()
 		desc2.putEnumerated(cID('Md  '), cID('BlnM'), cID('HrdL'))
 		desc1.putObject(cID('T   '), cID('Lyr '), desc2)
 		APP.executeAction(cID('setd'), desc1, dialog_mode)
 
 	# Merge Visible
-	def step29(enabled=True, dialog=False):
-		if not enabled: return
-		if dialog: dialog_mode = ps.DialogModes.DisplayAllDialogs
-		else: dialog_mode = ps.DialogModes.DisplayNoDialogs
-		APP.executeAction(sID('mergeVisible'), ps.ActionDescriptor(), dialog_mode)
+	def step29(enabled: bool = True, dialog: bool = False):
+		if not enabled:
+			return
+		dialog_mode = DialogModes.DisplayAllDialogs if dialog else DialogModes.DisplayNoDialogs
+		APP.executeAction(sID('mergeVisible'), ActionDescriptor(), dialog_mode)
 
 	# Run each step
 	step1()      # Duplicate
@@ -423,14 +410,14 @@ def run():
 	step10()      # Paste
 	step11()      # Filter Gallery
 	step12()      # Invert
-	step13()      # Set
+	blend_mode_multiply()      # Set
 	step14()      # Set
 	step15()      # Select
 	step16()      # Make
 	step17()      # Select
 	step18()      # Fill
 	step19()      # Filter Gallery
-	step20()      # Set
+	blend_mode_multiply()      # Set
 	step21()      # Set
 	step22()      # Select
 	step23()      # Set

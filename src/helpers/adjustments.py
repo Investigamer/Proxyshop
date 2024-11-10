@@ -18,6 +18,10 @@ from src.helpers.colors import get_color, apply_color, add_color_to_gradient, rg
 sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
 NO_DIALOG = DialogModes.DisplayNoDialogs
 
+"""
+* Creating Adjustment Layers
+"""
+
 
 def create_vibrant_saturation(vibrancy: int, saturation: int) -> None:
     """Experimental scoot action to add vibrancy and saturation.

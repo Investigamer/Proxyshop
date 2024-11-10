@@ -3,7 +3,7 @@
 """
 # Standard Library Imports
 from dataclasses import dataclass
-from functools import cache
+from functools import cache, cached_property
 import os
 from typing import Any
 
@@ -24,7 +24,6 @@ from src._state import PATH, AppConstants, AppEnvironment
 from src.enums.mtg import layout_map_category
 from src.gui.utils import HoverBehavior
 from src.utils.adobe import PhotoshopHandler
-from src.utils.properties import auto_prop_cached
 
 """
 * Enums
@@ -74,7 +73,7 @@ class GlobalAccess(Layout):
     * Utility Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def toggle_buttons(self) -> list[Button]:
         """Buttons that should be toggled during a locked operation."""
         return []
@@ -83,7 +82,7 @@ class GlobalAccess(Layout):
     * Global Object Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def main(self) -> Any:
         """ProxyshopGUIApp: Get the running application."""
         return get_root_app()

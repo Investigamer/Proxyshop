@@ -1,4 +1,8 @@
+"""
+* MDFC TEMPLATES
+"""
 # Standard Library
+from functools import cached_property
 from typing import Optional, Callable
 
 # Third Party Imports
@@ -10,7 +14,6 @@ import src.helpers as psd
 from src.templates._core import BaseTemplate, NormalTemplate
 from src.templates._vector import VectorTemplate
 from src.text_layers import ScaledTextField, FormattedTextField
-from src.utils.properties import auto_prop_cached
 
 """
 * Modifier Classes
@@ -31,28 +34,46 @@ class MDFCMod(BaseTemplate):
     * Mixin Methods
     """
 
-    @auto_prop_cached
+    @cached_property
     def frame_layer_methods(self) -> list[Callable]:
         """Add MDFC frame layers step."""
         parent_funcs = super().frame_layer_methods
         return [*parent_funcs, self.enable_mdfc_layers] if self.is_mdfc else parent_funcs
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add MDFC text layers step."""
         parent_funcs = super().text_layer_methods
         return [*parent_funcs, self.text_layers_mdfc] if self.is_mdfc else parent_funcs
 
     """
+    * MDFC Colors
+    """
+
+    @cached_property
+    def mdfc_icon_color(self) -> str:
+        """Layer name for the MDFC top icon color."""
+        if self.twins == LAYERS.LAND:
+            return LAYERS.COLORLESS
+        return self.twins
+
+    @cached_property
+    def mdfc_bar_color(self) -> str:
+        """Layer name for the MDFC top icon color."""
+        if self.layout.other_face_twins == LAYERS.LAND:
+            return LAYERS.COLORLESS
+        return self.layout.other_face_twins
+
+    """
     * MDFC Text Layers
     """
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_mdfc_left(self) -> Optional[ArtLayer]:
         """The back face card type."""
         return psd.getLayer(LAYERS.LEFT, self.dfc_group)
 
-    @auto_prop_cached
+    @cached_property
     def text_layer_mdfc_right(self) -> Optional[ArtLayer]:
         """The back face mana cost or land tap ability."""
         return psd.getLayer(LAYERS.RIGHT, self.dfc_group)
@@ -65,14 +86,8 @@ class MDFCMod(BaseTemplate):
         """Enable layers that are required by modal double faced cards."""
 
         # MDFC elements at the top and bottom of the card
-        psd.getLayer(
-            self.twins,
-            psd.getLayerSet(LAYERS.TOP, self.dfc_group)
-        ).visible = True
-        psd.getLayer(
-            self.layout.other_face_twins,
-            psd.getLayerSet(LAYERS.BOTTOM, self.dfc_group)
-        ).visible = True
+        psd.getLayer(self.mdfc_icon_color, [self.dfc_group, LAYERS.TOP]).visible = True
+        psd.getLayer(self.mdfc_bar_color, [self.dfc_group, LAYERS.BOTTOM]).visible = True
 
         # Front and back side layers
         if self.is_front:

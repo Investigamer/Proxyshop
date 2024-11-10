@@ -3,38 +3,34 @@
 * Only import enums and utils
 """
 # Standard Library Imports
+import json
+import shutil
 from concurrent.futures import ThreadPoolExecutor, Future
 from configparser import ConfigParser
 from contextlib import suppress
+from functools import cached_property
 import os
 from pathlib import Path
 from traceback import print_tb
 from types import ModuleType
-from typing import Optional, TypedDict, NotRequired, Any, Callable
+from typing import Optional, TypedDict, NotRequired, Any, Callable, Union
 
 # Third Party Imports
 import yarl
+from omnitils.api.gdrive import gdrive_get_metadata, gdrive_download_file
+from omnitils.files import load_data_file, ensure_file, mkdir_full_perms
+from omnitils.modules import get_local_module, import_package, import_module_from_path
+from omnitils.strings import normalize_ver
 
 # Local Imports
 from src._state import AppConstants, AppEnvironment, PATH
-from src.api.amazon import download_cloudfront
-from src.api.google import get_google_drive_metadata, download_google_drive
 from src.enums.mtg import (
     layout_map_types_display,
     layout_map_category,
     layout_map_types,
     layout_map_display_condition_dual,
     layout_map_display_condition)
-from src.utils.files import (
-    load_data_file,
-    get_kivy_config_from_schema,
-    get_config_object,
-    verify_config_fields,
-    ensure_path_exists,
-    copy_config_or_verify)
-from src.utils.modules import get_local_module, import_package, import_module_from_path
-from src.utils.properties import auto_prop_cached
-from src.utils.strings import normalize_ver
+from src.utils.download import download_cloudfront
 
 """
 * Types
@@ -66,12 +62,19 @@ TemplateTypeMap = dict[str, dict[str, TemplateDetails]]
 TemplateSelectedMap = dict[str, Optional[TemplateDetails]]
 
 
+class TemplateRequirements(TypedDict):
+    """Requirements that must be met for a template to be supported."""
+    templates: NotRequired[list[str]]
+    version: NotRequired[str]
+
+
 class ManifestTemplateDetails(TypedDict):
     """Template details pulled from a plugin's `manifest.yml` file or Proxyshop's `templates.yml` file."""
     file: str
     name: NotRequired[str]
     id: NotRequired[str]
     desc: NotRequired[str]
+    requires: NotRequired[TemplateRequirements]
     version: NotRequired[str]
     templates: ManifestTemplateMap
 
@@ -82,6 +85,8 @@ class TemplateMetadata(TypedDict):
     name: NotRequired[str]
     id: NotRequired[str]
     desc: NotRequired[str]
+    requires: NotRequired[TemplateRequirements]
+    version: NotRequired[str]
 
 
 class PluginMetadata(TypedDict):
@@ -100,6 +105,179 @@ class TemplateCategoryMap(TypedDict):
     """Data mapped to a displayed template category, e.g. 'Normal'."""
     names: list[str]
     map: TemplateTypeMap
+
+
+"""
+* Config File Utils
+"""
+
+
+def verify_config_fields(ini_file: Path, data_file: Path) -> None:
+    """Validate that all settings fields present in a given json data are present in config file. If any are missing,
+    add them and return.
+
+    Args:
+        ini_file: Config file to verify contains the proper fields.
+        data_file: Data file containing config fields to check for, JSON or TOML.
+    """
+    # Track data and changes
+    data, changed = {}, False
+
+    # Data file doesn't exist or is unsupported data type
+    if not data_file.is_file() or data_file.suffix not in ['.toml', '.json']:
+        return
+
+    # Load data from JSON or TOML file
+    raw = load_data_file(data_file)
+    raw = parse_kivy_config_toml(raw) if data_file.suffix == '.toml' else raw
+
+    # Ensure INI file exists and load ConfigParser
+    ensure_file(ini_file)
+    config = get_config_object(ini_file)
+
+    # Build a dictionary of the necessary values
+    for row in raw:
+        # Add row if it's not a title
+        if row.get('type', 'title') == 'title':
+            continue
+        data.setdefault(
+            row.get('section', 'BROKEN'), []
+        ).append({
+            'key': row.get('key', ''),
+            'value': row.get('default', 0)
+        })
+
+    # Add the data to ini where missing
+    for section, settings in data.items():
+        # Check if the section exists
+        if not config.has_section(section):
+            config.add_section(section)
+            changed = True
+        # Check if each setting exists
+        for setting in settings:
+            if not config.has_option(section, setting['key']):
+                config.set(section, setting['key'], str(setting['value']))
+                changed = True
+
+    # If ini has changed, write changes
+    if changed:
+        with open(ini_file, "w", encoding="utf-8") as f:
+            config.write(f)  # noqa
+
+
+def parse_kivy_config_json(raw: list[dict]) -> list[dict]:
+    """Parse config JSON data for use with Kivy settings panel.
+
+    Args:
+        raw: Raw loaded JSON data.
+
+    Returns:
+        Properly parsed data safe for use with Kivy.
+    """
+    # Remove unsupported keys
+    for row in raw:
+        if 'default' in row:
+            row.pop('default')
+    return raw
+
+
+def parse_kivy_config_toml(raw: dict) -> list[dict]:
+    """Parse config TOML data for use with Kivy settings panel.
+
+    Args:
+        raw: Raw loaded TOML data.
+
+    Returns:
+        Properly parsed data safe for use with Kivy.
+    """
+
+    # Process __CONFIG__ header if present
+    cfg_header = raw.pop('__CONFIG__', {})
+    prefix = cfg_header.get('prefix', '')
+
+    # Process data
+    data: list[dict] = []
+    for section, settings in raw.items():
+
+        # Add section title if it exists
+        if title := settings.pop('title', None):
+            data.append({
+                'type': 'title',
+                'title': title
+            })
+
+        # Add each setting within this section
+        for key, field in settings.items():
+
+            # Establish data type and default value
+            data_type = field.get('type', 'bool')
+            display_default = default = field.get('default', 0)
+            if data_type == 'bool':
+                display_default = 'True' if default else 'False'
+            elif data_type in ['string', 'options', 'path']:
+                display_default = f"'{default}'"
+            setting = {
+                'type': data_type,
+                'title': f"[b]{field.get('title', 'Broken Setting')}[/b]",
+                'desc': f"{field.get('desc', '')}\n"
+                        f"[b](Default: {display_default})[/b]",
+                'section': f'{prefix}.{section}' if prefix else section,
+                'key': key, 'default': default}
+            if options := field.get('options'):
+                setting['options'] = options
+            data.append(setting)
+
+    # Return parsed data
+    return data
+
+
+def get_kivy_config_from_schema(config: Path) -> str:
+    """Return valid JSON data for use with Kivy settings panel.
+
+    Args:
+        config: Path to config schema file, JSON or TOML.
+
+    Returns:
+        Json string dump of validated data.
+    """
+    # Need to load data as JSON
+    raw = load_data_file(config)
+
+    # Use correct parser
+    if config.suffix == '.toml':
+        raw = parse_kivy_config_toml(raw)
+    return json.dumps(parse_kivy_config_json(raw))
+
+
+def copy_config_or_verify(path_from: Path, path_to: Path, data_file: Path) -> None:
+    """Copy one config to another, or verify it if it exists.
+
+    Args:
+        path_from: Path to the file to be copied.
+        path_to: Path to the file to create, if it doesn't exist.
+        data_file: Data schema file to use for validating an existing INI file.
+    """
+    if os.path.isfile(path_to):
+        return verify_config_fields(path_to, data_file)
+    shutil.copy(path_from, path_to)
+
+
+def get_config_object(path: Union[str, os.PathLike, list[Union[str, os.PathLike]]]) -> ConfigParser:
+    """Returns a ConfigParser object using a valid ini path.
+
+    Args:
+        path: Path to ini config file.
+
+    Returns:
+        ConfigParser object.
+
+    Raises:
+        ValueError: If valid ini file wasn't received.
+    """
+    config = ConfigParser(allow_no_value=True)
+    config.optionxform = str
+    config.read(path, encoding='utf-8')
+    return config
 
 
 """
@@ -258,7 +436,7 @@ class ConfigManager:
             return
 
         # Validate base template configs
-        ensure_path_exists(self.template_path_ini)
+        mkdir_full_perms(self.template_path_ini.parent)
         copy_config_or_verify(
             path_from=self.base_path_ini,
             path_to=self.template_path_ini,
@@ -322,7 +500,7 @@ class AppPlugin:
     * Tracked Properties
     """
 
-    @auto_prop_cached
+    @cached_property
     def template_map(self) -> dict[str, 'AppTemplate']:
         """dict[str, AppTemplate]: A dictionary mapping of AppTemplate's by file name pulled from this plugin."""
         return {}
@@ -331,22 +509,22 @@ class AppPlugin:
     * Pathing
     """
 
-    @auto_prop_cached
+    @cached_property
     def path_config(self) -> Path:
         """Path: Path to this plugin's config directory."""
         return Path(self._root, 'config')
 
-    @auto_prop_cached
+    @cached_property
     def path_ini(self) -> Path:
         """Path: Path to this plugin's INI config directory."""
         return Path(self._root, 'config_ini')
 
-    @auto_prop_cached
+    @cached_property
     def path_img(self) -> Path:
         """Path: Path to this plugin's preview image directory."""
         return Path(self._root, 'img')
 
-    @auto_prop_cached
+    @cached_property
     def path_templates(self) -> Path:
         """Path: Path to this plugin's templates directory."""
         return self._root / 'templates'
@@ -355,22 +533,22 @@ class AppPlugin:
     * Plugin Metadata
     """
 
-    @auto_prop_cached
+    @cached_property
     def name(self) -> str:
         """str: Displayed name of the plugin. Fallback on root directory name."""
         return self._info.get('name', self._root.stem)
 
-    @auto_prop_cached
+    @cached_property
     def author(self) -> str:
         """str: Displayed name of the plugin's author. Fallback on name."""
         return self._info.get('author', self.name)
 
-    @auto_prop_cached
+    @cached_property
     def description(self) -> Optional[str]:
         """Optional[str]: Displayed description of the plugin. Fallback on None."""
         return self._info.get('desc', None)
 
-    @auto_prop_cached
+    @cached_property
     def source(self) -> Optional[yarl.URL]:
         """Optional[URL]: Link to the hosted files of this plugin."""
         if url := self._info.get('source'):
@@ -379,7 +557,7 @@ class AppPlugin:
                 return url
         return
 
-    @auto_prop_cached
+    @cached_property
     def docs(self) -> Optional[yarl.URL]:
         """Optional[URL]: Link to the hosted documentation for this plugin."""
         if url := self._info.get('docs'):
@@ -388,17 +566,17 @@ class AppPlugin:
                 return url
         return
 
-    @auto_prop_cached
+    @cached_property
     def license(self) -> str:
         """str: Name of the open source license carried by this plugin. Fallback on MPL-2.0."""
         return self._info.get('license', 'MPL-2.0')
 
-    @auto_prop_cached
+    @cached_property
     def required_version(self) -> Optional[str]:
         """Optional[str]: Proxyshop version this plugin requires to function as intended."""
         return self._info.get('requires', None)
 
-    @auto_prop_cached
+    @cached_property
     def version(self) -> str:
         """str: Current version of the plugin."""
         return self._info.get('version', '0.1.0')
@@ -407,12 +585,12 @@ class AppPlugin:
     * Module Details
     """
 
-    @auto_prop_cached
+    @cached_property
     def module_path(self) -> Path:
         """Path: The path to this plugin's Python module."""
         return Path(self._root, 'py')
 
-    @auto_prop_cached
+    @cached_property
     def module_name(self) -> str:
         """str: The name of this plugin's Python module, e.g. 'plugins.MyPlugin.py'."""
         return f'{self._root.name}.py'
@@ -601,12 +779,12 @@ class AppTemplate:
     * Template Metadata
     """
 
-    @auto_prop_cached
+    @cached_property
     def name(self) -> str:
         """str: Name of the template displayed in download manager menus."""
         return self._info.get('name', self.generate_template_name())
 
-    @auto_prop_cached
+    @cached_property
     def file_name(self) -> str:
         """str: File name of the template PSD/PSB file."""
         file_name = self._info.get('file')
@@ -614,12 +792,12 @@ class AppTemplate:
             raise ValueError(f"Template '{self.name}' did not provide a file name!")
         return file_name
 
-    @auto_prop_cached
+    @cached_property
     def google_drive_id(self) -> Optional[str]:
         """Optional[str]: The template's Google Drive file ID, fallback to None."""
         return self._info.get('id', None)
 
-    @auto_prop_cached
+    @cached_property
     def description(self) -> Optional[str]:
         """Optional[str]: The template's displayed description, fallback to None."""
         return self._info.get('desc', None)
@@ -635,7 +813,7 @@ class AppTemplate:
     * Template Update Data
     """
 
-    @auto_prop_cached
+    @cached_property
     def _update(self) -> TemplateUpdate:
         """TemplateUpdate: Returns the current dictionary of update details for this template. Value is set
         dynamically when checking for updates."""
@@ -663,19 +841,25 @@ class AppTemplate:
     @property
     def is_installed(self) -> bool:
         """bool: Whether PSD/PSB file for this template is installed."""
-        return self.path_psd.is_file()
+        # Todo: Add version checking
+        if not self.path_psd.is_file():
+            return False
+        for required_template in self.requirements.get('templates', []):
+            if not Path(self.path_psd.parent, required_template).is_file():
+                return False
+        return True
 
     """
     * Template Paths
     """
 
-    @auto_prop_cached
+    @cached_property
     def path_psd(self) -> Path:
         """Path: Path to the PSD/PSB file."""
         root = self.plugin.path_templates if self.plugin else PATH.TEMPLATES
         return root / self.file_name
 
-    @auto_prop_cached
+    @cached_property
     def path_7z(self) -> Path:
         """Path: Path to the 7z archive downloaded for this plugin."""
         return self.path_psd.with_suffix('.7z')
@@ -687,6 +871,15 @@ class AppTemplate:
             root = self.plugin.path_templates if self.plugin else PATH.TEMPLATES
             return root / self.update_file
         return
+
+    """
+    * Template Requirements
+    """
+
+    @property
+    def requirements(self) -> TemplateRequirements:
+        """TemplateRequirements: Requirements that must be met for this template to be supported."""
+        return self._info.get('requires', {})
 
     """
     * Template URLs
@@ -719,7 +912,7 @@ class AppTemplate:
     * Collections
     """
 
-    @auto_prop_cached
+    @cached_property
     def types_supported(self) -> list[str]:
         """set[str]: A set of all types supported by this template."""
         return list({
@@ -728,12 +921,12 @@ class AppTemplate:
             for t in types
         })
 
-    @auto_prop_cached
+    @cached_property
     def all_names(self) -> list[str]:
         """set[str]: A set of all display names used by this template."""
         return list({name for name in self.manifest_map.keys()})
 
-    @auto_prop_cached
+    @cached_property
     def all_classes(self) -> list[str]:
         """set[str]: A set of all python classes used by this template."""
         return list({cls_name for class_map in self.manifest_map.values() for cls_name in class_map.keys()})
@@ -817,7 +1010,7 @@ class AppTemplate:
             True if Template needs to be updated, otherwise False.
         """
         # Get our metadata
-        data = get_google_drive_metadata(self.google_drive_id, self.env.API_GOOGLE)
+        data = gdrive_get_metadata(self.google_drive_id, self.env.API_GOOGLE)
         if not data:
             # File couldn't be located on Google Drive
             print(f"{self.name} ({self.file_name}) not found on Google Drive!")
@@ -867,7 +1060,7 @@ class AppTemplate:
         try:
 
             # Download using Google Drive
-            result = download_google_drive(
+            result = gdrive_download_file(
                 url=self.url_google_drive,
                 path=self.path_download,
                 path_cookies=PATH.LOGS_COOKIES,
@@ -930,7 +1123,7 @@ class AppTemplate:
         # Get plugin template config
         if self.plugin:
             json_path = (self.plugin.path_config / class_name).with_suffix('.json')
-            if json_path.is_file:
+            if json_path.is_file():
                 return json_path
             return json_path.with_suffix('.toml')
 

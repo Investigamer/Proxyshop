@@ -7,10 +7,10 @@ from typing import Optional
 
 # Third Party Imports
 import click
+from omnitils.files.archive import compress_7z, compress_7z_all
 
 # Local Imports
 from src import PATH
-from src.utils.compression import compress_7z, compress_7z_all
 
 """
 * Commands: Compression
