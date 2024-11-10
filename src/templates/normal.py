@@ -13,10 +13,10 @@ from photoshop.api._layerSet import LayerSet
 
 # Local Imports
 from src import CFG, CON
-from src.utils.adobe import ReferenceLayer, LayerObjectTypes
 from src.schema.adobe import EffectColorOverlay, EffectBevel
-from src.enums.mtg import MagicIcons
 from src.templates import NicknameMod
+from src.utils.adobe import ReferenceLayer, LayerObjectTypes
+from src.enums.mtg import MagicIcons
 from src.enums.adobe import Dimensions
 from src.enums.layers import LAYERS
 from src.enums.settings import (
@@ -1092,9 +1092,6 @@ class BorderlessVectorTemplate(
     def __init__(self, layout, **kwargs):
         super().__init__(layout, **kwargs)
 
-        if not CFG.exit_early:
-            CFG.exit_early = self.is_nickname and not self.nickname
-
         if self.is_nickname_in_oracle:
             if 'Legendary' in layout.type_line and ',' in layout.name:
                 original_short_name = sub(r"\,.*", "", layout.name).strip()
@@ -1337,6 +1334,8 @@ class BorderlessVectorTemplate(
     @cached_property
     def is_nickname(self) -> bool:
         """Return True if this a nickname render."""
+        if self.layout.nickname:
+            return True
         return CFG.get_setting(section="TEXT", key="Nickname", default=False) or self.nickname is not None
 
     @cached_property
@@ -1834,14 +1833,16 @@ class BorderlessVectorTemplate(
                     reference=self.nickname_shape
                 ))
 
-            # If nickname is not entered by user add that too
-            if self.text_layer_nickname is not None:
-                self.text.append(
-                    ScaledTextField(
-                        layer=self.text_layer_nickname,
-                        contents=self.nickname,
-                        reference=self.text_layer_mana
-                    ))
+            nickname = self.nickname
+            if nickname is None:
+                self.prompt_nickname_text()
+                nickname = self.layout.nickname
+            self.text.append(
+                ScaledTextField(
+                    layer=self.text_layer_nickname,
+                    contents=nickname,
+                    reference=self.text_layer_mana
+                ))
 
     def rules_text_and_pt_layers(self) -> None:
         """Skip this step for 'Textless' renders."""
