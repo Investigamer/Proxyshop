@@ -11,7 +11,7 @@ from typing import Optional, Callable, Any, Union, Iterable
 
 # Third Party Imports
 from pathvalidate import sanitize_filename
-from photoshop.api.application import ArtLayer
+from photoshop.api._artlayer import ArtLayer
 from photoshop.api._document import Document
 from photoshop.api._layerSet import LayerSet
 from photoshop.api._selection import Selection
@@ -789,7 +789,7 @@ class BaseTemplate:
         # Import art file
         if self.art_action:
             # Use action pipeline
-            psd.paste_file(
+            art_layer = psd.paste_file(
                 layer=art_layer,
                 path=art_file,
                 action=self.art_action,
@@ -797,14 +797,15 @@ class BaseTemplate:
                 docref=self.docref)
         else:
             # Use traditional pipeline
-            psd.import_art(
+            art_layer = psd.import_art(
                 layer=art_layer,
                 path=art_file,
                 docref=self.docref)
+        self.active_layer = art_layer
 
         # Frame the artwork
         psd.frame_layer(
-            layer=self.active_layer,
+            layer=art_layer,
             ref=art_reference)
 
         # Perform content aware fill if needed
