@@ -127,16 +127,30 @@ def parse_card_info(file_path: Path) -> CardDetails:
     name_split = CardTextPatterns.PATH_SPLIT.split(file_name)
     artist = CardTextPatterns.PATH_ARTIST.search(file_name)
     number = CardTextPatterns.PATH_NUM.search(file_name)
-    code = CardTextPatterns.PATH_SET.search(file_name)
+    set_or_cfg = CardTextPatterns.PATH_SET_OR_CFG.findall(file_name)
+
+    code = None
+    additional_cfg = {}
+    for cfg in set_or_cfg:
+        cfg_name_and_value = cfg.split("=", 1)
+        if len(cfg_name_and_value) == 1:
+            code = cfg
+        elif len(cfg_name_and_value) == 2:
+            [cfg_name, cfg_value] = cfg_name_and_value
+            additional_cfg[cfg_name] = cfg_value
+        else:
+            # Not supported
+            pass
 
     # Return dictionary
     return {
         'file': file_path,
         'name': name_split[0].strip(),
-        'set': code.group(1) if code else '',
+        'set': code if code else '',
         'artist': artist.group(1) if artist else '',
         'number': number.group(1) if number and code else '',
         'creator': name_split[-1] if '$' in file_name else '',
+        'additional_cfg': additional_cfg,
     }
 
 

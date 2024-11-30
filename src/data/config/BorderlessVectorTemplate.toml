@@ -25,7 +25,13 @@ title = "Text Options"
 
 [TEXT.Nickname]
 title = "Use Nickname"
-desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually."""
+desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually or specify via [nick=...]."""
+type = "bool"
+default = 0
+
+[TEXT."Nickname.In.Oracle"]
+title = "Nickname in Oracle"
+desc = """When enabled, cards that are rendered with a nickname will replace the card name in their oracle text with their nickname."""
 type = "bool"
 default = 0
 
