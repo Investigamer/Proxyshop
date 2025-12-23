@@ -337,7 +337,7 @@ class NicknameMod(VectorTemplate):
     def format_nickname_text(self) -> None:
 
         # Center the card name on the nickname plate
-        psd.align_all(self.text_layer_nickname, self.nickname_shape)
+        psd.align_all(self.text_layer_name, self.nickname_shape)
 
     """
     * Utility Methods
