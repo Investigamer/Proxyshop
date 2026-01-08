@@ -3,7 +3,7 @@
 """
 # Standard Library Imports
 from functools import cached_property
-from typing import Optional, Callable, Union, cast
+from typing import Optional, Callable, Union
 
 # Third Party Imports
 from photoshop.api._artlayer import ArtLayer
@@ -142,7 +142,7 @@ class VectorNyxMod (NyxMod, VectorTemplate):
         if self.is_nyx:
             if layer := psd.getLayerSet(LAYERS.NYX):
                 return layer
-        return cast(super().background_group, Optional[LayerSet])
+        return super().background_group
 
 
 class CompanionMod (BaseTemplate):
