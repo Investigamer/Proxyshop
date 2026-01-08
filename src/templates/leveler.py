@@ -15,6 +15,7 @@ import src.helpers as psd
 from src.layouts import LevelerLayout
 from src.templates._core import NormalTemplate
 import src.text_layers as text_classes
+from src.utils.adobe import ReferenceLayer
 
 """
 * Modifier Classes
@@ -32,13 +33,21 @@ class LevelerMod(NormalTemplate):
     """
 
     """
+    * Checks
+    """
+
+    @cached_property
+    def is_leveler(self) -> bool:
+        return isinstance(self.layout, LevelerLayout)
+
+    """
     * Mixin Methods
     """
 
     @cached_property
     def text_layer_methods(self) -> list[Callable]:
         """Add Adventure text layers."""
-        funcs = [self.text_layers_leveler] if isinstance(self.layout, LevelerLayout) else []
+        funcs = [self.text_layers_leveler] if self.is_leveler else []
         return [*super().text_layer_methods, *funcs]
 
     """
@@ -56,7 +65,9 @@ class LevelerMod(NormalTemplate):
 
     @cached_property
     def pt_layer(self) -> Optional[ArtLayer]:
-        return psd.getLayer(self.twins, LAYERS.PT_AND_LEVEL_BOXES)
+        if self.is_leveler:
+            return psd.getLayer(self.twins, LAYERS.PT_AND_LEVEL_BOXES)
+        return super().pt_layer
 
     """
     * Text Layers
@@ -64,11 +75,15 @@ class LevelerMod(NormalTemplate):
 
     @cached_property
     def text_layer_rules(self) -> Optional[ArtLayer]:
-        return psd.getLayer("Rules Text - Level Up", self.leveler_group)
+        if self.is_leveler:
+            return psd.getLayer("Rules Text - Level Up", self.leveler_group)
+        return super().text_layer_rules
 
     @cached_property
     def text_layer_pt(self) -> Optional[ArtLayer]:
-        return psd.getLayer("Top Power / Toughness", self.leveler_group)
+        if self.is_leveler:
+            return psd.getLayer("Top Power / Toughness", self.leveler_group)
+        return super().text_layer_pt
 
     """
     * Leveler Text Layers
@@ -103,8 +118,10 @@ class LevelerMod(NormalTemplate):
     """
 
     @cached_property
-    def textbox_reference(self) -> Optional[ArtLayer]:
-        return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
+    def textbox_reference(self) -> Optional[ReferenceLayer]:
+        if self.is_leveler:
+            return psd.get_reference_layer(f'{LAYERS.TEXTBOX_REFERENCE} - Level Text', self.leveler_group)
+        return super().textbox_reference
 
     """
     * Leveler References
@@ -124,19 +141,22 @@ class LevelerMod(NormalTemplate):
 
     def rules_text_and_pt_layers(self) -> None:
         """Add rules and power/toughness text."""
-
-        # Level-Up text and starting P/T
-        self.text.extend([
-            text_classes.FormattedTextArea(
-                layer=self.text_layer_rules,
-                contents=self.layout.level_up_text,
-                reference=self.textbox_reference
-            ),
-            text_classes.TextField(
-                layer=self.text_layer_pt,
-                contents=str(self.layout.power) + "/" + str(self.layout.toughness)
-            )
-        ])
+        
+        if self.is_leveler:
+            # Level-Up text and starting P/T
+            self.text.extend([
+                text_classes.FormattedTextArea(
+                    layer=self.text_layer_rules,
+                    contents=self.layout.level_up_text,
+                    reference=self.textbox_reference
+                ),
+                text_classes.TextField(
+                    layer=self.text_layer_pt,
+                    contents=str(self.layout.power) + "/" + str(self.layout.toughness)
+                )
+            ])
+        else:
+            return super().rules_text_and_pt_layers()
 
     def text_layers_leveler(self):
         """Add and modify text layers required by Leveler cards."""
