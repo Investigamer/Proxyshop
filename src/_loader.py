@@ -11,11 +11,12 @@ from contextlib import suppress
 from functools import cached_property
 import os
 from pathlib import Path
-from traceback import print_tb
+from traceback import format_exc, print_tb
 from types import ModuleType
 from typing import Optional, TypedDict, NotRequired, Any, Callable, Union
 
 # Third Party Imports
+from py7zr import SevenZipFile
 import yarl
 from omnitils.api.gdrive import gdrive_get_metadata, gdrive_download_file
 from omnitils.files import load_data_file, ensure_file, mkdir_full_perms
@@ -1073,13 +1074,20 @@ class AppTemplate:
                     url=self.url_amazon,
                     path=self.path_download,
                     callback=callback)
+            
+            # If downloaded file is a 7z archive, extract the template from it
+            if self.path_download.suffix == ".7z":
+                with SevenZipFile(self.path_7z, "r") as archive:
+                    root = self.plugin.path_templates if self.plugin else PATH.TEMPLATES
+                    archive.extractall(root)
+                self.path_7z.unlink()
 
             # Return result status
             return result
 
         # Exception caught while downloading / unpacking
         except Exception as e:
-            print(e)
+            print(f"Failed to update template: {self.name}", e, format_exc())
         return False
 
     def mark_updated(self) -> None:
