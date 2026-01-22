@@ -3,7 +3,7 @@
 """
 # Standard Library Imports
 from functools import cached_property
-from typing import Optional, Callable
+from typing import Optional, Callable, Sequence
 
 # Third Party Imports
 from photoshop.api import ElementPlacement, ColorBlendMode
@@ -69,6 +69,14 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
         if self.is_colorless:
             return LAYERS.BORDERLESS_FRAME
         return LAYERS.FULL_ART_FRAME
+    
+    @cached_property
+    def ability_text_spacing(self) -> float | int:
+        return 64
+    
+    @cached_property
+    def ability_text_scaling_step_sizes(self) -> Sequence[float] | None:
+        return None
 
     """
     * Planeswalker Details
@@ -240,14 +248,15 @@ class PlaneswalkerMod (FullartMod, StarterTemplate):
         """Position Planeswalker ability layers and icons."""
 
         # Auto-position the ability text, colons, and shields.
-        spacing = self.app.scale_by_dpi(64)
+        spacing = self.app.scale_by_dpi(self.ability_text_spacing)
         spaces = len(self.ability_layers) + 1
         total_height = self.textbox_reference.dims['height'] - (spacing * spaces)
 
         # Resize text items till they fit in the available space
         font_size = scale_text_layers_to_height(
             text_layers=self.ability_layers,
-            ref_height=total_height)
+            ref_height=total_height,
+            step_sizes=self.ability_text_scaling_step_sizes)
 
         # Space abilities evenly apart
         uniform_gap = True if len(self.ability_layers) < 3 or not self.layout.loyalty else False

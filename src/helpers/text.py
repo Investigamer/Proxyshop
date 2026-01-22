@@ -2,7 +2,7 @@
 * Helpers: Text Items
 """
 # Standard Library Imports
-from typing import Union, Optional, Any
+from typing import Sequence, Union, Optional, Any
 
 # Third Party Imports
 from photoshop.api import (
@@ -764,7 +764,7 @@ def scale_text_layers_to_height(
     text_layers: list[ArtLayer],
     ref_height: Union[int, float],
     font_size: Optional[float] = None,
-    step: float = 0.4
+    step_sizes: Sequence[float] | None = None
 ) -> Optional[float]:
     """Scale multiple text layers until they all can fit within the same given height dimension.
 
@@ -772,8 +772,10 @@ def scale_text_layers_to_height(
         text_layers: List of TextLayers to check.
         ref_height: Height to fit inside.
         font_size: Starting font size of the text layers, calculated if not provided.
-        step: Points to step down the text layers to fit.
+        step_sizes: Descending sequence, which determines the increments used for text scaling.
     """
+    step_sizes = step_sizes or (0.4, 0.2)
+
     # Check initial fit
     total_layer_height = sum([get_layer_height(layer) for layer in text_layers])
     if total_layer_height <= ref_height:
@@ -782,26 +784,30 @@ def scale_text_layers_to_height(
     # Establish font size
     if font_size is None:
         font_size = get_font_size(text_layers[0])
-    half_step = step / 2
 
-    # Compare height of all 3 elements vs total reference height
-    while total_layer_height > ref_height:
-        total_layer_height = 0
-        font_size -= step
-        for i, layer in enumerate(text_layers):
+    uneven_round = False
+    # Adjust text size down and up in decreasing steps
+    for idx, step_size in enumerate(step_sizes):
+        uneven_round = bool(idx % 2)
+        
+        # Compare height of all 3 elements vs total reference height
+        while total_layer_height < ref_height if uneven_round else total_layer_height > ref_height:
+            total_layer_height = 0
+
+            if uneven_round:
+                font_size += step_size
+            else:
+                font_size -= step_size
+
+            for layer in text_layers:
+                set_text_size_and_leading(layer, font_size, font_size)
+                total_layer_height += get_layer_height(layer)
+
+    # If the last round was uneven we have to go one step down,
+    # because we are over the reference height
+    if uneven_round:
+        font_size -= step_sizes[-1]
+        for layer in text_layers:
             set_text_size_and_leading(layer, font_size, font_size)
-            total_layer_height += get_layer_height(layer)
 
-    # Increase by a half step
-    font_size += half_step
-    total_layer_height = 0
-    for i, layer in enumerate(text_layers):
-        set_text_size_and_leading(layer, font_size, font_size)
-        total_layer_height += get_layer_height(layer)
-
-    # If out of bounds, revert half step
-    if total_layer_height > ref_height:
-        font_size -= half_step
-        for i, layer in enumerate(text_layers):
-            set_text_size_and_leading(layer, font_size, font_size)
     return font_size
