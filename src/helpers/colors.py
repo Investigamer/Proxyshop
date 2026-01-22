@@ -2,7 +2,7 @@
 * Helpers: Colors
 """
 # Standard Library Imports
-from typing import Union, Optional
+from typing import TypedDict, Union
 
 # Third Party Imports
 from photoshop.api import SolidColor, DialogModes, ActionList, ActionDescriptor, ColorModel, LayerKind
@@ -185,11 +185,17 @@ def get_text_item_color(item: TextItem) -> SolidColor:
     return rgb_black()
 
 
+class GradientConfig(TypedDict):
+    color: ColorObject
+    location: int | float
+    midpoint: int | float
+
+
 def get_pinline_gradient(
         colors: str,
-        color_map: Optional[dict] = None,
-        location_map: dict = None
-) -> Union[list[int], list[dict]]:
+        color_map: dict[str, ColorObject] | None = None,
+        location_map: dict[int, list[Union[int, float]]] | None = None
+) -> ColorObject | list[ColorObject] | list[GradientConfig]:
     """Return a gradient color list notation for some given pinline colors.
 
     Args:
@@ -210,67 +216,30 @@ def get_pinline_gradient(
 
     # Return our colors
     if not colors:
-        return color_map.get('Artifact', [0, 0, 0])
-    if len(colors) == 1:
-        return color_map.get(colors, [0, 0, 0])
-    if len(colors) == 2:
+        return color_map.get(LAYERS.ARTIFACT, [0, 0, 0])
+
+    if colors in color_map:
+        return color_map[colors]
+
+    if (len_colors := len(colors)) > 1:
         return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[2][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[2][1] * 4096, 'midpoint': 50,
-            }
+            conf
+            for i in range(len_colors - 1)
+            for conf in [
+                {
+                    "color": color_map.get(colors[i], [0, 0, 0]),
+                    "location": location_map[len_colors][2 * i] * 4096,
+                    "midpoint": 50,
+                },
+                {
+                    "color": color_map.get(colors[i + 1], [0, 0, 0]),
+                    "location": location_map[len_colors][2 * i + 1] * 4096,
+                    "midpoint": 50,
+                },
+            ]
         ]
-    if len(colors) == 3:
-        return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[3][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[3][1] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[3][2] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[3][3] * 4096, 'midpoint': 50
-            }
-        ]
-    if len(colors) == 4 and colors not in [LAYERS.LAND, LAYERS.GOLD]:
-        return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[4][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[4][1] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[4][2] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[4][3] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[4][4] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[3], [0, 0, 0]),
-                'location': location_map[4][5] * 4096, 'midpoint': 50
-            }
-        ]
-    return color_map.get(colors, [0, 0, 0])
+
+    return [0, 0, 0]
 
 
 """
