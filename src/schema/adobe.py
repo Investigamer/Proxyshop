@@ -31,6 +31,37 @@ class LayerDimensions(Schema):
 * Layer Effects
 """
 
+BlendMode = Literal[
+    "normal",
+    "dissolve",
+    "darken",
+    "multiply",
+    "colorBurn",
+    "linearBurn",
+    "darkerColor",
+    "lighten",
+    "screen",
+    "colorDodge",
+    "linearDodge",
+    "lighterColor",
+    "overlay",
+    "softLight",
+    "hardLight",
+    "vividLight",
+    "linearLight",
+    "pinLight",
+    "hardMix",
+    "difference",
+    "exclusion",
+    "subtract",
+    "divide",
+    "hue",
+    "saturation",
+    "color",
+    "luminosity",
+]
+GradientMethod = Literal["perceptual", "linear", "classic", "smooth", "stripes"]
+
 
 class EffectBevel(ArbitrarySchema):
     """Layer Effect: Bevel"""
@@ -66,10 +97,13 @@ class EffectDropShadow(ArbitrarySchema):
 class EffectGradientOverlay(ArbitrarySchema):
     """Layer Effect: Drop Shadow"""
     colors: list[GradientColor] = []
+    blend_mode: BlendMode = "normal"
+    dither: bool = False
     opacity: int | float = 100
     rotation: int | float = 45
     scale: int | float = 70
     size: int | float = 4096
+    method: GradientMethod = "classic"
 
 
 class EffectStroke(ArbitrarySchema):
