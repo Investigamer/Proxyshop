@@ -116,6 +116,12 @@ desc = """Pause the render process before saving to allow for manual edits."""
 type = "bool"
 default = 0
 
+[TEMPLATES."Minimize.Photoshop"]
+title = "Minimize Photoshop"
+desc = """Minimize Photoshop when rendering starts. The rendering might be faster when Photoshop is minimized."""
+type = "bool"
+default = 0
+
 [TEMPLATES."Import.Scryfall.Scan"]
 title = "Import Scryfall Scan"
 desc = """Will import the scryfall scan of each card into the document for reference. Useful for ensuring card accuracy when making manual changes."""

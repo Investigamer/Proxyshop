@@ -26,6 +26,7 @@ from win32api import FormatMessage
 
 # Local Imports
 from src._state import AppEnvironment
+from src.utils.windows import WindowState, get_window_handle_by_process_file_path_suffix, set_window_state
 
 """
 * Types & Definitions
@@ -52,7 +53,7 @@ PS_EXCEPTIONS = (
     OSError
 )
 
-PS_ERROR_CODES: dict[int: str] = {
+PS_ERROR_CODES: dict[int, str] = {
     # --> COMError Messages that contain a message string
     # Response: "The message filter indicated that the application is busy."
     -2147417846: "Photoshop is currently busy, close any dialog boxes and stop any pending actions.",
@@ -143,6 +144,15 @@ class PhotoshopHandler(ApplicationHandler):
     DIMS_800 = (2176, 2960)
     DIMS_600 = (1632, 2220)
     _instance = None
+    _window_handle: int | None = None
+
+    @property
+    def window_handle(self) -> int | None:
+        if self._window_handle is None:
+            self._window_handle = get_window_handle_by_process_file_path_suffix(
+                "Photoshop.exe"
+            )
+        return self._window_handle
 
     def __new__(cls, env: Optional[Any] = None) -> 'PhotoshopHandler':
         """Always return the same Photoshop Application instance on successive calls.
@@ -178,7 +188,14 @@ class PhotoshopHandler(ApplicationHandler):
             except Exception as e:
                 # Photoshop is either busy or unresponsive
                 return OSError(get_photoshop_error_message(e))
+            
+            # Clear window handle as it might have changed
+            self._window_handle = None
         return
+
+    def set_window_state(self, state: WindowState) -> None:
+        if (handle := self.window_handle) is not None:
+            set_window_state(handle, state)
 
     """
     * Class Methods
@@ -471,7 +488,7 @@ class ReferenceLayer(ArtLayer):
     """
 
     @cached_property
-    def dims(self) -> type[LayerDimensions]:
+    def dims(self) -> LayerDimensions:
         """LayerDimensions: Returns dimensions of the layer (cached), including:
             - bounds (left, right, top, bottom)
             - height
@@ -482,7 +499,7 @@ class ReferenceLayer(ArtLayer):
         return self.get_dimensions_from_bounds(self.bounds)
 
     @cached_property
-    def dims_no_effects(self) -> type[LayerDimensions]:
+    def dims_no_effects(self) -> LayerDimensions:
         """LayerDimensions: Returns dimensions of the layer (cached) without layer effects applied, including:
             - bounds (left, right, top, bottom)
             - height
@@ -497,7 +514,7 @@ class ReferenceLayer(ArtLayer):
     """
 
     @staticmethod
-    def get_dimensions_from_bounds(bounds) -> type[LayerDimensions]:
+    def get_dimensions_from_bounds(bounds) -> LayerDimensions:
         """Compute width and height based on a set of bounds given.
 
         Args:

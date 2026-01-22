@@ -1,13 +1,15 @@
 """
 CONSOLE MODULES
 """
+from __future__ import annotations
+
 # Standard Library Imports
 import os
 import time
 import traceback
 from functools import cached_property
 from threading import Thread, Event, Lock
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 from datetime import datetime as dt
 
 # Third Party Imports
@@ -21,6 +23,10 @@ from src._config import AppConfig
 from src._state import AppEnvironment, PATH
 from src.gui._state import get_root_app
 from src.gui.utils import HoverButton
+from src.utils.windows import WindowState
+
+if TYPE_CHECKING:
+    from src.utils.adobe import PhotoshopHandler
 
 
 class GUIConsole(BoxLayout):
@@ -35,12 +41,14 @@ class GUIConsole(BoxLayout):
         self,
         cfg: AppConfig,
         env: AppEnvironment,
+        app: PhotoshopHandler,
         **kwargs
     ):
         # Establish global objects
         super().__init__(**kwargs)
         self.cfg = cfg
         self.env = env
+        self.app = app
 
         # Test mode uses larger console
         if not self.env.TEST_MODE:
@@ -248,7 +256,7 @@ class GUIConsole(BoxLayout):
     * User Prompt Signals
     """
 
-    def await_choice(self, thr: Event, msg: Optional[str] = None, end: str = "\n") -> bool:
+    def await_choice(self, thr: Event, msg: str | None = None, end: str = "\n", show_photoshop: bool = True) -> bool:
         """Prompt the user to either continue or cancel.
 
         Args:
@@ -263,11 +271,19 @@ class GUIConsole(BoxLayout):
         self.end_await()
         self.update(msg=msg or self.message_waiting, end=end)
         self.enable_buttons()
+        if self.cfg.minimize_photoshop and show_photoshop:
+            # Show Photoshop in case it is minimized
+            self.app.set_window_state(WindowState.SHOWDEFAULT)
         self.start_await()
 
         # Cancel the current thread or continue based on user signal
         if thr:
             self.cancel_thread(thr) if not self.running else self.start_await_cancel(thr)
+
+        # Minimize Photoshop if the setting for that is active
+        if self.running and self.cfg.minimize_photoshop:
+            self.app.set_window_state(WindowState.MINIMIZE)
+
         return self.running
 
     def signal(self, choice: bool) -> None:

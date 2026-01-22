@@ -1,13 +1,15 @@
 """
 * Console Module
 """
+from __future__ import annotations
+
 # Standard Library
 import os
 import time
 from threading import Lock, Event, Thread
 from datetime import datetime as dt
 from functools import cached_property
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 # Third Party Imports
 from omnitils.enums import StrConstant
@@ -17,6 +19,10 @@ from omnitils.metaclass import Singleton
 # Local Imports
 from src._config import AppConfig
 from src._state import AppEnvironment, PATH
+from src.utils.windows import WindowState
+
+if TYPE_CHECKING:
+    from src.utils.adobe import PhotoshopHandler
 
 """
 * Enums
@@ -157,12 +163,14 @@ class TerminalConsole:
     def __init__(
         self,
         cfg: AppConfig,
-        env: AppEnvironment
+        env: AppEnvironment,
+        app: PhotoshopHandler,
     ):
 
         # Establish global objects
         self.cfg: AppConfig = cfg
         self.env: AppEnvironment = env
+        self.app = app
 
     """
     Logger Object Properties
@@ -332,7 +340,7 @@ class TerminalConsole:
     User Prompt Signals
     """
 
-    def await_choice(self, thr: Event, msg: Optional[str] = None, end: str = "\n") -> bool:
+    def await_choice(self, thr: Event, msg: str | None = None, end: str = "\n", show_photoshop: bool = True) -> bool:
         """
         Prompt the user to either continue or cancel.
         @param thr: Event object representing the status of the render thread.
@@ -343,6 +351,9 @@ class TerminalConsole:
         # Clear other await procedures, then begin awaiting a user signal
         self.end_await()
         self.update(msg=msg or self.message_waiting, end=end)
+        if self.cfg.minimize_photoshop and show_photoshop:
+            # Show Photoshop in case it is minimized
+            self.app.set_window_state(WindowState.SHOWDEFAULT)
         response = input("[Y / Enter] Continue — [N] Cancel")
 
         # Signal the choice
@@ -352,6 +363,10 @@ class TerminalConsole:
         # Cancel the current thread or continue based on user signal
         if thr:
             self.cancel_thread(thr) if not choice else self.start_await_cancel(thr)
+
+        if choice and self.cfg.minimize_photoshop:
+            self.app.set_window_state(WindowState.MINIMIZE)
+
         return choice
 
     def signal(self, choice: bool):

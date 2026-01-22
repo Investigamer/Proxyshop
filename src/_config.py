@@ -80,6 +80,7 @@ class AppConfig:
 
         # BASE - TEMPLATES
         self.exit_early = self.file.getboolean('BASE.TEMPLATES', 'Manual.Edit', fallback=False)
+        self.minimize_photoshop = self.file.getboolean('BASE.TEMPLATES', 'Minimize.Photoshop', fallback=False)
         self.import_scryfall_scan = self.file.getboolean('BASE.TEMPLATES', 'Import.Scryfall.Scan', fallback=False)
         self.border_color = self.get_option('BASE.TEMPLATES', 'Border.Color', BorderColor)
 

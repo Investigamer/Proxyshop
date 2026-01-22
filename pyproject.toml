@@ -40,6 +40,7 @@ omnitils = "^1.4.4"
 dynaconf = {extras = ["yaml"], version = "^3.2.6"}
 hexproof = "^0.3.7"
 rich = "^13.8.1"
+pywin32 = "^310"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -63,6 +64,7 @@ mkdocs-same-dir = "^0.1.2"
 mkdocs-git-revision-date-plugin = "^0.3.2"
 mkdocstrings = {extras = ["python"], version = "^0.23.0"}
 memory-profiler = "^0.61.0"
+types-pywin32 = "^310.0.0.20250516"
 
 [build-system]
 requires = ["poetry-core"]

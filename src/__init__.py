@@ -51,7 +51,7 @@ if not ENV.HEADLESS:
     from src.gui.console import GUIConsole as Console
 else:
     Console = TerminalConsole
-CONSOLE = Console(cfg=CFG, env=ENV)
+CONSOLE = Console(cfg=CFG, env=ENV, app=APP)
 
 # Global plugins and templates
 PLUGINS = get_all_plugins(con=CON, env=ENV)

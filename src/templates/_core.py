@@ -56,6 +56,7 @@ from src.utils.adobe import (
     PS_EXCEPTIONS,
     ReferenceLayer,
     try_photoshop)
+from src.utils.windows import WindowState
 
 """
 * Template Classes
@@ -1545,6 +1546,9 @@ class BaseTemplate:
             message="Unable to reach Photoshop!"
         ):
             return False
+
+        if CFG.minimize_photoshop:
+            APP.set_window_state(WindowState.MINIMIZE)
 
         # Pre-process layout data
         if not self.run_tasks(
