@@ -58,10 +58,6 @@ class TemplateModule(DynamicTabPanel, GlobalAccess):
             # Get the template map for this category
             templates: TemplateCategoryMap = self.main.template_map[cat]
 
-            # If less than 2 templates exist for this category, skip it
-            if len(templates['names']) < 2:
-                continue
-
             # Add a tab for this category
             tab = DynamicTabItem(text=cat)
             tab.content = self.get_template_container(
