@@ -18,3 +18,4 @@ from src.templates.battle import *
 from src.templates.prototype import *
 from src.templates.planar import *
 from src.templates.split import *
+from src.templates.station import *

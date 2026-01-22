@@ -14,6 +14,7 @@ from photoshop.api._layerSet import LayerSet
 from src import APP
 from src.helpers.descriptors import get_layer_action_ref
 from src.helpers.document import undo_action
+from src.helpers.layers import duplicate_group, select_layer
 from src.utils.adobe import PS_EXCEPTIONS
 
 # QOL Definitions
@@ -24,8 +25,8 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 * Types
 """
 
-# Layer bounds: left, top, right, bottom
 LayerBounds = tuple[int, int, int, int]
+"""left, top, right, bottom"""
 
 
 class LayerDimensions(TypedDict):
@@ -51,7 +52,7 @@ class TextboxDimensions(TypedDict):
 """
 
 
-def get_dimensions_from_bounds(bounds: LayerBounds) -> type[LayerDimensions]:
+def get_dimensions_from_bounds(bounds: LayerBounds) -> LayerDimensions:
     """Compute width and height based on a set of bounds given.
 
     Args:
@@ -71,7 +72,7 @@ def get_dimensions_from_bounds(bounds: LayerBounds) -> type[LayerDimensions]:
         top=int(bounds[1]), bottom=int(bounds[3]))
 
 
-def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensions]:
+def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> LayerDimensions:
     """Compute the width and height dimensions of a layer.
 
     Args:
@@ -81,6 +82,22 @@ def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensio
         Dict containing height, width, and positioning locations.
     """
     return get_dimensions_from_bounds(layer.bounds)
+
+
+def get_group_dimensions(group: LayerSet) -> LayerDimensions:
+    """
+    Compute the dimensions of a group.
+    
+    Uses a workaround to avoid erroneous dimensions, which might occur
+    when the group contains shapes.
+    """
+    select_layer(group)
+    group_copy = duplicate_group(group.name)
+    group_copy.visible = True
+    merged = group_copy.merge()
+    dims = get_layer_dimensions(merged)
+    merged.remove()
+    return dims
 
 
 def get_layer_width(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
@@ -140,7 +157,7 @@ def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> LayerBounds:
     return layer.bounds
 
 
-def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensions]:
+def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> LayerDimensions:
     """Compute the dimensions of a layer without its effects applied.
 
     Args:
@@ -153,7 +170,7 @@ def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> type[LayerDim
     return get_dimensions_from_bounds(bounds)
 
 
-def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
+def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> float | int:
     """Returns the width of a given layer without its effects applied.
 
     Args:
@@ -170,7 +187,7 @@ def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
     return get_layer_width(layer)
 
 
-def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
+def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> float | int:
     """Returns the height of a given layer without its effects applied.
 
     Args:
@@ -230,7 +247,7 @@ def get_textbox_bounds(layer: ArtLayer) -> LayerBounds:
     )
 
 
-def get_textbox_dimensions(layer: ArtLayer) -> type[TextboxDimensions]:
+def get_textbox_dimensions(layer: ArtLayer) -> TextboxDimensions:
     """Get the dimensions of a TextLayer's bounding box.
 
     Args:

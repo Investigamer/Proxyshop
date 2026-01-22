@@ -3,7 +3,8 @@
 """
 # Standard Library Imports
 from datetime import date, datetime
-from typing import Optional, Match, Union, Type, ForwardRef
+import re
+from typing import NotRequired, Optional, Match, TypedDict, Union, Type, ForwardRef
 from os import path as osp
 from pathlib import Path
 from functools import cached_property
@@ -34,6 +35,12 @@ from src.frame_logic import (
     get_special_rarity,
     check_hybrid_mana_cost,
     get_mana_cost_colors)
+
+
+class PowerToughness(TypedDict):
+    power: str
+    toughness: str
+
 
 """
 * Layout Processing
@@ -1524,6 +1531,58 @@ class TokenLayout(NormalLayout):
         return self.set_data.get('count_tokens', None)
 
 
+class StationDetails(TypedDict):
+    requirement: str
+    ability: str
+    pt: NotRequired[PowerToughness]
+
+
+class StationLayout(NormalLayout):
+    _pt_pattern = re.compile(r"([0-9]+)/([0-9]+)")
+
+    card_class: str = LayoutType.Station
+
+    @cached_property
+    def oracle_text_unprocessed(self) -> str:
+        """Unaltered oracle text."""
+        return (
+            self.card.get("printed_text", self.oracle_text_raw)
+            if self.is_alt_lang
+            else self.oracle_text_raw
+        )
+
+    @cached_property
+    def oracle_text(self) -> str:
+        """Oracle text with station levels stripped."""
+        stations_start = self.oracle_text_unprocessed.index("\nSTATION ")
+        return self.oracle_text_unprocessed[0:stations_start]
+
+    @cached_property
+    def stations(self) -> list[StationDetails]:
+        stations_start = self.oracle_text_unprocessed.index("\nSTATION ")
+        station_splits = self.oracle_text_unprocessed[stations_start:].split("STATION ")
+        out: list[StationDetails] = []
+        for split in station_splits:
+            if stripped := split.strip():
+                lines = stripped.split("\n")
+
+                details: StationDetails = {"requirement": lines.pop(0), "ability": ""}
+
+                for line in lines:
+                    if match := self._pt_pattern.match(line):
+                        details["pt"] = {
+                            "power": match[1],
+                            "toughness": match[2]
+                        }
+                    else:
+                        details["ability"] += line + "\n"
+
+                details["ability"] = details["ability"].strip()
+
+                out.append(details)
+        return out
+
+
 """
 * Types & Enums
 """
@@ -1575,6 +1634,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     LayoutScryfall.Planeswalker: PlaneswalkerLayout,
     LayoutScryfall.PlaneswalkerMDFC: PlaneswalkerMDFCLayout,
     LayoutScryfall.PlaneswalkerTransform: PlaneswalkerTransformLayout,
+    LayoutScryfall.Station: StationLayout,
 
     # TODO: Supported by Scryfall, not implemented
     LayoutScryfall.Flip: TransformLayout,

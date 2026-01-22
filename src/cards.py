@@ -214,6 +214,10 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
         data['layout'] = 'planeswalker'
         return data
 
+    # Check for Station layout
+    if 'STATION ' in data.get('oracle_text', ''):
+        data['layout'] = 'station'
+
     # Return updated data
     return data
 
