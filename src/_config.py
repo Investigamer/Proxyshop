@@ -48,6 +48,8 @@ class AppConfig:
         self.scry_ascending = self.file.getboolean('APP.DATA', 'Scryfall.Ascending', fallback=False)
         self.scry_extras = self.file.getboolean('APP.DATA', 'Scryfall.Extras', fallback=False)
         self.scry_unique = self.get_option('APP.DATA', 'Scryfall.Unique', ScryfallUnique)
+        self.manually_edit_card_data = self.file.getboolean('APP.DATA', 'Manually.Edit.Card.Data', fallback=False)
+        self.manual_text_editor = self.file.get('APP.DATA', 'Manual.Text.Editor', fallback='notepad "{}"')
 
         # APP - TEXT
         self.force_english_formatting = self.file.getboolean('APP.TEXT', "Force.English.Formatting", fallback=False)
@@ -87,7 +89,7 @@ class AppConfig:
     * Setting Utils
     """
 
-    def get_option(self, section: str, key: str, enum_class: type[StrConstant], default: str = None) -> str:
+    def get_option(self, section: str, key: str, enum_class: type[StrConstant], default: str | None = None) -> str:
         """Returns the current value of an "options" setting if that option exists in its StrEnum class.
         Otherwise, returns the default value of that StrEnum class.
 
@@ -100,14 +102,14 @@ class AppConfig:
         Returns:
             Validated current value, or default value.
         """
-        default = default or enum_class.Default
+        defa = default or enum_class.Default
         if self.file.has_section(section):
-            option = self.file[section].get(key, fallback=default)
+            option = self.file[section].get(key, fallback=defa)
             if option in enum_class:
                 return option
-        return default
+        return defa
 
-    def get_setting(self, section: str, key: str, default: Optional[str] = None, is_bool: bool = True):
+    def get_setting(self, section: str, key: str, default: str | bool | None = None, is_bool: bool = True):
         """Check if the setting exists and return it. Default will be returned if missing.
 
         Args:
