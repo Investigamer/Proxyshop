@@ -3,7 +3,7 @@
 """
 # Standard Library Imports
 from datetime import date, datetime
-from typing import Optional, Match, Union, Type, ForwardRef
+from typing import Any, Optional, Match, Union, Type, ForwardRef
 from os import path as osp
 from pathlib import Path
 from functools import cached_property
@@ -14,7 +14,7 @@ from omnitils.strings import get_line, get_lines, normalize_str, strip_lines
 # Local Imports
 from src import CFG, CON, CONSOLE, ENV, PATH
 from src.cards import CardDetails, FrameDetails, get_card_data, parse_card_info, process_card_data
-from src.console import msg_error, msg_success
+from src.console import msg_error, msg_success, msg_warn
 from src.utils.hexapi import get_watermark_svg, get_watermark_svg_from_set
 from src.utils.scryfall import get_cards_oracle
 from src.enums.layers import LAYERS
@@ -213,10 +213,27 @@ class NormalLayout:
     @cached_property
     def card(self) -> dict:
         """Main card data object to pull most relevant data from."""
-        for i, face in enumerate(self.scryfall.get('card_faces', [])):
+        if faces := self.scryfall.get('card_faces', []):
             # Card with multiple faces, first index is always front side
-            if normalize_str(face['name']) == normalize_str(self.input_name):
-                return face
+            matching_face: dict[str, Any] | None = None
+
+            for face in faces:
+                if normalize_str(face['name']) == normalize_str(self.input_name):
+                    matching_face = face
+                    break
+
+            if not matching_face:
+                CONSOLE.update(
+                    msg_warn(
+                        f"""None of the card faces
+{'\n'.join((f"  - {face['name']}" for face in faces))}
+matches the input file's name '{self.input_name}'.
+Defaulting to first face."""
+                    )
+                )
+                matching_face = faces[0]
+
+            return matching_face
 
         # Treat single face cards as front
         return self.scryfall
