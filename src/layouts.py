@@ -1105,8 +1105,12 @@ class LevelerLayout(NormalLayout):
 
     @cached_property
     def middle_text(self) -> str:
-        """Rules text applied at middle stage."""
-        return self.leveler_match[4] if self.leveler_match else ''
+        """Rules text applied at middle stage. Returns a space for empty abilities so they render properly"""
+        if self.leveler_match:
+            if self.leveler_match[4] == '':
+                return ' '
+            return self.leveler_match[4]
+        return ''
 
     @cached_property
     def bottom_level(self) -> str:
