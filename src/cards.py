@@ -208,11 +208,17 @@ def process_card_data(data: dict, card: CardDetails) -> dict:
     if 'Mutate' in data.get('keywords', []):
         data['layout'] = 'mutate'
         return data
+    
+    type_line = data.get('type_line', '')
 
     # Add Planeswalker layout
-    if 'Planeswalker' in data.get('type_line', ''):
+    if 'Planeswalker' in type_line:
         data['layout'] = 'planeswalker'
         return data
+    
+    # Check for Saga Creature layout
+    if 'Saga' in type_line and 'Creature' in type_line:
+        data['layout'] = 'saga'
 
     # Return updated data
     return data

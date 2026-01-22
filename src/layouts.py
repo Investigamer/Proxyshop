@@ -3,6 +3,7 @@
 """
 # Standard Library Imports
 from datetime import date, datetime
+import re
 from typing import Optional, Match, Union, Type, ForwardRef
 from os import path as osp
 from pathlib import Path
@@ -1128,6 +1129,8 @@ class SagaLayout(NormalLayout):
     """Saga card layout, introduced in Dominaria."""
     card_class: str = LayoutType.Saga
 
+    _chapter_regex = re.compile(r"^[ ,IVXLCDM]+ — ")
+
     """
     * Bool Properties
     """
@@ -1143,13 +1146,38 @@ class SagaLayout(NormalLayout):
 
     @cached_property
     def saga_text(self) -> str:
-        """Text comprised of saga ability lines."""
-        return strip_lines(self.oracle_text, 1)
+        """Text comprised of Saga ability lines."""
+        return "\n".join(
+            (
+                text
+                for text in self.oracle_text.splitlines()
+                if self._chapter_regex.match(text)
+            )
+        )
+    
+    @cached_property
+    def ability_text(self) -> str:
+        """
+        Rules text that's separate from the Saga chapters.
+        Seen e.g. in Saga creatures.
+        """
+        # Drop reminder text or first chapter text. Which was dropped
+        # doesn't matter as long as there's at least one chapter.
+        stripped = strip_lines(self.oracle_text, 1)
+        # Return all text that comes after chapter lines.
+        lines = stripped.splitlines()
+        for idx, line in enumerate(lines):
+            if not self._chapter_regex.match(line):
+                return "\n".join(lines[idx:])
+        return ""
 
     @cached_property
     def saga_description(self) -> str:
         """Description at the top of the Saga card"""
-        return get_line(self.oracle_text, 0)
+        if CFG.remove_reminder:
+            return ""
+        line = get_line(self.oracle_text, 0)
+        return "" if self._chapter_regex.match(line) else line
 
     @cached_property
     def saga_lines(self) -> list[dict]:
@@ -1187,12 +1215,16 @@ class ClassLayout(NormalLayout):
     @cached_property
     def class_text(self) -> str:
         """Text comprised of class ability lines."""
-        return strip_lines(self.oracle_text, 1)
+        return (
+            self.oracle_text
+            if CFG.remove_reminder
+            else strip_lines(self.oracle_text, 1)
+        )
 
     @cached_property
     def class_description(self) -> str:
         """Description at the top of the Class card."""
-        return get_line(self.oracle_text, 0)
+        return "" if CFG.remove_reminder else get_line(self.oracle_text, 0)
 
     @cached_property
     def class_lines(self) -> list[dict]:
