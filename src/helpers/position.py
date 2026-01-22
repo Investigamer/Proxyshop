@@ -3,7 +3,7 @@
 """
 # Standard Library Imports
 import math
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 # Third Party Imports
 from photoshop.api import DialogModes, AnchorPosition
@@ -157,8 +157,8 @@ def position_between_layers(
 
 
 def position_dividers(
-    dividers: list[Union[ArtLayer, LayerSet]],
-    layers: list[Union[ArtLayer, LayerSet]],
+    dividers: Sequence[ArtLayer | LayerSet],
+    layers: Sequence[ArtLayer | LayerSet],
     docref: Optional[Document] = None
 ) -> None:
     """Positions a list of dividers between a list of layers.

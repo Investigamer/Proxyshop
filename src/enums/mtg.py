@@ -17,6 +17,7 @@ class LayoutCategory(StrConstant):
     """Card layout category, broad naming used for displaying on GUI elements."""
     Adventure = 'Adventure'
     Battle = 'Battle'
+    Case = 'Case'
     Class = 'Class'
     Leveler = 'Leveler'
     MDFC = 'MDFC'
@@ -37,6 +38,7 @@ class LayoutType(StrConstant):
     """Card layout type, fine-grained naming separated by front/back where applicable."""
     Adventure = 'adventure'
     Battle = 'battle'
+    Case = 'case'
     Class = 'class'
     Leveler = 'leveler'
     MDFCBack = 'mdfc_back'
@@ -65,6 +67,7 @@ class LayoutScryfall(StrConstant):
     MDFC = 'modal_dfc'
     Meld = 'meld'
     Leveler = 'leveler'
+    Case = 'case'
     Class = 'class'
     Saga = 'saga'
     Adventure = 'adventure'
@@ -97,6 +100,7 @@ layout_map_category: dict[LayoutCategory, list[LayoutType]] = {
     LayoutCategory.PlaneswalkerMDFC: [LayoutType.PlaneswalkerMDFCFront, LayoutType.PlaneswalkerMDFCBack],
     LayoutCategory.PlaneswalkerTransform: [LayoutType.PlaneswalkerTransformFront, LayoutType.PlaneswalkerTransformBack],
     LayoutCategory.Saga: [LayoutType.Saga],
+    LayoutCategory.Case: [LayoutType.Case],
     LayoutCategory.Class: [LayoutType.Class],
     LayoutCategory.Mutate: [LayoutType.Mutate],
     LayoutCategory.Prototype: [LayoutType.Prototype],

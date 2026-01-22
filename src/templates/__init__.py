@@ -13,6 +13,7 @@ from src.templates.leveler import *
 from src.templates.saga import *
 from src.templates.token import *
 from src.templates.mutate import *
+from src.templates.case import *
 from src.templates.classes import *
 from src.templates.battle import *
 from src.templates.prototype import *

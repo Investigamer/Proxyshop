@@ -1216,6 +1216,16 @@ class ClassLayout(NormalLayout):
             # Otherwise add line to the previous ability
             abilities[-1]['text'] += f'\n{line}'
         return abilities
+    
+
+class CaseLayout(NormalLayout):
+    """Case card layout, introduced in Murders at Karlov Manor."""
+    card_class: str = LayoutType.Case
+
+    @cached_property
+    def case_lines(self) -> list[str]:
+        """Split Case text into sections."""
+        return self.oracle_text.split("\n")
 
 
 class BattleLayout(TransformLayout):
@@ -1561,6 +1571,7 @@ layout_map: dict[str, Type[CardLayout]] = {
     LayoutScryfall.MDFC: ModalDoubleFacedLayout,
     LayoutScryfall.Meld: TransformLayout,
     LayoutScryfall.Leveler: LevelerLayout,
+    LayoutScryfall.Case: CaseLayout,
     LayoutScryfall.Class: ClassLayout,
     LayoutScryfall.Saga: SagaLayout,
     LayoutScryfall.Adventure: AdventureLayout,

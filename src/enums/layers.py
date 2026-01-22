@@ -172,6 +172,9 @@ class LAYERS (StrConstant):
     BANNER = 'Banner'
     STRIPE = 'Stripe'
 
+    # Case
+    CASE = 'Case'
+
     # Class
     CLASS = 'Class'
     STAGE = 'Stage'
