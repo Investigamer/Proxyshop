@@ -1249,7 +1249,6 @@ class SplitLayout(NormalLayout):
     is_creature: bool = False
     is_legendary: bool = False
     is_companion: bool = False
-    is_colorless: bool = False
     toughness: str = ''
     power: str = ''
 
@@ -1263,26 +1262,34 @@ class SplitLayout(NormalLayout):
     """
 
     @cached_property
-    def art_file(self) -> list[Path]:
+    def art_file(self) -> Path:
+        return self.art_files[0]
+
+    @cached_property
+    def art_files(self) -> list[Path]:
         """list[Path]: Two image files, second is appended during render process."""
-        return [self.file['file']]
+        return [Path(self.file['file'])]
 
     @cached_property
     def display_name(self) -> str:
         """Both side names."""
-        return f"{self.name[0]} // {self.name[1]}"
+        return f"{self.names[0]} // {self.names[1]}"
 
     @cached_property
-    def card(self) -> list[dict]:
+    def card(self) -> dict:
+        return self.cards[0]
+
+    @cached_property
+    def cards(self) -> list[dict]:
         """Both side objects."""
-        return [c for c in self.scryfall.get('card_faces', [])]
+        return [*self.scryfall.get('card_faces', [])]
 
     """
     * Colors
     """
 
     @cached_property
-    def color_identity(self) -> list:
+    def color_identity(self) -> list[str]:
         """Color identity is shared by both halves, use raw Scryfall instead of 'card' data."""
         return self.scryfall.get('color_identity', [])
 
@@ -1325,10 +1332,14 @@ class SplitLayout(NormalLayout):
     """
 
     @cached_property
-    def watermark(self) -> list[Optional[str]]:
+    def watermark(self) -> str | None:
+        return self.watermarks[0]
+    
+    @cached_property
+    def watermarks(self) -> list[str | None]:
         """Name of the card's watermark file that is actually used, if provided."""
         watermarks: list[Optional[str]] = []
-        for wm in self.watermark_svg:
+        for wm in self.watermark_svgs:
             if not wm:
                 watermarks.append(None)
             elif wm.stem.upper() == 'WM':
@@ -1338,12 +1349,20 @@ class SplitLayout(NormalLayout):
         return watermarks
 
     @cached_property
-    def watermark_raw(self) -> list[Optional[str]]:
+    def watermark_raw(self) -> str | None:
+        return self.watermarks_raw[0]
+    
+    @cached_property
+    def watermarks_raw(self) -> list[str | None]:
         """Name of the card's watermark from raw Scryfall data, if provided."""
-        return [c.get('watermark', '') for c in self.card]
+        return [c.get('watermark', '') for c in self.cards]
+    
+    @cached_property
+    def watermark_svg(self) -> Path | None:
+        return self.watermark_svgs[0]
 
     @cached_property
-    def watermark_svg(self) -> list[Optional[Path]]:
+    def watermark_svgs(self) -> list[Path | None]:
         """Path to the watermark SVG file, if provided."""
         def _find_watermark_svg(wm: str) -> Optional[Path]:
             """Try to find a watermark SVG asset, allowing for special cases and set code fallbacks.
@@ -1372,7 +1391,7 @@ class SplitLayout(NormalLayout):
 
         # Find a watermark SVG for each face
         watermarks = []
-        for w in self.watermark_raw:
+        for w in self.watermarks_raw:
             if CFG.watermark_mode == WatermarkMode.Disabled:
                 # Disabled Mode
                 watermarks.append(None)
@@ -1400,90 +1419,154 @@ class SplitLayout(NormalLayout):
     """
 
     @cached_property
-    def name(self) -> list[str]:
+    def name(self) -> str:
+        return self.names[0]
+
+    @cached_property
+    def names(self) -> list[str]:
         """Both side names."""
         if self.is_alt_lang:
-            return [c.get('printed_name', c.get('name', '')) for c in self.card]
-        return [c.get('name', '') for c in self.card]
+            return [c.get('printed_name', c.get('name', '')) for c in self.cards]
+        return [c.get('name', '') for c in self.cards]
 
     @cached_property
     def name_raw(self) -> str:
         """Sanitized card name to use for rendered image file."""
         return f"{self.name[0]} _ {self.name[1]}"
+    
+    @cached_property
+    def type_line(self) -> str:
+        return self.type_lines[0]
 
     @cached_property
-    def type_line(self) -> list[str]:
+    def type_lines(self) -> list[str]:
         """Both side type lines."""
         if self.is_alt_lang:
-            return [c.get('printed_type_line', c.get('type_line', '')) for c in self.card]
-        return [c.get('type_line', '') for c in self.card]
+            return [c.get('printed_type_line', c.get('type_line', '')) for c in self.cards]
+        return [c.get('type_line', '') for c in self.cards]
+    
+    @cached_property
+    def mana_cost(self) -> str:
+        return self.mana_costs[0]
 
     @cached_property
-    def mana_cost(self) -> list[str]:
+    def mana_costs(self) -> list[str]:
         """Both side mana costs."""
-        return [c.get('mana_cost', '') for c in self.card]
+        return [c.get('mana_cost', '') for c in self.cards]
+    
+    @cached_property
+    def oracle_text(self) -> str:
+        return self.oracle_texts[0]
 
     @cached_property
-    def oracle_text(self) -> list[str]:
+    def oracle_texts(self) -> list[str]:
         """Both side oracle texts."""
         text = []
         for t in [
             c.get('printed_text', c.get('oracle_text', ''))
             if self.is_alt_lang else c.get('oracle_text', '')
-            for c in self.card
+            for c in self.cards
         ]:
-            # Remove Fuse if present in oracle text data
-            t = ''.join(t.split('\n')[:-1]) if 'Fuse' in self.keywords else t
+            if 'Fuse' in self.keywords:
+                # Remove Fuse if present in oracle text data
+                t = ''.join(t.split('\n')[:-1])
+            elif self.shared_reminder:
+                # Remove shared reminder if present
+                t = t[0:-len(self.shared_reminder)].rstrip()
+
             text.append(t)
         return text
+    
+    @cached_property
+    def flavor_text(self) -> str:
+        return self.flavor_texts[0]
 
     @cached_property
-    def flavor_text(self) -> list[str]:
+    def flavor_texts(self) -> list[str]:
         """Both sides flavor text."""
-        return [c.get('flavor_text', '') for c in self.card]
+        return [c.get('flavor_text', '') for c in self.cards]
+    
+    @cached_property
+    def shared_reminder(self) -> str:
+        prev_match: str = ""
+        for oracle_text in [
+            c.get('printed_text', c.get('oracle_text', ''))
+            if self.is_alt_lang else c.get('oracle_text', '')
+            for c in self.cards
+        ]:
+            match = CardTextPatterns.TEXT_REMINDER_ENDING.match(oracle_text)
+            curr_match = match.group(1) if match else ""
+            if not match or (prev_match and prev_match != curr_match):
+                return ""
+            prev_match = curr_match
+        return prev_match
 
     """
     * Bool Data
     """
 
     @cached_property
-    def is_hybrid(self) -> list[bool]:
+    def is_hybrid(self) -> bool:
+        return self.hybrid_checks[0]
+    
+    @cached_property
+    def hybrid_checks(self) -> list[bool]:
         """Both sides hybrid check."""
-        return [f['is_hybrid'] for f in self.frame]
+        return [f['is_hybrid'] for f in self.frames]
 
     @cached_property
-    def is_colorless(self) -> list[bool]:
+    def is_colorless(self) -> bool:
+        return self.colorless_checks[0]
+    
+    @cached_property
+    def colorless_checks(self) -> list[bool]:
         """Both sides colorless check."""
-        return [f['is_colorless'] for f in self.frame]
+        return [f['is_colorless'] for f in self.frames]
 
     """
     * Frame Details
     """
-
+    
     @cached_property
-    def frame(self) -> list[FrameDetails]:
+    def frames(self) -> list[FrameDetails]:
         """Both sides frame data."""
-        return [get_frame_details(c) for c in self.card]
+        return [get_frame_details(c) for c in self.cards]
 
     @cached_property
-    def pinlines(self) -> list[str]:
+    def pinlines(self) -> str:
+        return get_ordered_colors(self.color_identity)
+    
+    @cached_property
+    def pinline_identities(self) -> list[str]:
         """Both sides pinlines identity."""
-        return [f['pinlines'] for f in self.frame]
+        return [f['pinlines'] for f in self.frames]
 
     @cached_property
-    def twins(self) -> list[str]:
+    def twins(self) -> str:
+        return self.pinlines
+    
+    @cached_property
+    def twins_identities(self) -> list[str]:
         """Both sides twins identity."""
-        return [f['twins'] for f in self.frame]
+        return [f['twins'] for f in self.frames]
 
     @cached_property
-    def background(self) -> list[str]:
+    def background(self) -> str:
+        return self.pinlines
+    
+    @cached_property
+    def backgrounds(self) -> list[str]:
         """Both sides background identity."""
-        return [f['background'] for f in self.frame]
+        return [f['background'] for f in self.frames]
 
     @cached_property
-    def identity(self) -> list[str]:
+    def identity(self) -> str:
+        return self.pinlines
+    
+    @cached_property
+    def identities(self) -> list[str]:
         """Both sides frame accurate color identity."""
-        return [f['identity'] for f in self.frame]
+        return [f['identity'] for f in self.frames]
 
 
 class TokenLayout(NormalLayout):

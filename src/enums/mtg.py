@@ -374,6 +374,7 @@ class CardTextPatterns:
 
     # Text - Reminder
     TEXT_REMINDER: re.Pattern = re.compile(r"\([^()]*\)")
+    TEXT_REMINDER_ENDING = re.compile(r"[\s\S]*(\([^()]*\))$", )
 
     # Text - Italicised Ability
     TEXT_ABILITY: re.Pattern = re.compile(r"(?:^|\r)+(?:• )*([^\r]+) — ", re.MULTILINE)
