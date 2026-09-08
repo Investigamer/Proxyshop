@@ -32,10 +32,52 @@ title = "Collector Mode"
 desc = """Default: Formats collector info like modern cards pre-2023.
 Modern: Formats collector info like March of the Machine and onwards.
 Minimal: Only includes artist, set code, and language.
-Artist: Only includes artist."""
+Artist: Only includes artist.
+Custom: Formats collector info lines according to specified custom formats."""
 type = "options"
 default = "default"
-options = ["default", "modern", "minimal", "artist"]
+options = ["default", "modern", "minimal", "artist", "custom"]
+
+[TEXT."Collector.Line.A"]
+title = "First Collector Info Line Format"
+desc = """Fills the first collector info line with given text. The following variable substitutions may be used in the text:<br>
+<br>
+<b>{pen}</b>: Artist pen icon.<br>
+<b>{artist}</b>: Card's artist.<br>
+<b>{number}</b>: Card's collector number.<br>
+<b>{set}</b>: Card's set.<br>
+<b>{rarity}</b>: Card's rarity code.<br>
+<b>{lang}</b>: Card's language code.<br>
+<b>{date:<format>}</b>: Current datetime formatted with <a href="https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes">strftime(<format>)</a>.
+<br><br>
+If no text is provided, the layer will be hidden.
+<br><br>
+Example:<br>
+With <i>Together as One [SOS] {4}</i><br>
+<tt>Static Text {lang} - {set} - {number}</tt><br>
+would convert to<br>
+<tt>Static Text EN - SOS - 4</tt>
+<br><br>
+This is an experimental setting and the format syntax might change in a later version."""
+type = "string"
+default = ""
+
+[TEXT."Collector.Line.B"]
+title = "Second Collector Info Line Format"
+desc = "Fills the second collector info line with given text. Supports the same variable substitutions as the first line."
+type = "string"
+default = ""
+
+[TEXT."Collector.Lang.Code"]
+title = "Authentic collector language code"
+desc = """Whether to use authentic language codes as seen in real printed cards or the language codes used by Scryfall. Below is a list of Scryfall language codes that get mapped to a different code when this setting is enabled:<br>
+ES -> SP<br>
+JA -> JP<br>
+KO -> KR<br>
+ZHS -> CH<br>
+ZHT -> CT"""
+type = "bool"
+default = 1
 
 [TEXT."Collector.Promo"]
 title = "Collector Promo Star"
@@ -43,6 +85,38 @@ desc = """Whether to use the promo star in collector info text on supported temp
 type = "options"
 default = "automatic"
 options = ["automatic", "always", "never"]
+
+[TEXT.Nickname]
+title = "Allow Nickname"
+desc = """When enabled, if a nickname is available and the template has support for it, the card will be rendered with both a real name and a nickname. Some Scryfall cards come with a nickname by default, e.g. Gemrazer [IKO] {376}. Nickname can also be specified via the art filename with [nick=...]. E.g.
+Arcane Signet [nick=Manastone]
+Keep Out (Artist) [ECL] [nick=Access Denied] {19}"""
+type = "bool"
+default = 1
+
+[TEXT."Nickname.Prompt"]
+title = "Prompt for Nickname"
+desc = """When enabled if no nickname is available via other means the rendering is paused for
+manual nickname input."""
+type = "bool"
+default = 0
+
+[TEXT."Nickname.In.Oracle"]
+title = "Nickname in Oracle Text"
+desc = """When enabled, cards that are rendered with a nickname will replace the card name
+in their oracle text with their nickname."""
+type = "bool"
+default = 1
+
+[TEXT."Nickname.Shorten.In.Oracle"]
+title = "Shorten Nickname in Oracle Text"
+desc = """Whether to shorten nicknames that contain commas in the oracle text. Shortened name contains only the part before the first comma.
+No: Name is not shortened.
+All but first: The first mention of the name is kept as is but others are shortened.
+All: All mentions of the name are shortened."""
+type = "options"
+default = "All but first"
+options = ["No", "All but first", "All"]
 
 ###
 # * Symbol Settings
@@ -69,6 +143,15 @@ desc = """Forces Proxyshop to always used the Default Expansion Symbol chosen ab
 type = "bool"
 default = 0
 
+[SYMBOLS."Force.Rarity"]
+title = "Force Use of Specific Rarity"
+desc = """Forces Proxyshop to try to use a symbol of a specified rarity. The card's real rarity will be used as a fallback if the specified rarity can't be found.<br>
+Possible rarities include:<br> <b>80</b>, <b>B</b>, <b>C</b>, <b>H</b>, <b>M</b>, <b>R</b>, <b>S</b>, <b>T</b>, <b>U</b>, <b>WM</b><br>
+You may also specify a code for any extra symbol variants that you might have copied to your installation. Extra variants are matched case sensitively by their filename without the suffix (.svg).
+Empty string disables this feature."""
+type = "string"
+default = ""
+
 ###
 # * Watermark Settings
 ###
@@ -78,9 +161,9 @@ title = "Watermarks"
 
 [WATERMARKS."Watermark.Mode"]
 title = "Watermark Mode"
-desc = """[b]Automatic[/b]: Generates a watermark when present in Scryfall data.
-[b]Fallback[/b]: Automatic, but use Default defined below as a fallback for Scryfall data.
-[b]Forced[/b]: Always use Default watermark defined below."""
+desc = """<b>Automatic</b>: Generates a watermark when present in Scryfall data.<br>
+<b>Fallback</b>: Automatic, but use Default defined below as a fallback for Scryfall data.<br>
+<b>Forced</b>: Always use Default watermark defined below."""
 type = "options"
 default = "Disabled"
 options = ["Disabled", "Automatic", "Fallback", "Forced"]
@@ -94,7 +177,7 @@ default = "WOTC"
 [WATERMARKS."Watermark.Opacity"]
 title = "Watermark Default Opacity"
 desc = """Transparency value of the watermark, 0 being invisible 100 being fully visible."""
-type = "numeric"
+type = "float"
 default = 30
 
 [WATERMARKS."Enable.Basic.Watermark"]
@@ -110,9 +193,51 @@ default = 1
 [TEMPLATES]
 title = "Template Options"
 
+[TEMPLATES."Border.Fill.Mode"]
+title = "Border Fill Mode"
+desc = """Choose the method to use for filling card borders in borderless renders."""
+type = "options"
+default = "Content-Aware Fill"
+options = [
+    "No Fill",
+    "Content-Aware Fill",
+    "Generative Fill",
+    "Remove Content Fill",
+]
+
+[TEMPLATES."Border.Fill.Contract"]
+title = "Border Fill Contract"
+desc = """How much to contract the selection before filling."""
+type = "int"
+default = 10
+
+[TEMPLATES."Border.Fill.Smooth"]
+title = "Border Fill Smooth"
+desc = """How much to smooth the selection before filling."""
+type = "int"
+default = 0
+
+[TEMPLATES."Border.Fill.Feather"]
+title = "Border Fill Feather"
+desc = """How much to feather the selection before filling."""
+type = "int"
+default = 5
+
 [TEMPLATES."Manual.Edit"]
 title = "Manual Editing Mode"
 desc = """Pause the render process before saving to allow for manual edits."""
+type = "bool"
+default = 0
+
+[TEMPLATES."Manual.Art.Alignment.Pause"]
+title = "Pause for manual art alignment"
+desc = """Pause the render process after automatic art alignment to allow for manual adjustments."""
+type = "bool"
+default = 0
+
+[TEMPLATES."Minimize.Photoshop"]
+title = "Minimize Photoshop"
+desc = """Minimize Photoshop when rendering starts. The rendering might be faster when Photoshop is minimized."""
 type = "bool"
 default = 0
 

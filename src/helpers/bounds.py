@@ -1,47 +1,41 @@
 """
 * Helpers: Bounds and Dimensions
 """
-# Standard Library Imports
-from contextlib import suppress
-from typing import Union, TypedDict
 
-# Third Party Imports
-from photoshop.api import DialogModes
+from contextlib import suppress
+from typing import TypedDict
+
 from photoshop.api._artlayer import ArtLayer
+from photoshop.api._document import Document
 from photoshop.api._layerSet import LayerSet
 
-# Local Imports
 from src import APP
-from src.helpers.descriptors import get_layer_action_ref
+from src.helpers.descriptors import get_layer_action_descriptor
 from src.helpers.document import undo_action
-from src.utils.adobe import PS_EXCEPTIONS
-
-# QOL Definitions
-sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
-NO_DIALOG = DialogModes.DisplayNoDialogs
+from src.helpers.layers import duplicate_group
+from src.utils.adobe import LayerBounds
 
 """
 * Types
 """
 
-# Layer bounds: left, top, right, bottom
-LayerBounds = tuple[int, int, int, int]
-
 
 class LayerDimensions(TypedDict):
     """Calculated layer dimension info for a layer."""
-    width: int
-    height: int
-    center_x: int
-    center_y: int
-    left: int
-    right: int
-    top: int
-    bottom: int
+
+    width: int | float
+    height: int | float
+    center_x: int | float
+    center_y: int | float
+    left: int | float
+    right: int | float
+    top: int | float
+    bottom: int | float
 
 
 class TextboxDimensions(TypedDict):
     """Calculated width and height of paragraph text layer bounding box."""
+
     width: int
     height: int
 
@@ -51,7 +45,7 @@ class TextboxDimensions(TypedDict):
 """
 
 
-def get_dimensions_from_bounds(bounds: LayerBounds) -> type[LayerDimensions]:
+def get_dimensions_from_bounds(bounds: LayerBounds) -> LayerDimensions:
     """Compute width and height based on a set of bounds given.
 
     Args:
@@ -60,18 +54,21 @@ def get_dimensions_from_bounds(bounds: LayerBounds) -> type[LayerDimensions]:
     Returns:
         Dict containing height, width, and positioning locations.
     """
-    width = int(bounds[2]-bounds[0])
-    height = int(bounds[3]-bounds[1])
+    width = int(bounds[2] - bounds[0])
+    height = int(bounds[3] - bounds[1])
     return LayerDimensions(
         width=width,
         height=height,
         center_x=round((width / 2) + bounds[0]),
         center_y=round((height / 2) + bounds[1]),
-        left=int(bounds[0]), right=int(bounds[2]),
-        top=int(bounds[1]), bottom=int(bounds[3]))
+        left=int(bounds[0]),
+        right=int(bounds[2]),
+        top=int(bounds[1]),
+        bottom=int(bounds[3]),
+    )
 
 
-def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensions]:
+def get_layer_dimensions(layer: ArtLayer | LayerSet) -> LayerDimensions:
     """Compute the width and height dimensions of a layer.
 
     Args:
@@ -83,7 +80,22 @@ def get_layer_dimensions(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensio
     return get_dimensions_from_bounds(layer.bounds)
 
 
-def get_layer_width(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
+def get_group_dimensions(group: LayerSet) -> LayerDimensions:
+    """
+    Compute the dimensions of a group.
+
+    Uses a workaround to avoid erroneous dimensions, which might occur
+    when the group contains shapes.
+    """
+    group_copy = duplicate_group(group, group.name)
+    group_copy.visible = True
+    merged = group_copy.merge()
+    dims = get_layer_dimensions(merged)
+    merged.remove()
+    return dims
+
+
+def get_layer_width(layer: ArtLayer | LayerSet) -> float | int:
     """Returns the width of a given layer.
 
     Args:
@@ -93,10 +105,10 @@ def get_layer_width(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
         int: Width of the layer in pixels.
     """
     bounds = layer.bounds
-    return int(bounds[2]-bounds[0])
+    return int(bounds[2] - bounds[0])
 
 
-def get_layer_height(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
+def get_layer_height(layer: ArtLayer | LayerSet) -> float | int:
     """Returns the height of a given layer.
 
     Args:
@@ -106,7 +118,38 @@ def get_layer_height(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
         int: Height of the layer in pixels.
     """
     bounds = layer.bounds
-    return int(bounds[3]-bounds[1])
+    return int(bounds[3] - bounds[1])
+
+
+def get_document_dimensions(document: Document) -> LayerDimensions:
+    """Compute the width and height dimensions of a document.
+
+    Args:
+        document: A document object
+
+    Returns:
+        Dict containing height, width, and positioning locations.
+    """
+    doc_width: float = int(document.width)
+    doc_height: float = int(document.height)
+    return get_dimensions_from_bounds((0, 0, doc_width, doc_height))
+
+
+def get_card_dimensions(document: Document) -> LayerDimensions:
+    """Compute the width and height dimensions of a document.
+
+    Args:
+        document: A document object
+
+    Returns:
+        Dict containing height, width, and positioning locations.
+    """
+    bleed = int(document.resolution / 8)
+    doc_width: float = int(document.width)
+    doc_height: float = int(document.height)
+    return get_dimensions_from_bounds(
+        (bleed, bleed, doc_width - bleed, doc_height - bleed)
+    )
 
 
 """
@@ -114,7 +157,7 @@ def get_layer_height(layer: Union[ArtLayer, LayerSet]) -> Union[float, int]:
 """
 
 
-def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> LayerBounds:
+def get_bounds_no_effects(layer: ArtLayer | LayerSet) -> LayerBounds:
     """Returns the bounds of a given layer without its effects applied.
 
     Args:
@@ -123,24 +166,18 @@ def get_bounds_no_effects(layer: Union[ArtLayer, LayerSet]) -> LayerBounds:
     Returns:
         list: Pixel location top left, top right, bottom left, bottom right.
     """
-    with suppress(Exception):
-        d = get_layer_action_ref(layer)
-        try:
-            # Try getting bounds no effects
-            bounds = d.getObjectValue(sID('boundsNoEffects'))
-        except PS_EXCEPTIONS:
-            # Try getting bounds
-            bounds = d.getObjectValue(sID('bounds'))
-        return (
-            bounds.getInteger(sID('left')),
-            bounds.getInteger(sID('top')),
-            bounds.getInteger(sID('right')),
-            bounds.getInteger(sID('bottom')))
-    # Fallback to layer object bounds property
-    return layer.bounds
+    d = get_layer_action_descriptor(layer)
+    # Try getting bounds no effects
+    bounds = d.getObjectValue(APP.instance.sID("boundsNoEffects"))
+    return (
+        bounds.getInteger(APP.instance.sID("left")),
+        bounds.getInteger(APP.instance.sID("top")),
+        bounds.getInteger(APP.instance.sID("right")),
+        bounds.getInteger(APP.instance.sID("bottom")),
+    )
 
 
-def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> type[LayerDimensions]:
+def get_dimensions_no_effects(layer: ArtLayer | LayerSet) -> LayerDimensions:
     """Compute the dimensions of a layer without its effects applied.
 
     Args:
@@ -153,7 +190,7 @@ def get_dimensions_no_effects(layer: Union[ArtLayer, LayerSet]) -> type[LayerDim
     return get_dimensions_from_bounds(bounds)
 
 
-def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
+def get_width_no_effects(layer: ArtLayer | LayerSet) -> float | int:
     """Returns the width of a given layer without its effects applied.
 
     Args:
@@ -164,13 +201,15 @@ def get_width_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
     """
     with suppress(Exception):
         # Try getting bounds no effects
-        d = get_layer_action_ref(layer)
-        bounds = d.getObjectValue(sID('boundsNoEffects'))
-        return bounds.getInteger(sID('right')) - bounds.getInteger(sID('left'))
+        d = get_layer_action_descriptor(layer)
+        bounds = d.getObjectValue(APP.instance.sID("boundsNoEffects"))
+        return bounds.getInteger(APP.instance.sID("right")) - bounds.getInteger(
+            APP.instance.sID("left")
+        )
     return get_layer_width(layer)
 
 
-def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
+def get_height_no_effects(layer: ArtLayer | LayerSet) -> float | int:
     """Returns the height of a given layer without its effects applied.
 
     Args:
@@ -181,9 +220,11 @@ def get_height_no_effects(layer: Union[ArtLayer, LayerSet]) -> int:
     """
     with suppress(Exception):
         # Try getting bounds no effects
-        d = get_layer_action_ref(layer)
-        bounds = d.getObjectValue(sID('boundsNoEffects'))
-        return bounds.getInteger(sID('bottom')) - bounds.getInteger(sID('top'))
+        d = get_layer_action_descriptor(layer)
+        bounds = d.getObjectValue(APP.instance.sID("boundsNoEffects"))
+        return bounds.getInteger(APP.instance.sID("bottom")) - bounds.getInteger(
+            APP.instance.sID("top")
+        )
     return get_layer_height(layer)
 
 
@@ -202,13 +243,11 @@ def check_textbox_overflow(layer: ArtLayer) -> bool:
         True if text overflowing, else False.
     """
     # Create a test layer to check the difference
-    height = get_layer_dimensions(layer)['height']
+    height = get_layer_dimensions(layer)["height"]
     layer.textItem.height = 1000
-    dif = get_layer_dimensions(layer)['height'] - height
+    dif = get_layer_dimensions(layer)["height"] - height
     undo_action()
-    if dif > 0:
-        return True
-    return False
+    return dif > 0
 
 
 def get_textbox_bounds(layer: ArtLayer) -> LayerBounds:
@@ -220,17 +259,17 @@ def get_textbox_bounds(layer: ArtLayer) -> LayerBounds:
     Returns:
         List of bounds integers.
     """
-    d = get_layer_action_ref(layer)
-    bounds = d.getObjectValue(sID('boundingBox'))
+    d = get_layer_action_descriptor(layer)
+    bounds = d.getObjectValue(APP.instance.sID("boundingBox"))
     return (
-        bounds.getInteger(sID('left')),
-        bounds.getInteger(sID('top')),
-        bounds.getInteger(sID('right')),
-        bounds.getInteger(sID('bottom'))
+        bounds.getInteger(APP.instance.sID("left")),
+        bounds.getInteger(APP.instance.sID("top")),
+        bounds.getInteger(APP.instance.sID("right")),
+        bounds.getInteger(APP.instance.sID("bottom")),
     )
 
 
-def get_textbox_dimensions(layer: ArtLayer) -> type[TextboxDimensions]:
+def get_textbox_dimensions(layer: ArtLayer) -> TextboxDimensions:
     """Get the dimensions of a TextLayer's bounding box.
 
     Args:
@@ -239,11 +278,11 @@ def get_textbox_dimensions(layer: ArtLayer) -> type[TextboxDimensions]:
     Returns:
         Dict containing width and height.
     """
-    d = get_layer_action_ref(layer)
-    bounds = d.getObjectValue(sID('boundingBox'))
+    d = get_layer_action_descriptor(layer)
+    bounds = d.getObjectValue(APP.instance.sID("boundingBox"))
     return {
-        'width': bounds.getInteger(sID('width')),
-        'height': bounds.getInteger(sID('height'))
+        "width": bounds.getInteger(APP.instance.sID("width")),
+        "height": bounds.getInteger(APP.instance.sID("height")),
     }
 
 
@@ -256,9 +295,9 @@ def get_textbox_width(layer: ArtLayer) -> int:
     Returns:
         Width of the textbox.
     """
-    d = get_layer_action_ref(layer)
-    bounds = d.getObjectValue(sID('boundingBox'))
-    return bounds.getInteger(sID('width'))
+    d = get_layer_action_descriptor(layer)
+    bounds = d.getObjectValue(APP.instance.sID("boundingBox"))
+    return bounds.getInteger(APP.instance.sID("width"))
 
 
 def get_textbox_height(layer: ArtLayer) -> int:
@@ -270,6 +309,6 @@ def get_textbox_height(layer: ArtLayer) -> int:
     Returns:
         Height of the textbox.
     """
-    d = get_layer_action_ref(layer)
-    bounds = d.getObjectValue(sID('boundingBox'))
-    return bounds.getInteger(sID('height'))
+    d = get_layer_action_descriptor(layer)
+    bounds = d.getObjectValue(APP.instance.sID("boundingBox"))
+    return bounds.getInteger(APP.instance.sID("height"))

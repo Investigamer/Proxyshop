@@ -1,21 +1,18 @@
 """
 * Templates: Prototype
 """
-# Standard Library
-from functools import cached_property
-from typing import Callable
 
-# Third Party Imports
+from collections.abc import Callable
+from functools import cached_property
+
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
 
-# Local Imports
-from src import CFG
-from src.enums.layers import LAYERS
 import src.helpers as psd
+import src.text_layers as text_classes
+from src.enums.layers import LAYERS
 from src.layouts import PrototypeLayout
 from src.templates._core import NormalTemplate
-import src.text_layers as text_classes
 from src.utils.adobe import ReferenceLayer
 
 """
@@ -37,15 +34,23 @@ class PrototypeMod(NormalTemplate):
     """
 
     @cached_property
-    def text_layer_methods(self) -> list[Callable]:
+    def text_layer_methods(self) -> list[Callable[[], None]]:
         """Add Prototype text layers."""
-        funcs = [self.text_layers_prototype] if isinstance(self.layout, PrototypeLayout) else []
+        funcs = (
+            [self.text_layers_prototype]
+            if isinstance(self.layout, PrototypeLayout)
+            else []
+        )
         return [*super().text_layer_methods, *funcs]
 
     @cached_property
-    def frame_layer_methods(self) -> list[Callable]:
+    def frame_layer_methods(self) -> list[Callable[[], None]]:
         """Enable Prototype frame layers."""
-        funcs = [self.frame_layers_prototype] if isinstance(self.layout, PrototypeLayout) else []
+        funcs = (
+            [self.frame_layers_prototype]
+            if isinstance(self.layout, PrototypeLayout)
+            else []
+        )
         return [*super().frame_layer_methods, *funcs]
 
     """
@@ -53,7 +58,7 @@ class PrototypeMod(NormalTemplate):
     """
 
     @cached_property
-    def prototype_reference(self) -> ReferenceLayer:
+    def prototype_reference(self) -> ReferenceLayer | None:
         """ReferenceLayer: Reference used to size and position the prototype text."""
         return self.proto_textbox_layer
 
@@ -62,17 +67,17 @@ class PrototypeMod(NormalTemplate):
     """
 
     @cached_property
-    def proto_manabox_group(self) -> LayerSet:
+    def proto_manabox_group(self) -> LayerSet | None:
         """LayerSet: Layer group containing the colors and shape for the Prototype mana box."""
         return psd.getLayerSet(LAYERS.PROTO_MANABOX, self.docref)
 
     @cached_property
-    def proto_textbox_group(self) -> LayerSet:
+    def proto_textbox_group(self) -> LayerSet | None:
         """LayerSet: Layer group containing textures for the Prototype textbox."""
         return psd.getLayerSet(LAYERS.PROTO_TEXTBOX, self.docref)
 
     @cached_property
-    def proto_pt_group(self) -> LayerSet:
+    def proto_pt_group(self) -> LayerSet | None:
         """LayerSet: Layer group containing textures for the Prototype PT box."""
         return psd.getLayerSet(LAYERS.PROTO_PTBOX, self.docref)
 
@@ -81,52 +86,52 @@ class PrototypeMod(NormalTemplate):
     """
 
     @cached_property
-    def proto_manabox_shape(self) -> ArtLayer:
+    def proto_manabox_shape(self) -> ArtLayer | None:
         """ArtLayer: Vector shape containing the Prototype mana text."""
-        size = '2' if self.layout.proto_mana_cost.count('{') <= 2 else '3'
-        return psd.getLayer(size, [self.proto_manabox_group, LAYERS.SHAPE])
+        if isinstance(self.layout, PrototypeLayout):
+            size = "2" if self.layout.proto_mana_cost.count("{") <= 2 else "3"
+            return psd.getLayer(size, [self.proto_manabox_group, LAYERS.SHAPE])
 
     """
     * Prototype Layers
     """
 
     @cached_property
-    def proto_textbox_layer(self) -> ReferenceLayer:
+    def proto_textbox_layer(self) -> ReferenceLayer | None:
         """ReferenceLayer: Colored and outlined box containing the Prototype ability text."""
-        return psd.get_reference_layer(
-            self.layout.proto_color,
-            self.proto_textbox_group)
+        if isinstance(self.layout, PrototypeLayout):
+            return psd.get_reference_layer(
+                self.layout.proto_color, self.proto_textbox_group
+            )
 
     @cached_property
-    def proto_manabox_layer(self) -> ArtLayer:
+    def proto_manabox_layer(self) -> ArtLayer | None:
         """ArtLayer: Solid color adjustment layer used to color the Prototype manabox."""
-        return psd.getLayer(
-            self.layout.proto_color,
-            self.proto_manabox_group)
+        if isinstance(self.layout, PrototypeLayout):
+            return psd.getLayer(self.layout.proto_color, self.proto_manabox_group)
 
     @cached_property
-    def proto_pt_layer(self) -> ArtLayer:
+    def proto_pt_layer(self) -> ArtLayer | None:
         """ArtLayer: Box for the P/T of the Prototype version of this card."""
-        return psd.getLayer(
-            self.layout.proto_color,
-            self.proto_pt_group)
+        if isinstance(self.layout, PrototypeLayout):
+            return psd.getLayer(self.layout.proto_color, self.proto_pt_group)
 
     """
     * Prototype Text Layers
     """
 
     @cached_property
-    def text_layer_proto(self) -> ArtLayer:
+    def text_layer_proto(self) -> ArtLayer | None:
         """ArtLayer: Text layer containing the Prototype rules text."""
         return psd.getLayer(LAYERS.PROTO_RULES, self.text_group)
 
     @cached_property
-    def text_layer_proto_mana(self) -> ArtLayer:
+    def text_layer_proto_mana(self) -> ArtLayer | None:
         """ArtLayer: Text layer containing the Prototype mana cost."""
         return psd.getLayer(LAYERS.PROTO_MANA_COST, self.text_group)
 
     @cached_property
-    def text_layer_proto_pt(self) -> ArtLayer:
+    def text_layer_proto_pt(self) -> ArtLayer | None:
         """ArtLayer: Text layer containing the Prototype power/toughness."""
         return psd.getLayer(LAYERS.PROTO_PT, self.text_group)
 
@@ -143,8 +148,9 @@ class PrototypeMod(NormalTemplate):
 
         # Prototype Mana Box
         if self.proto_manabox_layer:
-            self.proto_manabox_shape.visible = True
             self.proto_manabox_layer.visible = True
+        if self.proto_manabox_shape:
+            self.proto_manabox_shape.visible = True
 
         # Prototype PT
         if self.proto_pt_layer:
@@ -156,24 +162,34 @@ class PrototypeMod(NormalTemplate):
 
     def text_layers_prototype(self):
         """Add and modify text layers required by Prototype cards."""
+        if isinstance(self.layout, PrototypeLayout):
+            # Add prototype PT and Mana Cost
+            if self.text_layer_proto_mana:
+                self.text.append(
+                    text_classes.FormattedTextField(
+                        layer=self.text_layer_proto_mana,
+                        contents=self.layout.proto_mana_cost,
+                    )
+                )
+            if self.text_layer_proto_pt:
+                self.text.append(
+                    text_classes.TextField(
+                        layer=self.text_layer_proto_pt, contents=self.layout.proto_pt
+                    )
+                )
 
-        # Add prototype PT and Mana Cost
-        self.text.extend([
-            text_classes.FormattedTextField(
-                layer=self.text_layer_proto_mana,
-                contents=self.layout.proto_mana_cost),
-            text_classes.TextField(
-                layer=self.text_layer_proto_pt,
-                contents=self.layout.proto_pt)])
-
-        # Remove reminder text if necessary
-        if CFG.remove_reminder:
-            self.text_layer_proto.textItem.size = psd.get_text_scale_factor(self.text_layer_proto) * 9
-            self.text.append(
-                text_classes.FormattedTextArea(
-                    layer=self.text_layer_proto,
-                    contents='Prototype',
-                    reference=self.prototype_reference))
+            # Remove reminder text if necessary
+            if self.config.remove_reminder and self.text_layer_proto:
+                self.text_layer_proto.textItem.size = (
+                    psd.get_text_scale_factor(self.text_layer_proto) * 9
+                )
+                self.text.append(
+                    text_classes.FormattedTextArea(
+                        layer=self.text_layer_proto,
+                        contents="Prototype",
+                        reference=self.prototype_reference,
+                    )
+                )
 
 
 """

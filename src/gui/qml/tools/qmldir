@@ -1,0 +1,3 @@
+module qml.tools
+ImageTransformWindow ImageTransformWindow.qml
+SystemPaletteViewer SystemPaletteViewer.qml

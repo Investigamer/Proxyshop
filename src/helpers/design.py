@@ -1,41 +1,37 @@
 """
 * Helpers: Design
 """
-# Standard Library Imports
-from typing import Optional
-from contextlib import suppress
 
-# Third Party Imports
-from photoshop.api import (
-    DialogModes,
-    ActionDescriptor,
-    RasterizeType,
-    ActionReference,
-    BlendMode,
-    SolidColor,
-    ElementPlacement,
-    SaveOptions
-)
+from collections.abc import Callable
+from contextlib import suppress
+from logging import getLogger
+
+from photoshop.api import ActionDescriptor, ActionReference, SolidColor
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._document import Document
+from photoshop.api._selection import Selection
+from photoshop.api.enumerations import (
+    BlendMode,
+    DialogModes,
+    ElementPlacement,
+    RasterizeType,
+    SaveOptions,
+)
 
-# Local Imports
-from src import APP, CONSOLE
-from src.helpers.layers import select_layers, smart_layer, edit_smart_layer
-from src.helpers.colors import rgb_black, fill_layer_primary
+from src import APP
+from src.helpers.colors import fill_layer_primary, rgb_black
+from src.helpers.layers import edit_smart_layer, select_layers, smart_layer
 from src.helpers.selection import select_layer_pixels
 from src.utils.adobe import PS_EXCEPTIONS
 
-# QOL Definitions
-sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
-NO_DIALOG = DialogModes.DisplayNoDialogs
+_logger = getLogger(__name__)
 
 """
 * Filling Space
 """
 
 
-def fill_empty_area(reference: ArtLayer, color: Optional[SolidColor] = None) -> ArtLayer:
+def fill_empty_area(reference: ArtLayer, color: SolidColor | None = None) -> ArtLayer:
     """Fills empty gaps on an art layer, such as a symbol, with a solid color.
 
     Args:
@@ -43,22 +39,22 @@ def fill_empty_area(reference: ArtLayer, color: Optional[SolidColor] = None) -> 
         color: Color of the background fill
     """
     # Magic Wand contiguous outside symbol
-    docref = APP.activeDocument
+    docref = APP.instance.activeDocument
     docsel = docref.selection
     coords = ActionDescriptor()
     click1 = ActionDescriptor()
     ref1 = ActionReference()
-    idPaint = sID('paint')
-    idPixel = sID('pixelsUnit')
-    idTolerance = sID('tolerance')
-    coords.putUnitDouble(sID('horizontal'), idPixel, 5)
-    coords.putUnitDouble(sID('vertical'), idPixel, 5)
-    ref1.putProperty(sID('channel'), sID('selection'))
-    click1.putReference(sID('target'), ref1)
-    click1.putObject(sID('to'), idPaint, coords)
+    idPaint = APP.instance.sID("paint")
+    idPixel = APP.instance.sID("pixelsUnit")
+    idTolerance = APP.instance.sID("tolerance")
+    coords.putUnitDouble(APP.instance.sID("horizontal"), idPixel, 5)
+    coords.putUnitDouble(APP.instance.sID("vertical"), idPixel, 5)
+    ref1.putProperty(APP.instance.sID("channel"), APP.instance.sID("selection"))
+    click1.putReference(APP.instance.sID("target"), ref1)
+    click1.putObject(APP.instance.sID("to"), idPaint, coords)
     click1.putInteger(idTolerance, 12)
-    click1.putBoolean(sID('antiAlias'), True)
-    APP.executeAction(sID('set'), click1)
+    click1.putBoolean(APP.instance.sID("antiAlias"), True)
+    APP.instance.executeAction(APP.instance.sID("set"), click1)
 
     # Invert selection
     docsel.invert()
@@ -66,25 +62,35 @@ def fill_empty_area(reference: ArtLayer, color: Optional[SolidColor] = None) -> 
 
     # Make a new layer
     layer = docref.artLayers.add()
-    layer.name = 'Expansion Mask'
+    layer.name = "Expansion Mask"
     layer.blendMode = BlendMode.NormalBlend
-    layer.moveAfter(reference)
+    layer.move(reference, ElementPlacement.PlaceAfter)
 
     # Fill selection with stroke color
-    APP.foregroundColor = color or rgb_black()
+    APP.instance.foregroundColor = color or rgb_black()
     click3 = ActionDescriptor()
-    click3.putObject(sID('from'), idPaint, coords)
+    click3.putObject(APP.instance.sID("from"), idPaint, coords)
     click3.putInteger(idTolerance, 0)
-    click3.putEnumerated(sID('using'), sID('fillContents'), sID('foregroundColor'))
-    click3.putBoolean(sID('contiguous'), False)
-    APP.executeAction(sID('fill'), click3)
+    click3.putEnumerated(
+        APP.instance.sID("using"),
+        APP.instance.sID("fillContents"),
+        APP.instance.sID("foregroundColor"),
+    )
+    click3.putBoolean(APP.instance.sID("contiguous"), False)
+    APP.instance.executeAction(APP.instance.sID("fill"), click3)
 
     # Clear Selection
     docsel.deselect()
     return layer
 
 
-def content_aware_fill_edges(layer: Optional[ArtLayer] = None, feather: bool = False) -> None:
+def content_aware_fill_edges(
+    layer: ArtLayer | None = None,
+    contract: int = 10,
+    smooth: int = 0,
+    feather: int = 5,
+    art_selection_hook: Callable[[ArtLayer, Selection], None] | None = None,
+) -> None:
     """Fills pixels outside art layer using content-aware fill.
 
     Args:
@@ -92,31 +98,40 @@ def content_aware_fill_edges(layer: Optional[ArtLayer] = None, feather: bool = F
         feather: Whether to feather the selection before performing the fill operation.
     """
     # Set active layer if needed, then rasterize
-    docref = APP.activeDocument
+    docref = APP.instance.activeDocument
     if layer:
         docref.activeLayer = layer
-    docref.activeLayer.rasterize(RasterizeType.EntireLayer)
+        active_layer = layer
+    elif not isinstance((active_layer := docref.activeLayer), ArtLayer):
+        _logger.warning(
+            "Skipping content aware fill as active layer is not an ArtLayer."
+        )
+        return
+    active_layer.rasterize(RasterizeType.EntireLayer)
 
     # Select pixels of the active layer
-    select_layer_pixels(docref.activeLayer)
+    select_layer_pixels(active_layer)
     selection = docref.selection
+
+    if art_selection_hook:
+        art_selection_hook(active_layer, selection)
 
     # Guard against no selection made
     try:
-        # Create a feathered or smoothed selection, then invert
+        # Adjust selection, then invert
+        if contract:
+            selection.contract(contract)
+        if smooth:
+            selection.smooth(smooth)
         if feather:
-            selection.contract(22)
-            selection.feather(8)
-        else:
-            selection.contract(10)
-            selection.smooth(5)
+            selection.feather(feather)
         selection.invert()
         content_aware_fill()
-    except PS_EXCEPTIONS:
+    except PS_EXCEPTIONS as exc:
         # Unable to fill due to invalid selection
-        CONSOLE.update(
-            "Couldn't make a valid selection!\n"
-            "Skipping automated fill.")
+        _logger.warning(
+            "Couldn't make a valid selection. Skipping automated fill.", exc_info=exc
+        )
 
     # Clear selection
     with suppress(Exception):
@@ -124,11 +139,14 @@ def content_aware_fill_edges(layer: Optional[ArtLayer] = None, feather: bool = F
 
 
 def generative_fill_edges(
-    layer: Optional[ArtLayer] = None,
-    feather: bool = False,
+    layer: ArtLayer | None = None,
+    contract: int = 10,
+    smooth: int = 0,
+    feather: int = 5,
     close_doc: bool = True,
-    docref: Optional[Document] = None
-) -> Optional[Document]:
+    docref: Document | None = None,
+    art_selection_hook: Callable[[ArtLayer, Selection], None] | None = None,
+) -> Document | None:
     """Fills pixels outside an art layer using AI powered generative fill.
 
     Args:
@@ -141,50 +159,57 @@ def generative_fill_edges(
         Smart layer document if Generative Fill operation succeeded, otherwise None.
     """
     # Set docref and use active layer if not provided
-    docref = docref or APP.activeDocument
-    if not layer:
-        layer = docref.activeLayer
-    docref.activeLayer = layer
+    docref = docref or APP.instance.activeDocument
+    if layer:
+        docref.activeLayer = layer
+        active_layer = layer
+    elif not isinstance((active_layer := docref.activeLayer), ArtLayer):
+        print("Skipping content aware fill as active layer is not an ArtLayer.")
+        return
+    active_layer.rasterize(RasterizeType.EntireLayer)
 
     # Create a fill layer the size of the document
     fill_layer: ArtLayer = docref.artLayers.add()
-    fill_layer.move(layer, ElementPlacement.PlaceAfter)
+    fill_layer.move(active_layer, ElementPlacement.PlaceAfter)
     fill_layer_primary()
     fill_layer.opacity = 0
 
     # Create a smart layer document and enter it
-    select_layers([layer, fill_layer])
+    select_layers([active_layer, fill_layer])
     smart_layer()
     edit_smart_layer()
 
     # Select pixels of active layer and invert
-    docref = APP.activeDocument
-    select_layer_pixels(docref.activeLayer)
+    docref = APP.instance.activeDocument
+    select_layer_pixels(active_layer)
     selection = docref.selection
+
+    if art_selection_hook and isinstance((art_layer := docref.activeLayer), ArtLayer):
+        art_selection_hook(art_layer, selection)
 
     # Guard against no selection made
     try:
-        # Create a feathered or smoothed selection, then invert
+        # Adjust selection, then invert
+        if contract:
+            selection.contract(contract)
+        if smooth:
+            selection.smooth(smooth)
         if feather:
-            selection.contract(22)
-            selection.feather(8)
-        else:
-            selection.contract(10)
-            selection.smooth(5)
+            selection.feather(feather)
         selection.invert()
         try:
             generative_fill()
         except PS_EXCEPTIONS:
             # Generative fill call not responding
-            CONSOLE.update("Generative fill failed!\n"
-                           "Falling back to Content Aware Fill.")
-            docref.activeLayer.rasterize(RasterizeType.EntireLayer)
+            _logger.warning(
+                "Generative fill failed. Falling back to Content Aware Fill."
+            )
+            active_layer.rasterize(RasterizeType.EntireLayer)
             content_aware_fill()
             close_doc = True
     except PS_EXCEPTIONS:
         # Unable to fill due to invalid selection
-        CONSOLE.update("Couldn't make a valid selection!\n"
-                       "Skipping automated fill.")
+        _logger.warning("Couldn't make a valid selection. Skipping automated fill.")
         close_doc = True
 
     # Deselect
@@ -198,13 +223,97 @@ def generative_fill_edges(
     return
 
 
+def remove_content_fill_edges(
+    layer: ArtLayer | None = None,
+    contract: int = 10,
+    smooth: int = 0,
+    feather: int = 5,
+    art_selection_hook: Callable[[ArtLayer, Selection], None] | None = None,
+) -> None:
+    """Fills pixels outside art layer using remove content fill.
+
+    Args:
+        layer: Layer to use for the fill. Uses active if not provided.
+        feather: Whether to feather the selection before performing the fill operation.
+    """
+    # Set active layer if needed
+    docref = APP.instance.activeDocument
+    if layer:
+        docref.activeLayer = layer
+        active_layer = layer
+    elif not isinstance((active_layer := docref.activeLayer), ArtLayer):
+        _logger.warning(
+            "Skipping remove content fill as active layer is not an ArtLayer."
+        )
+        return
+
+    # Create a fill layer the size of the document in order to
+    # ensure that the smart document retains the document's size
+    fill_layer: ArtLayer = docref.artLayers.add()
+    fill_layer.move(active_layer, ElementPlacement.PlaceAfter)
+    fill_layer_primary()
+    fill_layer.opacity = 0
+
+    # Create a smart layer document and enter it in order to
+    # ensure that content is sampled only from the art layer
+    select_layers([active_layer, fill_layer])
+    smart_layer()
+    edit_smart_layer()
+
+    # Select pixels of the active layer
+    docref = APP.instance.activeDocument
+    if isinstance((layer_in_smart_doc := docref.activeLayer), ArtLayer):
+        select_layer_pixels(layer_in_smart_doc)
+    selection = docref.selection
+
+    if art_selection_hook and isinstance((art_layer := docref.activeLayer), ArtLayer):
+        art_selection_hook(art_layer, selection)
+
+    # Guard against no selection made
+    try:
+        # Adjust selection, then invert
+        if contract:
+            selection.contract(contract)
+        if smooth:
+            selection.smooth(smooth)
+        if feather:
+            selection.feather(feather)
+        selection.invert()
+
+        remove_content_fill()
+    except PS_EXCEPTIONS as exc:
+        # Unable to fill due to invalid selection
+        _logger.warning(
+            "Couldn't complete remove content fill. Skipping automated fill.",
+            exc_info=exc,
+        )
+
+    # Clear selection
+    with suppress(Exception):
+        selection.deselect()
+
+    docref.close(SaveOptions.SaveChanges)
+
+
 def content_aware_fill() -> None:
     """Fills the current selection using content aware fill."""
     desc = ActionDescriptor()
-    desc.putEnumerated(sID("using"), sID("fillContents"), sID("contentAware"))
-    desc.putUnitDouble(sID("opacity"), sID("percentUnit"), 100)
-    desc.putEnumerated(sID("mode"), sID("blendMode"), sID("normal"))
-    APP.executeAction(sID("fill"), desc, NO_DIALOG)
+    desc.putEnumerated(
+        APP.instance.sID("using"),
+        APP.instance.sID("fillContents"),
+        APP.instance.sID("contentAware"),
+    )
+    desc.putUnitDouble(
+        APP.instance.sID("opacity"), APP.instance.sID("percentUnit"), 100
+    )
+    desc.putEnumerated(
+        APP.instance.sID("mode"),
+        APP.instance.sID("blendMode"),
+        APP.instance.sID("normal"),
+    )
+    APP.instance.executeAction(
+        APP.instance.sID("fill"), desc, DialogModes.DisplayNoDialogs
+    )
 
 
 def generative_fill() -> None:
@@ -213,26 +322,45 @@ def generative_fill() -> None:
     ref1 = ActionReference()
     desc2 = ActionDescriptor()
     desc3 = ActionDescriptor()
-    ref1.putEnumerated(sID("document"), sID("ordinal"), sID("targetEnum"))
-    desc1.putReference(sID("target"), ref1)
-    desc1.putString(sID("prompt"), """""")
-    desc1.putString(sID("serviceID"), """clio""")
-    desc1.putEnumerated(sID("mode"), sID("syntheticFillMode"), sID("inpaint"))
-    desc3.putString(sID("gi_PROMPT"), """""")
-    desc3.putString(sID("gi_MODE"), """ginp""")
-    desc3.putInteger(sID("gi_SEED"), -1)
-    desc3.putInteger(sID("gi_NUM_STEPS"), -1)
-    desc3.putInteger(sID("gi_GUIDANCE"), 6)
-    desc3.putInteger(sID("gi_SIMILARITY"), 0)
-    desc3.putBoolean(sID("gi_CROP"), False)
-    desc3.putBoolean(sID("gi_DILATE"), False)
-    desc3.putInteger(sID("gi_CONTENT_PRESERVE"), 0)
-    desc3.putBoolean(sID("gi_ENABLE_PROMPT_FILTER"), True)
-    desc3.putBoolean(sID("dualCrop"), True)
-    desc3.putString(sID("gi_ADVANCED"), """{"enable_mts":true}""")
-    desc2.putObject(sID("clio"), sID("clio"), desc3)
-    desc1.putObject(sID("serviceOptionsList"), sID("target"), desc2)
-    APP.executeAction(sID("syntheticFill"), desc1, NO_DIALOG)
+    ref1.putEnumerated(
+        APP.instance.sID("document"),
+        APP.instance.sID("ordinal"),
+        APP.instance.sID("targetEnum"),
+    )
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    desc1.putString(APP.instance.sID("prompt"), """""")
+    desc1.putString(APP.instance.sID("serviceID"), """clio""")
+    desc1.putEnumerated(
+        APP.instance.sID("mode"),
+        APP.instance.sID("syntheticFillMode"),
+        APP.instance.sID("inpaint"),
+    )
+    desc3.putString(APP.instance.sID("gi_PROMPT"), """""")
+    desc3.putString(APP.instance.sID("gi_MODE"), """ginp""")
+    desc3.putInteger(APP.instance.sID("gi_SEED"), -1)
+    desc3.putInteger(APP.instance.sID("gi_NUM_STEPS"), -1)
+    desc3.putInteger(APP.instance.sID("gi_GUIDANCE"), 6)
+    desc3.putInteger(APP.instance.sID("gi_SIMILARITY"), 0)
+    desc3.putBoolean(APP.instance.sID("gi_CROP"), False)
+    desc3.putBoolean(APP.instance.sID("gi_DILATE"), False)
+    desc3.putInteger(APP.instance.sID("gi_CONTENT_PRESERVE"), 0)
+    desc3.putBoolean(APP.instance.sID("gi_ENABLE_PROMPT_FILTER"), True)
+    desc3.putBoolean(APP.instance.sID("dualCrop"), True)
+    desc3.putString(APP.instance.sID("gi_ADVANCED"), """{"enable_mts":true}""")
+    desc2.putObject(APP.instance.sID("clio"), APP.instance.sID("clio"), desc3)
+    desc1.putObject(
+        APP.instance.sID("serviceOptionsList"), APP.instance.sID("target"), desc2
+    )
+    APP.instance.executeAction(
+        APP.instance.sID("syntheticFill"), desc1, DialogModes.DisplayNoDialogs
+    )
+
+
+def remove_content_fill() -> None:
+    """Call Photoshop's "Remove" action on the current selection."""
+    APP.instance.executeAction(
+        APP.instance.sID("removeButton"), display_dialogs=DialogModes.DisplayNoDialogs
+    )
 
 
 def repair_edges(edge: int = 6) -> None:
@@ -244,46 +372,56 @@ def repair_edges(edge: int = 6) -> None:
     # Select all
     desc632724 = ActionDescriptor()
     ref489 = ActionReference()
-    ref489.putProperty(sID("channel"), sID("selection"))
-    desc632724.putReference(sID("target"), ref489)
-    desc632724.putEnumerated(sID("to"), sID("ordinal"), sID("allEnum"))
-    APP.executeAction(sID("set"), desc632724, NO_DIALOG)
+    ref489.putProperty(APP.instance.sID("channel"), APP.instance.sID("selection"))
+    desc632724.putReference(APP.instance.sID("target"), ref489)
+    desc632724.putEnumerated(
+        APP.instance.sID("to"), APP.instance.sID("ordinal"), APP.instance.sID("allEnum")
+    )
+    APP.instance.executeAction(
+        APP.instance.sID("set"), desc632724, DialogModes.DisplayNoDialogs
+    )
 
     # Contract selection
     contract = ActionDescriptor()
-    contract.putUnitDouble(sID("by"), sID("pixelsUnit"), edge)
-    contract.putBoolean(sID("selectionModifyEffectAtCanvasBounds"), True)
-    APP.executeAction(sID("contract"), contract, NO_DIALOG)
+    contract.putUnitDouble(APP.instance.sID("by"), APP.instance.sID("pixelsUnit"), edge)
+    contract.putBoolean(APP.instance.sID("selectionModifyEffectAtCanvasBounds"), True)
+    APP.instance.executeAction(
+        APP.instance.sID("contract"), contract, DialogModes.DisplayNoDialogs
+    )
 
     # Inverse the selection
-    APP.executeAction(sID("inverse"), None, NO_DIALOG)
+    APP.instance.executeAction(
+        APP.instance.sID("inverse"), None, DialogModes.DisplayNoDialogs
+    )
 
     # Content aware fill
     desc_caf = ActionDescriptor()
     desc_caf.putEnumerated(
-        sID("cafSamplingRegion"),
-        sID("cafSamplingRegion"),
-        sID("cafSamplingRegionRectangular")
+        APP.instance.sID("cafSamplingRegion"),
+        APP.instance.sID("cafSamplingRegion"),
+        APP.instance.sID("cafSamplingRegionRectangular"),
     )
-    desc_caf.putBoolean(sID("cafSampleAllLayers"), False)
+    desc_caf.putBoolean(APP.instance.sID("cafSampleAllLayers"), False)
     desc_caf.putEnumerated(
-        sID("cafColorAdaptationLevel"),
-        sID("cafColorAdaptationLevel"),
-        sID("cafColorAdaptationDefault")
+        APP.instance.sID("cafColorAdaptationLevel"),
+        APP.instance.sID("cafColorAdaptationLevel"),
+        APP.instance.sID("cafColorAdaptationDefault"),
     )
     desc_caf.putEnumerated(
-        sID("cafRotationAmount"),
-        sID("cafRotationAmount"),
-        sID("cafRotationAmountNone")
+        APP.instance.sID("cafRotationAmount"),
+        APP.instance.sID("cafRotationAmount"),
+        APP.instance.sID("cafRotationAmountNone"),
     )
-    desc_caf.putBoolean(sID("cafScale"), False)
-    desc_caf.putBoolean(sID("cafMirror"), False)
+    desc_caf.putBoolean(APP.instance.sID("cafScale"), False)
+    desc_caf.putBoolean(APP.instance.sID("cafMirror"), False)
     desc_caf.putEnumerated(
-        sID("cafOutput"),
-        sID("cafOutput"),
-        sID("cafOutputToNewLayer")
+        APP.instance.sID("cafOutput"),
+        APP.instance.sID("cafOutput"),
+        APP.instance.sID("cafOutputToNewLayer"),
     )
-    APP.executeAction(sID("cafWorkspace"), desc_caf, NO_DIALOG)
+    APP.instance.executeAction(
+        APP.instance.sID("cafWorkspace"), desc_caf, DialogModes.DisplayNoDialogs
+    )
 
     # Deselect
-    APP.activeDocument.selection.deselect()
+    APP.instance.activeDocument.selection.deselect()

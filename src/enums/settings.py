@@ -1,29 +1,21 @@
 """
 * Enums: Settings
 """
-# Standard Library Imports
-from functools import cached_property
 
-# Third Party Imports
-from omnitils.enums import StrConstant
-
+from enum import StrEnum
 
 """
 * App Settings
 """
 
 
-class OutputFileType (StrConstant):
+class OutputFileType(StrEnum):
     JPG = "jpg"
     PNG = "png"
     PSD = "psd"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.JPG
 
-
-class ScryfallSorting (StrConstant):
+class ScryfallSorting(StrEnum):
     Released = "released"
     Set = "set"
     Rarity = "rarity"
@@ -32,18 +24,10 @@ class ScryfallSorting (StrConstant):
     EDHRec = "edhrec"
     Artist = "artist"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Released
 
-
-class ScryfallUnique (StrConstant):
+class ScryfallUnique(StrEnum):
     Prints = "prints"
     Arts = "arts"
-
-    @cached_property
-    def Default(self) -> str:
-        return self.Arts
 
 
 """
@@ -51,47 +35,45 @@ class ScryfallUnique (StrConstant):
 """
 
 
-class CollectorMode (StrConstant):
+class CollectorMode(StrEnum):
     Normal = "default"
     Modern = "modern"
     Minimal = "minimal"
     ArtistOnly = "artist"
-
-    @cached_property
-    def Default(self) -> str:
-        return self.Normal
+    Custom = "custom"
 
 
-class BorderColor (StrConstant):
+class BorderColor(StrEnum):
     Black = "black"
     White = "white"
     Silver = "silver"
     Gold = "gold"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Black
 
-
-class CollectorPromo (StrConstant):
+class CollectorPromo(StrEnum):
     Automatic = "automatic"
     Always = "always"
     Never = "never"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Automatic
 
-
-class WatermarkMode (StrConstant):
+class WatermarkMode(StrEnum):
     Disabled = "Disabled"
     Automatic = "Automatic"
     Fallback = "Fallback"
     Forced = "Forced"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Disabled
+
+class FillMode(StrEnum):
+    NO_FILL = "No Fill"
+    CONTENT_AWARE_FILL = "Content-Aware Fill"
+    GENERATIVE_FILL = "Generative Fill"
+    REMOVE_CONTENT_FILL = "Remove Content Fill"
+
+
+class NicknameShorten(StrEnum):
+    NO = "No"
+    ALL_BUT_FIRST = "All but first"
+    ALL = "All"
 
 
 """
@@ -99,7 +81,7 @@ class WatermarkMode (StrConstant):
 """
 
 
-class BorderlessColorMode (StrConstant):
+class BorderlessColorMode(StrEnum):
     All = "All"
     Twins_And_PT = "Twins and PT"
     Textbox = "Textbox"
@@ -107,12 +89,8 @@ class BorderlessColorMode (StrConstant):
     PT = "PT Box"
     Disabled = "None"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Twins_And_PT
 
-
-class BorderlessTextbox (StrConstant):
+class BorderlessTextbox(StrEnum):
     Automatic = "Automatic"
     Textless = "Textless"
     Normal = "Normal"
@@ -120,21 +98,13 @@ class BorderlessTextbox (StrConstant):
     Short = "Short"
     Tall = "Tall"
 
-    @cached_property
-    def Default(self) -> str:
-        return self.Automatic
-
 
 """
 * Template: Modern Classic
 """
 
 
-class ModernClassicCrown (StrConstant):
+class ModernClassicCrown(StrEnum):
     Pinlines = "Pinlines"
     TexturePinlines = "Texture Pinlines"
     TextureBackground = "Texture Background"
-
-    @cached_property
-    def Default(self) -> str:
-        return self.Pinlines

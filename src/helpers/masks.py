@@ -1,21 +1,17 @@
 """
 * Helpers: Masks
 """
-# Standard Library Imports
-from typing import Union
 
-# Third Party Imports
-from photoshop.api import DialogModes, ActionDescriptor, ActionReference
+from _ctypes import COMError
+from enum import StrEnum
+
+from photoshop.api import ActionDescriptor, ActionReference
 from photoshop.api._artlayer import ArtLayer
 from photoshop.api._layerSet import LayerSet
+from photoshop.api.enumerations import DialogModes
 
-# Local Imports
 from src import APP
 from src.helpers.selection import select_canvas
-
-# QOL Definitions
-sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
-NO_DIALOG = DialogModes.DisplayNoDialogs
 
 """
 * Copying Masks
@@ -23,8 +19,7 @@ NO_DIALOG = DialogModes.DisplayNoDialogs
 
 
 def copy_layer_mask(
-    layer_from: Union[ArtLayer, LayerSet],
-    layer_to: Union[ArtLayer, LayerSet]
+    layer_from: ArtLayer | LayerSet, layer_to: ArtLayer | LayerSet
 ) -> None:
     """Copies mask from one layer to another.
 
@@ -35,19 +30,28 @@ def copy_layer_mask(
     desc1 = ActionDescriptor()
     ref17 = ActionReference()
     ref18 = ActionReference()
-    desc1.putClass(sID("new"), sID("channel"))
-    ref17.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    ref17.putIdentifier(sID("layer"), layer_to.id)
-    desc1.putReference(sID("at"), ref17)
-    ref18.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    ref18.putIdentifier(sID("layer"), layer_from.id)
-    desc1.putReference(sID("using"), ref18)
-    APP.executeAction(sID("make"), desc1, NO_DIALOG)
+    desc1.putClass(APP.instance.sID("new"), APP.instance.sID("channel"))
+    ref17.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    ref17.putIdentifier(APP.instance.sID("layer"), layer_to.id)
+    desc1.putReference(APP.instance.sID("at"), ref17)
+    ref18.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    ref18.putIdentifier(APP.instance.sID("layer"), layer_from.id)
+    desc1.putReference(APP.instance.sID("using"), ref18)
+    APP.instance.executeAction(
+        APP.instance.sID("make"), desc1, DialogModes.DisplayNoDialogs
+    )
 
 
 def copy_vector_mask(
-    layer_from: Union[ArtLayer, LayerSet],
-    layer_to: Union[ArtLayer, LayerSet]
+    layer_from: ArtLayer | LayerSet, layer_to: ArtLayer | LayerSet
 ) -> None:
     """Copies vector mask from one layer to another.
 
@@ -59,15 +63,25 @@ def copy_vector_mask(
     ref1 = ActionReference()
     ref2 = ActionReference()
     ref3 = ActionReference()
-    ref1.putClass(sID("path"))
-    desc1.putReference(sID("target"),  ref1)
-    ref2.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
-    ref2.putIdentifier(sID("layer"),  layer_to.id)
-    desc1.putReference(sID("at"),  ref2)
-    ref3.putEnumerated(sID("path"), sID("path"), sID("vectorMask"))
-    ref3.putIdentifier(sID("layer"), layer_from.id)
-    desc1.putReference(sID("using"),  ref3)
-    APP.executeAction(sID("make"), desc1, NO_DIALOG)
+    ref1.putClass(APP.instance.sID("path"))
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    ref2.putEnumerated(
+        APP.instance.sID("path"),
+        APP.instance.sID("path"),
+        APP.instance.sID("vectorMask"),
+    )
+    ref2.putIdentifier(APP.instance.sID("layer"), layer_to.id)
+    desc1.putReference(APP.instance.sID("at"), ref2)
+    ref3.putEnumerated(
+        APP.instance.sID("path"),
+        APP.instance.sID("path"),
+        APP.instance.sID("vectorMask"),
+    )
+    ref3.putIdentifier(APP.instance.sID("layer"), layer_from.id)
+    desc1.putReference(APP.instance.sID("using"), ref3)
+    APP.instance.executeAction(
+        APP.instance.sID("make"), desc1, DialogModes.DisplayNoDialogs
+    )
 
 
 """
@@ -75,28 +89,40 @@ def copy_vector_mask(
 """
 
 
-def apply_mask_to_layer_fx(layer: Union[ArtLayer, LayerSet] = None) -> None:
-    """Sets the layer mask to apply only to layer effects in blending options.
+def apply_mask_to_layer_fx(
+    layer: ArtLayer | LayerSet | None = None,
+    apply: bool = True,
+    raster: bool = True,
+    vector: bool = False,
+) -> None:
+    """Sets the layer mask to apply to layer effects in blending options.
 
     Args:
         layer: ArtLayer or LayerSet object.
+        apply: Whether to apply or not apply the mask to layer effects.
+        raster: Apply the setting to raster layer mask.
+        vector: Apply the setting to vector layer mask.
     """
     if not layer:
-        layer = APP.activeDocument.activeLayer
+        layer = APP.instance.activeDocument.activeLayer
     ref = ActionReference()
-    ref.putIdentifier(sID("layer"), layer.id)
-    desc = APP.executeActionGet(ref)
-    layer_fx = desc.getObjectValue(sID('layerEffects'))
-    layer_fx.putBoolean(sID("layerMaskAsGlobalMask"), True)
+    ref.putIdentifier(APP.instance.sID("layer"), layer.id)
+    desc = APP.instance.executeActionGet(ref)
+    layer_fx = desc.getObjectValue(APP.instance.sID("layerEffects"))
+    if raster:
+        layer_fx.putBoolean(APP.instance.sID("layerMaskAsGlobalMask"), apply)
+    if vector:
+        layer_fx.putBoolean(APP.instance.sID("vectorMaskAsGlobalMask"), apply)
     desc = ActionDescriptor()
-    desc.putReference(sID("target"), ref)
-    desc.putObject(sID("to"), sID("layer"), layer_fx)
-    APP.executeAction(sID("set"), desc,  NO_DIALOG)
+    desc.putReference(APP.instance.sID("target"), ref)
+    desc.putObject(APP.instance.sID("to"), APP.instance.sID("layer"), layer_fx)
+    APP.instance.executeAction(
+        APP.instance.sID("set"), desc, DialogModes.DisplayNoDialogs
+    )
 
 
 def set_layer_mask(
-    layer: Union[ArtLayer, LayerSet, None] = None,
-    visible: bool = True
+    layer: ArtLayer | LayerSet | None = None, visible: bool = True
 ) -> None:
     """Set the visibility of a layer's mask.
 
@@ -105,18 +131,20 @@ def set_layer_mask(
         visible: Whether to make the layer mask visible.
     """
     if not layer:
-        layer = APP.activeDocument.activeLayer
+        layer = APP.instance.activeDocument.activeLayer
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.putIdentifier(cID("Lyr "), layer.id)
-    desc1.putReference(sID("target"), ref1)
-    desc2.putBoolean(cID("UsrM"), visible)
-    desc1.putObject(cID("T   "), cID("Lyr "), desc2)
-    APP.executeAction(cID("setd"), desc1, NO_DIALOG)
+    ref1.putIdentifier(APP.instance.cID("Lyr "), layer.id)
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    desc2.putBoolean(APP.instance.cID("UsrM"), visible)
+    desc1.putObject(APP.instance.cID("T   "), APP.instance.cID("Lyr "), desc2)
+    APP.instance.executeAction(
+        APP.instance.cID("setd"), desc1, DialogModes.DisplayNoDialogs
+    )
 
 
-def enable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def enable_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Enables a given layer's mask.
 
     Args:
@@ -125,7 +153,7 @@ def enable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     set_layer_mask(layer, True)
 
 
-def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def disable_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Disables a given layer's mask.
 
     Args:
@@ -134,25 +162,30 @@ def disable_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     set_layer_mask(layer, False)
 
 
-def apply_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def apply_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Applies a given layer's mask.
 
     Args:
         layer: ArtLayer or LayerSet object, use active layer if not provided.
     """
     if layer:
-        APP.activeDocument.activeLayer = layer
+        APP.instance.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.putEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    desc1.putReference(sID("target"),  ref1)
-    desc1.putBoolean(sID("apply"), True)
-    APP.executeAction(sID("delete"), desc1, NO_DIALOG)
+    ref1.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    desc1.putBoolean(APP.instance.sID("apply"), True)
+    APP.instance.executeAction(
+        APP.instance.sID("delete"), desc1, DialogModes.DisplayNoDialogs
+    )
 
 
 def set_layer_vector_mask(
-    layer: Union[ArtLayer, LayerSet, None] = None,
-    visible: bool = False
+    layer: ArtLayer | LayerSet | None = None, visible: bool = False
 ) -> None:
     """Set the visibility of a layer's vector mask.
 
@@ -161,18 +194,20 @@ def set_layer_vector_mask(
         visible: Whether to make the vector mask visible.
     """
     if not layer:
-        layer = APP.activeDocument.activeLayer
+        layer = APP.instance.activeDocument.activeLayer
     desc1 = ActionDescriptor()
     desc2 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.putIdentifier(sID("layer"), layer.id)
-    desc1.putReference(sID("target"), ref1)
-    desc2.putBoolean(sID("vectorMaskEnabled"), visible)
-    desc1.putObject(sID("to"), sID("layer"), desc2)
-    APP.executeAction(sID("set"), desc1, NO_DIALOG)
+    ref1.putIdentifier(APP.instance.sID("layer"), layer.id)
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    desc2.putBoolean(APP.instance.sID("vectorMaskEnabled"), visible)
+    desc1.putObject(APP.instance.sID("to"), APP.instance.sID("layer"), desc2)
+    APP.instance.executeAction(
+        APP.instance.sID("set"), desc1, DialogModes.DisplayNoDialogs
+    )
 
 
-def enable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def enable_vector_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Enables a given layer's vector mask.
 
     Args:
@@ -181,7 +216,7 @@ def enable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
     set_layer_vector_mask(layer, True)
 
 
-def disable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def disable_vector_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Disables a given layer's vector mask.
 
     Args:
@@ -195,58 +230,89 @@ def disable_vector_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
 """
 
 
-def enter_mask_channel(layer: Union[ArtLayer, LayerSet, None] = None):
+def enter_mask_channel(layer: ArtLayer | LayerSet | None = None):
     """Enters mask channel to allow working with current layer's mask.
 
     Args:
         layer: Layer to make active, if provided.
     """
     if layer:
-        APP.activeDocument.activeLayer = layer
+        APP.instance.activeDocument.activeLayer = layer
     d1 = ActionDescriptor()
     r1 = ActionReference()
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    d1.PutReference(sID("target"), r1)
-    d1.PutBoolean(sID("makeVisible"), True)
-    APP.Executeaction(sID("select"), d1, NO_DIALOG)
+    r1.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    d1.putReference(APP.instance.sID("target"), r1)
+    d1.putBoolean(APP.instance.sID("makeVisible"), True)
+    APP.instance.executeAction(
+        APP.instance.sID("select"), d1, DialogModes.DisplayNoDialogs
+    )
 
 
-def enter_rgb_channel(layer: Union[ArtLayer, LayerSet, None] = None):
+def enter_rgb_channel(layer: ArtLayer | LayerSet | None = None):
     """Enters the RGB channel (default channel).
 
     Args:
         layer: Layer to make active, if provided.
     """
     if layer:
-        APP.activeDocument.activeLayer = layer
+        APP.instance.activeDocument.activeLayer = layer
     d1 = ActionDescriptor()
     r1 = ActionReference()
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("RGB"))
-    d1.PutReference(sID("target"), r1)
-    d1.PutBoolean(sID("makeVisible"), True)
-    APP.Executeaction(sID("select"), d1, NO_DIALOG)
+    r1.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("RGB"),
+    )
+    d1.putReference(APP.instance.sID("target"), r1)
+    d1.putBoolean(APP.instance.sID("makeVisible"), True)
+    APP.instance.executeAction(
+        APP.instance.sID("select"), d1, DialogModes.DisplayNoDialogs
+    )
 
 
-def create_mask(layer: Union[ArtLayer, LayerSet, None] = None):
+class MaskSelectionBehaviour(StrEnum):
+    REVEAL_ALL = "revealAll"
+    REVEAL_SELECTION = "revealSelection"
+    HIDE_SELECTION = "hideSelection"
+
+
+def create_mask(
+    layer: ArtLayer | LayerSet | None = None,
+    selection_behaviour: MaskSelectionBehaviour = MaskSelectionBehaviour.REVEAL_ALL,
+):
     """Add a mask to provided or active layer.
 
     Args:
         layer: Layer to make active, if provided.
     """
     if layer:
-        APP.activeDocument.activeLayer = layer
+        APP.instance.activeDocument.activeLayer = layer
     d1 = ActionDescriptor()
     r1 = ActionReference()
-    d1.PutClass(sID("new"), sID("channel"))
-    r1.PutEnumerated(sID("channel"), sID("channel"), sID("mask"))
-    d1.PutReference(sID("at"), r1)
-    d1.PutEnumerated(sID("using"), sID("userMaskEnabled"), sID("revealAll"))
-    APP.Executeaction(sID("make"), d1, NO_DIALOG)
+    d1.putClass(APP.instance.sID("new"), APP.instance.sID("channel"))
+    r1.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    d1.putReference(APP.instance.sID("at"), r1)
+    d1.putEnumerated(
+        APP.instance.sID("using"),
+        APP.instance.sID("userMaskEnabled"),
+        APP.instance.sID(selection_behaviour),
+    )
+    APP.instance.executeAction(
+        APP.instance.sID("make"), d1, DialogModes.DisplayNoDialogs
+    )
 
 
 def copy_to_mask(
-    target: Union[ArtLayer, LayerSet],
-    source: Union[ArtLayer, LayerSet, None] = None,
+    target: ArtLayer | LayerSet,
+    source: ArtLayer | LayerSet | None = None,
 ):
     """Copies the pixels of the current layer, creates a mask on target layer,
     enters that layer's mask, and pastes to the mask before exiting the mask.
@@ -257,7 +323,7 @@ def copy_to_mask(
     """
 
     # Select canvas and copy
-    docref = APP.activeDocument
+    docref = APP.instance.activeDocument
     if source:
         docref.activeLayer = source
     docsel = docref.selection
@@ -269,7 +335,11 @@ def copy_to_mask(
     docref.activeLayer = target
     create_mask()
     enter_mask_channel()
-    docref.paste()
+    try:
+        docref.paste()
+    except COMError:
+        # The operation likely succeeded, but an error was thrown anyways
+        pass
     enter_rgb_channel()
 
 
@@ -278,16 +348,43 @@ def copy_to_mask(
 """
 
 
-def delete_mask(layer: Union[ArtLayer, LayerSet, None] = None) -> None:
+def delete_mask(layer: ArtLayer | LayerSet | None = None) -> None:
     """Removes a given layer's mask.
 
     Args:
-        layer: ArtLayer ore LayerSet object, use active layer if not provided.
+        layer: to delete mask from. Uses active layer if not provided.
     """
     if layer:
-        APP.activeDocument.activeLayer = layer
+        APP.instance.activeDocument.activeLayer = layer
     desc1 = ActionDescriptor()
     ref1 = ActionReference()
-    ref1.putEnumerated(sID("channel"), sID("ordinal"), sID("targetEnum"))
-    desc1.putReference(sID("target"), ref1)
-    APP.executeAction(sID("delete"), desc1, NO_DIALOG)
+    ref1.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("ordinal"),
+        APP.instance.sID("targetEnum"),
+    )
+    desc1.putReference(APP.instance.sID("target"), ref1)
+    APP.instance.executeAction(
+        APP.instance.sID("delete"), desc1, DialogModes.DisplayNoDialogs
+    )
+
+
+def delete_mask_from_solid_color_layer(layer: ArtLayer | None = None) -> None:
+    """Removes the layer mask from a given solid color fill layer.
+
+    Args:
+        layer: to delete mask from. Uses active layer if not provided.
+    """
+    if layer:
+        APP.instance.activeDocument.activeLayer = layer
+    desc = ActionDescriptor()
+    ref = ActionReference()
+    ref.putEnumerated(
+        APP.instance.sID("channel"),
+        APP.instance.sID("channel"),
+        APP.instance.sID("mask"),
+    )
+    desc.putReference(APP.instance.sID("target"), ref)
+    APP.instance.executeAction(
+        APP.instance.sID("delete"), desc, DialogModes.DisplayNoDialogs
+    )

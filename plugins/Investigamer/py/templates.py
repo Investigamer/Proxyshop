@@ -1,110 +1,95 @@
 """
 * Plugin: Investigamer
 """
-# Standard Library
-from functools import cached_property
-from typing import Optional, Callable
 
-# Third Party
+from collections.abc import Callable
+from functools import cached_property
+
 from photoshop.api._artlayer import ArtLayer
 
-# Local Imports
-from src import CFG, ENV
-from src.enums.layers import LAYERS
 import src.helpers as psd
-from src.templates import TransformMod, NormalTemplate, ExtendedMod
+from src.enums.layers import LAYERS
+from src.templates import ExtendedMod, NormalTemplate, TransformMod
 
-# Plugin Imports
-from .actions import sketch, pencilsketch
+from .actions import pencilsketch, sketch
 
 """
 * Template Classes
 """
 
 
-class SketchTemplate (NormalTemplate):
+class SketchTemplate(NormalTemplate):
     """
     * Sketch showcase from MH2
     * Original PSD by Nelynes
     """
+
     template_suffix = "Sketch"
 
     """
     * Sketch Action
     """
 
-    @property
-    def art_action(self) -> Optional[Callable]:
-        # Skip action if in test mode
-        if ENV.TEST_MODE:
-            return
-        action = CFG.get_setting(
-            section="ACTION",
-            key="Sketch.Action",
-            default="Advanced Sketch",
-            is_bool=False
+    @cached_property
+    def art_action(self) -> Callable[[], None] | None:
+        action = self.config.get_setting(
+            section="ACTION", key="Sketch.Action", default="Advanced Sketch"
         )
         if action == "Advanced Sketch":
-            return pencilsketch.run
+            return lambda: pencilsketch.run(
+                self.render_operation,
+                draft_sketch=self.config.get_bool_setting(
+                    section="ACTION", key="Draft.Sketch.Lines", default=False
+                ),
+                rough_sketch=self.config.get_bool_setting(
+                    section="ACTION", key="Rough.Sketch.Lines", default=False
+                ),
+                black_and_white=self.config.get_bool_setting(
+                    section="ACTION", key="Black.And.White", default=False
+                ),
+                manual_editing=self.config.get_bool_setting(
+                    section="ACTION", key="Sketch.Manual.Editing", default=False
+                ),
+            )
         if action == "Quick Sketch":
             return sketch.run
         return
 
-    @property
-    def art_action_args(self) -> Optional[dict]:
-        # Skip if in test mode or using quick sketch
-        if ENV.TEST_MODE or not self.art_action == pencilsketch.run:
-            return
-        return {
-            'thr': self.event,
-            'rough_sketch': CFG.get_setting(
-                section="ACTION",
-                key="Rough.Sketch.Lines",
-                default=False
-            ),
-            'draft_sketch': CFG.get_setting(
-                section="ACTION",
-                key="Draft.Sketch.Lines",
-                default=False
-            ),
-            'black_and_white': CFG.get_setting(
-                section="ACTION",
-                key="Black.And.White",
-                default=False
-            ),
-            'manual_editing': CFG.get_setting(
-                section="ACTION",
-                key="Sketch.Manual.Editing",
-                default=False
-            )
-        }
 
-
-class KaldheimTemplate (NormalTemplate):
+class KaldheimTemplate(NormalTemplate):
     """
     Kaldheim viking legendary showcase.
     Original Template by FeuerAmeise
     """
+
     template_suffix = "Kaldheim"
 
     # Static Properties
-    is_legendary = False
-    background_layer = None
-    twins_layer = None
+    @cached_property
+    def is_legendary(self) -> bool:
+        return False
+
+    @cached_property
+    def background_layer(self) -> ArtLayer | None:
+        return None
+
+    @cached_property
+    def twins_layer(self) -> ArtLayer | None:
+        return None
 
     """
     * Layer Properties
     """
 
     @cached_property
-    def pt_layer(self) -> Optional[ArtLayer]:
+    def pt_layer(self) -> ArtLayer | None:
         # Enable vehicle support
         if "Vehicle" in self.layout.type_line:
             return psd.getLayer("Vehicle", LAYERS.PT_BOX)
         return psd.getLayer(self.twins, LAYERS.PT_BOX)
 
     @cached_property
-    def pinlines_layer(self) -> Optional[ArtLayer]:
+    def pinlines_layer(self) -> ArtLayer | None:
         # Enable vehicle support
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
@@ -113,23 +98,26 @@ class KaldheimTemplate (NormalTemplate):
         return psd.getLayer(self.pinlines, LAYERS.PINLINES_TEXTBOX)
 
 
-class CrimsonFangTemplate (TransformMod, NormalTemplate):
+class CrimsonFangTemplate(TransformMod, NormalTemplate):
     """The crimson vow showcase template. Original template by michayggdrasil.
 
     Notes:
         Transform features are kind of unfinished.
     """
+
     template_suffix = "Fang"
 
     # Static Properties
-    is_flipside_creature = False
+    @cached_property
+    def is_flipside_creature(self) -> bool:
+        return False
 
     """
     * Details
     """
 
-    @property
-    def background(self):
+    @cached_property
+    def background(self) -> str:
         # Use pinlines colors for background
         return self.pinlines
 
@@ -138,7 +126,7 @@ class CrimsonFangTemplate (TransformMod, NormalTemplate):
     """
 
     @cached_property
-    def pinlines_layer(self) -> Optional[ArtLayer]:
+    def pinlines_layer(self) -> ArtLayer | None:
         # Support backside colors
         if self.is_land:
             return psd.getLayer(self.pinlines, LAYERS.LAND_PINLINES_TEXTBOX)
@@ -148,7 +136,8 @@ class CrimsonFangTemplate (TransformMod, NormalTemplate):
 
     def enable_transform_layers(self):
         # Enable circle backing
-        psd.getLayerSet(LAYERS.TRANSFORM, self.text_group).visible = True
+        if layer := psd.getLayerSet(LAYERS.TRANSFORM, self.text_group):
+            layer.visible = True
         super().enable_transform_layers()
 
     def text_layers_transform(self) -> None:
@@ -156,33 +145,45 @@ class CrimsonFangTemplate (TransformMod, NormalTemplate):
         pass
 
 
-class PhyrexianTemplate (NormalTemplate):
+class PhyrexianTemplate(NormalTemplate):
     """From the Phyrexian secret lair promo."""
+
     template_suffix = "Phyrexian"
 
     # Static Properties
-    background_layer = None
-    twins_layer = None
+    @cached_property
+    def background_layer(self) -> ArtLayer | None:
+        return None
+
+    @cached_property
+    def twins_layer(self) -> ArtLayer | None:
+        return None
 
 
-class DoubleFeatureTemplate (NormalTemplate):
+class DoubleFeatureTemplate(NormalTemplate):
     """
     Midnight Hunt / Vow Double Feature Showcase
     Original assets from Warpdandy's Proximity Template
     Doesn't support companion, nyx, or twins layers.
     """
+
     template_suffix = "Double Feature"
 
     # Static Properties
-    pinlines_layer = None
-    twins_layer = None
+    @cached_property
+    def pinlines_layer(self) -> ArtLayer | None:
+        return None
+
+    @cached_property
+    def twins_layer(self) -> ArtLayer | None:
+        return None
 
     """
     * Layer Properties
     """
 
-    @property
-    def background_layer(self) -> Optional[ArtLayer]:
+    @cached_property
+    def background_layer(self) -> ArtLayer | None:
         return psd.getLayer(self.pinlines, LAYERS.BACKGROUND)
 
 
@@ -191,24 +192,30 @@ CLASSIC TEMPLATE VARIANTS
 """
 
 
-class ColorshiftedTemplate (NormalTemplate):
+class ColorshiftedTemplate(NormalTemplate):
     """
     Planar Chaos era colorshifted template
     Rendered from CC and MSE assets. Most title boxes are built into pinlines.
     Doesn't support special layers for nyx, companion, land, or colorless.
     """
+
     template_suffix = "Colorshifted"
 
     # Static Properties
-    is_land = False
-    is_colorless = False
+    @cached_property
+    def is_land(self) -> bool:
+        return False
+
+    @cached_property
+    def is_colorless(self) -> bool:
+        return False
 
     """
     * Layer Properties
     """
 
     @cached_property
-    def twins_layer(self) -> Optional[ArtLayer]:
+    def twins_layer(self) -> ArtLayer | None:
         if "Artifact" in self.layout.type_line and self.pinlines != "Artifact":
             if self.is_legendary:
                 return psd.getLayer("Legendary Artifact", "Twins")
@@ -220,29 +227,31 @@ class ColorshiftedTemplate (NormalTemplate):
         return
 
     @cached_property
-    def pt_layer(self) -> Optional[ArtLayer]:
+    def pt_layer(self) -> ArtLayer | None:
         if self.is_creature:
             # Check if vehicle
             if "Vehicle" in self.layout.type_line:
                 return psd.getLayer("Vehicle", LAYERS.PT_BOX)
             return psd.getLayer(self.twins, LAYERS.PT_BOX)
-        return psd.getLayerSet(LAYERS.PT_BOX)
 
     """
     * Methods
     """
 
     def collector_info(self):
-
         # Artist and set layer
         artist_layer = psd.getLayer(LAYERS.ARTIST, self.legal_group)
-        psd.replace_text(artist_layer, "Artist", self.layout.artist)
+        if artist_layer:
+            psd.replace_text(artist_layer, "Artist", self.layout.artist)
 
         # Switch to white brush and artist name
         if self.layout.pinlines[0:1] == "B" and len(self.pinlines) < 3:
-            artist_layer.textItem.color = psd.rgb_white()
-            psd.getLayer("Brush B", self.legal_group).visible = False
-            psd.getLayer("Brush W", self.legal_group).visible = True
+            if artist_layer:
+                artist_layer.textItem.color = psd.rgb_white()
+            if layer := psd.getLayer("Brush B", self.legal_group):
+                layer.visible = False
+            if layer := psd.getLayer("Brush W", self.legal_group):
+                layer.visible = True
 
 
 """
@@ -250,14 +259,16 @@ BASIC LAND TEMPLATES
 """
 
 
-class BasicLandDarkMode (ExtendedMod, NormalTemplate):
+class BasicLandDarkMode(ExtendedMod, NormalTemplate):
     """Basic land Dark Mode. Credit to Vittorio Masia (Sid)
 
     Todo:
         Transition to 'Normal' type.
     """
+
     template_suffix = "Dark Mode"
 
     def collector_info(self):
         # Collector info only has artist
-        psd.getLayer(LAYERS.ARTIST, self.legal_group).textItem.contents = self.layout.artist
+        if layer := psd.getLayer(LAYERS.ARTIST, self.legal_group):
+            layer.textItem.contents = self.layout.artist

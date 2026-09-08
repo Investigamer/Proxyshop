@@ -1,157 +1,215 @@
 """
 * Enums: MTG Related Data
 """
-# Standard Library Imports
-import re
-from dataclasses import dataclass
 
-# Third Party Imports
-from omnitils.enums import StrConstant
+import re
+from enum import StrEnum
 
 """
 * Card Layouts
 """
 
 
-class LayoutCategory(StrConstant):
+class LayoutCategory(StrEnum):
     """Card layout category, broad naming used for displaying on GUI elements."""
-    Adventure = 'Adventure'
-    Battle = 'Battle'
-    Class = 'Class'
-    Leveler = 'Leveler'
-    MDFC = 'MDFC'
-    Mutate = 'Mutate'
-    Normal = 'Normal'
-    Planar = 'Planar'
-    Planeswalker = 'Planeswalker'
-    PlaneswalkerMDFC = 'PW MDFC'
-    PlaneswalkerTransform = 'PW Transform'
-    Prototype = 'Prototype'
-    Saga = 'Saga'
-    Split = 'Split'
-    Token = 'Token'
-    Transform = 'Transform'
+
+    Adventure = "Adventure"
+    Battle = "Battle"
+    Case = "Case"
+    Class = "Class"
+    Leveler = "Leveler"
+    MDFC = "MDFC"
+    Mutate = "Mutate"
+    Normal = "Normal"
+    Planar = "Planar"
+    Planeswalker = "Planeswalker"
+    PlaneswalkerMDFC = "PW MDFC"
+    PlaneswalkerTransform = "PW Transform"
+    Prepare = "Prepare"
+    Prototype = "Prototype"
+    Saga = "Saga"
+    Split = "Split"
+    Station = "Station"
+    Token = "Token"
+    Transform = "Transform"
+
+    @classmethod
+    def matches_layout_type(
+        cls, category: LayoutCategory, layout_type: LayoutType
+    ) -> bool:
+        return layout_type in layout_map_category[category]
 
 
-class LayoutType(StrConstant):
+class LayoutType(StrEnum):
     """Card layout type, fine-grained naming separated by front/back where applicable."""
-    Adventure = 'adventure'
-    Battle = 'battle'
-    Class = 'class'
-    Leveler = 'leveler'
-    MDFCBack = 'mdfc_back'
-    MDFCFront = 'mdfc_front'
-    Mutate = 'mutate'
-    Normal = 'normal'
-    Planar = 'planar'
-    Planeswalker = 'planeswalker'
-    PlaneswalkerMDFCBack = 'pw_mdfc_back'
-    PlaneswalkerMDFCFront = 'pw_mdfc_front'
-    PlaneswalkerTransformBack = 'pw_tf_back'
-    PlaneswalkerTransformFront = 'pw_tf_front'
-    Prototype = 'prototype'
-    Saga = 'saga'
-    Split = 'split'
-    TransformBack = 'transform_back'
-    TransformFront = 'transform_front'
+
+    Adventure = "adventure"
+    Battle = "battle"
+    Case = "case"
+    Class = "class"
+    Leveler = "leveler"
+    MDFCBack = "mdfc_back"
+    MDFCFront = "mdfc_front"
+    Mutate = "mutate"
+    Normal = "normal"
+    Planar = "planar"
+    Planeswalker = "planeswalker"
+    PlaneswalkerMDFCBack = "pw_mdfc_back"
+    PlaneswalkerMDFCFront = "pw_mdfc_front"
+    PlaneswalkerTransformBack = "pw_tf_back"
+    PlaneswalkerTransformFront = "pw_tf_front"
+    Prepare = "prepare"
+    Prototype = "prototype"
+    Saga = "saga"
+    Split = "split"
+    Station = "station"
+    TransformBack = "transform_back"
+    TransformFront = "transform_front"
 
 
-class LayoutScryfall(StrConstant):
+class LayoutScryfall(StrEnum):
     """Card layout type, according to Scryfall data."""
-    Normal = 'normal'
-    Split = 'split'
-    Flip = 'flip'
-    Transform = 'transform'
-    MDFC = 'modal_dfc'
-    Meld = 'meld'
-    Leveler = 'leveler'
-    Class = 'class'
-    Saga = 'saga'
-    Adventure = 'adventure'
-    Mutate = 'mutate'
-    Prototype = 'prototype'
-    Battle = 'battle'
-    Planar = 'planar'
-    Scheme = 'scheme'
-    Vanguard = 'vanguard'
-    Token = 'token'
-    DoubleFacedToken = 'double_faced_token'
-    Emblem = 'emblem'
-    Augment = 'augment'
-    Host = 'host'
-    ArtSeries = 'art_series'
-    ReversibleCard = 'reversible_card'
+
+    Adventure = "adventure"
+    ArtSeries = "art_series"
+    Augment = "augment"
+    Battle = "battle"
+    Case = "case"
+    Class = "class"
+    DoubleFacedToken = "double_faced_token"
+    Emblem = "emblem"
+    Flip = "flip"
+    Host = "host"
+    Leveler = "leveler"
+    MDFC = "modal_dfc"
+    Meld = "meld"
+    Mutate = "mutate"
+    Normal = "normal"
+    Planar = "planar"
+    Prepare = "prepare"
+    Prototype = "prototype"
+    ReversibleCard = "reversible_card"
+    Saga = "saga"
+    Scheme = "scheme"
+    Split = "split"
+    Token = "token"
+    Transform = "transform"
+    Vanguard = "vanguard"
 
     # Definitions added to Scryfall built-ins
-    Planeswalker = 'planeswalker'
-    PlaneswalkerMDFC = 'planeswalker_mdfc'
-    PlaneswalkerTransform = 'planeswalker_tf'
+    Planeswalker = "planeswalker"
+    PlaneswalkerMDFC = "planeswalker_mdfc"
+    PlaneswalkerTransform = "planeswalker_tf"
+    Station = "station"
 
 
-"""Maps Layout categories to a list of equivalent Layout types."""
-layout_map_category: dict[LayoutCategory, list[LayoutType]] = {
-    LayoutCategory.Normal: [LayoutType.Normal],
-    LayoutCategory.MDFC: [LayoutType.MDFCFront, LayoutType.MDFCBack],
-    LayoutCategory.Transform: [LayoutType.TransformFront, LayoutType.TransformBack],
-    LayoutCategory.Planeswalker: [LayoutType.Planeswalker],
-    LayoutCategory.PlaneswalkerMDFC: [LayoutType.PlaneswalkerMDFCFront, LayoutType.PlaneswalkerMDFCBack],
-    LayoutCategory.PlaneswalkerTransform: [LayoutType.PlaneswalkerTransformFront, LayoutType.PlaneswalkerTransformBack],
-    LayoutCategory.Saga: [LayoutType.Saga],
-    LayoutCategory.Class: [LayoutType.Class],
-    LayoutCategory.Mutate: [LayoutType.Mutate],
-    LayoutCategory.Prototype: [LayoutType.Prototype],
-    LayoutCategory.Adventure: [LayoutType.Adventure],
-    LayoutCategory.Leveler: [LayoutType.Leveler],
-    LayoutCategory.Split: [LayoutType.Split],
-    LayoutCategory.Battle: [LayoutType.Battle],
-    LayoutCategory.Planar: [LayoutType.Planar]
+"""Maps Layout categories to tuples of equivalent Layout types."""
+layout_map_category: dict[LayoutCategory, tuple[LayoutType, ...]] = {
+    LayoutCategory.Normal: (LayoutType.Normal,),
+    LayoutCategory.MDFC: (LayoutType.MDFCFront, LayoutType.MDFCBack),
+    LayoutCategory.Transform: (LayoutType.TransformFront, LayoutType.TransformBack),
+    LayoutCategory.Planeswalker: (LayoutType.Planeswalker,),
+    LayoutCategory.PlaneswalkerMDFC: (
+        LayoutType.PlaneswalkerMDFCFront,
+        LayoutType.PlaneswalkerMDFCBack,
+    ),
+    LayoutCategory.PlaneswalkerTransform: (
+        LayoutType.PlaneswalkerTransformFront,
+        LayoutType.PlaneswalkerTransformBack,
+    ),
+    LayoutCategory.Saga: (LayoutType.Saga,),
+    LayoutCategory.Case: (LayoutType.Case,),
+    LayoutCategory.Class: (LayoutType.Class,),
+    LayoutCategory.Mutate: (LayoutType.Mutate,),
+    LayoutCategory.Prototype: (LayoutType.Prototype,),
+    LayoutCategory.Adventure: (LayoutType.Adventure,),
+    LayoutCategory.Prepare: (LayoutType.Prepare,),
+    LayoutCategory.Leveler: (LayoutType.Leveler,),
+    LayoutCategory.Split: (LayoutType.Split,),
+    LayoutCategory.Battle: (LayoutType.Battle,),
+    LayoutCategory.Planar: (LayoutType.Planar,),
+    LayoutCategory.Station: (LayoutType.Station,),
 }
 
 """Maps Layout types to their equivalent Layout category."""
-layout_map_types = {
-    raw: named for named, raw in sum([
-        [(k, n) for n in names] for k, names in layout_map_category.items()
-    ], [])
+layout_map_types: dict[LayoutType, LayoutCategory] = {
+    raw: named
+    for named, raw in (
+        (k, n) for k, names in layout_map_category.items() for n in names
+    )
 }
 
 """Maps Layout types to a display formatted Layout category (with Back or Front)."""
-layout_map_types_display = {
+layout_map_types_display: dict[LayoutType, str] = {
     raw: (
-        f'{named} Front' if 'front' in raw else (
-            f'{named} Back' if 'back' in raw else named)
-    ) for raw, named in layout_map_types.items()
+        f"{named} Front"
+        if "front" in raw
+        else (f"{named} Back" if "back" in raw else named)
+    )
+    for raw, named in layout_map_types.items()
 }
 
 """Maps multimodal display formatted layout types to a singular layout type."""
-layout_map_display_condition = {
-    f'{LayoutCategory.Transform} Front': LayoutType.TransformFront,
-    f'{LayoutCategory.Transform} Back': LayoutType.TransformBack,
-    f'{LayoutCategory.MDFC} Front': LayoutType.MDFCFront,
-    f'{LayoutCategory.MDFC} Back': LayoutType.MDFCBack,
-    f'{LayoutCategory.PlaneswalkerTransform} Front': LayoutType.PlaneswalkerTransformFront,
-    f'{LayoutCategory.PlaneswalkerTransform} Back': LayoutType.PlaneswalkerTransformBack,
-    f'{LayoutCategory.PlaneswalkerMDFC} Front': LayoutType.PlaneswalkerMDFCFront,
-    f'{LayoutCategory.PlaneswalkerMDFC} Back': LayoutType.PlaneswalkerMDFCBack
+layout_map_display_condition: dict[str, LayoutType] = {
+    f"{LayoutCategory.Transform} Front": LayoutType.TransformFront,
+    f"{LayoutCategory.Transform} Back": LayoutType.TransformBack,
+    f"{LayoutCategory.MDFC} Front": LayoutType.MDFCFront,
+    f"{LayoutCategory.MDFC} Back": LayoutType.MDFCBack,
+    f"{LayoutCategory.PlaneswalkerTransform} Front": LayoutType.PlaneswalkerTransformFront,
+    f"{LayoutCategory.PlaneswalkerTransform} Back": LayoutType.PlaneswalkerTransformBack,
+    f"{LayoutCategory.PlaneswalkerMDFC} Front": LayoutType.PlaneswalkerMDFCFront,
+    f"{LayoutCategory.PlaneswalkerMDFC} Back": LayoutType.PlaneswalkerMDFCBack,
 }
 
 """Maps display formatted layout types to a combined group of two layout types."""
-layout_map_display_condition_dual = {
-    LayoutCategory.Transform: [
-        LayoutType.TransformFront,
-        LayoutType.TransformBack
-    ],
-    LayoutCategory.MDFC: [
-        LayoutType.MDFCFront,
-        LayoutType.MDFCBack
-    ],
-    LayoutCategory.PlaneswalkerTransform: [
+layout_map_display_condition_dual: dict[
+    LayoutCategory, tuple[LayoutType, LayoutType]
+] = {
+    LayoutCategory.Transform: (LayoutType.TransformFront, LayoutType.TransformBack),
+    LayoutCategory.MDFC: (LayoutType.MDFCFront, LayoutType.MDFCBack),
+    LayoutCategory.PlaneswalkerTransform: (
         LayoutType.PlaneswalkerTransformFront,
-        LayoutType.PlaneswalkerTransformBack
-    ],
-    LayoutCategory.PlaneswalkerMDFC: [
+        LayoutType.PlaneswalkerTransformBack,
+    ),
+    LayoutCategory.PlaneswalkerMDFC: (
         LayoutType.PlaneswalkerMDFCFront,
-        LayoutType.PlaneswalkerMDFCBack
-    ],
+        LayoutType.PlaneswalkerMDFCBack,
+    ),
+}
+
+
+scryfall_layout_category_map: dict[LayoutScryfall, LayoutCategory] = {
+    LayoutScryfall.Adventure: LayoutCategory.Adventure,
+    LayoutScryfall.ArtSeries: LayoutCategory.Normal,
+    LayoutScryfall.Augment: LayoutCategory.Normal,
+    LayoutScryfall.Battle: LayoutCategory.Battle,
+    LayoutScryfall.Case: LayoutCategory.Case,
+    LayoutScryfall.Class: LayoutCategory.Class,
+    LayoutScryfall.DoubleFacedToken: LayoutCategory.Transform,
+    LayoutScryfall.Emblem: LayoutCategory.Normal,
+    LayoutScryfall.Flip: LayoutCategory.Transform,
+    LayoutScryfall.Host: LayoutCategory.Normal,
+    LayoutScryfall.Leveler: LayoutCategory.Leveler,
+    LayoutScryfall.MDFC: LayoutCategory.MDFC,
+    # Meld might be Normal or Transform, so this case should not be retrieved from the map
+    # LayoutScryfall.Meld: LayoutCategory.Transform,
+    LayoutScryfall.Mutate: LayoutCategory.Mutate,
+    LayoutScryfall.Normal: LayoutCategory.Normal,
+    LayoutScryfall.Planar: LayoutCategory.Planar,
+    LayoutScryfall.Prepare: LayoutCategory.Prepare,
+    LayoutScryfall.Prototype: LayoutCategory.Prototype,
+    LayoutScryfall.ReversibleCard: LayoutCategory.Transform,
+    LayoutScryfall.Saga: LayoutCategory.Saga,
+    LayoutScryfall.Scheme: LayoutCategory.Normal,
+    LayoutScryfall.Split: LayoutCategory.Split,
+    LayoutScryfall.Token: LayoutCategory.Normal,
+    LayoutScryfall.Transform: LayoutCategory.Transform,
+    LayoutScryfall.Vanguard: LayoutCategory.Normal,
+    # Definitions added to Scryfall built-ins
+    LayoutScryfall.Planeswalker: LayoutCategory.Planeswalker,
+    LayoutScryfall.PlaneswalkerMDFC: LayoutCategory.PlaneswalkerMDFC,
+    LayoutScryfall.PlaneswalkerTransform: LayoutCategory.PlaneswalkerTransform,
+    LayoutScryfall.Station: LayoutCategory.Station,
 }
 
 
@@ -160,33 +218,35 @@ layout_map_display_condition_dual = {
 """
 
 
-class CardTypes(StrConstant):
+class CardTypes(StrEnum):
     """Represents main card types."""
-    Artifact = 'Artifact'
-    Battle = 'Battle'
-    Conspiracy = 'Conspiracy'
-    Creature = 'Creature'
-    Enchantment = 'Enchantment'
-    Instant = 'Instant'
-    Land = 'Land'
-    Phenomenon = 'Phenomenon'
-    Plane = 'Plane'
-    Planeswalker = 'Planeswalker'
-    Scheme = 'Scheme'
-    Sorcery = 'Sorcery'
-    Tribal = 'Tribal'
-    Vanguard = 'Vanguard'
+
+    Artifact = "Artifact"
+    Battle = "Battle"
+    Conspiracy = "Conspiracy"
+    Creature = "Creature"
+    Enchantment = "Enchantment"
+    Instant = "Instant"
+    Land = "Land"
+    Phenomenon = "Phenomenon"
+    Plane = "Plane"
+    Planeswalker = "Planeswalker"
+    Scheme = "Scheme"
+    Sorcery = "Sorcery"
+    Tribal = "Tribal"
+    Vanguard = "Vanguard"
 
 
-class CardTypesSuper(StrConstant):
+class CardTypesSuper(StrEnum):
     """Represents card supertypes."""
-    Basic = 'Basic'
-    Elite = 'Elite'
-    Host = 'Host'
-    Legendary = 'Legendary'
-    Ongoing = 'Ongoing'
-    Snow = 'Snow'
-    World = 'World'
+
+    Basic = "Basic"
+    Elite = "Elite"
+    Host = "Host"
+    Legendary = "Legendary"
+    Ongoing = "Ongoing"
+    Snow = "Snow"
+    World = "World"
 
 
 """
@@ -261,7 +321,8 @@ mana_symbol_map = {
     "{2/G}": "QqWV",
     "{S}": "omn",
     "{Q}": "ol",
-    "{CHAOS}": "?"
+    "{CHAOS}": "?",
+    "{P}": "`",
 }
 
 """
@@ -269,8 +330,9 @@ mana_symbol_map = {
 """
 
 
-class Rarity(StrConstant):
+class Rarity(StrEnum):
     """Card rarities."""
+
     C = "common"
     U = "uncommon"
     R = "rare"
@@ -280,8 +342,9 @@ class Rarity(StrConstant):
     T = "timeshifted"
 
 
-class TransformIcons(StrConstant):
+class TransformIcons(StrEnum):
     """Transform icon names."""
+
     MOONELDRAZI = "mooneldrazidfc"
     COMPASSLAND = "compasslanddfc"
     UPSIDEDOWN = "upsidedowndfc"
@@ -298,26 +361,26 @@ class TransformIcons(StrConstant):
 
 # Abilities that aren't italicize, despite fitting the pattern
 non_italics_abilities = [
-    "Boast",                   # Kaldheim
-    "Forecast",                # Dissension
-    "Gotcha",                  # Unhinged
-    "Visit",                   # Unfinity
-    "Whack", "Doodle", "Buzz"  # Unstable
+    "Boast",  # Kaldheim
+    "Forecast",  # Dissension
+    "Gotcha",  # Unhinged
+    "Visit",  # Unfinity
+    "Whack",
+    "Doodle",
+    "Buzz",  # Unstable
 ]
 
 # Edge case Planeswalkers with tall ability box
-planeswalkers_tall = [
-    "Gideon Blackblade",
-    "Comet, Stellar Pup"
-]
+planeswalkers_tall = ["Gideon Blackblade", "Comet, Stellar Pup"]
 
 """
 * Fonts & Characters
 """
 
 
-class CardFonts(StrConstant):
+class CardFonts(StrEnum):
     """Fonts used for card text."""
+
     RULES = "PlantinMTPro-Regular"
     RULES_BOLD = "PlantinMTPro-Bold"
     RULES_ITALIC = "PlantinMTPro-Italic"
@@ -332,7 +395,7 @@ class CardFonts(StrConstant):
     SYMBOL = "Keyrune"
 
 
-class MagicIcons(StrConstant):
+class MagicIcons(StrEnum):
     # Proxyglyph font
     PAINTBRUSH_MODERN = "a"
     PAINTBRUSH_CLASSIC = "ýþ"
@@ -345,35 +408,56 @@ class MagicIcons(StrConstant):
 """
 
 
-@dataclass
+def _create_word_end_regex(end: str) -> re.Pattern[str]:
+    return re.compile(end + r"(\s|$)")
+
+
 class CardTextPatterns:
     """Defined card data regex patterns."""
 
     # Rules Text - Special Card Types
-    LEVELER: re.Pattern = re.compile(r"(.*?)\nLEVEL (\d*-\d*)\n(\d*/\d*)\n(.*?)\nLEVEL (\d*\+)\n(\d*/\d*)\n(.*?)$")
-    PROTOTYPE: re.Pattern = re.compile(r"Prototype (.+) [—\-] ([0-9]{0,2}/[0-9]{0,2}) \((.+)\)")
-    PLANESWALKER: re.Pattern = re.compile(r"(^[^:]*$|^.*:.*$)", re.MULTILINE)
-    CLASS: re.Pattern = re.compile(r"(.+?): Level (\d)\n(.+)")
+    LEVELER: re.Pattern[str] = re.compile(
+        r"(.*?)\nLEVEL (\d*-\d*)\n(\d*/\d*)\n(.*?)\nLEVEL (\d*\+)\n(\d*/\d*)\n(.*?)$"
+    )
+    PROTOTYPE: re.Pattern[str] = re.compile(
+        r"Prototype (.+) [—\-] ([0-9]{0,2}/[0-9]{0,2}) \((.+)\)"
+    )
+    PLANESWALKER: re.Pattern[str] = re.compile(r"(^[^:]*$|^.*:.*$)", re.MULTILINE)
+    CLASS: re.Pattern[str] = re.compile(r"(.+?): ([^\d]+ ?)(\d)\n(.+)")
+    CLASS_NON_ENGLISH: re.Pattern[str] = re.compile(r"//Level_\d//")
 
     # Filename - Card Art
-    PATH_ARTIST: re.Pattern = re.compile(r"\(+(.*?)\)")
-    PATH_SPLIT: re.Pattern = re.compile(r"[\[({$]")
-    PATH_SET: re.Pattern = re.compile(r"\[(.*)]")
-    PATH_NUM: re.Pattern = re.compile(r"\{(.*)}")
-    PATH_CONDITION: re.Pattern = re.compile(r'<([^>]*)>')
+    PATH_ARTIST: re.Pattern[str] = re.compile(r"\(+(.*?)\)")
+    PATH_SPLIT: re.Pattern[str] = re.compile(r"[\[({$]")
+    PATH_KWARGS: re.Pattern[str] = re.compile(r"\[([^\]=]+)=([^\]]*)]")
+    PATH_SET: re.Pattern[str] = re.compile(r"\[([^\]=]+)]")
+    PATH_NUM: re.Pattern[str] = re.compile(r"\{(.*)}")
+    PATH_CONDITION: re.Pattern[str] = re.compile(r"<([^>]*)>")
 
     # Mana - Symbols
-    SYMBOL: re.Pattern = re.compile(r"(\{.*?})")
-    MANA_NORMAL: re.Pattern = re.compile(r"{([WUBRG])}")
-    MANA_PHYREXIAN: re.Pattern = re.compile(r"{([WUBRG])/P}")
-    MANA_HYBRID: re.Pattern = re.compile(r"{([2WUBRG])/([WUBRG])}")
-    MANA_PHYREXIAN_HYBRID: re.Pattern = re.compile(r"{([WUBRG])/([WUBRG])/P}")
+    SYMBOL: re.Pattern[str] = re.compile(r"(\{.*?})")
+    MANA_NORMAL: re.Pattern[str] = re.compile(r"{([WUBRG])}")
+    MANA_PHYREXIAN: re.Pattern[str] = re.compile(r"{([WUBRG])/P}")
+    MANA_HYBRID: re.Pattern[str] = re.compile(r"{([2WUBRG])/([WUBRG])}")
+    MANA_PHYREXIAN_HYBRID: re.Pattern[str] = re.compile(r"{([WUBRG])/([WUBRG])/P}")
 
     # Text - Extra Spaces
-    EXTRA_SPACE: re.Pattern = re.compile(r"  +")
+    EXTRA_SPACE: re.Pattern[str] = re.compile(r"  +")
 
     # Text - Reminder
-    TEXT_REMINDER: re.Pattern = re.compile(r"\([^()]*\)")
+    TEXT_REMINDER: re.Pattern[str] = re.compile(r"\([^()]*\)")
+    TEXT_REMINDER_ENDING: re.Pattern[str] = re.compile(
+        r"[\s\S]*(\([^()]*\))$",
+    )
 
     # Text - Italicised Ability
-    TEXT_ABILITY: re.Pattern = re.compile(r"(?:^|\r)+(?:• )*([^\r]+) — ", re.MULTILINE)
+    TEXT_ABILITY: re.Pattern[str] = re.compile(
+        r"(?:^|\r)+(?:• )*([^\r]+) — ", re.MULTILINE
+    )
+
+    # Text - Specific letters at word end
+    TEXT_WORD_END_F: re.Pattern[str] = _create_word_end_regex("f")
+    TEXT_WORD_END_H: re.Pattern[str] = _create_word_end_regex("h")
+    TEXT_WORD_END_M: re.Pattern[str] = _create_word_end_regex("m")
+    TEXT_WORD_END_N: re.Pattern[str] = _create_word_end_regex("n")
+    TEXT_WORD_END_K: re.Pattern[str] = _create_word_end_regex("k")

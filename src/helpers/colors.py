@@ -1,21 +1,16 @@
 """
 * Helpers: Colors
 """
-# Standard Library Imports
-from typing import Union, Optional
 
-# Third Party Imports
-from photoshop.api import SolidColor, DialogModes, ActionList, ActionDescriptor, ColorModel, LayerKind
-from photoshop.api._artlayer import ArtLayer, TextItem
+from collections.abc import Mapping
 
-# Local Imports
+from photoshop.api import ActionDescriptor, ActionList, SolidColor
+from photoshop.api._artlayer import ArtLayer
+from photoshop.api.enumerations import ColorModel, DialogModes, LayerKind
+
 from src import APP, CON
 from src.enums.layers import LAYERS
-from src.schema.colors import pinlines_color_map, ColorObject
-
-# QOL Definitions
-sID, cID = APP.stringIDToTypeID, APP.charIDToTypeID
-NO_DIALOG = DialogModes.DisplayNoDialogs
+from src.schema.colors import ColorObject, GradientConfig, pinlines_color_map
 
 """
 * Color Conversions
@@ -31,9 +26,9 @@ def hex_to_rgb(color: str) -> list[int]:
     Returns:
         Color in RGB list notation.
     """
-    if '#' in color:
+    if "#" in color:
         color = color[1:]
-    return [int(color[i:i+2], 16) for i in (0, 2, 4)]
+    return [int(color[i : i + 2], 16) for i in (0, 2, 4)]
 
 
 """
@@ -68,7 +63,7 @@ def rgb_white() -> SolidColor:
     return get_rgb(255, 255, 255)
 
 
-def get_rgb(r: int, g: int, b: int) -> SolidColor:
+def get_rgb(r: float, g: float, b: float) -> SolidColor:
     """Creates a SolidColor object with the given RGB values.
 
     Args:
@@ -96,7 +91,7 @@ def get_rgb_from_hex(hex_code: str) -> SolidColor:
         SolidColor object.
     """
     # Remove hashtag
-    hex_code = hex_code.lstrip('#')
+    hex_code = hex_code.lstrip("#")
     # Hexadecimal abbreviated
     if len(hex_code) == 3:
         hex_code = "".join([n * 2 for n in hex_code])
@@ -104,6 +99,14 @@ def get_rgb_from_hex(hex_code: str) -> SolidColor:
     color = SolidColor()
     color.rgb.hexValue = hex_code
     return color
+
+
+def get_rgb_tuple(color: ColorObject) -> tuple[float, float, float]:
+    if isinstance(color, tuple) and len(color) == 3:
+        return color
+    colr = get_color(color)
+    rgb = colr.rgb
+    return (rgb.red, rgb.green, rgb.blue)
 
 
 def get_cmyk(c: float, m: float, y: float, k: float) -> SolidColor:
@@ -140,7 +143,7 @@ def get_color(color: ColorObject) -> SolidColor:
         if isinstance(color, SolidColor):
             # Solid color given
             return color
-        if isinstance(color, list):
+        elif isinstance(color, tuple):
             # List notation
             if len(color) == 3:
                 # RGB
@@ -148,15 +151,14 @@ def get_color(color: ColorObject) -> SolidColor:
             elif len(color) == 4:
                 # CMYK
                 return get_cmyk(*color)
-        if isinstance(color, str):
+        else:
             # Named color
             if color in CON.colors:
                 return get_color(CON.colors[color])
             # Hexadecimal
             return get_rgb_from_hex(color)
-    except (ValueError, TypeError):
-        raise ValueError(f"Invalid color notation given: {color}")
-    raise ValueError(f"Unrecognized color notation given: {color}")
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"Invalid color notation given: {color}") from exc
 
 
 def get_text_layer_color(layer: ArtLayer) -> SolidColor:
@@ -169,27 +171,16 @@ def get_text_layer_color(layer: ArtLayer) -> SolidColor:
     Returns:
         SolidColor object representing the color of the text item.
     """
-    if isinstance(layer, ArtLayer) and layer.kind == LayerKind.TextLayer:
-        if hasattr(layer.textItem, 'color'):
-            return layer.textItem.color
-        print(f"Couldn't retrieve color of layer: {layer.name}")
-    return rgb_black()
-
-
-def get_text_item_color(item: TextItem) -> SolidColor:
-    """Utility definition for `get_text_layer_color`, targeting a known TextItem."""
-    if isinstance(item, TextItem):
-        if hasattr(item, 'color'):
-            return item.color
-        print(f"Couldn't retrieve color of TextItem!")
+    if layer.kind == LayerKind.TextLayer:
+        return layer.textItem.color
     return rgb_black()
 
 
 def get_pinline_gradient(
-        colors: str,
-        color_map: Optional[dict] = None,
-        location_map: dict = None
-) -> Union[list[int], list[dict]]:
+    colors: str,
+    color_map: Mapping[str, ColorObject] | None = None,
+    location_map: dict[int, list[int | float]] | None = None,
+) -> ColorObject | list[GradientConfig]:
     """Return a gradient color list notation for some given pinline colors.
 
     Args:
@@ -210,67 +201,31 @@ def get_pinline_gradient(
 
     # Return our colors
     if not colors:
-        return color_map.get('Artifact', [0, 0, 0])
-    if len(colors) == 1:
-        return color_map.get(colors, [0, 0, 0])
-    if len(colors) == 2:
-        return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[2][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[2][1] * 4096, 'midpoint': 50,
-            }
-        ]
-    if len(colors) == 3:
-        return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[3][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[3][1] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[3][2] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[3][3] * 4096, 'midpoint': 50
-            }
-        ]
-    if len(colors) == 4 and colors not in [LAYERS.LAND, LAYERS.GOLD]:
-        return [
-            {
-                'color': color_map.get(colors[0], [0, 0, 0]),
-                'location': location_map[4][0] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[4][1] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[1], [0, 0, 0]),
-                'location': location_map[4][2] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[4][3] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[2], [0, 0, 0]),
-                'location': location_map[4][4] * 4096, 'midpoint': 50
-            },
-            {
-                'color': color_map.get(colors[3], [0, 0, 0]),
-                'location': location_map[4][5] * 4096, 'midpoint': 50
-            }
-        ]
-    return color_map.get(colors, [0, 0, 0])
+        return color_map.get(LAYERS.ARTIFACT, (0, 0, 0))
+
+    if colors in color_map:
+        return color_map[colors]
+
+    if (len_colors := len(colors)) > 1:
+        color_confs: list[GradientConfig] = []
+        for i in range(len_colors - 1):
+            color_confs.append(
+                {
+                    "color": color_map.get(colors[i], (0, 0, 0)),
+                    "location": location_map[len_colors][2 * i] * 4096,
+                    "midpoint": 50,
+                }
+            )
+            color_confs.append(
+                {
+                    "color": color_map.get(colors[i + 1], (0, 0, 0)),
+                    "location": location_map[len_colors][2 * i + 1] * 4096,
+                    "midpoint": 50,
+                }
+            )
+        return color_confs
+
+    return (0, 0, 0)
 
 
 """
@@ -278,7 +233,11 @@ def get_pinline_gradient(
 """
 
 
-def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+def apply_rgb_from_list(
+    action: ActionDescriptor,
+    color: tuple[float, float, float],
+    color_type: str = "color",
+) -> None:
     """Applies RGB color to action descriptor from a list of values.
 
     Args:
@@ -287,13 +246,17 @@ def apply_rgb_from_list(action: ActionDescriptor, color: list[int], color_type: 
         color_type: Color action descriptor type, defaults to 'color'.
     """
     ad = ActionDescriptor()
-    ad.putDouble(sID("red"), color[0])
-    ad.putDouble(sID("green"), color[1])
-    ad.putDouble(sID("blue"), color[2])
-    action.putObject(sID(color_type), sID("RGBColor"), ad)
+    ad.putDouble(APP.instance.sID("red"), color[0])
+    ad.putDouble(APP.instance.sID("green"), color[1])
+    ad.putDouble(APP.instance.sID("blue"), color[2])
+    action.putObject(APP.instance.sID(color_type), APP.instance.sID("RGBColor"), ad)
 
 
-def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type: str = 'color') -> None:
+def apply_cmyk_from_list(
+    action: ActionDescriptor,
+    color: tuple[float, float, float, float],
+    color_type: str = "color",
+) -> None:
     """Applies CMYK color to action descriptor from a list of values.
 
     Args:
@@ -302,14 +265,18 @@ def apply_cmyk_from_list(action: ActionDescriptor, color: list[int], color_type:
         color_type: Color action descriptor type, defaults to 'color'.
     """
     ad = ActionDescriptor()
-    ad.putDouble(sID("cyan"), color[0])
-    ad.putDouble(sID("magenta"), color[1])
-    ad.putDouble(sID("yellowColor"), color[2])
-    ad.putDouble(sID("black"), color[3])
-    action.putObject(sID(color_type), sID("CMYKColorClass"), ad)
+    ad.putDouble(APP.instance.sID("cyan"), color[0])
+    ad.putDouble(APP.instance.sID("magenta"), color[1])
+    ad.putDouble(APP.instance.sID("yellowColor"), color[2])
+    ad.putDouble(APP.instance.sID("black"), color[3])
+    action.putObject(
+        APP.instance.sID(color_type), APP.instance.sID("CMYKColorClass"), ad
+    )
 
 
-def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
+def apply_rgb(
+    action: ActionDescriptor, c: SolidColor, color_type: str = "color"
+) -> None:
     """Apply RGB SolidColor object to action descriptor.
 
     Args:
@@ -317,10 +284,13 @@ def apply_rgb(action: ActionDescriptor, c: SolidColor, color_type: str = 'color'
         c: SolidColor object matching RGB model.
         color_type: Color action descriptor type, defaults to 'color'.
     """
-    apply_rgb_from_list(action, [c.rgb.red, c.rgb.green, c.rgb.blue], color_type)
+    rgb = c.rgb
+    apply_rgb_from_list(action, (rgb.red, rgb.green, rgb.blue), color_type)
 
 
-def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color') -> None:
+def apply_cmyk(
+    action: ActionDescriptor, c: SolidColor, color_type: str = "color"
+) -> None:
     """Apply CMYK SolidColor object to action descriptor.
 
     Args:
@@ -328,13 +298,14 @@ def apply_cmyk(action: ActionDescriptor, c: SolidColor, color_type: str = 'color
         c: SolidColor object matching CMYK model.
         color_type: Color action descriptor type, defaults to 'color'.
     """
-    apply_cmyk_from_list(action, [c.cmyk.cyan, c.cmyk.magenta, c.cmyk.yellow, c.cmyk.black], color_type)
+    cmyk = c.cmyk
+    apply_cmyk_from_list(
+        action, (cmyk.cyan, cmyk.magenta, cmyk.yellow, cmyk.black), color_type
+    )
 
 
 def apply_color(
-    action: ActionDescriptor,
-    color: ColorObject,
-    color_type: str = 'color'
+    action: ActionDescriptor, color: ColorObject, color_type: str = "color"
 ) -> None:
     """Applies color to the specified action descriptor.
 
@@ -343,7 +314,7 @@ def apply_color(
         color: RGB/CMYK SolidColor object, list of RGB/CMYK values, a hex string, or a named color.
         color_type: Color action descriptor type, defaults to 'color'.
     """
-    if isinstance(color, list):
+    if isinstance(color, tuple):
         # RGB / CMYK list notation
         if len(color) < 4:
             return apply_rgb_from_list(action, color, color_type)
@@ -362,10 +333,7 @@ def apply_color(
 
 
 def add_color_to_gradient(
-    action_list: ActionList,
-    color: ColorObject,
-    location: int,
-    midpoint: int
+    action_list: ActionList, color: ColorObject, location: int, midpoint: int
 ) -> None:
     """Adds a SolidColor to gradient at a given location, with a given midpoint.
 
@@ -377,14 +345,24 @@ def add_color_to_gradient(
     """
     action = ActionDescriptor()
     apply_color(action, color)
-    action.putEnumerated(sID("type"), sID("colorStopType"), sID("userStop"))
-    action.putInteger(sID("location"), location)
-    action.putInteger(sID("midpoint"), midpoint)
-    action_list.putObject(sID("colorStop"), action)
+    action.putEnumerated(
+        APP.instance.sID("type"),
+        APP.instance.sID("colorStopType"),
+        APP.instance.sID("userStop"),
+    )
+    action.putInteger(APP.instance.sID("location"), location)
+    action.putInteger(APP.instance.sID("midpoint"), midpoint)
+    action_list.putObject(APP.instance.sID("colorStop"), action)
 
 
 def fill_layer_primary():
     """Fill active layer using foreground color."""
     desc1 = ActionDescriptor()
-    desc1.putEnumerated(sID("using"), sID("fillContents"), sID("foregroundColor"))
-    APP.executeAction(sID("fill"), desc1, NO_DIALOG)
+    desc1.putEnumerated(
+        APP.instance.sID("using"),
+        APP.instance.sID("fillContents"),
+        APP.instance.sID("foregroundColor"),
+    )
+    APP.instance.executeAction(
+        APP.instance.sID("fill"), desc1, DialogModes.DisplayNoDialogs
+    )

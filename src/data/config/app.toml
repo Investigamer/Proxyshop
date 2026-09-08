@@ -28,6 +28,12 @@ desc = """Overwrite rendered files with identical file names."""
 type = "bool"
 default = 1
 
+[FILES."PNG.Compression.Level"]
+title = "PNG Compression Level"
+desc = """What compression level to use when saving PNG files. Accepts values between 1-9. Higher values result in slightly smaller files but can slow down the saving process significantly."""
+type = "int"
+default = 3
+
 ###
 # * Scryfall Settings
 ###
@@ -42,6 +48,12 @@ Phyrexian is not supported at this time."""
 type = "options"
 default = "en"
 options = ["en", "es", "fr", "de", "it", "pt", "jp", "kr", "ru", "cs", "ct"]
+
+[DATA."Scryfall.Use.Printed.Texts"]
+title = "Use printed texts"
+desc = """Use the printed name, type line and rules text of the card, if they are available in the Scryfall data, instead of the canonical English texts. Non-English cards use printed texts regardless of this setting's value."""
+type = "bool"
+default = 0
 
 [DATA."Scryfall.Sorting"]
 title = "Scryfall Sorting"
@@ -70,6 +82,18 @@ type = "options"
 default = "arts"
 options = ["arts", "prints"]
 
+[DATA."Manually.Edit.Card.Data"]
+title = "Manually Edit Card Data"
+desc = """At the start of the render process, will pass the Scryfall data to a text editor for manual modification. Save the file and close the editor to proceed. This can be used, e.g., to fix incorrect Scryfall data or for creating custom cards."""
+type = "bool"
+default = 0
+
+[DATA."Manual.Text.Editor"]
+title = "Manual Text Editor"
+desc = """Text editor to use for the manual card data editing step. Add curly brackets {} where you wish for the file path to be slotted in the command, e.g. Visual Studio Code can be used with <b>C:\\full\\path\\to\\Code.exe -w "{}"</b>."""
+type = "string"
+default = 'notepad "{}"'
+
 ###
 # * Text Settings
 ###
@@ -90,27 +114,9 @@ default = 0
 [RENDER]
 title = "Render Settings"
 
-[RENDER."Skip.Failed"]
-title = "Skip Failed Cards"
-desc = """Automatically skip failed cards without asking for confirmation."""
-type = "bool"
-default = 0
-
-[RENDER."Generative.Fill"]
-title = "Enable Generative Fill"
-desc = """When enabled, fullart and extended templates will fill empty space using Generative Fill instead of Content Aware Fill. This feature will not work unless running the Photoshop BETA version."""
-type = "bool"
-default = 0
-
 [RENDER."Select.Variation"]
 title = "Select Generative Fill Variation"
 desc = """When enabled, render sequence will pause after 'Generative Fill' is applied and allow you to select a variation."""
-type = "bool"
-default = 0
-
-[RENDER."Feathered.Fill"]
-title = 'Feathered Fill Selections'
-desc = """When enabled, Proxyshop will feather (dramatically smooth) selections made for Content Aware Fill and Generative Fill. This usually improves the quality of fill results, especially on Generative Fill, at the cost of potentially replacing more original pixels at the edge of the art image."""
 type = "bool"
 default = 0
 

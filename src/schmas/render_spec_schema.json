@@ -1,0 +1,189 @@
+{
+    "$defs": {
+        "ConfigModel": {
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "settings": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "Settings"
+                }
+            },
+            "required": [
+                "name",
+                "settings"
+            ],
+            "title": "ConfigModel",
+            "type": "object"
+        },
+        "FileModel": {
+            "properties": {
+                "file": {
+                    "title": "File",
+                    "type": "string"
+                },
+                "settings": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "default": [],
+                    "title": "Settings"
+                }
+            },
+            "required": [
+                "file"
+            ],
+            "title": "FileModel",
+            "type": "object"
+        },
+        "GroupModel": {
+            "properties": {
+                "files": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/FileModel"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "$ref": "#/$defs/FileModel"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "Files"
+                },
+                "groups": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "$ref": "#/$defs/GroupModel"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "$ref": "#/$defs/GroupModel"
+                        }
+                    ],
+                    "default": [],
+                    "title": "Groups"
+                },
+                "settings": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "default": [],
+                    "title": "Settings"
+                }
+            },
+            "required": [
+                "files"
+            ],
+            "title": "GroupModel",
+            "type": "object"
+        },
+        "RenderSpecModel": {
+            "properties": {
+                "files": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/FileModel"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "$ref": "#/$defs/FileModel"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "default": [],
+                    "title": "Files"
+                },
+                "groups": {
+                    "anyOf": [
+                        {
+                            "items": {
+                                "$ref": "#/$defs/GroupModel"
+                            },
+                            "type": "array"
+                        },
+                        {
+                            "$ref": "#/$defs/GroupModel"
+                        }
+                    ],
+                    "default": [],
+                    "title": "Groups"
+                },
+                "configs": {
+                    "additionalProperties": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "default": {},
+                    "title": "Configs",
+                    "type": "object"
+                }
+            },
+            "title": "RenderSpecModel",
+            "type": "object"
+        }
+    },
+    "$ref": "#/$defs/RenderSpecModel",
+    "title": "RootModel[RenderSpecModel]"
+}

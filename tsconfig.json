@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src_js",
+    "outDir": "./dist_js",
+    "module": "commonjs",
+    "target": "ES2017",
+    "allowJs": false,
+    "typeRoots": ["./node_modules/@types"]
+  },
+  "include": ["src_js/**/*"]
+}

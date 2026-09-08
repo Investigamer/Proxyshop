@@ -23,12 +23,6 @@ default = 1
 [TEXT]
 title = "Text Options"
 
-[TEXT.Nickname]
-title = "Use Nickname"
-desc = """When enabled, card will be rendered with both a 'real' name and a 'nickname' you can enter manually."""
-type = "bool"
-default = 0
-
 [TEXT."Drop.Shadow"]
 title = "Text Drop Shadow"
 desc = """When enabled, card text will have a drop shadow."""

@@ -1,78 +1,77 @@
 """
 * Handles Requests to the hexproof.io API
 """
-# Standard Library Imports
+
+from asyncio import gather, to_thread
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
+from datetime import UTC, datetime
 from functools import cache
+from io import BytesIO
+from logging import getLogger
 from pathlib import Path
-from typing import Any, Callable, Optional
+from zipfile import ZipFile
 
-# Third Party Imports
 import requests
-from requests import RequestException
-from ratelimit import RateLimitDecorator, sleep_and_retry
-from backoff import on_exception, expo
-from omnitils.exceptions import log_on_exception, return_on_exception
-from omnitils.fetch import download_file
-from omnitils.files.archive import unpack_zip
-from omnitils.files import dump_data_file
-from omnitils.schema import Schema
-from hexproof.hexapi import schema as Hexproof
-
-# Local Imports
-from src import CON, CONSOLE, PATH
+from backoff import expo, on_exception
 from hexproof.hexapi.enums import HexURL
-from src.utils.download import HEADERS
+from hexproof.hexapi.schema.meta import Meta
+from limits import RateLimitItemPerSecond
+from limits.storage import MemoryStorage
+from limits.strategies import MovingWindowRateLimiter
+from omnitils.exceptions import return_on_exception
+from omnitils.files import dump_data_file
+from omnitils.rate_limit import rate_limit
+from requests import RequestException, get
 
-"""
-* Types
-"""
+from src import CON, DEFAULT_HEADERS, ENV
+from src._loader import SymbolsManifest, get_symbols_manifest
+from src._state import PATH, AppEnvironment, HexproofSet, HexproofSets
+from src.utils.github import GitHubReleaseAsset, get_github_releases
 
-
-class HexproofSet(Schema):
-    """Cached 'Set' object data from Hexproof.io."""
-    code_symbol: str
-    code_parent: Optional[str] = None
-    count_cards: int
-    count_tokens: int
-    count_printed: Optional[int] = None
-
+_logger = getLogger(__name__)
 
 """
 * Hexproof.io Objects
 """
 
 # Rate limiter to safely limit Hexproof.io requests
-hexproof_rate_limit = RateLimitDecorator(calls=20, period=1)
+_rate_limit_storage = MemoryStorage()
+_hexproof_rate_limit = MovingWindowRateLimiter(_rate_limit_storage)
+_rate_limit = RateLimitItemPerSecond(20)
 
 # Hexproof.io HTTP header
-hexproof_http_header = HEADERS.Default.copy()
+_hexproof_http_headers = DEFAULT_HEADERS
 
 """
-* Scryfall Error Handling
+* Error Handling
 """
 
 
-def hexproof_request_wrapper(logr: Any = None) -> Callable:
-    """Wrapper for a Hexproof.io request function to handle retries, rate limits, and a final exception catch.
+def hexproof_request_wrapper[T, **P](
+    fallback: T,
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """Wrapper for a Hexproof.io request function to handle retries, rate limits, and a final exception catch."""
 
-    Args:
-        logr: Logger object to output any exception messages.
+    def decorator(func: Callable[P, T]):
+        @return_on_exception(fallback)
+        @rate_limit(limiter=_hexproof_rate_limit, limit=_rate_limit)
+        @on_exception(
+            expo,
+            requests.exceptions.RequestException,
+            logger=None,
+            max_tries=1,
+            max_time=1,
+        )
+        def wrapper(*args: P.args, **kwargs: P.kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                _logger.exception("Hexproof request failed")
+                raise
 
-    Returns:
-        Wrapped function.
-    """
-    logr = logr or CONSOLE
-
-    def decorator(func):
-        @return_on_exception({})
-        @log_on_exception(logr)
-        @sleep_and_retry
-        @hexproof_rate_limit
-        @on_exception(expo, requests.exceptions.RequestException, max_tries=2, max_time=1)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
         return wrapper
+
     return decorator
 
 
@@ -81,7 +80,7 @@ def hexproof_request_wrapper(logr: Any = None) -> Callable:
 """
 
 
-@hexproof_request_wrapper('')
+@hexproof_request_wrapper("")
 def get_api_key(key: str) -> str:
     """Get an API key from https://api.hexproof.io.
 
@@ -95,16 +94,45 @@ def get_api_key(key: str) -> str:
         RequestException if request was unsuccessful.
     """
     url = HexURL.API.Keys.All / key
-    res = requests.get(url, headers=hexproof_http_header, timeout=(3, 3))
+    res = requests.get(str(url), headers=_hexproof_http_headers, timeout=(3, 3))
     if res.status_code == 200:
-        return res.json().get('key', '')
+        return res.json().get("key", "")
     raise RequestException(
-        res.json().get('details', f"Failed to get key: '{key}'"),
-        response=res)
+        res.json().get("details", f"Failed to get key: '{key}'"), response=res
+    )
 
 
-@hexproof_request_wrapper()
-def get_metadata() -> dict[str, Hexproof.Meta]:
+async def check_api_keys(env: AppEnvironment) -> bool:
+    get_operations: list[Awaitable[None]] = []
+
+    # Check if API keys are valid
+    if not env.API_GOOGLE:
+
+        async def set_google_api_key():
+            env.API_GOOGLE = await to_thread(get_api_key, "proxyshop.google.drive")
+            if not env.API_GOOGLE:
+                _logger.warning("Couldn't get Google Drive API key")
+
+        get_operations.append(set_google_api_key())
+    if not env.API_AMAZON:
+
+        async def set_amazon_api_key():
+            env.API_AMAZON = await to_thread(get_api_key, "proxyshop.amazon.s3")
+            if not env.API_AMAZON:
+                _logger.warning("Couldn't get Amazon API key")
+
+        get_operations.append(set_amazon_api_key())
+
+    await gather(*get_operations)
+
+    return bool(env.API_GOOGLE or env.API_AMAZON)
+
+
+_get_metadata_fallback: dict[str, Meta] = {}
+
+
+@hexproof_request_wrapper(_get_metadata_fallback)
+def get_metadata() -> dict[str, Meta]:
     """Return a manifest of all resource metadata.
 
     Returns:
@@ -113,16 +141,21 @@ def get_metadata() -> dict[str, Hexproof.Meta]:
     Raises:
         RequestException if request was unsuccessful.
     """
-    res = requests.get(HexURL.API.Meta.All, headers=hexproof_http_header, timeout=(3, 3))
+    res = requests.get(
+        str(HexURL.API.Meta.All), headers=_hexproof_http_headers, timeout=(3, 3)
+    )
     if res.status_code == 200:
-        return {k: Hexproof.Meta(**v) for k, v in res.json().items()}
+        return {k: Meta(**v) for k, v in res.json().items()}
     raise RequestException(
-        res.json().get('details', f"Failed to get metadata!"),
-        response=res)
+        res.json().get("details", "Failed to get metadata!"), response=res
+    )
 
 
-@hexproof_request_wrapper()
-def get_sets() -> dict:
+_get_sets_fallback: dict[str, HexproofSet] = {}
+
+
+@hexproof_request_wrapper(_get_sets_fallback)
+def get_sets() -> dict[str, HexproofSet]:
     """Retrieve the current 'Set' data manifest from https://api.hexproof.io.
 
     Returns:
@@ -131,37 +164,14 @@ def get_sets() -> dict:
     Raises:
         RequestException if request was unsuccessful.
     """
-    res = requests.get(HexURL.API.Sets.All, headers=hexproof_http_header, timeout=(10, 30))
+    res = requests.get(
+        str(HexURL.API.Sets.All), headers=_hexproof_http_headers, timeout=(5, 5)
+    )
     if res.status_code == 200:
-        return res.json()
+        return HexproofSets.model_validate_json(res.content).root
     raise RequestException(
-        res.json().get('details', f'Failed to get set data!'),
-        response=res)
-
-
-"""
-* Data Post-Processing
-"""
-
-
-def process_data_sets(data: dict) -> dict[str, HexproofSet]:
-    """Process bulk 'Set' data retrieved from the Hexproof API into a smaller dataset.
-
-    Args:
-        data: Raw data pulled from the `/sets/` Hexproof API endpoint.
-
-    Returns:
-        Dictionary of smaller 'HexproofSet' data entries.
-    """
-    return {
-        code: HexproofSet(
-            code_symbol=d.get('code_symbol', 'DEFAULT'),
-            count_cards=d.get('count_cards', 0),
-            count_tokens=d.get('count_tokens', 0),
-            code_parent=d.get('code_parent'),
-            count_printed=d.get('count_printed'),
-        ) for code, d in data.items()
-    }
+        res.json().get("details", "Failed to get set data!"), response=res
+    )
 
 
 """
@@ -169,54 +179,123 @@ def process_data_sets(data: dict) -> dict[str, HexproofSet]:
 """
 
 
-def update_hexproof_cache() -> tuple[bool, Optional[str]]:
+def _download_symbols(url: str) -> SymbolsManifest | None:
+    response = get(url)
+    if response.status_code == 200:
+        with ZipFile(BytesIO(response.content), "r") as zf:
+            zf.extractall(PATH.SRC_IMG_SYMBOLS)
+        return get_symbols_manifest()
+    return None
+
+
+def update_hexproof_cache() -> tuple[bool, str | None]:
     """Check for a hexproof.io data update.
 
     Returns:
         tuple: A tuple containing the boolean success state of the update, and a string message
             explaining the error if one occurred.
     """
-    meta, set_data, updated = {}, {}, False
+    meta, updated = {}, False
     with suppress(Exception):
-        meta: dict[str, Hexproof.Meta] = get_metadata()
+        meta: dict[str, Meta] = get_metadata()
 
     # Check against current metadata
-    _current, _next = CON.metadata.get('sets'), meta.get('sets')
+    new_set_data: dict[str, HexproofSet] | None = None
+    _current, _next = CON.metadata.get("sets"), meta.get("sets")
     if not _current or not _next or _current.version != _next.version:
         try:
             # Download updated 'Set' data
-            data = get_sets()
-            data = process_data_sets(data)
-            dump_data_file(
-                obj={k: v.model_dump(exclude_none=True) for k, v in data.items()},
-                path=PATH.SRC_DATA_HEXPROOF_SET)
+            new_set_data = get_sets()
             updated = True
-        except (RequestException, ValueError, OSError):
+        except RequestException, ValueError, OSError:
             return False, "Unable to update 'Set' data from hexproof.io!"
 
     # Check against current symbol data
-    _current, _next = CON.metadata.get('symbols'), meta.get('symbols')
-    if not _current or not _next or _current.version != _next.version:
+    new_symbols: SymbolsManifest | None = None
+    symbols_dl_url: str | None = None
+    if ENV.SYMBOL_UPDATES_REPO:
+        symbols_releases = get_github_releases(ENV.SYMBOL_UPDATES_REPO, per_page=1)
+        if len(symbols_releases) > 0:
+            latest_release = symbols_releases[0]
+            if len(latest_release.assets) > 0:
+                chosen_asset: GitHubReleaseAsset | None = None
+                for asset in latest_release.assets:
+                    if "optimized" in asset.name:
+                        chosen_asset = asset
+                        break
+                if not chosen_asset:
+                    chosen_asset = latest_release.assets[0]
+                asset_timestamp: datetime
+                try:
+                    asset_timestamp = datetime.fromisoformat(latest_release.tag_name)
+                except ValueError:
+                    asset_timestamp = datetime.fromisoformat(chosen_asset.updated_at)
+                if not (
+                    current_symbols_manifest := get_symbols_manifest()
+                ) or asset_timestamp > datetime.fromtimestamp(
+                    datetime.fromisoformat(
+                        current_symbols_manifest.meta.date
+                    ).timestamp(),
+                    tz=UTC,
+                ):
+                    symbols_dl_url = chosen_asset.browser_download_url
+    else:
+        _current, _next = CON.metadata.get("symbols"), meta.get("symbols")
+        if not _current or not _next or _current.version != _next.version:
+            symbols_dl_url = str(HexURL.API.Symbols.All / "package")
+
+    if symbols_dl_url:
         try:
             # Download and unpack updated 'Symbols' assets
-            download_file(
-                url=HexURL.API.Symbols.All / 'package',
-                path=PATH.SRC_IMG_SYMBOLS_PACKAGE)
-            unpack_zip(PATH.SRC_IMG_SYMBOLS_PACKAGE)
-            updated = True
-        except (RequestException, FileNotFoundError):
-            return False, 'Unable to download symbols package!'
+            new_symbols = _download_symbols(symbols_dl_url)
+            updated = updated or bool(new_symbols)
+        except RequestException, FileNotFoundError:
+            return False, "Unable to download symbols package!"
 
     # Update metadata
     try:
         if not updated:
             return updated, None
+
+        # Ensure that all symbols are present in set data
+        if new_symbols:
+            symbs = new_symbols.set.symbols
+            set_data = new_set_data or CON.set_data
+            for card_set, data in set_data.items():
+                if data.code_symbol == "default":
+                    if card_set.upper() in symbs:
+                        data.code_symbol = card_set
+                    # elif card_set in symbs:
+                    #    data.code_symbol = card_set
+                    else:
+                        curr_key = card_set
+                        curr_data = data
+                        while curr_data.code_parent:
+                            curr_key = curr_data.code_parent
+                            curr_data = set_data.get(curr_key, None)
+                            if not curr_data:
+                                break
+                            if curr_key.upper() in symbs:
+                                data.code_symbol = curr_key
+                                break
+                            # elif curr_key in symbs:
+                            #    data.code_symbol = curr_key
+                            #    break
+            for card_set in symbs:
+                if (card_set_low := card_set.lower()) not in set_data:
+                    set_data[card_set_low] = HexproofSet(
+                        code_symbol=card_set_low, count_cards=0, count_tokens=0
+                    )
+            with open(PATH.SRC_DATA_HEXPROOF_SET, "w") as f:
+                f.write(HexproofSets(set_data).model_dump_json(indent=2))
+
         dump_data_file(
             obj={k: v.model_dump() for k, v in meta.items()},
-            path=PATH.SRC_DATA_HEXPROOF_META)
+            path=PATH.SRC_DATA_HEXPROOF_META,
+        )
         return updated, None
-    except (FileNotFoundError, OSError, ValueError):
-        return False, 'Unable to update metadata from hexproof.io!'
+    except FileNotFoundError, OSError, ValueError:
+        return False, "Unable to update metadata from hexproof.io!"
 
 
 """
@@ -225,7 +304,7 @@ def update_hexproof_cache() -> tuple[bool, Optional[str]]:
 
 
 @cache
-def get_set_data(code: str) -> dict:
+def get_set_data(code: str) -> HexproofSet | None:
     """Returns a specific 'Set' object by set code.
 
     Args:
@@ -237,7 +316,7 @@ def get_set_data(code: str) -> dict:
     return CON.set_data.get(code.lower(), None)
 
 
-def get_watermark_svg_from_set(code: str) -> Optional[Path]:
+def get_watermark_svg_from_set(code: str) -> Path | None:
     """Look for a watermark SVG in the 'Set' symbol catalog.
 
     Args:
@@ -253,16 +332,15 @@ def get_watermark_svg_from_set(code: str) -> Optional[Path]:
         return
 
     # Check if this set has a provided symbol code
-    symbol = set_obj.get('code_symbol')
-    if not symbol:
+    if not set_obj.code_symbol:
         return
 
     # Check if this symbol code matches a supported watermark
-    p = PATH.SRC_IMG_SYMBOLS / 'set' / symbol.upper() / 'WM.svg'
+    p = PATH.SRC_IMG_SYMBOLS / "set" / set_obj.code_symbol.upper() / "WM.svg"
     return p if p.is_file() else None
 
 
-def get_watermark_svg(wm: str) -> Optional[Path]:
+def get_watermark_svg(wm: str) -> Path | None:
     """Look for a watermark SVG in the watermark symbol catalog. If not found, look for a 'set' watermark.
 
     Args:
@@ -271,5 +349,5 @@ def get_watermark_svg(wm: str) -> Optional[Path]:
     Returns:
         Path to a watermark SVG file if found, otherwise None.
     """
-    p = (PATH.SRC_IMG_SYMBOLS / 'watermark' / wm.lower()).with_suffix('.svg')
+    p = (PATH.SRC_IMG_SYMBOLS / "watermark" / wm.lower()).with_suffix(".svg")
     return p if p.is_file() else get_watermark_svg_from_set(wm)

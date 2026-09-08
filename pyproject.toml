@@ -1,13 +1,69 @@
-[tool.poetry]
+[project]
 name = "proxyshop"
 version = "1.13.2"
 description = "Photoshop automation tool for generating high quality Magic the Gathering card renders."
-authors = ["Investigamer <freethoughtleft@gmail.com>"]
+authors = [{ name = "Investigamer", email = "freethoughtleft@gmail.com" }]
 license = "MPL-2.0"
 readme = "README.md"
-keywords = ["proxyshop", "proxy", "mtg", "magic", "gathering", "cards", "photoshop", "magic the gathering", "playtest"]
+keywords = [
+    "proxyshop",
+    "proxy",
+    "mtg",
+    "magic",
+    "gathering",
+    "cards",
+    "photoshop",
+    "magic the gathering",
+    "playtest",
+]
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "photoshop-python-api @ git+https://github.com/pappnu/photoshop-python-api.git@type-annotation",
+    "requests>=2.33.1,<3.0.0",
+    "Pillow>=12.2.0,<13.0.0",
+    "limits>=5.8.0,<6.0.0",
+    "backoff>=2.2.1,<3.0.0",
+    "pathvalidate>=3.3.1,<4.0.0",
+    "fonttools>=4.62.1,<5.0.0",
+    "pyyaml>=6.0.3,<7.0.0",
+    "yarl>=1.23.0,<2.0.0",
+    "pydantic>=2.13.3,<3.0.0",
+    "pydantic-settings>=2.14.0,<3.0.0",
+    "omnitils @ git+https://github.com/pappnu/omnitils.git@dev",
+    "hexproof @ git+https://github.com/pappnu/hexproof.git@dev",
+    "pywin32>=312.0.0,<313.0.0",
+    "pyside6>=6.11.0,<7.0.0",
+]
 
-[tool.poetry.urls]
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "commitizen>=4.13.10,<5.0.0",
+    "psd-tools>=1.16.0,<2.0.0",
+    "types-pywin32>=312.0.0.20260820",
+    "types-requests>=2.33.0.20260402",
+]
+build = [
+    "setuptools>=82.0.1,<83.0.0",
+    "pyclean>=3.6.0,<4.0.0",
+    "pyinstaller>=6.20.0,<7.0.0",
+]
+docs = [
+    "mkdocs>=1.6.1,<2.0.0",
+    "mkdocs-material>=9.7.6,<10.0.0",
+    "mkdocs-include-markdown-plugin>=7.2.2,<8.0.0",
+    "mkdocs-pymdownx-material-extras>=2.8.0,<3.0.0",
+    "mkdocs-minify-plugin>=0.8.0,<1.0.0",
+    "mkdocstrings-python>=2.0.3,<3.0.0",
+    "mkdocs-gen-files>=0.6.1,<1.0.0",
+    "mkdocs-autolinks-plugin>=0.7.1,<1.0.0",
+    "mkdocs-same-dir>=0.1.5,<1.0.0",
+    "mkdocs-git-revision-date-plugin>=0.3.2,<1.0.0",
+    "mkdocstrings[python]>=1.0.4,<2.0.0",
+]
+tests-extra = ["matplotlib>=3.10.9,<4.0.0", "memory-profiler>=0.61.0,<1.0.0"]
+
+[project.urls]
 Changelog = "https://github.com/Investigamer/Proxyshop/blob/main/CHANGELOG.md"
 Discord = "https://discord.gg/magicproxies"
 Documentation = "https://investigamer.github.io/Proxyshop"
@@ -15,68 +71,32 @@ Issues = "https://github.com/Investigamer/Proxyshop/issues"
 Source = "https://github.com/Investigamer/Proxyshop"
 Sponsor = "https://patreon.com/mpcfill"
 
-[[tool.poetry.packages]]
-include = 'src/../'
-
-[tool.poetry.dependencies]
-python = ">=3.10,<3.13"
-photoshop-python-api = "^0.22.4"
-requests = "^2.28.1"
-asynckivy = "^0.7.0"
-Pillow = "^10.3.0"
-kivy = "^2.3.0"
-typing-extensions = "^4.5.0"
-ratelimit = "^2.2.1"
-backoff = "^2.2.1"
-pathvalidate = "^3.2.0"
-fonttools = "^4.39.3"
-pyyaml = "^6.0"
-tqdm = "^4.65.0"
-click = "^8.1.7"
-tomli = "^2.0.1"
-yarl = "^1.9.3"
-pydantic = "^2.5.2"
-omnitils = "^1.4.4"
-dynaconf = {extras = ["yaml"], version = "^3.2.6"}
-hexproof = "^0.3.7"
-rich = "^13.8.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
-mypy = "^1.6.0"
-commitizen = "^3.12.0"
-setuptools = "^67.6.0"
-matplotlib = "^3.7.2"
-psd-tools = "^1.9.28"
-pyclean = "^2.2.0"
-pyinstaller = "^5.12.0"
-pre-commit = "^3.5.0"
-mkdocs = "^1.5.3"
-mkdocs-material = "^9.4.8"
-mkdocs-include-markdown-plugin = "^6.0.4"
-mkdocs-pymdownx-material-extras = "^2.5.5"
-mkdocs-minify-plugin = "^0.7.1"
-mkdocstrings-python = "^1.7.3"
-mkdocs-gen-files = "^0.5.0"
-mkdocs-autolinks-plugin = "^0.7.1"
-mkdocs-same-dir = "^0.1.2"
-mkdocs-git-revision-date-plugin = "^0.3.2"
-mkdocstrings = {extras = ["python"], version = "^0.23.0"}
-memory-profiler = "^0.61.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.commitizen]
-version = "1.13.2"
+version_provider = "pep621"
 encoding = "utf-8"
 changelog_start_rev = 'v1.2.0'
 tag_format = "v$major.$minor.$patch"
 update_changelog_on_bump = true
-version_files = [
-    "pyproject.toml:version"
-]
 
-[tool.poetry.scripts]
-proxyshop = 'main:launch_cli'
+[tool.ruff.lint]
+extend-select = [
+    # isort
+    "I",
+    # pyupgrade
+    "UP",
+    # banned-api
+    "TID251",
+]
+ignore = ["F403", "UP015"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+banned-api = { "plugins" = { msg = "Absolute imports from 'plugins' aren't allowed. In the release version of the app the plugins are loaded dynamically during runtime in a way that prevents absolute imports to their modules from being resolved. Use relative imports within plugins for any modules that are specific to the plugin." } }
+
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.pyright]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "information"
+reportUnnecessaryTypeIgnoreComment = "warning"

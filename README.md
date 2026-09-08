@@ -3,12 +3,12 @@
 ![Showcase Image](src/img/cover-photo.png)
 Proxyshop is a Photoshop automation app that generates high-quality Magic the Gathering card renders. 
 Inspired by Chilli-Axe's [original Photoshop automation scripts](https://github.com/chilli-axe/mtg-photoshop-automation).
-If you need help with this app or wish to troubleshoot an issue, [please join our discord](https://discord.gg/magicproxies)!
+If you need help with this app or wish to troubleshoot an issue, [please join our discord](https://discord.gg/magic-proxies-889831317066358815)!
 
 
 ![Photoshop](https://img.shields.io/badge/photoshop-CC_2017+-informational?style=plastic)
-![Python](https://img.shields.io/badge/python-3.10_|_3.11_|_3.12-blue?style=plastic)
-[![Discord](https://img.shields.io/discord/889831317066358815?style=plastic&label=discord&color=brightgreen)](https://discord.gg/magicproxies)
+![Python](https://img.shields.io/badge/python-3.14-blue?style=plastic)
+[![Discord](https://img.shields.io/discord/889831317066358815?style=plastic&label=discord&color=brightgreen)](https://discord.gg/magic-proxies-889831317066358815)
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/MrTeferi/Proxyshop?style=plastic&label=commits&color=brightgreen)
 [![Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dmpcfill%26type%3Dpatrons&style=plastic&color=red&logo=none)](https://patreon.com/mpcfill)
 [![GitHub](https://img.shields.io/github/license/MrTeferi/Proxyshop?color=red&style=plastic)](https://github.com/MrTeferi/Proxyshop/blob/main/LICENSE)
@@ -16,9 +16,9 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 </div>
 
 # 🛠️ Requirements
-- Photoshop (2017-2024 Supported)
+- Photoshop (23.5 or newer recommended but earlier versions down to 18.0 might work)
 - Windows (currently incompatible with Mac/Linux)
-- [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app)
+- [The Photoshop templates](https://drive.google.com/drive/u/1/folders/1moEdGmpAJloW4htqhrdWZlleyIop_z1W) (Can be downloaded in the app, which is recommended over manual download)
 - Required fonts (included in `fonts/`):
     - **Beleren Proxy Bold** — For Card Name, Typeline, Power/Toughness
     - **Proxyglyph** — For mana symbols, a fork of Chilli's NDPMTG font
@@ -35,11 +35,14 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
 # 🚀 Setup Guide
 1. Download the [latest release](https://github.com/MrTeferi/MTG-Proxyshop/releases), extract it to a folder of your choice.
 2. Install the fonts included in the `fonts/` folder, please note that `Proxyglyph` may need to be updated in future releases.
-3. Place card arts for cards you wish to render in the `art/` folder. These arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
-4. Launch `Proxyshop.exe`. Click the **Update** button. Proxyshop will load templates available to download, grab what you want.
-5. Hit **Render All** to render every card art in the `art/` folder. Hit **Render Target** to render one or more specific card arts.
-6. You can also drag art images or folders containing art images onto the Proxyshop app, Proxyshop will automatically start rendering those cards.
-7. During the render process the console at the bottom will display the current progress and prompt you if any failures occur.
+    1. Select all the fonts
+    2. right click
+    3. Install
+3. Card arts should be named according to the card (see [Art File Naming](#-art-file-naming) for more info).
+4. Launch `Proxyshop.exe`. Press the **Updater** button. Proxyshop will load templates available to download, grab what you want.
+5. Press **Render** to render one or more card arts.
+6. You can also drag art images onto the Proxyshop app to start rendering.
+7. The log at the bottom will keep you updated on events happening in the app.
 
 # 🎨 Art File Naming
 - Art file types currently supported are: `jpg`, `jpeg`, `jpf`, `png`, `tif`, and `webp`. **NOTE**: `webp` requires Photoshop 2022+.
@@ -49,7 +52,7 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     ```
     Damnation [TSR].jpg
     ```
-    - **Collector Number** `{num}` — Only works if **Set** tag was also provided, render a version of that card with the exact **set code** and **number** combination. This is particularly useful in cases where a set has multiple versions of the same card, for example Secret Lair (SLD) has 3 different versions of **Brainstorm**.
+    - **Collector Number** `{num}` — Only works if **Set** tag was also provided. Renders a version of that card with the exact **set code** and **number** combination. This is particularly useful in cases where a set has multiple versions of the same card, for example Secret Lair (SLD) has 3 different versions of **Brainstorm**.
     ```
     Brainstorm [SLD] {175}.jpg
     ```
@@ -61,59 +64,142 @@ If you need help with this app or wish to troubleshoot an issue, [please join ou
     ```
     Brainstorm [SLD] {175}$My Creator Name.jpg
     ```
+- Proxyshop also has support for additional key-value pairs in the filename via `[key=value]`.
+  - Force Set-Symbol `[sym=SET]`: The `SET` part of this follows the same rules as `[SET]`, but will only affect the set-symbol.
+  - Template `[tmpl=TEMPLATE]`: Forces Proxyshop to render the card with the given template. Note that `TEMPLATE` has to match exactly the name of a template as seen in the UI _and_ the template has to support the card's layout. Otherwise Proxyshop will fall back to the selected template.
+  - Art-File `[art=FILE]`: Force to use a specific art, other than the art-file. `FILE` has to be an absolute path or relative to the art-file.
+  - Nickname: `[nick=NICKNAME]`: Use the specified nickname, only supported by select templates, e.g. Borderless.
 
 # 💻 Using the Proxyshop GUI
 
-### Render Cards Tab
-- The main tab for rendering authentic Magic the Gathering cards.
-- **Render All**: Renders a card image using each art image found in the `art/` folder.
-- **Render Target**: Opens file select in Photoshop, renders a card image using each art image you select.
-- **Global Settings**: Opens a settings panel used to change app-wide options for:
-    - **Main settings**: Affects template behavior, can be modified for individual templates. When you click the ⚙️ icon next to a template, a config file is generated for **that** template which overrides these settings.
-    - **System settings**: Affects the entire application and cannot be changed for individual templates.
-- The set of tabs below these buttons represent **template types**, e.g. Normal, MDFC, Transform, etc.
-    - **Template types** represent different kinds of templates which require different frame elements or different rendering techniques.
-    - If the **Normal** tab is active, and you click on a template button, that template becomes selected for the **Normal** template type. Cards which match the **Normal** type will now render using that template. 
-    - That template **DOES NOT** become selected for other types. For example, if **Borderless** is selected in the **Normal** tab, but **Normal** is selected in the **MDFC** tab. Cards that match the **MDFC** type will render using **Normal MDFC**.
-- Next to each template in the template list there are two icons:
-    - ⚙️ Lets you change the **Main Settings** for this template, some templates will also have their own specially designed settings you can change as well.
-    - 🧹 Deletes the separate config file generated for this template, effectively returning this template back to default settings. Ensures **Main Settings** for this template are governed by the **Global Settings** panel.
-- The dark grey area below the templates selector is the **Console**, this is where status messages will be displayed tracking render progress and other user actions.
-- To the right of the **Console** are some useful buttons:
-    - 📌 Pins the Proxyshop window, so it remains above all other running programs
-    - 📷 Takes a screenshot of the Proxyshop window, saves to: `out/screenshots/`
-    - 🌍 Opens your default web browser, navigating to Proxyshop's GitHub page
-    - ❔ Opens your default web browser, navigating to our community Discord server
-    - **Continue**: Becomes active when app is waiting for a user response, either when manual editing is enabled or an error has occurred.
-    - **Cancel**: Becomes active when cards are being rendered, can cancel the render operation at any time or if an error occurs.
-    - **Update**: Opens the **Updater** panel which allows you to download new templates and update existing ones.
+### Rendering
 
-### Custom Creator Tab
-- This tab controls the custom card creator.
-- This feature is currently considered **experimental beta** and may have issues.
-- You can currently render **Normal**, **Planeswalker**, or **Saga** cards, just fill in the appropriate data and hit **Render Custom**.
-- More features and card types will be added in the near future.
+- **Render**: Opens a file picker for choosing images to render. Template used for rendering is determined based on the tab you are in and what templates you have selected. Completed renders are saved to `out/` under Proxyshop's directory. The chosen files can also be YAML (.yaml, .yml) or JSON (.json), see [Render Specifications](#render_specifications) and [Custom Cards](#custom_cards) for details.
+- **Templates tab**: Allows selecting a specific template to render cards in. If a card has a layout that isn't supporeted by the selected template it won't be rendered.
+- **Batch mode tab**: Allows selecting a different template per card layout (e.g. Normal, Transform, Planeswalker, etc.). If some layout is left without a selection cards of that type are skipped. The batch mode is similar to how the old Proxyshop GUI used to function.
+- **Queue**: Allows viewing what cards have been queued for rendering. Individual entries can be removed from the queue or the whole queue can be cleared.
+- **Cancel/Resume**: Cancel aborts rendering. The currently active operation is removed but the rest of the queue is left intact. Resume can be used to proceed with the rest of the queue after a cancel.
 
-### Tools Tab
-- This tab contains a growing list of helpful tools and utilities.
-- **Render All Showcases**: Generates a bordered showcase image for each card image in the `out/` folder, showcases will be placed in `out/showcase/`.
-- **Render Target Showcase**: Opens a file select in Photoshop, generates a bordered showcase image for each card image you select.
-- **Compress Renders**: This tool reduces the size of card images stored in the `out/` folder. The settings are:
-    - **Quality**: JPEG save quality of the compressed image, supports a number between 1 and 100. (**Recommended**: 95-99)
-    - **Optimize**: Enables Pillow's automatic "optimize" flag. Lowers filesize by a small margin for no discernible downside. (**Recommended**: On)
-    - **800 DPI**: Downscales card images above 800 DPI to a maximum of 800 DPI. Most Proxyshop templates are 1200 DPI which is much higher than anyone really needs. Most printing services do not print above 800 DPI. (**Recommended**: On)
+### Render Specifications
 
-# 🐍 Setup Guide (Python Environment)
-Setting up the Python environment for Proxyshop is intended for advanced users, contributors, and anyone who wants to 
-get their hands dirty making a plugin or custom template for the app! This guide assumes you already have Python installed.
-See the badge above for supported Python versions.
-1. Install Poetry with pipx.
-    ```bash
-    # Install pipx and poetry
-    python -m pip install --user pipx
-    python -m pipx ensurepath
-    pipx install poetry
-    ```
+You can load a YAML file (.yaml or .yml) which contains a specification for queueing multipe cards at once. In these specifications you can add settings to cards without changing their filenames, as well as use glob-patterns to queue multiple files with the same settings. A schema for render specifications is available in the `schemas` folder.
+
+<details>
+
+<summary>Expand for a description and usage-example of Render Specifications</summary>
+
+- Reusable configurations can be defined as follows:
+```yml
+- configs:
+  DOM: "[DOM]" # This config specifies the set DOM
+  SLD: "[sym=STAR]" # Force the STAR set-icon
+```
+
+- Cards to render can be defined as follows:
+```yml
+- files:
+  # Just a string, which is a path relative to the Render Specification
+  - "Normal/*.*" # Render all cards in the folder Normal
+  # A string, which is a path relative to the Render Specification
+  # and a string with additional settings
+  - file: "Borderless/*.*" # Render all cards in the folder Borderless ...
+    settings: "[tmpl=Borderless]" # ... using the Borderless template
+  # Settings can also be a list of strings, and can use the configs defined earlier
+  - file: "UB/*.*"
+    settings:
+      - "[tmpl=Universes Beyond]"
+      - "SLD"
+```
+In the above example, if you have a file `UB/Dungeon Descent.png` it will be rendered from that file, but as if its filename was `Dungeon Descent [tmpl=Universes Beyond] [sym=STAR].png`. Since the same is true for all files in the `UB` folder this makes it easy to render batches of files without fiddling with many filenames.
+
+- Lastly, you can also define groups, which contain a set of files (or other groups) and settings:
+```yml
+- groups:
+  - files: # List of files in this group, same syntax as bove
+    - "Normal/*.*"
+    - file: "Borderless/*.*"
+      settings: "[tmpl=Borderless]"
+    - file: "UB/*.*"
+      settings:
+        - "[tmpl=Universes Beyond]"
+        - "SLD"
+  - settings: "(My Favorite Artist)" # Render all files as being by this artist
+```
+</details>
+
+#### Scene/Panorama Renders
+One example use-case of the _Render Specifications_ is the rendering of scenes, internally referred to as panoramas. An example of a scene are the six cards with Collector Number from _301_ to _306_ in the set _TLA_. To render a panorama of these cards from a single seamless artwork is currently not possible without _Render Specifications_. The following would render this scene:
+```yaml
+configs:
+  AVATAR:
+    - "[art=Avatar-Scene.png]"
+    - "[pano_size=3x2]"
+    - "[pano_elem=${GROUP_INDEX}]"
+
+groups:
+  files:
+    - "Combustion Technique"
+    - "Zuko, Conflicted"
+    - "Azula, Cunning Usurper"
+    - "Aang, at the Crossroads"
+    - "Katara, the Fearless"
+    - "Dai Li Agents"
+  settings: "AVATAR"
+```
+
+Note the reusable configuration _AVATAR_, which defines the size of the panorama as well as each card's position in that panorama. `${GROUP_INDEX}` will simply be replaced by the position in the list of files for each card. Lastly the art is replaced with the seamless art in the file `Avatar-Scene.png`. Once this _Render Specification_ is fully evaluated it will contain the following renders.
+```txt
+Combustion Technique [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=0]
+Zuko, Conflicted [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=1]
+Azula, Cunning Usurper [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=2]
+Aang, at the Crossroads [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=3]
+Katara, the Fearless [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=4]
+Dai Li Agents [art=Avatar-Scene.png] [pano_size=3x2] [pano_elem=5]
+```
+Proxyshop will use these to automatically position the artwork within the frame such that the resulting cards will seamlessly fit next to each other once bleed edge is trimmed.
+
+### Updater
+
+The updater window allows downloading and updating template files. The files can originate from Proxyshop or installed plugins.
+
+- **Install**: Downloads a tempalte file.
+- **Update**: Downloads an updated version of a template file. Be aware that if you have made local changes to the file that is about to be updated those changes will be lost as the old file is overwritten. Please note that Proxyshop records templates' versions only when downloading them via the updater, so if you source templates manually from elsewhere they will be assumed to have some default version and even if they don't actually have a newer version available the update option is still offered, assuming the templates can be downloaded via the updater as well.
+
+### Settings
+
+The settings window allows modifying Proxyshop's behavior. The settings can be accessed via the *Settings* button or via the template specific settings buttons within the templates list.
+
+- **Application**: App wide settings.
+- **Template defaults**: These settings are used when rendering if the used template doesn't have template specific settings.
+- **Templates**: A tree of template specific settings. If a template is given template specific settings they completely override the **Template defaults**. Template specific settings become active by simply selecting a template entry in the settings tree. Press **Clear** when some template specific settings are open to remove them from use, consequently returning to use **Template defaults** for that template.
+
+### Custom cards
+
+You may supply Proxyshop with image and JSON pairs to render cards with custom specifications. The image's card name part and the JSON file's name, excluding suffix, should be the same, e.g. *my_custom_card (artist).png* and *my_custom_card.json*. The JSON file should contain a valid [Scryfall card specification](https://scryfall.com/docs/api/cards). Look up `class ScryfallCard` from the source code if you want to know the specifics of the data validation. An easy way to make the JSON is to look up a similar card from Scryfall, download the JSON for that card via Scryfall's web GUI (*Copy-pasteable JSON* on the card's page) and modify the downloaded JSON.
+
+### Plugins
+
+Plugins add extra templates to Proxyshop. The Plugin manager window allows downloading and updating plugins. Proxyshop can automatically check updates for plugins installed via the Plugin manager.
+
+- **Add plugin**: Adds a plugin from a given Git repository. Using non-GitHub Git repositories requires Git to be installed and available in PATH. GitHub repositories are fetched using the GitHub REST API, so they don't require anything extra.
+- **Download**: Downloads and activates a plugin.
+- **Update**: Downloads the latest version of a plugin and overrides the old installed version.
+- **Uninstall**: Deletes the plugin's directory, including downloaded templates and saved settings.
+
+### Tools
+
+- **Transform images**: Allows re-encoding and downscaling chosen images. Completed transformations are saved to `compressed/` next to the input image.
+
+# 🐍 Setup Guide
+Setting up the Python & Node.js environments for Proxyshop is intended for advanced users, contributors, and anyone who wants to get their hands dirty making a plugin or custom template for the app!
+1. Install requirements:
+  - [uv](https://docs.astral.sh/uv/getting-started/installation/)
+  - Python. See `pyproject.toml` for supported versions. E.g., you may install Python with uv:
+     ```bash
+     uv python install 3.14
+     ```
+  - Node.js
+  - Fonts included in the `fonts/` folder
 2. Clone Proxyshop somewhere on your system, we'll call this the ***root directory***.
     ```bash
     git clone https://github.com/MrTeferi/Proxyshop.git
@@ -121,29 +207,71 @@ See the badge above for supported Python versions.
 3. Navigate to the **root directory** and install the project environment.
     ```bash
     cd proxyshop
-    poetry install
+    uv sync
+    npm install
+    npm run build
     ```
-4. Install the fonts included in the `fonts/` folder. Do not delete these after install, some are used by the GUI.
-5. Create a folder called `art` in the root directory. This is where you place art images for cards you wish to render.
-6. Run the app.
+4. Run the app.
     ```bash
-    # OPTION 1) Execute via poetry
-    poetry run main.py
-    
-    # OPTION 2) Enter the poetry environment, then execute with cli
-    poetry shell
-    proxyshop gui
+    # OPTION 1) Activate the virtual environment and run the app's entrypoint with Python
+    ./.venv/Scripts/Activate
+    python main.py
+
+    # OPTION 2) Execute via uv
+    uv run main.py
     ```
-7. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
+5. Refer to the [usage guide](#-using-the-proxyshop-gui) for navigating the GUI.
+
+# 🖥 Development Environment
+
+If you want to contribute to Proxyshop you should ensure that your code plays well with the strict type checking of [Pyright](https://github.com/microsoft/pyright) or [Mypy](https://github.com/python/mypy). For example, using [VS Code](https://code.visualstudio.com/) with the extensions below will allow you to see type checking results and take advantage of code completions, such as auto-imports, while writing code, though you are free to use any other setup that suits you as well:
+ - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+ - [Python Debugger](https://marketplace.visualstudio.com/items?itemName=ms-python.debugpy)
+ - [Python Environments](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-python-envs)
+ - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
+
+Additionally if you want to do UI development the extensions below will help with that. These aren't needed for template plugin development.
+- [Qt Core](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.qt-core)
+- [Qt Python](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.qt-python)
+- [Qt Qml](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.qt-qml)
+
+After installing the Qt extensions add your absolute path to `./src/gui` to the `qt-qml.qmlls.additionalImportPaths` setting in VS Code. Without it qmllint won't recognize local Qml imports. At the time of writing the qmllint, provided by the Qt Qml extension, doesn't recognize context defined in Python so warnings within the Qml files are expected.
+
+# 🔬 Tests
+
+## Template renders
+
+Predefined template test render cases may be run via the _Tests_ menu in the GUI. The currently chosen template or batch mode configuration determines which templates are tested when choosing to run template specific tests. The _Quick_ tests queue only the first test case for each layout.
+
+## Automatic tests
+
+Automatic tests are defined under the `/tests` directory. All of them can be run with the command:
+```bash
+pytest ./tests
+```
 
 # 💾 Download Templates Manually
 If you wish to download the templates manually, visit [this link](https://drive.google.com/drive/u/1/folders/1sgJ3Xu4FabxNgDl0yeI7OjDZ7fqlI4p3). These archives must be extracted to the `/templates` 
 directory. The archives found within the **Investigamer** and **SilvanMTG** drive folders must be extracted to 
 `/plugins/Investigamer/templates` and `/plugins/SilvanMTG/templates` respectively.
 
+# 🔩 Build the App
+
+If you want to make a distributable executable of Proxyshop run the following command:
+```bash
+pyinstaller -n Proxyshop --onefile --icon "./src/img/favicon.ico" --distpath "./dist" --console --add-data "src/gui/qml:src/gui/qml" --add-data "src/img/favicon.ico:src/img/favicon.ico" main.py
+```
+
+Additionally the following directories and their contents should be distributed alongside the executable:
+- /dist_js
+- /fonts
+- /plugins
+- /templates
+- /src/data
+- /src/img
 
 # 💌 How can I support Proxyshop?
-Feel free to [join our discord](http://discord.gg/magicproxies) and participate in the `#Proxyshop` channel where we are constantly brainstorming and 
+Feel free to [join our discord](https://discord.gg/magic-proxies-889831317066358815) and participate in the `#Proxyshop` channel where we are constantly brainstorming and 
 testing new features, dropping beta releases, and sharing new plugins and templates. Also, please consider supporting 
 [our Patreon](http://patreon.com/mpcfill) which pays for S3 + Cloudfront hosting of Proxyshop templates and allows us the freedom to work on the app, 
 as well as other applications like MPC Autofill, MTG Art Downloader, and more! If Patreon isn't your thing, you can also buy 
@@ -187,8 +315,8 @@ may cause errors on some templates.
   Where is a good place to find high quality MTG art?
 </summary>
   
-Your best resource is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/ESRGAN.
-On our [discord](https://discord.gg/magicproxies) we provide a lot of resources for learning how to upscale art easily and effectively.
+Your best resource is going to be [MTG Pics](https://mtgpics.com), to improve art quality even more you can look into upscaling with Topaz/Chainner/Upscayl/ComfyUI.
+On our [discord](https://discord.gg/magic-proxies-889831317066358815) we provide a lot of resources for learning how to upscale art easily and effectively.
 For mass downloading art, view my other project: [MTG Art Downloader](https://github.com/MrTeferi/MTG-Art-Downloader)
   
 </details>
@@ -270,6 +398,7 @@ In your proxyshop directory, look for a folder named `logs`, inside that folder 
     - iDerp
     - Tupinambá (Pedro Neves)
 - Andrew Gioia for his various font projects which have been of use for Proxyshop in the past.
+- AmProsius for additional Proxyglyph adjustments.
 - John Prime, Haven King, and members of [CCGHQ](https://www.slightlymagic.net/forum/viewtopic.php?f=15&t=7010) for providing expansion symbol SVG's.
 - Hal and the other contributors over at [Photoshop Python API](https://github.com/loonghao/photoshop-python-api).
 - Wizards of the Coast and all the talented artists who make Magic the Gathering a reality.

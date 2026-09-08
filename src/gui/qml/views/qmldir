@@ -1,0 +1,9 @@
+module qml.views
+TemplateList TemplateList.qml
+TemplateDetails TemplateDetails.qml
+BatchRenderView BatchRenderView.qml
+Console Console.qml
+RenderQueue RenderQueue.qml
+SettingsWindow SettingsWindow.qml
+TemplateUpdater TemplateUpdater.qml
+PluginUpdater PluginUpdater.qml

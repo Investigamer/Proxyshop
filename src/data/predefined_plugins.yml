@@ -1,0 +1,23 @@
+proxy_stuff-pappnu:
+  name: "Proxy Stuff"
+  author: "pappnu"
+  github_author: "pappnu"
+  github_repo: "proxy_stuff"
+
+proxyshop-plugin-warpdandy-pappnu:
+  name: "WarpDandy"
+  author: "WarpDandy"
+  github_author: "pappnu"
+  github_repo: "proxyshop-plugin-warpdandy"
+
+proxyshop-plugin-torres-pappnu:
+  name: "Torres"
+  author: "Torres"
+  github_author: "pappnu"
+  github_repo: "proxyshop-plugin-torres"
+
+proxyshop_plugin-Gavin-Bowers:
+  name: "[Gavin]"
+  author: "[Gavin]"
+  github_author: Gavin-Bowers
+  github_repo: "proxyshop_plugin"

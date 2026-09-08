@@ -11,6 +11,10 @@ Mountain = "Basic Land"
 "Ghost Ark" = "Vehicle"
 "Graven Lore" = "Snow"
 Terminus = "Miracle"
+"Elemental [TCMM] {37}" = "Dual Color No Text Token"
+"Tuktuk the Returned [TCM2] {15}" = "Legendary Token"
+"Treasure [TSNC]" = "One Line Token"
+"Rock [TCMR]" = "Multiline Token"
 
 [transform_front]
 "Docent of Perfection [EMN]" = "Moon Eldrazi DFC"
@@ -26,6 +30,8 @@ Terminus = "Miracle"
 "Havengul Mystery [SLX]" = "Land DFC"
 "Dragon-Kami's Egg [NEO]" = "Fan DFC"
 "Optimus Prime, Autobot Leader [BOT]" = "Convert DFC"
+"Azcanta, the Sunken Ruin" = "Ixalan Legendary Land"
+"Ragnarok, Divine Deliverance [FIN]" = "Dual Color Meld DFC"
 
 [mdfc_front]
 "Plargg, Dean of Chaos" = "Legendary Creature"
@@ -34,9 +40,6 @@ Terminus = "Miracle"
 [mdfc_back]
 "Journey to the Oracle" = "Noncreature"
 "Harnfel, Horn of Bounty" = "Artifact"
-
-[ixalan]
-"Azcanta, the Sunken Ruin" = "Legendary Land"
 
 [mutate]
 Gemrazer = "Creature"
@@ -50,6 +53,7 @@ Gemrazer = "Creature"
 
 [leveler]
 "Guul Draz Assassin" = "Creature - 2"
+"Lighthouse Chronologist" = "Blank Level"
 
 [saga]
 "Time of Ice" = "Mono Color"
@@ -57,15 +61,25 @@ Gemrazer = "Creature"
 "The Elder Dragon War" = "Read Ahead"
 "The Great Synthesis [MOM]" = "Transform Back"
 "The Restoration of Eiganjo" = "Transform Front"
+"Bahamut, Warden of Light" = "Legendary Transform Back Creature"
+"Summon: Fat Chocobo" = "Creature with Flavor text"
 
 [class]
 "Wizard Class" = "Mono Color"
 "Rogue Class" = "Dual Color"
 
+[case]
+"Case of the Filched Falcon" = "Mono"
+"Case of the Shattered Pact" = "Colorless"
+
 [planeswalker]
 "Liliana of the Veil" = "Mono"
 "Kasmina, Enigma Sage" = "Dual"
 "Karn Liberated" = "Colorless"
+
+[prepare]
+"Emeritus of Truce [SOS] {13}" = "Mono Color with Instant"
+"Lluwen, Exchange Student [SOS] {199}" = "Legendary Dual Color with Sorcery"
 
 [prototype]
 "Rust Goliath" = "Flavor text"
@@ -86,12 +100,6 @@ Gemrazer = "Creature"
 [planar]
 "Pools of Becoming" = "Planar"
 
-[token]
-"Zombie [TMBS]" = "No Text"
-"Treasure [TSNC]" = "One Line"
-"Rock [TCMR]" = "Multiline"
-"Human Cleric [TELD]" = "Multicolor"
-
 [split]
 "Fire [UMA]" = "Two Colors"
 "Integrity [GRN]" = "Gold"
@@ -101,3 +109,8 @@ Gemrazer = "Creature"
 "Invasion of Kaldheim [MOM]" = "Mono Color"
 "Invasion of Tolvada [MOM]" = "Dual Color"
 "Invasion of Alara [MOM]" = "Gold"
+
+[station]
+"Adagia, Windswept Bastion" = "Mono Land"
+"Extinguisher Battleship" = "Colorless"
+"Inspirit, Flagship Vessel" = "Legendary Multi Color"

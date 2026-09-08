@@ -1,21 +1,18 @@
 """
 * Mutate Templates
 """
-# Standard Library
+
+from collections.abc import Callable
 from functools import cached_property
-from typing import Optional, Callable
 
-# Third Party Imports
-from photoshop.api.application import ArtLayer
+from photoshop.api._artlayer import ArtLayer
 
-# Local Imports
-from src import CFG
+import src.helpers as psd
+import src.text_layers as text_classes
 from src.cards import strip_reminder_text
 from src.enums.layers import LAYERS
-import src.helpers as psd
 from src.layouts import MutateLayout
 from src.templates._core import NormalTemplate
-import src.text_layers as text_classes
 from src.utils.adobe import ReferenceLayer
 
 """
@@ -36,9 +33,11 @@ class MutateMod(NormalTemplate):
     """
 
     @cached_property
-    def text_layer_methods(self) -> list[Callable]:
+    def text_layer_methods(self) -> list[Callable[[], None]]:
         """Add Mutate text layers."""
-        funcs = [self.text_layers_mutate] if isinstance(self.layout, MutateLayout) else []
+        funcs = (
+            [self.text_layers_mutate] if isinstance(self.layout, MutateLayout) else []
+        )
         return [*super().text_layer_methods, *funcs]
 
     """
@@ -46,7 +45,7 @@ class MutateMod(NormalTemplate):
     """
 
     @cached_property
-    def text_layer_mutate(self) -> Optional[ArtLayer]:
+    def text_layer_mutate(self) -> ArtLayer | None:
         """Text layer containing the mutate text."""
         return psd.getLayer(LAYERS.MUTATE, self.text_group)
 
@@ -55,7 +54,7 @@ class MutateMod(NormalTemplate):
     """
 
     @cached_property
-    def mutate_reference(self) -> Optional[ReferenceLayer]:
+    def mutate_reference(self) -> ReferenceLayer | None:
         """Mutate textbox reference."""
         return psd.get_reference_layer(LAYERS.MUTATE_REFERENCE, self.text_group)
 
@@ -65,9 +64,8 @@ class MutateMod(NormalTemplate):
 
     def process_layout_data(self) -> None:
         """Remove reminder text for mutate text if required."""
-        if CFG.remove_reminder:
-            self.layout.mutate_text = strip_reminder_text(
-                self.layout.mutate_text)
+        if self.config.remove_reminder and isinstance(self.layout, MutateLayout):
+            self.layout.mutate_text = strip_reminder_text(self.layout.mutate_text)
         super().process_layout_data()
 
     """
@@ -78,11 +76,14 @@ class MutateMod(NormalTemplate):
         """Add text layers required by Mutate cards."""
 
         # Add mutate text
-        self.text.append(
-            text_classes.FormattedTextArea(
-                layer=self.text_layer_mutate,
-                contents=self.layout.mutate_text,
-                reference=self.mutate_reference))
+        if isinstance(self.layout, MutateLayout) and self.text_layer_mutate:
+            self.text.append(
+                text_classes.FormattedTextArea(
+                    layer=self.text_layer_mutate,
+                    contents=self.layout.mutate_text,
+                    reference=self.mutate_reference,
+                )
+            )
 
 
 """

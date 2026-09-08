@@ -1,0 +1,12 @@
+module qml.components
+Badge Badge.qml
+CustomButton CustomButton.qml
+CustomCheckBox CustomCheckBox.qml
+CustomComboBox CustomComboBox.qml
+CustomItemDelegate CustomItemDelegate.qml
+CustomMenu CustomMenu.qml
+CustomMenuItem CustomMenuItem.qml
+CustomSpinBox CustomSpinBox.qml
+CustomTabButton CustomTabButton.qml
+CustomTextField CustomTextField.qml
+SelectableText SelectableText.qml
